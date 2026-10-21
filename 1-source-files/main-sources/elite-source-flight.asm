@@ -8273,6 +8273,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update the dashboard: speed indicator
+\       Area: cold
 \  Deep dive: The dashboard indicators
 \
 \ ------------------------------------------------------------------------------
@@ -8320,6 +8321,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update the dashboard: pitch and roll indicators
+\       Area: cold
 \  Deep dive: The dashboard indicators
 \
 \ ******************************************************************************
@@ -8385,6 +8387,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update the dashboard: four energy banks
+\       Area: cold
 \  Deep dive: The dashboard indicators
 \
 \ ------------------------------------------------------------------------------
@@ -8396,9 +8399,10 @@ ENDIF
 \ ******************************************************************************
 
  LDA MCNT               \ Fetch the main loop counter and calculate MCNT mod 4,
- AND #3                 \ jumping to rT9 if it is non-zero. rT9 contains an RTS,
- BNE rT9                \ so the following code only runs every 4 iterations of
-                        \ the main loop, otherwise we return from the subroutine
+ AND #3                 \ returning from the subroutine if it is non-zero, so
+ BEQ P%+3               \ the following code only runs every 4 iterations of
+ RTS                    \ the main loop (Port: the original jumped to the RTS at
+                        \ rT9, in TT26, which is in the home bank)
 
  LDY #0                 \ Set Y = 0, for use in various places below
 
@@ -8509,6 +8513,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update the dashboard: shields, fuel, laser & cabin temp, altitude
+\       Area: cold
 \  Deep dive: The dashboard indicators
 \
 \ ******************************************************************************
@@ -8578,6 +8583,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Fetch the current dashboard colours, to support flashing
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -8639,6 +8645,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update a bar-based indicator on the dashboard
+\       Area: cold
 \  Deep dive: The dashboard indicators
 \
 \ ------------------------------------------------------------------------------
@@ -19552,6 +19559,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update the compass
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -19576,6 +19584,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (Y X) = A / 10
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -19639,6 +19648,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Maths (Geometry)
 \    Summary: Calculate the vector to the space station
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -19672,6 +19682,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Draw the space station on the compass
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -19688,6 +19699,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Draw a dot on the compass, given the planet/station vector
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \

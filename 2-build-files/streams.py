@@ -305,6 +305,14 @@ def tokens(code):
     return out
 
 
+def mnemonic(st, a):
+    """whether the identifier at st[a:] is the statement's instruction or
+    directive (its first word, after any label definitions), not an operand:
+    a label may share its name with a mnemonic (SCAN's .RTS)"""
+    m = re.match(r"^(\s*\.[A-Za-z_][A-Za-z0-9_]*%?)*\s*", st)
+    return a == m.end() and not st[:a].rstrip().endswith(".")
+
+
 def defined(lines):
     """[(name, line)] of the labels the lines define (.name)"""
     out = []
@@ -399,7 +407,7 @@ def glue(prog, src, copies, errors, lines, bl, falls):
             continue
         if not act[i]:                     # (a branch the build leaves out: the
             for a, b, name in reversed(tokens(code)):   # names, but no stubs)
-                if name in cold:
+                if name in cold and not mnemonic(code, a):
                     code = code[:a] + name + "_C" + code[b:]
             m = re.match(r"^(\s*(?:JSR|JMP)\s+)([A-Za-z_]\w*)(.*)$", code, re.I)
             if m and m.group(2) in hot and m.group(2) not in cold:
@@ -425,7 +433,7 @@ def glue(prog, src, copies, errors, lines, bl, falls):
                 pos = off + len(st)
                 continue
             for a, b, name in tokens(st):
-                if name in cold:
+                if name in cold and not mnemonic(st, a):
                     new += code[pos:off + a] + name + "_C"
                     pos = off + b
                 m2 = re.match(r"^(xh_|jh_)(.+)$", name)
