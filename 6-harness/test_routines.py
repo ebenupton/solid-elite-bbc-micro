@@ -183,6 +183,18 @@ TESTS = [
     ("DVID3B2", "DVID3B2", lambda: ((a, 0x81, 0x5A, c, {"P": p, "P+1": p1, "INWK+6": zl, "INWK+7": zh, "INWK+8": zs}) for a, p, p1, zl, zh, zs, c in
         ((a, p, p1, zl, zh, zs, c) for a, p, p1, zl, zh, zs, c in sample(4000 if QUICK else 300000, B, B, B, B, B, list(range(4)) + [0x80, 0x81, 0x7F, 0xFF], [0, 1]) if zl | zh | (zs & 0x7F))),
      ["A", "X", "Y", "N", "Z", "C", "K", "K+1", "K+2", "K+3", "P", "P+1", "P+2", "Q", "R", "S", "T"]),
+    ("ADD", "ADD", lambda: ((a, 0x81, 0x5A, c, {"P": pp, "R": r, "S": ss, "T": 0x33, "T1": 0x44}) for a, pp, r, ss, c in
+        sample(20000 if QUICK else 400000, B, B, B, B, [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "R", "S", "T", "T1"]),
+    ("ADD", "ADD", lambda: ((a, 0x81, 0x5A, c, {"P": pp, "R": pp ^ d, "S": a ^ 0x80 ^ e, "T": 0x33, "T1": 0x44}) for a, pp, d, e, c in
+        grid(B, [0, 1, 2, 0x7F, 0x80, 0xFE, 0xFF], [0, 1, 2, 0x80], [0, 1, 0x80, 0x81], [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "R", "S", "T", "T1"]),
+    ("MAD", "MAD", lambda: ((a, 0x81, 0x5A, c, {"Q": q, "P": 0x55, "R": r, "S": ss, "T": 0x33, "T1": 0x44}) for a, q, r, ss, c in
+        sample(20000 if QUICK else 400000, B, [0, 0x80, 1, 0x81] + list(B), B, B, [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R", "S", "T", "T1"]),
+    ("TAS3", "TAS3", lambda: ((0, 0x81, y, c, {"XX15": x0, "XX15+1": x1, "XX15+2": x2, "INWK+%d" % y: v0, "INWK+%d" % (y + 2): v1, "INWK+%d" % (y + 4): v2}) for y, x0, x1, x2, v0, v1, v2, c in
+        sample(5000 if QUICK else 300000, [10, 12, 14, 16, 18, 20], B, B, B, [0, 0x80] + list(B), [0, 0x80] + list(B), [0, 0x80] + list(B), [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R", "S", "T", "T1"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]
