@@ -65,8 +65,12 @@
 //    (another catalogue, other file sizes) leaves other bytes there. So a byte
 //    of the compared state that the MOS, a ROM (DFS) or the NMI handler (page
 //    &0D) writes is "filing system" until game code writes it again, and is
-//    left out of the comparison meanwhile, in both runs. A byte the game reads
-//    before writing it would show up as a divergence elsewhere.
+//    left out of the comparison meanwhile, in both runs. The original does
+//    read some of them before writing them: the stardust's fractional parts
+//    (SXL, SYL, SZL in WP) are never set when new stardust is made, so they
+//    keep whatever the disc catalogue left there. So at each MLOOP and each
+//    pass of M%, any filing-system byte above page 0 that the game has still
+//    not written is set to 0, in both runs, and is game state from then on.
 import { MachineSession } from "./jsbeeb.mjs";
 import { readFileSync, existsSync } from "fs";
 import { dirname, resolve } from "path";
@@ -94,10 +98,17 @@ export function loadSyms(path) {
 export function loadBuild(file) {
     const d = JSON.parse(readFileSync(file, "utf8"));
     const p = f => resolve(dirname(file), f);
-    const prog = (name, o) => ({
-        name, sy: loadSyms(p(o.syms)),
-        images: o.images.map(([f, map, base]) => ({ data: readFileSync(p(f)), map, base: parseInt(base, 16) })),
-    });
+    // (o.banks: the build's file of each label's bank role, "label H" or
+    // "label C", for labels in sideways RAM; without it, every label is in
+    // its image's mapping by address, as in the original)
+    const prog = (name, o) => {
+        const sy = loadSyms(p(o.syms)), bank = {};
+        if (o.banks) for (const l of readFileSync(p(o.banks), "utf8").split("\n")) { const [n, r] = l.trim().split(/\s+/); if (n && r) bank[n] = r; }
+        return {
+            name, sy, bank,
+            images: o.images.map(([f, map, base]) => ({ data: readFileSync(p(f)), map, base: parseInt(base, 16) })),
+        };
+    };
     return {
         file, disc: p(d.disc), progs: { flight: prog("flight", d.flight), docked: prog("docked", d.docked) },
         loader: loadSyms(p(d.loader)), banks: d.banks || {},
@@ -128,6 +139,7 @@ export const TIMING_EXCLUDE = {
 // game writes them before it reads them)
 export const RELOC_EXCLUDE = {
     V: [2, "temporary; the token printers leave V(1 0) pointing into the token tables"],
+    "P+1": [2, "temporary; BULB leaves P(2 1) pointing at a bulb's character data (SPBT, ECBT)"],
 };
 // Drawing temporaries and heaps: excluded with --loose (for builds whose drawing
 // differs; the pilot and the game logic never read them across iterations)
@@ -146,9 +158,10 @@ export const DRAW_EXCLUDE = {
 export function excludeSet(sy, lists) {
     const ex = new Map();
     for (const list of lists) for (const [n, [len0, why]] of Object.entries(list)) {
-        if (sy[n] === undefined) continue;
+        const [base, off] = n.split("+");          // ("name+offset")
+        if (sy[base] === undefined) continue;
         const len = typeof len0 === "function" ? len0(sy) : len0;
-        for (let i = 0; i < len; i++) ex.set(sy[n] + i, `${n}: ${why}`);
+        for (let i = 0; i < len; i++) ex.set(sy[base] + (+off || 0) + i, `${n}: ${why}`);
     }
     // with the drawing exclusions, also the ship line heap (the K% blocks
     // end at K% + NOSH * NI%; the heap grows down from &0CFF)
@@ -170,12 +183,15 @@ export function canonFor(b, regions) {
     const offOf = a => { let o = 0; for (const [s, n] of regions) { if (a >= s && a + 1 < s + n) return o + a - s; o += n; } return -1; };
     const offs = [sy.INWK + 33, ...Array.from({ length: 12 }, (_, i) => sy["K%"] + 37 * i + 33)].map(offOf).filter(o => o >= 0);
     const xx0 = offOf(sy.XX0);
-    const bpLo = sy.XX21, bpHi = sy.XX21 + (BP_END_ORIG - XX21_ORIG);
+    // (the flight code's XX21 is a constant, which BeebAsm does not list
+    // with the symbols; the docked code's is a label at the same place)
+    const xx21 = sy.XX21 ?? b.progs.docked.sy.XX21;
+    const bpLo = xx21, bpHi = xx21 + (BP_END_ORIG - XX21_ORIG);
     return buf => {
         if (sy.LSO !== LSO_ORIG) for (const o of offs) if ((buf[o] | buf[o + 1] << 8) === sy.LSO) { buf[o] = LSO_ORIG & 255; buf[o + 1] = LSO_ORIG >> 8; }
-        if (sy.XX21 !== XX21_ORIG && xx0 >= 0) {
+        if (xx21 !== XX21_ORIG && xx0 >= 0) {
             const v = buf[xx0] | buf[xx0 + 1] << 8;
-            if (v >= bpLo && v < bpHi) { const w = v - sy.XX21 + XX21_ORIG; buf[xx0] = w & 255; buf[xx0 + 1] = w >> 8; }
+            if (v >= bpLo && v < bpHi) { const w = v - xx21 + XX21_ORIG; buf[xx0] = w & 255; buf[xx0 + 1] = w >> 8; }
         }
         return buf;
     };
@@ -214,12 +230,16 @@ export function progHooks(b, cpu) {
         return typeof v === "number" ? v : rb(b.loader[v]);
     };
     const sig = (img, a) => [0, 1, 2].map(i => img.data[a + i - img.base]);
+    // (a routine that lives in the cold bank is hooked at its body, name_C:
+    // the home bank reaches it through a stub of the old name)
     const hookOf = (prog, name, off = 0) => {
         if (typeof prog === "string") prog = b.progs[prog];
+        if (prog.sy[name + "_C"] !== undefined) name += "_C";
         const a0 = prog.sy[name];
         if (a0 === undefined) return null;
         const a = a0 + off;
-        const img = prog.images.find(im => a >= im.base && a + 3 <= im.base + im.data.length);
+        const role = prog.bank[name];
+        const img = prog.images.find(im => (role === undefined || im.map === role) && a >= im.base && a + 3 <= im.base + im.data.length);
         if (!img) throw new Error(`${prog.name} ${name}: not in any image`);
         return { prog, name, a, map: img.map, sig: sig(img, a) };
     };
@@ -260,7 +280,7 @@ export async function runElite(opts) {
     const fsy = b.progs.flight.sy;
     const isRamBank = n => !!s._machine.processor.model.swram[n & 15];
 
-    const { hookOf, hookLd, live } = progHooks(b, cpu);
+    const { hookOf, hookLd, live, bankOf } = progHooks(b, cpu);
     const P = b.progs;
     const H = {};
     for (const p of [P.flight, P.docked]) {
@@ -282,29 +302,36 @@ export async function runElite(opts) {
     for (const pn of ["flight", "docked"]) for (const [k, h] of Object.entries(H[pn])) add(k, h);
     add("LAS", lasHook); add("LASN", lasNext);
 
-    // label lookup for call sites, per program
+    // label lookup for call sites, per program and mapping ("m": main RAM,
+    // or a bank role; a cold body's label, name_C, is reported as name)
     const labs = {};
     for (const p of [P.flight, P.docked]) {
-        const l = [];
-        for (const [k, v] of Object.entries(p.sy)) if (v >= 0x1000 && !/^(CODE|LOAD)/.test(k)) l.push([k, v]);
-        l.sort((x, y) => x[1] - y[1]);
+        const l = {};
+        for (const [k, v] of Object.entries(p.sy)) {
+            if (v < 0x1000 || /^(CODE|LOAD)/.test(k)) continue;
+            const m = v < 0x8000 || v >= 0xc000 ? "m" : (p.bank[k] || p.images.find(im => v >= im.base && v < im.base + im.data.length)?.map || "m");
+            (l[m] ||= []).push([k, v]);
+        }
+        for (const x of Object.values(l)) x.sort((x, y) => x[1] - y[1]);
         labs[p.name] = l;
     }
-    const labelOf = (prog, a) => {
-        const lab = labs[prog.name];
+    const roleOf = romsel => { for (const r of Object.keys(b.banks)) if (bankOf(r) === (romsel & 15)) return r; return null; };
+    const labelOf = (prog, a, romsel = cpu.romsel) => {
+        const lab = labs[prog.name][a < 0x8000 || a >= 0xc000 ? "m" : (roleOf(romsel) || "m")] || [];
         let lo = 0, hi = lab.length - 1, r = null;
         while (lo <= hi) { const m = (lo + hi) >> 1; if (lab[m][1] <= a) { r = lab[m][0]; lo = m + 1; } else hi = m - 1; }
-        return r;
+        return r && r.endsWith("_C") ? r.slice(0, -2) : r;
     };
     const stackWord = k => rb(0x100 + ((cpu.s + k) & 0xff)) | (rb(0x100 + ((cpu.s + k + 1) & 0xff)) << 8);
-    // the JSR whose return address is at S+k (seeing through far-call frames,
-    // if the build has them: a far call runs its target with the stack
-    // holding the return into the far-call code (farret), then the caller's
-    // ROMSEL, then the caller's own return address)
-    const callerAt = k => {
+    // the JSR whose return address is at S+k and the ROMSEL it ran with,
+    // seeing through far-call frames, if the build has them: a far call runs
+    // its target with the stack holding the return into the far-call code
+    // (farret), then the caller's ROMSEL, then the caller's own return
+    // address (romsel: what the code that owns S+k ran with)
+    const callerAt = (k, romsel = cpu.romsel) => {
         let w = stackWord(k);
-        while (b.loader.farret !== undefined && w + 1 === b.loader.farret) { k += 3; w = stackWord(k); }
-        return { site: w + 1 - 3, k };
+        while (b.loader.farret !== undefined && w + 1 === b.loader.farret) { romsel = rb(0x100 + ((cpu.s + k + 2) & 0xff)); k += 3; w = stackWord(k); }
+        return { site: w + 1 - 3, k, romsel };
     };
 
     const res = { snaps: [], fsDirty: [], screens: [], iterTimes: [], tt100Times: [], tt100AtIter: [], init: null, keyLog: [], events: [], s, cpu, regions, page0d: [] };
@@ -327,10 +354,10 @@ export async function runElite(opts) {
             case "RDKEY": {
                 if (!started) break;
                 const c = callerAt(1);
-                const site = labelOf(h.prog, c.site);
+                const site = labelOf(h.prog, c.site, c.romsel);
                 if (site === "DK4" || site === "FREEZE" || site === "DOKEY") break;   // (DOKEY's reads: the iteration's keys)
                 let waitFor = null;
-                if (site === "t" || site === "t2") { const w = callerAt(c.k + 2); waitFor = labelOf(h.prog, w.site); }
+                if (site === "t" || site === "t2") { const w = callerAt(c.k + 2, c.romsel); waitFor = labelOf(h.prog, w.site, w.romsel); }
                 keysDown = ask({ kind: "rdkey", site, callSite: c.site, waitFor, prog: pn, psy: h.prog.sy });
                 break;
             }
@@ -340,8 +367,8 @@ export async function runElite(opts) {
                 let down;
                 if (key === 1) {
                     const c = callerAt(1);
-                    const site = labelOf(h.prog, c.site);
-                    const w = site === "CTRL" ? labelOf(h.prog, callerAt(c.k + 2).site) : site;
+                    const site = labelOf(h.prog, c.site, c.romsel);
+                    const w = site;
                     down = opts.pilot.dks ? !!opts.pilot.dks({ ...ctxBase, kind: "dks4", key, site: w, prog: pn }) : false;
                     if (down) res.keyLog.push([iter, "CTRL:" + w, "1"]);
                 } else down = keysDown.includes(key);
@@ -351,12 +378,14 @@ export async function runElite(opts) {
             case "Mpc": {
                 const v = rb(fsy.LASCT);
                 if (v) cpu.ramRomOs[fsy.LASCT] = v - 1;
+                settle();
                 break;
             }
             case "LAS": lasSaved = rb(fsy.LASCT); break;
             case "LASN": if (lasSaved >= 0) { cpu.ramRomOs[fsy.LASCT] = lasSaved; lasSaved = -1; } break;
             case "MLOOP":
                 if (!started) break;
+                settle();
                 res.snaps.push(snapshot());
                 res.fsDirty.push(dirtyOffsets());
                 if (opts.screen) res.screens.push(screenHash());
@@ -425,6 +454,11 @@ export async function runElite(opts) {
         if (sysWriter()) dirty.add(a); else dirty.delete(a);
         return false;
     });
+    // the filing system's bytes above page 0 that the game has not written
+    // since: set to 0 (see the header)
+    function settle() {
+        for (const a of dirty) if (a >= 0x100) { cpu.ramRomOs[a] = 0; dirty.delete(a); }
+    }
     function dirtyOffsets() {
         if (!dirty.size) return null;
         return [...dirty].map(a => offOfAddr.get(a)).sort((x, y) => x - y);

@@ -1,6 +1,9 @@
 {
-  "disc": "../5-compiled-game-discs/elite-disc-sth.ssd",
-  "flight": { "syms": "flight-symbols.txt", "images": [["D.CODE.unprot.bin", "m", "11E3"]] },
-  "docked": { "syms": "docked-symbols.txt", "images": [["T.CODE.unprot.bin", "m", "11E3"]] },
-  "loader": "loader-symbols.txt"
+  "disc": "../5-compiled-game-discs/elite-modelb.ssd",
+  "flight": { "syms": "flight-symbols.txt", "banks": "flight-banks.txt",
+              "images": [["D.CODEH.bin", "H", "8000"], ["D.CODEC.bin", "C", "8000"]] },
+  "docked": { "syms": "docked-symbols.txt", "banks": "docked-banks.txt",
+              "images": [["T.CODEH.bin", "H", "8000"], ["T.CODEC.bin", "C", "8000"]] },
+  "loader": "loader-symbols.txt",
+  "banks": { "H": "BANKH", "C": "BANKC" }
 }

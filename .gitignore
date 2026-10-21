@@ -28,3 +28,8 @@ run.bat
 6-harness/work/
 2-build-files/__pycache__/
 3-assembled-output/*-symbols.txt
+3-assembled-output/elite-flight-*.asm
+3-assembled-output/elite-docked-*.asm
+3-assembled-output/elite-tokens-*.asm
+3-assembled-output/resident.asm
+3-assembled-output/*-banks.txt

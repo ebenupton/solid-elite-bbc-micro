@@ -30,6 +30,7 @@
 \ ******************************************************************************
 
  INCLUDE "1-source-files/main-sources/elite-build-options.asm"
+ INCLUDE "1-source-files/main-sources/elite-map.asm"    \ Port: the memory map
 
  GUARD &6000            \ Guard against assembling over screen memory
 
@@ -39,11 +40,13 @@
 \
 \ ******************************************************************************
 
- CODE% = &5600          \ The flight code runs this file at address &5600, at
-                        \ label XX21
+ CODE% = BPSLOT%        \ The flight code runs this file at address &5600, at
+                        \ label XX21 (Port: the blueprint slot in the flight
+                        \ code's home bank, docs/memory-map.md)
 
- LOAD% = &5600          \ The flight code loads this file at address &5600, at
-                        \ label XX21
+ LOAD% = BPSLOT%        \ The flight code loads this file at address &5600, at
+                        \ label XX21 (Port: it is staged in main RAM and copied
+                        \ there)
 
  SHIP_MISSILE = &7F00   \ The address of the missile ship blueprint
 

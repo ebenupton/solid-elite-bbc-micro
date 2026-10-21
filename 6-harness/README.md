@@ -55,10 +55,14 @@ cycles per flight iteration.
 * **Two programs** (`blib.mjs`). Disc Elite is two programs, the flight
   code and the docked code, and only one is in memory at a time. A build is
   described by a `build.json`: the disc, and for each program its symbols
-  and the images its code is in, with where each image is mapped. A hook is
-  a label of one program; it fires only when the PC is at the label in the
-  label's mapping and the bytes there are that program's, so the two
-  programs never confuse each other.
+  and the images its code is in, with where each image is mapped (main RAM
+  in the original; the home and cold banks in the port, whose numbers the
+  harness reads from the port's `BANKS`, with a file of each label's bank).
+  A hook is a label of one program (a routine that the port moved into its
+  cold bank is hooked at its body, `name_C`); it fires only when the PC is
+  at the label, in the label's bank, and the bytes there are that program's,
+  so the two programs never confuse each other. Call sites are named
+  through the port's far-call frames.
 * **Input injection.** The keyboard is never pressed. The disc version
   reads keys only in `DKS4`, one key at a time; at `DKS4+17`, just after the
   read, the harness sets the result for the pilot's keys. The pilot is asked
@@ -78,9 +82,10 @@ cycles per flight iteration.
   `WP`, and the saved commander `NA%`. Each region is found by symbol,
   wherever a build puts it. The state is recorded at every `MLOOP`, in
   either program.
-* **What is left out.** `DL`, the vsync flag, is real time. The temporary
-  `V`, which holds the address of the token tables, depends on where a
-  build puts them. The station's line heap pointer `LSO` and the blueprint
+* **What is left out.** `DL`, the vsync flag, is real time. The
+  temporaries `V` (left pointing into the token tables) and `P(2 1)` (left
+  pointing at a dashboard bulb's character data) depend on where a build
+  puts those. The station's line heap pointer `LSO` and the blueprint
   pointer `XX0` are compared as the original's.
 * **The laser pulse counter.** The disc version counts `LASCT` down in the
   interrupt handler, once per vsync, so a faster build would see it count
@@ -94,7 +99,11 @@ cycles per flight iteration.
   during a load, and `CATD` reads the catalogue over `WP`: the original
   relies on these bytes being dead. A build with another disc leaves other
   bytes there. So a byte that the MOS, a ROM or the NMI handler writes is
-  left out of the comparison until game code writes it again.
+  left out of the comparison until game code writes it again. The original
+  does read some of them first: new stardust gets only its whole parts, and
+  its fractional parts are whatever the catalogue left in `WP`. So at each
+  `MLOOP` and each pass of `M%`, any such byte above page 0 that the game
+  has not written is set to 0, in both runs, and is compared from then on.
 * **Boot leftovers.** At `TT170`, any byte of the compared state that the
   new build has not yet written is seeded from the reference (`--seed
   boot`). Such a byte was left by the boot and the loader, not by the game.

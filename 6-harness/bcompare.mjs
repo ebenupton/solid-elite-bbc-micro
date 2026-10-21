@@ -55,7 +55,8 @@ import { makeTracer } from "./btrace.mjs";
 import { parseArgs } from "./args.mjs";
 
 const args = parseArgs({ iters: "value", ref: "value", cand: "value", seed: "value", loose: "flag", window: "value",
-    out: "value", shots: "value", maxsecs: "value", nopatch: "flag", norefcache: "flag", views: "flag", trace: "value", screen: "flag" });
+    out: "value", shots: "value", maxsecs: "value", nopatch: "flag", norefcache: "flag", views: "flag", trace: "value", screen: "flag",
+    dump: "value" });
 const ITERS = +(args.iters || 5000);
 const REF = args.ref || REF_BUILD;
 const CAND = args.cand || CAND_BUILD;
@@ -217,6 +218,11 @@ if (args.screen) {
     for (let i = 0; i < n; i++) if (ref.screens[i] !== cand.screens[i]) sd.push(i);
     if (sd.length) { log(`SCREEN DIFFERS at ${sd.length} iterations, the first ${sd.slice(0, 10).join(" ")}`); ok = false; }
     else log(`Screen identical at all ${n} iterations`);
+}
+// --dump N: every byte that differs at iteration N, excluded or not
+if (args.dump !== undefined) {
+    const i = +args.dump, a = ref.snaps[i], b = cand.snaps[i];
+    if (a && b) for (let o = 0; o < a.length; o++) if (a[o] !== b[o]) log(`  dump ${i}: ${symName(offAddr[o])} (&${offAddr[o].toString(16)}): ref &${a[o].toString(16)} cand &${b[o].toString(16)}${ex.has(offAddr[o]) ? " (excluded)" : ""}`);
 }
 const complete = ref.iters === ITERS && cand.iters === ITERS && !ref.error && !cand.error;
 if (ok && firstDiv < 0) log(`Game state identical at all ${n} iterations${complete ? "" : " (INCOMPLETE run)"}`);

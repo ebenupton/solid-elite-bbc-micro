@@ -6,115 +6,35 @@
 #
 # Written by Mark Moxon
 #
-# This script applies encryption and checksums to the compiled binary for the
-# main game code. It reads these unencrypted binary files:
+# Port (docs/README.md): the port's binaries are neither encrypted nor
+# scrambled, as the copy protection is gone (its loader copies its images as
+# they are, and the programs' DEEOR has nothing to decrypt). This script now
+# only sets the default commander's checksum in the loader, which the docked
+# code's DFAULT checks when it copies the commander from NA%. It reads
 #
-#   * ELITE4.unprot.bin
-#   * D.CODE.unprot.bin
-#   * T.CODE.unprot.bin
+#   * 3-assembled-output/ELITE4.unprot.bin (the loader)
+#   * 3-assembled-output/loader-symbols.txt (its symbols, from beebasm -d)
 #
-# and generates encrypted versions as follows:
-#
-#   * ELITE4.bin
-#   * D.CODE.bin
-#   * T.CODE.bin
+# and writes 3-assembled-output/ELITE4.bin
 #
 # ******************************************************************************
 
 from __future__ import print_function
-import sys
+import re
 
-argv = sys.argv
-argc = len(argv)
-encrypt = True
-interlace_offset = 0
-scramble = True
-release = 1
-
-for arg in argv[1:]:
-    if arg == "-u":
-        encrypt = False
-    if arg == "-i":
-        interlace_offset = 21
-    if arg == "-rel1":
-        release = 1
-    if arg == "-rel2":
-        release = 2
-    if arg == "-rel3":
-        scramble = False
-        release = 3
-
-print("Disc Elite Checksum")
-print("Encryption = ", encrypt)
-print("Scramble main code = ", scramble)
-
-# Configuration variables for scrambling code and calculating checksums
-#
-# Values must match those in 3-assembled-output/compile.txt
-#
-# If you alter the source code, then you should extract the correct values for
-# the following variables and plug them into the following, otherwise the game
-# will fail the checksum process and will hang on loading
-#
-# You can find the correct values for these variables by building your updated
-# source, and then searching compile.txt for "elite-checksum.py", where the new
-# values will be listed
+sy = {}
+for m in re.finditer(r"'([^']+)':(\d+)", open("3-assembled-output/loader-symbols.txt").read()):
+    sy.setdefault(m.group(1), int(m.group(2)))
 
 load_address = 0x1900
+tvt1_code = sy["TVT1code"]
+tvt1 = sy["TVT1"]
+na_per_cent = sy["NA%"]
+chk2 = sy["CHK2"]
 
-# TVT1code block
-scramble1_from = 0x2962     # TVT1code
-scramble1_to = 0x2A62       # ELITE
-scramble1_eor = 0xA5
+data_block = bytearray(open("3-assembled-output/ELITE4.unprot.bin", "rb").read())
 
-# LOADcode block
-scramble2_from = 0x1AED     # LOADcode
-scramble2_to = 0x1B4F       # CATDcode
-scramble2_eor = 0x18
-
-# DIALS, SHIP_MISSILE and WORDS blocks
-scramble3_from = 0x1D4B     # DIALS
-scramble3_to = 0x294B       # OSBmod
-scramble3_eor = 0xA5
-
-# ELITE, ASOFT and CpASOFT blocks, plus padding to the end of the file
-if release == 1 or release == 2:
-    scramble4_from = 0x2A62     # ELITE
-    scramble4_to = 0x2E00       # End of ELITE4 file
-    scramble4_eor = 0xA5
-elif release == 3:
-    scramble4_from = 0x2A62     # ELITE
-    scramble4_to = 0x2DF0       # End of ELITE4 file (at PROT4)
-    scramble4_eor = 0xA5
-
-# Commander file checksum
-tvt1_code = 0x2962          # TVT1code
-tvt1 = 0x1100               # TVT1
-na_per_cent = 0x1181        # NA%
-chk2 = 0x11D3               # CHK2
-
-# Add an offset to the scramble addresses that matches the number of extra bytes
-# there are in the ENTRY routine for the interlace fix (0 = fix not included)
-
-scramble1_from += interlace_offset
-scramble1_to += interlace_offset
-scramble2_from += interlace_offset
-scramble2_to += interlace_offset
-scramble3_from += interlace_offset
-scramble3_to += interlace_offset
-scramble4_from += interlace_offset
-scramble4_to += interlace_offset
-tvt1_code += interlace_offset
-
-# Load assembled code file for ELITE4
-
-data_block = bytearray()
-
-elite_file = open("3-assembled-output/ELITE4.unprot.bin", "rb")
-data_block.extend(elite_file.read())
-elite_file.close()
-
-# Commander data checksum
+# Commander data checksum (as the original script, at the port's addresses)
 
 na_per_cent_offset = na_per_cent - tvt1 + tvt1_code - load_address
 checksum_offset = chk2 - tvt1 + tvt1_code - load_address
@@ -131,119 +51,5 @@ print("Commander checksum = ", hex(CH))
 data_block[checksum_offset] = CH ^ 0xA9
 data_block[checksum_offset + 1] = CH
 
-# Extract unscrambled &1100-&11E3 for use in &55FF checksum below
-
-start_1100 = scramble1_from - load_address
-end_1100 = start_1100 + 0xE3
-block_1100 = data_block[start_1100:end_1100]
-
-# EOR bytes in the various blocks
-
-for n in range(scramble1_from, scramble1_to):
-    data_block[n - load_address] = data_block[n - load_address] ^ scramble1_eor
-
-for n in range(scramble2_from, scramble2_to):
-    data_block[n - load_address] = data_block[n - load_address] ^ scramble2_eor
-
-for n in range(scramble3_from, scramble3_to):
-    data_block[n - load_address] = data_block[n - load_address] ^ scramble3_eor
-
-for n in range(scramble4_from, scramble4_to):
-    data_block[n - load_address] = data_block[n - load_address] ^ scramble4_eor
-
-# Write output file for ELITE4
-
-output_file = open("3-assembled-output/ELITE4.bin", "wb")
-output_file.write(data_block)
-output_file.close()
-
+open("3-assembled-output/ELITE4.bin", "wb").write(data_block)
 print("3-assembled-output/ELITE4.bin file saved")
-
-# Configuration variables for D.CODE
-
-load_address = 0x11E3
-scramble_from = 0x1300
-scramble_to = 0x5600
-scramble_eor = 0x33
-
-# Load assembled code file for D.CODE
-
-data_block = bytearray()
-
-elite_file = open("3-assembled-output/D.CODE.unprot.bin", "rb")
-data_block.extend(elite_file.read())
-elite_file.close()
-
-# SC routine, which EORs bytes between &1300 and &55FF
-
-if scramble:
-    for n in range(scramble_from, scramble_to):
-        data_block[n - load_address] = data_block[n - load_address] ^ (n % 256) ^ scramble_eor
-
-# Write output file for D.CODE
-
-output_file = open("3-assembled-output/D.CODE.bin", "wb")
-output_file.write(data_block)
-output_file.close()
-
-print("3-assembled-output/D.CODE.bin file saved")
-
-# Configuration variables for T.CODE
-
-load_address = 0x11E3
-scramble_from = 0x1300
-scramble_to = 0x6000
-scramble_eor = 0x33
-
-# Load assembled code file for T.CODE
-
-data_block = bytearray()
-
-elite_file = open("3-assembled-output/T.CODE.unprot.bin", "rb")
-data_block.extend(elite_file.read())
-elite_file.close()
-
-# SC routine, which EORs bytes between &1300 and &9FFF
-
-if scramble:
-    for n in range(scramble_from, scramble_to):
-        data_block[n - load_address] = data_block[n - load_address] ^ (n % 256) ^ scramble_eor
-
-# LOAD routine, which calculates checksum at &55FF in docked code
-# This checksum is not correct - need to fix this at some point
-
-checksum_address = 0x55FF
-block_to_checksum = block_1100 + data_block
-
-d_checksum = 0x11
-carry = 1
-for x in range(0x11, 0x54):
-    for y in [0] + list(range(255, 0, -1)):
-        i = x * 256 + y
-        d_checksum += block_to_checksum[i - 0x1100] + carry
-        if d_checksum > 255:
-            carry = 1
-        else:
-            carry = 0
-        d_checksum = d_checksum % 256
-    carry = 0
-    d_checksum = d_checksum % 256
-d_checksum = d_checksum % 256
-
-if release == 3:
-    # Override the checksum to match value in binary, as the
-    # checksum is disabled in LOAD in the sideways RAM variant
-    d_checksum = 0xE6
-
-if encrypt:
-    data_block[checksum_address - load_address] = d_checksum
-
-print("&55FF docked code checksum = ", hex(d_checksum))
-
-# Write output file for T.CODE
-
-output_file = open("3-assembled-output/T.CODE.bin", "wb")
-output_file.write(data_block)
-output_file.close()
-
-print("3-assembled-output/T.CODE.bin file saved")

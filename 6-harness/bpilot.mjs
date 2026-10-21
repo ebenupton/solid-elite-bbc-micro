@@ -277,7 +277,7 @@ export function makePilot(opts = {}) {
             if (n === 50) { P.titlePolls = 0; return [K.SPACE]; }
             return [];
         }
-        if (site === "t" || site === "PAUSE2" && c.callSite === c.psy.PAUSE2) return []; // first loop: keys released
+        if (site === "t" || site === "PAUSE2" && c.callSite === (c.psy.PAUSE2_C ?? c.psy.PAUSE2)) return []; // first loop: keys released
         const qq11 = c.rb(sy.QQ11);
         if (c.waitFor === "TT223" || c.waitFor === "gnum") {
             const r = c.rb(sy.R);

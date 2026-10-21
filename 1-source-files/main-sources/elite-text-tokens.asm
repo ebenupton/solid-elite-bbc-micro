@@ -69,6 +69,7 @@
 \       Type: Macro
 \   Category: Text
 \    Summary: Macro definition for characters in the recursive token table
+\       Area: cold
 \  Deep dive: Printing text tokens
 \
 \ ------------------------------------------------------------------------------
@@ -103,6 +104,7 @@ ENDMACRO
 \       Type: Macro
 \   Category: Text
 \    Summary: Macro definition for two-letter tokens in the token table
+\       Area: cold
 \  Deep dive: Printing text tokens
 \
 \ ------------------------------------------------------------------------------
@@ -261,6 +263,7 @@ ENDMACRO
 \       Type: Macro
 \   Category: Text
 \    Summary: Macro definition for control codes in the recursive token table
+\       Area: cold
 \  Deep dive: Printing text tokens
 \
 \ ------------------------------------------------------------------------------
@@ -289,6 +292,7 @@ ENDMACRO
 \       Type: Macro
 \   Category: Text
 \    Summary: Macro definition for recursive tokens in the recursive token table
+\       Area: cold
 \  Deep dive: Printing text tokens
 \
 \ ------------------------------------------------------------------------------
@@ -332,6 +336,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Text
 \    Summary: The recursive token table for tokens 0-148
+\       Area: cold
 \  Deep dive: Printing text tokens
 \
 \ ------------------------------------------------------------------------------
@@ -1461,6 +1466,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Maths (Geometry)
 \    Summary: Sine/cosine table
+\       Area: resident
 \  Deep dive: The sine, cosine and arctan tables
 \             Drawing circles
 \             Drawing ellipses
@@ -1516,6 +1522,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Maths (Geometry)
 \    Summary: Arctan table
+\       Area: resident
 \  Deep dive: The sine, cosine and arctan tables
 \
 \ ------------------------------------------------------------------------------

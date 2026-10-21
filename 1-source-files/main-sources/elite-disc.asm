@@ -40,40 +40,34 @@
  _STH_DISC              = (_VARIANT = 2)
  _SRAM_DISC             = (_VARIANT = 3)
 
-IF _STH_DISC OR _IB_DISC
+ \ Port: the loader (the original's third loader, ELITE4, which the disc's
+ \ !Boot runs: the copy protection's first two loaders are gone), the two
+ \ programs' images (each program's home and cold banks, which the loader's
+ \ PCLI loads into sideways RAM, docs/memory-map.md), and the ship blueprint
+ \ files (which PCLI loads into the flight code's home bank)
 
- PUTFILE "3-assembled-output/ELITE2.bin", "ELITE2", &FF2F00, &FF2F23
- PUTFILE "3-assembled-output/ELITE3.bin", "ELITE3", &FF5700, &FF5700
  PUTFILE "3-assembled-output/ELITE4.bin", "ELITE4", &FF1900, &FF197B
 
-ELIF _SRAM_DISC
+ PUTFILE "3-assembled-output/D.CODEH.bin", "D.CODEH", &008000, &008000
+ PUTFILE "3-assembled-output/D.CODEC.bin", "D.CODEC", &008000, &008000
+ PUTFILE "3-assembled-output/T.CODEH.bin", "T.CODEH", &008000, &008000
+ PUTFILE "3-assembled-output/T.CODEC.bin", "T.CODEC", &008000, &008000
 
- PUTFILE "1-source-files/boot-files/$.!BOOT.bin", "!BOOT", &FFFFFF, &FFFFFF
- PUTFILE "1-source-files/boot-files/$.MENU.bin", "MENU", &FF1900, &FF8023
- PUTFILE "3-assembled-output/SCREEN.bin", "SCREEN", &007800, &007BE8
- PUTFILE "3-assembled-output/MNUCODE.bin", "MNUCODE", &007400, &00743B
- PUTFILE "3-assembled-output/ELITE4.bin", "INTRO", &001900, &00197B
-
-ENDIF
-
- PUTFILE "3-assembled-output/D.CODE.bin", "D.CODE", &0011E3, &0011E3
- PUTFILE "3-assembled-output/T.CODE.bin", "T.CODE", &0011E3, &0011E3
-
- PUTFILE "3-assembled-output/D.MOA.bin", "D.MOA", &005600, &005600
- PUTFILE "3-assembled-output/D.MOB.bin", "D.MOB", &005600, &005600
- PUTFILE "3-assembled-output/D.MOC.bin", "D.MOC", &005600, &005600
- PUTFILE "3-assembled-output/D.MOD.bin", "D.MOD", &005600, &005600
- PUTFILE "3-assembled-output/D.MOE.bin", "D.MOE", &005600, &005600
- PUTFILE "3-assembled-output/D.MOF.bin", "D.MOF", &005600, &005600
- PUTFILE "3-assembled-output/D.MOG.bin", "D.MOG", &005600, &005600
- PUTFILE "3-assembled-output/D.MOH.bin", "D.MOH", &005600, &005600
- PUTFILE "3-assembled-output/D.MOI.bin", "D.MOI", &005600, &005600
- PUTFILE "3-assembled-output/D.MOJ.bin", "D.MOJ", &005600, &005600
- PUTFILE "3-assembled-output/D.MOK.bin", "D.MOK", &005600, &005600
- PUTFILE "3-assembled-output/D.MOL.bin", "D.MOL", &005600, &005600
- PUTFILE "3-assembled-output/D.MOM.bin", "D.MOM", &005600, &005600
- PUTFILE "3-assembled-output/D.MON.bin", "D.MON", &005600, &005600
- PUTFILE "3-assembled-output/D.MOO.bin", "D.MOO", &005600, &005600
- PUTFILE "3-assembled-output/D.MOP.bin", "D.MOP", &005600, &005600
+ PUTFILE "3-assembled-output/D.MOA.bin", "D.MOA", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOB.bin", "D.MOB", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOC.bin", "D.MOC", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOD.bin", "D.MOD", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOE.bin", "D.MOE", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOF.bin", "D.MOF", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOG.bin", "D.MOG", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOH.bin", "D.MOH", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOI.bin", "D.MOI", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOJ.bin", "D.MOJ", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOK.bin", "D.MOK", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOL.bin", "D.MOL", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOM.bin", "D.MOM", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MON.bin", "D.MON", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOO.bin", "D.MOO", &00B600, &00B600
+ PUTFILE "3-assembled-output/D.MOP.bin", "D.MOP", &00B600, &00B600
 
  PUTFILE "3-assembled-output/README.txt", "README", &FFFFFF, &FFFFFF

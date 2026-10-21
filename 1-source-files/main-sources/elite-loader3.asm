@@ -38,6 +38,8 @@
 
  INCLUDE "1-source-files/main-sources/elite-build-options.asm"
 
+ INCLUDE "1-source-files/main-sources/elite-map.asm"    \ Port: the memory map
+
  _IB_DISC               = (_VARIANT = 1)
  _STH_DISC              = (_VARIANT = 2)
  _SRAM_DISC             = (_VARIANT = 3)
@@ -89,7 +91,7 @@
  ESCP = &0386           \ The flag that determines whether we have an escape pod
                         \ fitted, matching the address in the main game code
 
- S% = &11E3             \ The address of the main entry point workspace in the
+ S% = HOME%            \ The address of the main entry point workspace in the
                         \ main game code
 
  VIA = &FE00            \ Memory-mapped space for accessing internal hardware,
@@ -114,7 +116,7 @@
 \
 \ ******************************************************************************
 
-IF _SRAM_DISC
+IF _SRAM_DISC OR _STH_DISC
 
  ORG &0004              \ Set the assembly address to &0004
 
@@ -374,7 +376,20 @@ ENDMACRO
 
 IF _STH_DISC OR _IB_DISC
 
- JSR PROT1              \ Call PROT1 to calculate checksums into CHKSM
+                        \ Port: the copy protection's checksums (PROT1, PROT2,
+                        \ PROT3, CHECK, OSBmod) are gone, and the port does the
+                        \ setup that the first two loaders (ELITE2 and ELITE3,
+                        \ which the port does not use) did for the game
+
+ LDA #119               \ Call OSBYTE with A = 119 to close any *SPOOL or *EXEC
+ JSR OSBYTE             \ files, as ELITE2 did
+
+ LDA #172               \ Call OSBYTE 172 to read the address of the MOS
+ LDX #0                 \ keyboard translation table into (Y X), and store it
+ LDY #&FF               \ in TRTB%(1 0), as ELITE3 did
+ JSR OSBYTE
+ STX TRTB%
+ STY TRTB%+1
 
 ELIF _SRAM_DISC
 
@@ -477,9 +492,10 @@ ENDIF
 
 IF _STH_DISC OR _IB_DISC
 
- JSR OSB                \ This JSR gets modified by code inserted into PLL1 so
-                        \ that it points to OSBmod instead of OSB, so this
-                        \ actually calls OSBmod to calculate some checksums
+ LDA #219               \ Port: store 219 in location &9F, which the TITLE
+ STA &9F                \ routine in the main docked code checks as part of the
+                        \ copy protection (the original's OSBmod, which this
+                        \ JSR was modified to call, did this after a checksum)
 
 ELIF _SRAM_DISC
 
@@ -501,7 +517,7 @@ ENDIF
  LDX #0                 \ flashing colours
  JSR OSB
 
- JSR PROT3              \ Call PROT3 to do more checks on the CHKSM checksum
+ \ Port: no PROT3, as there is no copy protection
 
  LDA #&00               \ Set the following:
  STA ZP                 \
@@ -525,8 +541,8 @@ ENDIF
  STA P+1
  LDX #8
 
- JSR MVBL               \ Call MVBL to move and decrypt 8 pages of memory from
-                        \ DIALS to &7800-&7FFF
+ JSR MVBL               \ Call MVBL to move 8 pages of memory from DIALS to
+                        \ &7800-&7FFF (Port: not encrypted)
 
 IF _INTERLACE_FIX
 
@@ -626,15 +642,18 @@ ENDIF
  LDA #&00               \ Set the following:
  STA ZP                 \
  LDA #&04               \   ZP(1 0) = &0400
- STA ZP+1               \   P(1 0) = WORDS
- LDA #LO(WORDS)         \   X = 4
+ STA ZP+1               \   P(1 0) = RESAcode
+ LDA #LO(RESAcode)      \   X = 4
  STA P
- LDA #HI(WORDS)
+ LDA #HI(RESAcode)
  STA P+1
  LDX #4
 
- JSR MVBL               \ Call MVBL to move and decrypt 4 pages of memory from
-                        \ WORDS to &0400-&07FF
+ JSR MVBL               \ Call MVBL to move 4 pages of memory from RESAcode to
+                        \ &0400-&07FF (Port: the resident block A, in the place
+                        \ of the original's WORDS, docs/memory-map.md)
+
+ JSR PROBE              \ Port: find four sideways RAM banks for the game
 
  LDX #35                \ We now want to copy the disc catalogue routine from
                         \ CATDcode to CATD, so set a counter in X for the 36
@@ -650,8 +669,9 @@ ENDIF
  BPL loop2              \ Loop back to copy the next byte until they are all
                         \ done
 
- LDA &76                \ Set the drive number in the CATD routine to the
- STA CATBLOCK           \ contents of &76, which gets set in ELITE3
+ \ Port: the drive number in the CATD routine stays 0, the drive the game
+                        \ boots from (ELITE3 set &76 to it, and the original copied
+                        \ &76 into CATBLOCK here)
 
  FNE 0                  \ Set up sound envelopes 0-3 using the FNE macro
  FNE 1
@@ -678,20 +698,11 @@ ENDIF
 
 .loop3
 
- LDA (P),Y              \ Fetch the Y-th byte of the P(1 0) memory block
+ LDA (P),Y              \ Fetch the Y-th byte of the P(1 0) memory block (Port:
+                        \ not encrypted)
 
-IF _STH_DISC OR _IB_DISC
-
- EOR #&18               \ Decrypt it by EOR'ing with &18
-
-ELIF _SRAM_DISC
-
- EOR CHKSM              \ Decrypt it by EOR'ing with the checksum value
-
-ENDIF
-
- STA (ZP),Y             \ Store the decrypted result in the Y-th byte of the
-                        \ ZP(1 0) memory block
+ STA (ZP),Y             \ Store the result in the Y-th byte of the ZP(1 0)
+                        \ memory block
 
  DEY                    \ Decrement the byte counter
 
@@ -707,26 +718,9 @@ ENDIF
 \   Category: Copy protection
 \    Summary: Calculate a checksum from two 256-byte portions of the loader code
 \
+\ Port: removed (the copy protection).
+\
 \ ******************************************************************************
-
-.CHECK
-
- CLC                    \ Clear the C flag for the addition below
-
- LDY #0                 \ We are going to loop through 256 bytes, so set a byte
-                        \ counter in Y
-
-.p2
-
- ADC PLL1,Y             \ Set A = A + Y-th byte of PLL1
-
- EOR ENTRY,Y            \ Set A = A EOR Y-th byte of ENTRY
-
- DEY                    \ Decrement the byte counter
-
- BNE p2                 \ Loop back to checksum the next byte
-
- RTS                    \ Return from the subroutine
 
 \ ******************************************************************************
 \
@@ -772,74 +766,27 @@ ENDIF
  LDX #LO(LTLI)          \ Set (Y X) to point to LTLI ("L.T.CODE")
  LDY #HI(LTLI)
 
- JSR OSCLI              \ Call OSCLI to run the OS command in LTLI, which loads
-                        \ the T.CODE binary (the main docked code) to its load
-                        \ address of &11E3
+ JSR PCLI               \ Call PCLI to run the OS command in LTLI, which loads
+                        \ the main docked code (Port: its home and cold images,
+                        \ T.CODEH and T.CODEC, into its two sideways RAM banks,
+                        \ through the game's own OSCLI, in the resident block)
 
- LDA #LO(S%+11)         \ Point BRKV to the fifth entry in the main docked
- STA BRKV               \ code's S% workspace, which contains JMP BRBR1
- LDA #HI(S%+11)
- STA BRKV+1
+ LDA #LO(BRKR)          \ Point BRKV to BRKR, which pages in the home bank and
+ STA BRKV               \ goes on to the fifth entry in the main docked code's
+ LDA #HI(BRKR)          \ S% workspace, which contains JMP BRBR1 (Port: the
+ STA BRKV+1             \ original pointed BRKV straight at S%+11)
 
- LDA #LO(S%+6)          \ Point WRCHV to the third entry in the main docked
- STA WRCHV              \ code's S% workspace, which contains JMP CHPR
- LDA #HI(S%+6)
- STA WRCHV+1
+ LDA #LO(WRCHR)         \ Point WRCHV to WRCHR, which pages in the home bank and
+ STA WRCHV              \ calls the third entry in the main docked code's S%
+ LDA #HI(WRCHR)         \ workspace, which contains JMP CHPR (Port: the
+ STA WRCHV+1            \ original pointed WRCHV straight at S%+6)
 
- SEC                    \ Set the C flag so the checksum we calculate in A
-                        \ starts with an initial value of 18 (17 plus carry)
+                        \ Port: the original's checksum of the docked code is
+                        \ gone, with the copy protection
 
- LDY #0                 \ Set Y = 0 to act as a byte pointer
-
- STY ZP                 \ Set the low byte of ZP(1 0) to 0, so ZP(1 0) always
-                        \ points to the start of a page
-
- LDX #&11               \ Set X = &11, so ZP(1 0) will point to &1100 when we
-                        \ stick X in ZP+1 below
-
- TXA                    \ Set A = &11 = 17, to set the initial value of the
-                        \ checksum to 18 (17 plus carry)
-
-.l1
-
- STX ZP+1               \ Set the high byte of ZP(1 0) to the page number in X
-
- ADC (ZP),Y             \ Set A = A + the Y-th byte of ZP(1 0)
-
- DEY                    \ Decrement the byte pointer
-
- BNE l1                 \ Loop back to add the next byte until we have added the
-                        \ whole page
-
- INX                    \ Increment the page number in X
-
- CPX #&54               \ Loop back to checksum the next page until we have
- BCC l1                 \ checked up to (but not including) page &54
-
- CMP &55FF              \ Compare the checksum with the value in &55FF, which is
-                        \ in the docked file we just loaded, in the byte before
-                        \ the ship hangar blueprints at XX21
-
-IF _REMOVE_CHECKSUMS OR _INTERLACE_FIX
-
- NOP                    \ If we have disabled checksums, then ignore the result
- NOP                    \ of the checksum comparison
-
-ELSE
-
-IF _STH_DISC OR _IB_DISC
-
- BNE P%                 \ If the checksums don't match then enter an infinite
-                        \ loop, which hangs the computer
-
-ELIF _SRAM_DISC
-
- NOP                    \ The sideways RAM variant ignores the result of the
- NOP                    \ checksum comparison
-
-ENDIF
-
-ENDIF
+ LDA BANKH              \ Port: page in the docked code's home bank
+ STA &F4
+ STA VIA+&30
 
  JMP S%+3               \ Jump to the second entry in the main docked code's S%
                         \ workspace to start a new game
@@ -934,39 +881,9 @@ ENDIF
 \   Category: Copy protection
 \    Summary: Part of the CHKSM copy protection checksum calculation
 \
+\ Port: removed (the copy protection).
+\
 \ ******************************************************************************
-
-.PROT1
-
- LDA #85                \ We start by calculating a checksum in A, with an
-                        \ initial value of 85
-
- LDX #64                \ The checksum calculation in CHECK gets run 65 times,
-                        \ so set a counter in X to count them
-
-.p1a
-
- JSR CHECK              \ Call CHECK to calculate the checksum and add it to A
-
- DEX                    \ Decrement the loop counter
-
- BPL p1a                \ Loop back until we have run the checksum 65 times
-
- STA RAND+2             \ Store the checksum result in the random number seeds
-                        \ used to generate the Saturn
-
- ORA #0                 \ If bit 7 of the checksum is clear, skip to p1b
- BPL p1b
-
- LSR CHKSM              \ Bit 7 of the checksum is set, so shift the C flag that
-                        \ was returned by CHECK into bit 7 of CHKSM
-
-.p1b
-
- JMP PROT2              \ Jump to PROT2 for more checksums, returning from the
-                        \ subroutine using a tail call
-
- EQUB &AC               \ This byte appears to be unused
 
 \ ******************************************************************************
 \
@@ -1001,10 +918,7 @@ ENDIF
  LDA P                  \             = r1^2
  STA ZP
 
- LDA #LO(OSBmod)        \ As part of the copy protection, the JSR OSB
- STA OSBjsr+1           \ instruction at OSBjsr gets modified to point to OSBmod
-                        \ instead of OSB, and this is where we modify the low
-                        \ byte of the destination address
+ \ Port: the copy protection modified OSBjsr's JSR here (low byte)
 
  JSR DORND              \ Set A and X to signed random numbers between -128 and
                         \ 127, so let's say A = r2
@@ -1197,10 +1111,7 @@ ENDIF
  STA ZP+1               \ Set ZP+1 = A
                         \          = r5^2 / 256
 
- LDA #HI(OSBmod)        \ As part of the copy protection, the JSR OSB
- STA OSBjsr+2           \ instruction at OSBjsr gets modified to point to OSBmod
-                        \ instead of OSB, and this is where we modify the high
-                        \ byte of the destination address
+ \ Port: the copy protection modified OSBjsr's JSR here (high byte)
 
  JSR DORND              \ Set A and X to signed random numbers between -128 and
                         \ 127, so let's say A = r6
@@ -1508,8 +1419,7 @@ ENDIF
  LSR A
  LSR A
 
- LSR CHKSM+1            \ Rotate the high byte of CHKSM+1 to the right, as part
-                        \ of the copy protection
+ \ Port: the copy protection shifted CHKSM+1 here
 
  ORA #&60               \ Set ZP+1 = &60 + A >> 3
  STA ZP+1
@@ -1567,26 +1477,9 @@ ENDIF
 \   Category: Copy protection
 \    Summary: Part of the CHKSM copy protection checksum calculation
 \
+\ Port: removed (the copy protection).
+\
 \ ******************************************************************************
-
-.PROT2
-
- LDA RAND+2             \ Fetch the checksum we calculated in PROT1
-
- EOR CHKSM              \ Set A = A EOR CHKSM
-
- ASL A                  \ Shift A left, moving bit 7 into the C flag and
-                        \ clearing bit 0
-
- CMP #147               \ If A >= 147, set the C flag, otherwise clear it
-
- ROR A                  \ Shift A right, moving the C flag into bit 7 and
-                        \ clearing the C flag
-
- STA CHKSM              \ Store the updated A in CHKSM
-
- BCC out                \ Return from the subroutine (as we cleared the C flag
-                        \ above and out contains an RTS)
 
 \ ******************************************************************************
 \
@@ -1649,20 +1542,9 @@ ENDIF
 \   Category: Copy protection
 \    Summary: Part of the CHKSM copy protection checksum calculation
 \
+\ Port: removed (the copy protection).
+\
 \ ******************************************************************************
-
-.PROT3
-
- LDA CHKSM              \ Update the checksum
- AND CHKSM+1
- ORA #&0C
- ASL A
- STA CHKSM
-
- RTS                    \ Return from the subroutine
-
- JMP P%                 \ This would hang the computer, but we never get here as
-                        \ the checksum code has been disabled
 
 \ ******************************************************************************
 \
@@ -1792,9 +1674,8 @@ ENDIF
 
 .MPL
 
- LDA (P),Y              \ Fetch the Y-th byte of the P(1 0) memory block
-
- EOR #&A5               \ Decrypt it by EOR'ing with &A5
+ LDA (P),Y              \ Fetch the Y-th byte of the P(1 0) memory block (Port:
+                        \ the loader is not encrypted)
 
  STA (ZP),Y             \ Store the result in the Y-th byte of the ZP(1 0)
                         \ memory block
@@ -1904,9 +1785,121 @@ ENDIF
 
  INCBIN "3-assembled-output/MISSILE.bin"
 
-.WORDS
+                        \ Port: the recursive text tokens are in each program's
+                        \ cold bank; the resident block A follows
 
- INCBIN "3-assembled-output/WORDS.bin"
+\ ******************************************************************************
+\
+\       Name: RESAcode
+\       Type: Subroutine
+\   Category: Loader
+\    Summary: The resident block A, bundled up in the loader so it can be moved
+\             to &0400-&07FF
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the far calls, the game's OSCLI and the WRCHV and BRKV handlers, then
+\ the sine and arctan tables, in the place of the original's WORDS
+\ (elite-resident.asm, docs/memory-map.md).
+\
+\ ******************************************************************************
+
+.RESAcode
+
+ ORG &0400              \ Set the assembly address to &0400
+
+ INCLUDE "1-source-files/main-sources/elite-resident.asm"
+
+ COPYBLOCK &0400, &0800, RESAcode
+
+ ORG RESAcode + &0400
+
+\ ******************************************************************************
+\
+\       Name: PROBE
+\       Type: Subroutine
+\   Category: Loader
+\    Summary: Find four sideways RAM banks for the game, or stop
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the game lives in four sideways RAM banks (docs/memory-map.md). This
+\ tests each slot from 15 down to 0, passing over any that the MOS has a ROM
+\ in (its entry in the ROM type table at &02A1 is non-zero), and takes the
+\ first four that hold what is written to them, in BANKS: the programs' home
+\ bank, their cold bank, then the renderer's two banks. Without four, it
+\ prints a message and stops.
+\
+\ ******************************************************************************
+
+.PROBE
+
+ LDA &F4                \ Store the current ROM on the stack
+ PHA
+
+ LDY #0                 \ Set Y = 0 to count the banks found
+
+ LDX #15                \ Set X = 15 to test the slots from 15 down
+
+.prb1
+
+ LDA &02A1,X            \ If the MOS has a ROM in slot X, skip it
+ BNE prb2
+
+ STX &F4                \ Page slot X in
+ STX VIA+&30
+
+ LDA #&AA               \ If the slot does not hold &AA and &55 when they are
+ STA &BFFF              \ written to it, it is not RAM, so skip it
+ CMP &BFFF
+ BNE prb2
+ LDA #&55
+ STA &BFFF
+ CMP &BFFF
+ BNE prb2
+
+ TXA                    \ Slot X is RAM, so store it in the Y-th byte of BANKS
+ STA BANKS,Y
+
+ INY                    \ Stop when we have four
+ CPY #4
+ BEQ prb4
+
+.prb2
+
+ DEX                    \ Loop back for the next slot
+ BPL prb1
+
+ PLA                    \ Fewer than four: page the original ROM back in
+ STA &F4
+ STA VIA+&30
+
+ LDX #0                 \ Print the message in prbm and stop
+
+.prb3
+
+ LDA prbm,X
+ BEQ P%
+ JSR OSWRCH
+ INX
+ BNE prb3
+
+.prb4
+
+ PLA                    \ Page the original ROM back in and return
+ STA &F4
+ STA VIA+&30
+
+ RTS
+
+.prbm
+
+ EQUB 22, 7
+ EQUS "This version of Elite needs 64K of"
+ EQUB 13, 10
+ EQUS "sideways RAM (four banks)."
+ EQUB 13, 10, 0
+
 
 \ ******************************************************************************
 \
@@ -1916,47 +1909,9 @@ ENDIF
 \    Summary: Calculate a checksum on &0F00 to &0FFF (the test is disabled in
 \             this version)
 \
+\ Port: removed (the copy protection).
+\
 \ ******************************************************************************
-
-.OSBmod
-
- SEC                    \ Set the C flag so the checksum we calculate in A
-                        \ starts with an initial value of 16 (15 plus carry)
-
- LDY #&00               \ Set ZP(1 0) = &0F00
- STY ZP                 \
- LDA #&0F               \ and at the same time set a byte counter in Y and set
- STA ZP+1               \ the initial value of the checksum to 16 (15 plus
-                        \ carry)
-
-.osb1
-
- ADC (ZP),Y             \ Set A = A + the Y-th byte of ZP(1 0)
-
- INY                    \ Increment the byte pointer
-
- BNE osb1               \ Loop back to add the next byte until we have added the
-                        \ whole page
-
-IF _STH_DISC OR _IB_DISC
-
- CMP #&CF               \ The checksum test has been disabled
- NOP
- NOP
-
-ELIF _SRAM_DISC
-
- CMP #&CF               \ The sideways RAM variant never calls OSBmod, so it
- BNE OSBmod             \ still contains the original checksum test that hasn't
-                        \ been disabled
-
-ENDIF
-
- LDA #219               \ Store 219 in location &9F. This gets checked by the
- STA &9F                \ TITLE routine in the main docked code as part of the
-                        \ copy protection (the game hangs if it doesn't match)
-
- RTS                    \ Return from the subroutine
 
 \ ******************************************************************************
 \
@@ -2630,16 +2585,8 @@ ENDIF
  PRINT "S.ELITE4 ", ~CODE%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD%
  SAVE "3-assembled-output/ELITE4.unprot.bin", CODE%, P%, LOAD%
 
- PRINT "Addresses for the scramble routines in elite-checksum.py"
+ PRINT "Addresses for the commander checksum in elite-checksum.py"
  PRINT "Load address = ", ~CODE%
- PRINT "TVT1code = ", ~TVT1code
- PRINT "ELITE = ", ~ELITE
- PRINT "LOADcode = ", ~LOADcode
- PRINT "CATDcode = ", ~CATDcode
- PRINT "DIALS = ", ~DIALS
- PRINT "OSBmod = ", ~OSBmod
- PRINT "ELITE = ", ~ELITE
- PRINT "End of ELITE4 file = ", ~P%
  PRINT "TVT1code = ", ~TVT1code
  PRINT "TVT1 = ", ~TVT1
  PRINT "NA% = ", ~NA%

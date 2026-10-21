@@ -77,8 +77,6 @@ endif
 
 variant-number=2
 folder=sth
-suffix=-sth
-boot=-boot ELITE2
 
 .PHONY:all
 all:
@@ -88,15 +86,16 @@ all:
 	echo _MATCH_ORIGINAL_BINARIES=$(match-original-binaries) >> 1-source-files/main-sources/elite-build-options.asm
 	echo _MAX_COMMANDER=$(max-commander) >> 1-source-files/main-sources/elite-build-options.asm
 	echo _INTERLACE_FIX=$(interlace-fix) >> 1-source-files/main-sources/elite-build-options.asm
-	$(BEEBASM) -i 1-source-files/main-sources/elite-text-tokens.asm -v > 3-assembled-output/compile.txt
+	$(PYTHON) 2-build-files/streams.py > 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-missile.asm -v >> 3-assembled-output/compile.txt
-	$(BEEBASM) -i 1-source-files/main-sources/elite-loader1.asm -v >> 3-assembled-output/compile.txt
-	$(BEEBASM) -i 1-source-files/main-sources/elite-loader2.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-loader3.asm -v >> 3-assembled-output/compile.txt
-	$(BEEBASM) -i 1-source-files/main-sources/elite-loading-screen.asm -v >> 3-assembled-output/compile.txt
-	$(BEEBASM) -i 1-source-files/main-sources/elite-loader-sideways-ram.asm -v >> 3-assembled-output/compile.txt
-	$(BEEBASM) -i 1-source-files/main-sources/elite-source-flight.asm -v >> 3-assembled-output/compile.txt
-	$(BEEBASM) -i 1-source-files/main-sources/elite-source-docked.asm -v >> 3-assembled-output/compile.txt
+	$(BEEBASM) -i 1-source-files/main-sources/elite-loader3.asm -d | grep "^\[{" > 3-assembled-output/loader-symbols.txt
+	$(PYTHON) 2-build-files/layout-info.py
+	$(BEEBASM) -i 1-source-files/main-sources/elite-layout-flight.asm -v >> 3-assembled-output/compile.txt
+	$(BEEBASM) -i 1-source-files/main-sources/elite-layout-flight.asm -d | grep "^\[{" > 3-assembled-output/flight-symbols.txt
+	$(BEEBASM) -i 1-source-files/main-sources/elite-layout-docked.asm -v >> 3-assembled-output/compile.txt
+	$(BEEBASM) -i 1-source-files/main-sources/elite-layout-docked.asm -d | grep "^\[{" > 3-assembled-output/docked-symbols.txt
+	$(PYTHON) 2-build-files/bankcheck.py
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-a.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-b.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-c.asm -v >> 3-assembled-output/compile.txt
@@ -114,11 +113,8 @@ all:
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-o.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-p.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-readme.asm -v >> 3-assembled-output/compile.txt
-	$(BEEBASM) -i 1-source-files/main-sources/elite-source-flight.asm -d | grep "^\[{" > 3-assembled-output/flight-symbols.txt
-	$(BEEBASM) -i 1-source-files/main-sources/elite-source-docked.asm -d | grep "^\[{" > 3-assembled-output/docked-symbols.txt
-	$(BEEBASM) -i 1-source-files/main-sources/elite-loader3.asm -d | grep "^\[{" > 3-assembled-output/loader-symbols.txt
-	$(PYTHON) 2-build-files/elite-checksum.py $(unencrypt) $(interlace) -rel$(variant-number)
-	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-disc$(suffix).ssd $(boot) -title "E L I T E"
+	$(PYTHON) 2-build-files/elite-checksum.py
+	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-modelb.ssd -boot ELITE4 -title "E L I T E"
 ifneq ($(verify), no)
 	@$(PYTHON) 2-build-files/crc32.py 4-reference-binaries/$(folder) 3-assembled-output || true
 endif
@@ -130,4 +126,4 @@ verify:
 .PHONY:b2
 b2:
 	curl -G "http://localhost:48075/reset/b2"
-	curl -H "Content-Type:application/binary" --upload-file "5-compiled-game-discs/elite-disc$(suffix).ssd" "http://localhost:48075/run/b2?name=elite-disc$(suffix).ssd"
+	curl -H "Content-Type:application/binary" --upload-file "5-compiled-game-discs/elite-modelb.ssd" "http://localhost:48075/run/b2?name=elite-modelb.ssd"
