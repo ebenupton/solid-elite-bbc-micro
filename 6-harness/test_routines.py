@@ -174,6 +174,31 @@ def stars_mem(i):
     return m
 
 
+def bline_mem(i):
+    """a random call of BLINE: a planet's centre and a new point near the
+    screen, the previous point, a part-filled line heap and FLAG"""
+    rnd = random.Random(i)
+    m = {}
+    def w(name, v):
+        m[name] = v & 255
+        m[name + "+1"] = (v >> 8) & 255
+    w("K4", rnd.randrange(-100, 300) & 0xFFFF)           # (centre y)
+    w("K5", rnd.choice([rnd.randrange(256), rnd.randrange(-200, 500) & 0xFFFF]))
+    m["K5+2"] = rnd.randrange(256)
+    m["K5+3"] = rnd.choice([0, 0, 1, 0xFF])
+    w("K6", rnd.choice([rnd.randrange(256), rnd.randrange(-200, 500) & 0xFFFF]))
+    m["T"] = rnd.choice([0, 0, 0xFF, 1])
+    m["FLAG"] = rnd.choice([0, 0, 0, 0xFF])
+    lsp = rnd.randrange(1, 60)
+    m["LSP"] = lsp
+    for k in range(lsp):
+        m["LSY2+%d" % k] = rnd.choice([rnd.randrange(192), 0xFF])
+        m["LSX2+%d" % k] = rnd.randrange(256)
+    m["CNT"] = rnd.randrange(64)
+    m["STP"] = rnd.choice([1, 2, 4, 8, 16])
+    return rnd.randrange(256), m
+
+
 B = range(256)
 B1 = range(1, 256)
 QUICK = "--quick" in sys.argv
@@ -252,6 +277,11 @@ TESTS = [
     # flight: the particles, the seeds and the screen are compared)
     ("STARS1", "STARS1", lambda: ((0, 0, 0, c, stars_mem(i)) for i, c in zip(range(150 if QUICK else 2000), [0, 1] * 2000)),
      ["Y", "SX*19", "SXL*19", "SY*19", "SYL*19", "SZ*19", "SZL*19", "RAND*4", "&6000*7936"]),
+    # (BLINE: the line ends in XX15 are not compared, as on the first call the
+    # port has already copied the points into them; they are temporaries,
+    # and the heap holds the ends of every line drawn)
+    ("BLINE", "BLINE", lambda: ((0, x, 0x5A, c, m) for (x, m), c in ((bline_mem(i), i & 1) for i in range(3000 if QUICK else 100000))),
+     ["CNT", "LSP", "FLAG", "K5", "K5+1", "K5+2", "K5+3", "XX13", "LSX2*80", "LSY2*80", "&6000*7936"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]
