@@ -1,21 +1,21 @@
 BEEBASM?=beebasm
 PYTHON?=python
 
-# A make command with no arguments will build the Stairway to Hell variant
-# with encrypted binaries, checksums enabled, the standard commander and
-# crc32 verification of the game binaries
+# A make command with no arguments will build the Model B port (the
+# Stairway to Hell variant, which the port starts from) with the standard
+# commander, and report whether the game binaries still match the originals
+# (crc32)
+#
+# The port (docs/README.md) is built without the copy protection's checksums,
+# which are tied to the original's code and addresses (as with "encrypt=no"
+# in the original's Makefile: the loader's and the docked code's checksum
+# tests are disabled, and the docked code's checksum byte is not set). It is
+# the Stairway to Hell variant only (the variants differ only in their
+# loaders and copy protection)
 #
 # Optional arguments for the make command are:
 #
-#   variant=<release>   Build the specified variant:
-#
-#                         sth (default)
-#                         ib-disc
-#                         sideways-ram
-#
 #   commander=max       Start with a maxed-out commander
-#
-#   encrypt=no          Disable encryption and checksum routines
 #
 #   match=no            Do not attempt to match the original game binaries
 #                       (i.e. omit workspace noise)
@@ -23,14 +23,14 @@ PYTHON?=python
 #   fix-interlace=yes   By default the game forces interlace to be on; this
 #                       uses the interlace setting from when the game is run
 #
-#   verify=no           Disable crc32 verification of the game binaries
+#   verify=no           Do not compare the game binaries with the originals
 #
 # So, for example:
 #
-#   make variant=ib-disc commander=max encrypt=no match=no verify=no
+#   make commander=max match=no verify=no
 #
-# will build an unencrypted Ian Bell disc variant with a maxed-out commander,
-# no workspace noise and no crc32 verification
+# will build the port with a maxed-out commander, no workspace noise and no
+# crc32 comparison
 #
 # The following variables are written into elite-build-options.asm depending on
 # the above arguments, so they can be passed to BeebAsm:
@@ -39,24 +39,18 @@ PYTHON?=python
 #   2 = BBC Micro disc
 #
 # _VARIANT
-#   1 = Ian Bell's game disc
-#   2 = Stairway to Hell (default)
-#   3 = BBC Micro Sideways RAM version
+#   2 = Stairway to Hell
 #
 # _MAX_COMMANDER
 #   TRUE  = Maxed-out commander
 #   FALSE = Standard commander
 #
 # _REMOVE_CHECKSUMS
-#   TRUE  = Disable checksum routines
-#   FALSE = Enable checksum routines
+#   TRUE  = Disable checksum routines (always, in the port)
 #
 # _MATCH_ORIGINAL_BINARIES
 #   TRUE  = Match binaries to released version (i.e. fill workspaces with noise)
 #   FALSE = Zero-fill workspaces
-#
-# The encrypt and verify arguments are passed to the elite-checksum.py and
-# crc32.py scripts, rather than BeebAsm
 
 ifeq ($(commander), max)
   max-commander=TRUE
@@ -64,13 +58,8 @@ else
   max-commander=FALSE
 endif
 
-ifeq ($(encrypt), no)
-  unencrypt=-u
-  remove-checksums=TRUE
-else
-  unencrypt=
-  remove-checksums=FALSE
-endif
+unencrypt=-u
+remove-checksums=TRUE
 
 ifeq ($(match), no)
   match-original-binaries=FALSE
@@ -86,22 +75,10 @@ else
   interlace-fix=FALSE
 endif
 
-ifeq ($(variant), ib-disc)
-  variant-number=1
-  folder=ib-disc
-  suffix=-ib-disc
-  boot=-boot ELITE2
-else ifeq ($(variant), sideways-ram)
-  variant-number=3
-  folder=sideways-ram
-  suffix=-sideways-ram
-  boot=-opt 3
-else
-  variant-number=2
-  folder=sth
-  suffix=-sth
-  boot=-boot ELITE2
-endif
+variant-number=2
+folder=sth
+suffix=-sth
+boot=-boot ELITE2
 
 .PHONY:all
 all:
@@ -143,7 +120,7 @@ all:
 	$(PYTHON) 2-build-files/elite-checksum.py $(unencrypt) $(interlace) -rel$(variant-number)
 	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-disc$(suffix).ssd $(boot) -title "E L I T E"
 ifneq ($(verify), no)
-	@$(PYTHON) 2-build-files/crc32.py 4-reference-binaries/$(folder) 3-assembled-output
+	@$(PYTHON) 2-build-files/crc32.py 4-reference-binaries/$(folder) 3-assembled-output || true
 endif
 
 .PHONY:verify
