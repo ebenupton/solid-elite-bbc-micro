@@ -7,7 +7,7 @@
 \ (gfx-raster*.asm, from the Tube branch's Model B host versions, made NMOS),
 \ in one sideways RAM bank, R, with all of its state. Its caller, the frame
 \ layer, is in another bank (F) and cannot see bank R, so a call's inputs
-\ go through the mailbox, MBOX (&7E00-&7EFF, main RAM), and its zero page:
+\ go through the mailbox, MBOX (&7E00-&7E9F, main RAM), and its zero page:
 \
 \   zero page &06-&27   R_COLE, R_COLO (the colour pair), R_XL, R_XR (span
 \                       ends), R_CL, R_CR, R_CT, R_CB (the clip window), and

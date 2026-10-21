@@ -72,9 +72,46 @@
                         \ static workspace at &1000-&10FF, which PCLI keeps in
                         \ DFSSAVE% between disc commands
 
- MBOX = &7E00           \ The rasteriser's mailbox (&7E00-&7EFF, between the
+ MBOX = &7E00           \ The rasteriser's mailbox (&7E00-&7E9F, between the
                         \ dashboard and the missile's blueprint): its callers'
                         \ inputs (gfx-rws.asm)
+
+ GVARS = &7EA0          \ The filled renderer's shared variables (&7EA0-&7EFF,
+                        \ after the mailbox), which the game's hooks, the
+                        \ vertical sync interrupt and the frame layer (bank
+                        \ F, gfx-frame.asm) all read or write; none of them
+                        \ is game state (docs/renderer.md, "The frame layer's
+                        \ bank F"):
+
+ GMODE = GVARS          \ Bit 7 set: space mode (double buffered: the drawing
+                        \ hooks record, F_FRAME draws); clear: direct mode
+                        \ (the game draws on buffer 1, SCREEN%, as it is)
+ GFRONT = GVARS + 1     \ The buffer on show (0 or 1; 1 in direct mode)
+ GFLIP = GVARS + 2      \ Non-zero: show buffer GPEND at the next vertical
+ GPEND = GVARS + 3      \ sync (the interrupt sets GFRONT = GPEND and GFLIP =
+                        \ 0); F_FRAME sets them, and waits for GFLIP = 0
+                        \ before drawing into a buffer
+ GDRAWON = GVARS + 4    \ For the hooks: 0 while the game is erasing (an
+                        \ erasing call is not recorded)
+ GFORCE = GVARS + 5     \ For the hooks: non-zero to draw directly even in a
+                        \ space view
+ GSIGHT = GVARS + 6     \ Non-zero: F_FRAME draws the laser sights
+ GLASV = GVARS + 7      \ Non-zero: F_FRAME draws our laser beams (from LASX,
+                        \ LASY; cleared after each frame)
+ GLCOL = GVARS + 8      \ F_LINE's colour (a fixed colour index, FC_*)
+ GDCOL = GVARS + 9      \ F_DOT's colour (a fixed colour index, FC_*)
+ GNF = GVARS + 10       \ F_SHIP's inputs: the ship's number of faces and
+ GNV = GVARS + 11       \ vertices, and its type (TYPE, or 32 for the
+ GTYPE = GVARS + 12     \ dodecahedron station: a type 2 with 24 vertices)
+ GSTASH = GVARS + 13    \ Bit 7 set: something else used the screen buffers
+                        \ (a disc load): F_FRAME blanks both before drawing
+ GA = GVARS + 14        \ GCALL's A across the paging (gfx-glue.asm)
+
+ GLUE% = &06E0          \ The glue the game calls the frame layer through, and
+                        \ the trampolines into bank R (gfx-glue.asm): at a
+                        \ fixed address in the resident block A's spare room
+                        \ (&06E0-&07BC), so that bank F can be built against
+                        \ it before the resident block includes it
 
  DTMP = &07BD          \ Workspace for the dashboard's drawing routines, at
  DTMP2 = &07BE          \ the end of the resident block A (elite-resident.asm)

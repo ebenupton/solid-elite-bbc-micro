@@ -59,7 +59,7 @@ _RBANK = 2              \ (the Tube host's bank P's layout, which this extends)
 .RJT_END
 
  ASSERT R_HIEND <= RJT AND R_LOEND <= &9000 AND r_lcold_end <= &9980
- ASSERT RDATA_END <= r_lcold AND MBOX_END <= MBOX + &100
+ ASSERT RDATA_END <= r_lcold AND MBOX_END <= GVARS
 
 PRINT "Bank R (rasteriser): &8000-", ~R_LOEND-1, " (free ", &9000-R_LOEND, "), &9000-", ~R_HIEND-1, " (free ", RJT-R_HIEND, "), R_LINE's cold part &", ~r_lcold, "-", ~r_lcold_end-1, " (free ", &9980-r_lcold_end, "), the jump table &", ~RJT, "-", ~RJT_END-1
 
