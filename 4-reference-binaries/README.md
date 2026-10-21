@@ -8,6 +8,8 @@ This folder contains the binaries from the game disc for the BBC Micro disc vers
 
 * [sth](sth) contains the binaries from the Stairway to Hell version
 
+The port's determinism harness (`6-harness`) compares every build against the Stairway to Hell release. For that, [sth](sth) also holds the released disc (`elite-disc-sth.ssd`, which the original source builds byte for byte), the symbols of the original source's build of each program (`flight-symbols.txt`, `docked-symbols.txt`, and `loader-symbols.txt` for the loader's resident block, from `beebasm -d`), and `build.json`, which tells the harness where each program's code is (see `6-harness/README.md`).
+
 ---
 
 Right on, Commanders!

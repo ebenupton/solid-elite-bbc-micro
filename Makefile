@@ -137,11 +137,18 @@ all:
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-o.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-p.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-readme.asm -v >> 3-assembled-output/compile.txt
+	$(BEEBASM) -i 1-source-files/main-sources/elite-source-flight.asm -d | grep "^\[{" > 3-assembled-output/flight-symbols.txt
+	$(BEEBASM) -i 1-source-files/main-sources/elite-source-docked.asm -d | grep "^\[{" > 3-assembled-output/docked-symbols.txt
+	$(BEEBASM) -i 1-source-files/main-sources/elite-loader3.asm -d | grep "^\[{" > 3-assembled-output/loader-symbols.txt
 	$(PYTHON) 2-build-files/elite-checksum.py $(unencrypt) $(interlace) -rel$(variant-number)
 	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-disc$(suffix).ssd $(boot) -title "E L I T E"
 ifneq ($(verify), no)
 	@$(PYTHON) 2-build-files/crc32.py 4-reference-binaries/$(folder) 3-assembled-output
 endif
+
+.PHONY:verify
+verify:
+	BEEBASM=$(BEEBASM) PYTHON=$(PYTHON) sh 6-harness/verify.sh
 
 .PHONY:b2
 b2:

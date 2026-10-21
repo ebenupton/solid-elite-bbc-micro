@@ -1,0 +1,6 @@
+{
+  "disc": "elite-disc-sth.ssd",
+  "flight": { "syms": "flight-symbols.txt", "images": [["D.CODE.unprot.bin", "m", "11E3"]] },
+  "docked": { "syms": "docked-symbols.txt", "images": [["T.CODE.unprot.bin", "m", "11E3"]] },
+  "loader": "loader-symbols.txt"
+}

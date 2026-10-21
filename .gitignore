@@ -22,3 +22,9 @@ $RECYCLE.BIN/
 .vscode/
 *.code-workspace
 run.bat
+
+# The harness's emulator (npm install in 6-harness) and its working files
+6-harness/node_modules/
+6-harness/work/
+2-build-files/__pycache__/
+3-assembled-output/*-symbols.txt
