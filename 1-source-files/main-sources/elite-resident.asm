@@ -75,6 +75,10 @@
  LDA &F4                \ Note the caller's bank
  STA pbank
 
+ JSR dfsin              \ Put DFS's workspace back at &1000-&10FF, where the
+                        \ renderer's second screen buffer may have drawn over
+                        \ it since the last disc command (dfsin, below)
+
  LDX #0                 \ Copy the command into pcbuf, up to and including its
                         \ carriage return
 .pcl1
@@ -104,7 +108,10 @@
 
  LDX #LO(pcbuf)         \ Pass the command to the MOS's OSCLI, from main RAM
  LDY #HI(pcbuf)         \ (which pages the caller's bank back in from &F4 when
- JMP &FFF7              \ it has finished)
+ JSR &FFF7              \ it has finished)
+
+ JMP dfsout             \ Keep DFS's workspace (and return; a command that
+                        \ fails ends at BRKV instead, leaving the last copy)
 
 .pbp
 
@@ -143,17 +150,96 @@
  CMP #'R'               \ that was paged, which now holds the new program)
  BNE prest
 
- LDA BANKH              \ Otherwise run the program at S% in its home bank
+ JSR dfsout             \ Otherwise keep DFS's workspace and run the program at
+ LDA BANKH              \ S% in its home bank
  STA &F4
  STA VIA+&30
  JMP HOME%
 
 .prest
 
+ JSR dfsout             \ Keep DFS's workspace
+
  LDA pbank              \ Page the caller's bank back in and return
  STA &F4
  STA VIA+&30
  RTS
+
+\ ******************************************************************************
+\
+\       Name: dfsin
+\       Type: Subroutine
+\   Category: Loader
+\    Summary: Put DFS's workspace back before a disc command, and keep it
+\             after one (dfsout)
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the renderer's second screen buffer (BUF0%, &1000-&3FFF) covers
+\ DFS's static workspace at &1000-&10FF, so PCLI keeps that page in the last
+\ page of the cold bank (DFSSAVE%) between disc commands: dfsin copies it
+\ back before each command, and dfsout copies it out after (the command
+\ may have loaded new images into the banks: dfsout then rewrites the copy
+\ in the new cold image's last page, which no image reaches). Until the
+\ first dfsout (dfsok = 0), DFS's workspace has not been taken, and dfsin
+\ leaves it. Both leave the caller's bank paged in.
+\
+\ ******************************************************************************
+
+.dfsin
+
+ LDA dfsok              \ If DFS's workspace has not been kept yet, leave it
+ BEQ dfs3
+
+ LDX #HI(DFSSAVE%)      \ Copy DFSSAVE% to &1000
+ LDY #&10
+ BNE dfs1               \ (this BNE is effectively a JMP)
+
+.dfsout
+
+ LDA #&FF               \ Note that DFS's workspace is kept
+ STA dfsok
+
+ LDX #&10               \ Copy &1000 to DFSSAVE%
+ LDY #HI(DFSSAVE%)
+
+.dfs1
+
+ STX dfsa+2             \ Set the source page (X) in the LDA and the
+ STY dfsb+2             \ destination page (Y) in the STA below
+
+ LDA &F4                \ Page the cold bank in, keeping the paged bank on the
+ PHA                    \ stack
+ LDA BANKC
+ STA &F4
+ STA VIA+&30
+
+ LDY #0
+
+.dfs2
+
+.dfsa
+
+ LDA &FF00,Y            \ (the pages are set above)
+
+.dfsb
+
+ STA &FF00,Y
+
+ INY
+ BNE dfs2
+
+ PLA                    \ Page the bank back in
+ STA &F4
+ STA VIA+&30
+
+.dfs3
+
+ RTS
+
+.dfsok
+
+ EQUB 0                 \ Non-zero once DFS's workspace has been kept
 
 \ ******************************************************************************
 \

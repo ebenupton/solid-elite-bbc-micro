@@ -49,6 +49,6 @@
 .COLD_END%
 
  PRINT "Flight cold bank: &8000-", ~COLD_END%-1, ", free ", &C000-COLD_END%
- ASSERT COLD_END% <= &C000
+ ASSERT COLD_END% <= DFSSAVE%      \ (Port: PCLI keeps DFS's workspace in the last page)
 
  SAVE "3-assembled-output/D.CODEC.bin", &8000, COLD_END%, &8000

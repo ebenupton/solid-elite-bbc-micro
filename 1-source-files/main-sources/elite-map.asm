@@ -52,6 +52,15 @@
                         \ BBC Master Elite's screen
  PANEL% = &7000
 
+ BUF0% = &1000          \ The renderer's second screen buffer, &1000-&3FFF (its
+                        \ first is SCREEN%), over DFS's static workspace at
+                        \ &1000-&10FF, which PCLI keeps in DFSSAVE% between
+                        \ disc commands
+
+ DFSSAVE% = &BF00       \ DFS's workspace, &1000-&10FF, between disc commands:
+                        \ the last page of each program's cold bank, which no
+                        \ cold image reaches (elite-layout-*.asm)
+
  PANELROWS = 7          \ The dashboard's character rows
 
  DTMP = &07BD          \ Workspace for the dashboard's drawing routines, at
