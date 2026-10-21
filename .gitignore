@@ -37,3 +37,5 @@ run.bat
 
 # Python bytecode (the harness imports test_routines.py)
 __pycache__/
+3-assembled-output/nmos/
+3-assembled-output/bankr-symbols.txt

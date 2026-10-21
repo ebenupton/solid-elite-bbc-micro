@@ -63,6 +63,15 @@
 
  PANELROWS = 7          \ The dashboard's character rows
 
+ BUF0 = &1000           \ The filled renderer's second screen buffer, buffer 0
+                        \ (&1000-&3FFF; buffer 1 is SCREEN%), which the
+                        \ rasteriser (bank R, gfx-rws.asm) draws into; not
+                        \ yet shown or used by the game
+
+ MBOX = &7E00           \ The rasteriser's mailbox (&7E00-&7EFF, between the
+                        \ dashboard and the missile's blueprint): its callers'
+                        \ inputs (gfx-rws.asm)
+
  DTMP = &07BD          \ Workspace for the dashboard's drawing routines, at
  DTMP2 = &07BE          \ the end of the resident block A (elite-resident.asm)
  DSTK = &07BF           \ The scanner stick's pixels (CPIX2 sets it for SCAN)
