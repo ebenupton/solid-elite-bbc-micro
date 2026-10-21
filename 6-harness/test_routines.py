@@ -203,6 +203,10 @@ TESTS = [
      ["A", "X", "Y", "N", "Z", "C", "V", "Q", "R", "S", "T"]),
     ("LL38", "LL38", lambda: ((a, 0x81, 0x5A, c, {"R": r, "Q": q, "S": ss}) for a, r, q, ss, c in grid([0, 0x80, 0x33, 0xB3], B, B, [0, 0x80], [0, 1]) if not QUICK or (r ^ q) & 7 == 0),
      ["A", "X", "Y", "N", "Z", "C", "V", "Q", "R", "S"]),
+    ("TIS2", "TIS2", lambda: ((a, 0x81, 0x5A, c, {"Q": q, "T": 0x33}) for a, q, c in EVERY(B, B1, [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "Q", "T"]),
+    ("TIS1", "TIS1", lambda: ((a, x, 0x5A, c, {"R": r, "S": ss}) for a, x, r, ss, c in sample(5000 if QUICK else 300000, B, B, B, B, [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R", "S", "T", "T1"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]
