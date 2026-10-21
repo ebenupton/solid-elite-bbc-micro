@@ -120,6 +120,14 @@ def load():
         cand_sy.setdefault("QSL", mc["QSL"])
         cand_sy.setdefault("QSH", mc["QSH"])
     cand = Machine("port", cand_sy, [(0x8000, open(os.path.join(REPO, "3-assembled-output/D.CODEH.bin"), "rb").read())], extra)
+    # (the port's routines in the flight code's cold bank run on a machine with
+    # that bank's image at &8000 instead)
+    cand.cold = Machine("port (cold bank)", cand_sy, [(0x8000, open(os.path.join(REPO, "3-assembled-output/D.CODEC.bin"), "rb").read())], extra)
+    cand.cold_labels = set()
+    for l in open(os.path.join(REPO, "3-assembled-output/flight-banks.txt")):
+        f = l.split()
+        if len(f) == 2 and f[1] == "C":
+            cand.cold_labels.add(f[0])
     return ref, cand
 
 
@@ -286,6 +294,9 @@ TESTS = [
     ("PIX1", "PIX1", lambda: ((a, 0x81, y, c, {"P": 0, "R": r, "S": ss, "X1": x1, "Y1": y1, "ZZ": zz}) for a, r, ss, x1, y1, zz, y, c in
         sample(20000 if QUICK else 300000, B, B, B, B, B, [16, 40, 90, 144, 255], [1, 5, 18], [0, 1])),
      ["A", "X", "Y", "N", "Z", "C", "YY+1", "SYL*19", "T", "T1", "&6000*7936"]),
+    # (DADD: ADD's work for the dashboard's pitch and roll, against ADD)
+    ("DADD", "ADD/DADD", lambda: ((a | sg, 0x81, 0x5A, c, {"P": 0, "R": 0, "S": 8, "T": 0x33, "T1": 0x44}) for a, sg, c in grid(range(8), [0, 0x80], [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "R", "S", "T", "T1"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]
@@ -296,9 +307,13 @@ def main():
     ref, cand = load()
     bad = 0
     for name, routine, inputs, outs in TESTS:
+        routine, _, port_routine = routine.partition("/")   # ("ORIG/PORT": the port's version has its own name)
+        port_routine = port_routine or routine
+        if port_routine not in cand.sy and port_routine + "_C" in cand.sy:
+            port_routine += "_C"                         # (a cold-bank body, as streams.py names it)
         if names and name not in names:
             continue
-        if routine not in cand.sy:
+        if port_routine not in cand.sy:
             print("%-10s skipped (not in the port's symbols)" % name)
             continue
         n = fails = cyc_r = cyc_c = 0
@@ -307,8 +322,9 @@ def main():
             ref.call(routine, a, x, y, c, mem)
             cyc_r += ref.mpu.processorCycles if hasattr(ref.mpu, "processorCycles") else 0
             r = ref.out(outs)
-            cand.call(routine, a, x, y, c, mem)
-            k = cand.out(outs)
+            m = cand.cold if port_routine in cand.cold_labels else cand
+            m.call(port_routine, a, x, y, c, mem)
+            k = m.out(outs)
             n += 1
             if r != k:
                 fails += 1

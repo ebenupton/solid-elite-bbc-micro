@@ -8598,10 +8598,11 @@ ENDIF
  EOR #%10000000         \ so it's now in the range -7 to +7, with a positive
                         \ roll angle alpha giving a negative value in A
 
- JSR ADD                \ We now add A to S to give us a value in the range 1 to
+ JSR DADD               \ We now add A to S to give us a value in the range 1 to
                         \ 15, which we can pass to DIL2 to draw the vertical
                         \ bar on the indicator at this position. We use the ADD
-                        \ routine like this:
+                        \ routine (Port: DADD, ADD's work for these arguments,
+                        \ in the cold bank with DIALS, see below) like this:
                         \
                         \ (A X) = (A 0) + (S 0)
                         \
@@ -8629,7 +8630,7 @@ ENDIF
                         \ numbers with sign bits, rather than two's complement
                         \ numbers
 
- JSR ADD                \ We now add A to S to give us a value in the range 1 to
+ JSR DADD               \ We now add A to S to give us a value in the range 1 to
                         \ 15, which we can pass to DIL2 to draw the vertical
                         \ bar on the indicator at this position (see the JSR ADD
                         \ above for more on this)
@@ -8637,6 +8638,7 @@ ENDIF
  JSR DIL2               \ Draw a vertical bar on the pitch indicator at offset A
                         \ and increment SC to point to the next indicator (the
                         \ four energy banks)
+
 
 \ ******************************************************************************
 \
@@ -9103,6 +9105,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update the roll or pitch indicator on the dashboard
+\       Area: cold
 \  Deep dive: The dashboard indicators
 \
 \ ------------------------------------------------------------------------------
@@ -9165,7 +9168,7 @@ ENDIF
                         \ drawing blank characters after this one until we reach
                         \ the end of the indicator row
 
- LDA CTWOS,X            \ CTWOS is a table of ready-made one-pixel mode 5 bytes,
+ LDA CTWOD,X            \ CTWOS is a table of ready-made one-pixel mode 5 bytes,
                         \ just like the TWOS and TWOS2 tables for mode 4 (see
                         \ the PIXEL routine for details of how they work). This
                         \ fetches a mode 5 one-pixel byte with the pixel
@@ -9225,6 +9228,53 @@ ENDIF
                         \ just drew
 
  RTS                    \ Return from the subroutine
+
+.DADD
+
+                        \ Port: ADD's work for the two calls in DIALS (part 2),
+                        \ in the cold bank so that drawing the dashboard makes
+                        \ no far calls for them: (A X) = (A P) + (S R) with P = R = 0,
+                        \ S = 8 and |A| <= 7, so X = 0 and A = 8 + |A| if A is
+                        \ positive or 8 - |A| if it is negative (never below 1),
+                        \ with T1 and T set and the C flag cleared, as ADD
+                        \ (through MU8 when the signs differ) leaves them
+
+ LDX #0                 \ Set X = 0, the low byte of the result
+
+ STA T1                 \ Store argument A in T1, and its sign in T, as ADD
+ AND #%10000000         \ does
+ STA T
+
+ EOR T1                 \ Set A = |A|
+
+ BIT T                  \ If A was negative, jump to dadn
+ BMI dadn
+
+ CLC                    \ Set A = S + |A| (C is clear after this, as the result
+ ADC S                  \ is at most 15)
+
+ RTS                    \ Return from the subroutine
+
+.dadn
+
+ EOR #%11111111         \ Set A = S - |A| (with no borrow, as |A| < S)
+ SEC
+ ADC S
+
+ CLC                    \ Clear the C flag, as MU8 does in this case
+
+ RTS                    \ Return from the subroutine
+
+.CTWOD
+
+                        \ Port: the cold bank's copy of the first four bytes of
+                        \ CTWOS, for DIL2 (CTWOS itself is in the home bank,
+                        \ for CPIX2)
+
+ EQUB %10001000
+ EQUB %01000100
+ EQUB %00100010
+ EQUB %00010001
 
 \ ******************************************************************************
 \
