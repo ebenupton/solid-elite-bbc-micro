@@ -12212,64 +12212,54 @@ ENDIF
  JMP MU6                \ from the subroutine using a tail call (Port: MU6 is
                         \ out of a branch's reach since MU11 grew)
 
- TAX                    \ Set T1 = X - 1
- DEX                    \
- STX T1                 \ We subtract 1 as the C flag will be set when we want
-                        \ to do an addition in the loop below
+ TAX                    \ Set T1 = X - 1, as the original does
+ DEX
+ STX T1
 
- LDA #0                 \ Set A = 0 so we can start building the answer in A
-
- LSR P                  \ Set P = P >> 1
-                        \ and C flag = bit 0 of P
-
-                        \ We are now going to work our way through the bits of
-                        \ P, and do a shift-add for any bits that are set,
-                        \ keeping the running total in A, but instead of using a
-                        \ loop like MU11, we just unroll it, starting with bit 0
-
- BCC P%+4               \ If C (i.e. the next bit from P) is set, do the
- ADC T1                 \ addition for this bit of P:
+                        \ Port: the product comes from the quarter squares in
+                        \ main RAM (QSL and QSH, elite-map.asm) rather than an
+                        \ unrolled shift-and-add:
                         \
-                        \   A = A + T1 + C
-                        \     = A + X - 1 + 1
-                        \     = A + X
+                        \   P * |A| = QS(P + |A|) - QS(|P - |A||)
+                        \
+                        \ where QS(n) = INT(n * n / 4), exactly (see MU11); both
+                        \ indices are below 256, as P < 32 (it is |alpha| or
+                        \ |beta|). The results are the original's: (A P), T the
+                        \ sign, T1 = X = |A| - 1, Y unchanged, C clear, and N and
+                        \ Z from the high byte
 
- ROR A                  \ Shift A right to catch the next digit of our result,
-                        \ which the next ROR sticks into the left end of P while
-                        \ also extracting the next bit of P
+ SEC                    \ Set A = |A| - P, with C set if |A| >= P
+ SBC P
 
- ROR P                  \ Add the overspill from shifting A to the right onto
-                        \ the start of P, and shift P right to fetch the next
-                        \ bit for the calculation into the C flag
+ BCS mlsa               \ If |A| < P, negate A (C is clear, so the ADC adds 1
+ EOR #&FF               \ to the one's complement), so A = |P - |A||
+ ADC #1
 
- BCC P%+4               \ Repeat the shift-and-add loop for bit 1
+.mlsa
+
+ TAX                    \ Patch QS(|P - |A||) into the two SBC instructions
+ LDA QSL,X              \ below that subtract it
+ STA mlsl+1
+ LDA QSH,X
+ STA mlsh+1
+
+ LDA P                  \ Set X = P + |A| (= P + T1 + 1), which is below 256
+ SEC
  ADC T1
- ROR A
- ROR P
+ TAX
 
- BCC P%+4               \ Repeat the shift-and-add loop for bit 2
- ADC T1
- ROR A
- ROR P
+ LDA QSL,X              \ Set (A P) = QS(P + |A|) - QS(|P - |A||), starting
+ SEC                    \ with the low bytes
+.mlsl
+ SBC #0                 \ (patched above)
+ STA P
 
- BCC P%+4               \ Repeat the shift-and-add loop for bit 3
- ADC T1
- ROR A
- ROR P
+ LDA QSH,X              \ And then the high bytes
+.mlsh
+ SBC #0                 \ (patched above)
 
- BCC P%+4               \ Repeat the shift-and-add loop for bit 4
- ADC T1
- ROR A
- ROR P
-
- LSR A                  \ Just do the "shift" part for bit 5
- ROR P
-
- LSR A                  \ Just do the "shift" part for bit 6
- ROR P
-
- LSR A                  \ Just do the "shift" part for bit 7
- ROR P
+ LDX T1                 \ Set X = |A| - 1 and clear the C flag, as the
+ CLC                    \ original's unrolled loop leaves them
 
  ORA T                  \ Give A the sign bit of the original argument A that
                         \ we put into T above

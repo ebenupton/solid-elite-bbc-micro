@@ -159,6 +159,14 @@ TESTS = [
      ["A", "X", "Y", "N", "Z", "C", "P", "Q", "T", "T1"]),
     ("MULT12", "MULT12", lambda: ((a, 0x81, 0x5A, c, {"Q": q, "T1": 0x33}) for a, q, c in EVERY(B, B, [0, 1])),
      ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R", "S", "T", "T1"]),
+    # (P < 32: MLS1 and MLS2 set it to ALP1, and the callers of MULTS-2 to
+    # |alpha| or |beta|)
+    ("MLS1", "MLS1", lambda: ((a, 0x81, 0x5A, c, {"ALP1": p, "T1": 0x33}) for a, p, c in EVERY(B, range(32), [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "T", "T1"]),
+    ("MLS2", "MLS2", lambda: ((a, 0x81, 0x5A, c, {"ALP1": p, "XX": 0x12, "XX+1": 0x34}) for a, p, c in EVERY(B, range(32), [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "R", "S", "T", "T1"]),
+    ("MULTS", "MULTS", lambda: ((a, 0x81, 0x5A, c, {"P": p, "T1": 0x33}) for a, p, c in EVERY(B, range(32), [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "T", "T1"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]
