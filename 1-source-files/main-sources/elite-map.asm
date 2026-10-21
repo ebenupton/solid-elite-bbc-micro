@@ -52,11 +52,6 @@
                         \ BBC Master Elite's screen
  PANEL% = &7000
 
- BUF0% = &1000          \ The renderer's second screen buffer, &1000-&3FFF (its
-                        \ first is SCREEN%), over DFS's static workspace at
-                        \ &1000-&10FF, which PCLI keeps in DFSSAVE% between
-                        \ disc commands
-
  DFSSAVE% = &BF00       \ DFS's workspace, &1000-&10FF, between disc commands:
                         \ the last page of each program's cold bank, which no
                         \ cold image reaches (elite-layout-*.asm)
@@ -66,7 +61,9 @@
  BUF0 = &1000           \ The filled renderer's second screen buffer, buffer 0
                         \ (&1000-&3FFF; buffer 1 is SCREEN%), which the
                         \ rasteriser (bank R, gfx-rws.asm) draws into; not
-                        \ yet shown or used by the game
+                        \ yet shown or used by the game; it covers DFS's
+                        \ static workspace at &1000-&10FF, which PCLI keeps in
+                        \ DFSSAVE% between disc commands
 
  MBOX = &7E00           \ The rasteriser's mailbox (&7E00-&7EFF, between the
                         \ dashboard and the missile's blueprint): its callers'

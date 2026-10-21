@@ -175,7 +175,7 @@
 \
 \ ------------------------------------------------------------------------------
 \
-\ Port: the renderer's second screen buffer (BUF0%, &1000-&3FFF) covers
+\ Port: the renderer's second screen buffer (BUF0, &1000-&3FFF) covers
 \ DFS's static workspace at &1000-&10FF, so PCLI keeps that page in the last
 \ page of the cold bank (DFSSAVE%) between disc commands: dfsin copies it
 \ back before each command, and dfsout copies it out after (the command
