@@ -297,6 +297,279 @@
 
 \ ******************************************************************************
 \
+\       Name: S1%
+\       Type: Variable
+\   Category: Save and load
+\    Summary: The drive and directory number used when saving or loading a
+\             commander file
+\  Deep dive: Commander save files
+\
+\ ------------------------------------------------------------------------------
+\
+\ The drive part of this string (the "0") is updated with the chosen drive in
+\ the GTNMEW routine, but the directory part (the "E") is fixed. The variable
+\ is followed directly by the commander file at NA%, which starts with the
+\ commander name, so the full string at S1% is in the format ":0.E.JAMESON",
+\ which gives the full filename of the commander file.
+\
+\ ******************************************************************************
+
+.S1%
+
+ EQUS ":0.E."
+
+\ ******************************************************************************
+\
+\       Name: NA%
+\       Type: Variable
+\   Category: Save and load
+\    Summary: The data block for the last saved commander
+\  Deep dive: Commander save files
+\             The competition code
+\
+\ ------------------------------------------------------------------------------
+\
+\ Contains the last saved commander data, with the name at NA% and the data at
+\ NA%+8 onwards. The size of the data block is given in NT% (which also includes
+\ the two checksum bytes that follow this block). This block is initially set up
+\ with the default commander, which can be maxed out for testing purposes by
+\ setting Q% to TRUE.
+\
+\ The commander's name is stored at NA%, and can be up to 7 characters long
+\ (the DFS filename limit). It is terminated with a carriage return character,
+\ ASCII 13.
+\
+\ The offset of each byte within a saved commander file is also shown as #0, #1
+\ and so on, so the kill tally, for example, is in bytes #71 and #72 of the
+\ saved file. The related variable name from the current commander block is
+\ also shown.
+\
+\ ******************************************************************************
+
+.NA%
+
+ EQUS "JAMESON"         \ The current commander name, which defaults to JAMESON
+ EQUB 13                \
+                        \ The commander name can be up to seven characters (the
+                        \ DFS limit for filenames), and is terminated by a
+                        \ carriage return
+
+                        \ NA%+8 is the start of the commander data block
+                        \
+                        \ This block contains the last saved commander data
+                        \ block. As the game is played it uses an identical
+                        \ block at location TP to store the current commander
+                        \ state, and that block is copied here when the game is
+                        \ saved. Conversely, when the game starts up, the block
+                        \ here is copied to TP, which restores the last saved
+                        \ commander when we die
+                        \
+                        \ The initial state of this block defines the default
+                        \ commander. Q% can be set to TRUE to give the default
+                        \ commander lots of credits and equipment
+
+ EQUB 0                 \ TP = Mission status, #0
+
+ EQUB 20                \ QQ0 = Current system X-coordinate (Lave), #1
+ EQUB 173               \ QQ1 = Current system Y-coordinate (Lave), #2
+
+ EQUW &5A4A             \ QQ21 = Seed s0 for system 0, galaxy 0 (Tibedied), #3-4
+ EQUW &0248             \ QQ21 = Seed s1 for system 0, galaxy 0 (Tibedied), #5-6
+ EQUW &B753             \ QQ21 = Seed s2 for system 0, galaxy 0 (Tibedied), #7-8
+
+IF Q%
+ EQUD &00CA9A3B         \ CASH = Amount of cash (100,000,000 Cr), #9-12
+ELSE
+ EQUD &E8030000         \ CASH = Amount of cash (100 Cr), #9-12
+ENDIF
+
+ EQUB 70                \ QQ14 = Fuel level, #13
+
+ EQUB 0                 \ COK = Competition flags, #14
+
+ EQUB 0                 \ GCNT = Galaxy number, 0-7, #15
+
+ EQUB POW+(128 AND Q%)  \ LASER = Front laser, #16
+
+ EQUB (POW+128) AND Q%  \ LASER+1 = Rear laser, #17
+
+ EQUB 0                 \ LASER+2 = Left laser, #18
+
+ EQUB 0                 \ LASER+3 = Right laser, #19
+
+ EQUW 0                 \ These bytes appear to be unused (they were originally
+                        \ used for up/down lasers, but they were dropped),
+                        \ #20-21
+
+ EQUB 22 + (15 AND Q%)  \ CRGO = Cargo capacity, #22
+
+ EQUB 0                 \ QQ20+0  = Amount of food in cargo hold, #23
+ EQUB 0                 \ QQ20+1  = Amount of textiles in cargo hold, #24
+ EQUB 0                 \ QQ20+2  = Amount of radioactives in cargo hold, #25
+ EQUB 0                 \ QQ20+3  = Amount of slaves in cargo hold, #26
+ EQUB 0                 \ QQ20+4  = Amount of liquor/Wines in cargo hold, #27
+ EQUB 0                 \ QQ20+5  = Amount of luxuries in cargo hold, #28
+ EQUB 0                 \ QQ20+6  = Amount of narcotics in cargo hold, #29
+ EQUB 0                 \ QQ20+7  = Amount of computers in cargo hold, #30
+ EQUB 0                 \ QQ20+8  = Amount of machinery in cargo hold, #31
+ EQUB 0                 \ QQ20+9  = Amount of alloys in cargo hold, #32
+ EQUB 0                 \ QQ20+10 = Amount of firearms in cargo hold, #33
+ EQUB 0                 \ QQ20+11 = Amount of furs in cargo hold, #34
+ EQUB 0                 \ QQ20+12 = Amount of minerals in cargo hold, #35
+ EQUB 0                 \ QQ20+13 = Amount of gold in cargo hold, #36
+ EQUB 0                 \ QQ20+14 = Amount of platinum in cargo hold, #37
+ EQUB 0                 \ QQ20+15 = Amount of gem-stones in cargo hold, #38
+ EQUB 0                 \ QQ20+16 = Amount of alien items in cargo hold, #39
+
+ EQUB Q%                \ ECM = E.C.M. system, #40
+
+ EQUB Q%                \ BST = Fuel scoops ("barrel status"), #41
+
+ EQUB Q% AND 127        \ BOMB = Energy bomb, #42
+
+ EQUB Q% AND 1          \ ENGY = Energy/shield level, #43
+
+ EQUB Q%                \ DKCMP = Docking computer, #44
+
+ EQUB Q%                \ GHYP = Galactic hyperdrive, #45
+
+ EQUB Q%                \ ESCP = Escape pod, #46
+
+ EQUD 0                 \ These four bytes appear to be unused, #47-50
+
+ EQUB 3 + (Q% AND 1)    \ NOMSL = Number of missiles, #51
+
+ EQUB 0                 \ FIST = Legal status ("fugitive/innocent status"), #52
+
+ EQUB 16                \ AVL+0  = Market availability of food, #53
+ EQUB 15                \ AVL+1  = Market availability of textiles, #54
+ EQUB 17                \ AVL+2  = Market availability of radioactives, #55
+ EQUB 0                 \ AVL+3  = Market availability of slaves, #56
+ EQUB 3                 \ AVL+4  = Market availability of liquor/Wines, #57
+ EQUB 28                \ AVL+5  = Market availability of luxuries, #58
+ EQUB 14                \ AVL+6  = Market availability of narcotics, #59
+ EQUB 0                 \ AVL+7  = Market availability of computers, #60
+ EQUB 0                 \ AVL+8  = Market availability of machinery, #61
+ EQUB 10                \ AVL+9  = Market availability of alloys, #62
+ EQUB 0                 \ AVL+10 = Market availability of firearms, #63
+ EQUB 17                \ AVL+11 = Market availability of furs, #64
+ EQUB 58                \ AVL+12 = Market availability of minerals, #65
+ EQUB 7                 \ AVL+13 = Market availability of gold, #66
+ EQUB 9                 \ AVL+14 = Market availability of platinum, #67
+ EQUB 8                 \ AVL+15 = Market availability of gem-stones, #68
+ EQUB 0                 \ AVL+16 = Market availability of alien items, #69
+
+ EQUB 0                 \ QQ26 = Random byte that changes for each visit to a
+                        \ system, for randomising market prices, #70
+
+ EQUW 0                 \ TALLY = Number of kills, #71-72
+
+ EQUB 128               \ SVC = Save count, #73
+
+\ ******************************************************************************
+\
+\       Name: CHK2
+\       Type: Variable
+\   Category: Save and load
+\    Summary: Second checksum byte for the saved commander data file
+\  Deep dive: Commander save files
+\             The competition code
+\
+\ ------------------------------------------------------------------------------
+\
+\ Second commander checksum byte. If the default commander is changed, a new
+\ checksum will be calculated and inserted by the elite-checksum.py script.
+\
+\ The offset of this byte within a saved commander file is also shown (it's at
+\ byte #74).
+\
+\ ******************************************************************************
+
+.CHK2
+
+ EQUB &03 EOR &A9       \ The checksum value for the default commander, EOR'd
+                        \ with &A9 to make it harder to tamper with the checksum
+                        \ byte, #74
+
+\ ******************************************************************************
+\
+\       Name: CHK
+\       Type: Variable
+\   Category: Save and load
+\    Summary: First checksum byte for the saved commander data file
+\  Deep dive: Commander save files
+\             The competition code
+\
+\ ------------------------------------------------------------------------------
+\
+\ Commander checksum byte. If the default commander is changed, a new checksum
+\ will be calculated and inserted by the elite-checksum.py script.
+\
+\ The offset of this byte within a saved commander file is also shown (it's at
+\ byte #75).
+\
+\ ******************************************************************************
+
+.CHK
+
+ EQUB &03               \ The checksum value for the default commander, #75
+
+\ ******************************************************************************
+\
+\       Name: BRBR1
+\       Type: Subroutine
+\   Category: Loader
+\    Summary: Loader break handler: print a newline and the error message, and
+\             then hang the computer
+\  Deep dive: Swapping between the docked and flight code
+\
+\ ------------------------------------------------------------------------------
+\
+\ This break handler is used during loading and during flight, and is resident
+\ in memory throughout the game's lifecycle. The docked code loads its own
+\ break handler and overrides this one until the flight code is run.
+\
+\ The main difference between the two handlers is that this one display the
+\ error and then hangs, while the docked code displays the error and returns.
+\ This is because the docked code has to cope gracefully with errors from the
+\ disc access menu (such as "File not found"), which we obviously don't want to
+\ terminate the game.
+\
+\ ******************************************************************************
+
+.BRBR1
+
+                        \ The following loop prints out the null-terminated
+                        \ message pointed to by (&FD &FE), which is the MOS
+                        \ error message pointer - so this prints the error
+                        \ message on the next line
+
+ LDY #0                 \ Set Y = 0 to act as a character counter
+
+ LDA #13                \ Set A = 13 so the first character printed is a
+                        \ carriage return
+
+.BRBRLOOP
+
+ JSR OSWRCH             \ Print the character in A (which contains a carriage
+                        \ return on the first loop iteration), and then any
+                        \ characters we fetch from the error message
+
+ INY                    \ Increment the loop counter
+
+ LDA (&FD),Y            \ Fetch the Y-th byte of the block pointed to by
+                        \ (&FD &FE), so that's the Y-th character of the message
+                        \ pointed to by the MOS error message pointer
+
+ BNE BRBRLOOP           \ If the fetched character is non-zero, loop back to the
+                        \ JSR OSWRCH above to print the it, and keep looping
+                        \ until we fetch a zero (which marks the end of the
+                        \ message)
+
+ BEQ P%                 \ Hang the computer as something has gone wrong
+
+\ ******************************************************************************
+\
 \       Name: IRQG
 \       Type: Subroutine
 \   Category: Drawing the screen

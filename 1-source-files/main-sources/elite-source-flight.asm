@@ -166,12 +166,11 @@
  CATD = &0D7A           \ The address of the CATD routine that is put in place
                         \ by the third loader, as set in elite-loader3.asm
 
- IRQ1 = &114B           \ The address of the IRQ1 routine that implements the
-                        \ split screen interrupt handler, as set in
-                        \ elite-loader3.asm
-
- BRBR1 = &11D5          \ The address of the main break handler, which BRKV
-                        \ points to as set in elite-loader3.asm
+                        \ Port: IRQ1 (now the loading screen's interrupt
+                        \ handler; the game's is IRQG), BRBR1, NA%, CHK2 and
+                        \ CHK are in the loader's resident block A, whose
+                        \ addresses the layout files INCLUDE
+                        \ (3-assembled-output/resident.asm)
 
  XX21 = BPSLOT%         \ The address of the ship blueprints lookup table, where
                         \ the chosen ship blueprints file is loaded (Port: the
@@ -1970,7 +1969,7 @@
  JMP TT26               \ WRCHV is set to point here by elite-loader.asm, so
                         \ TT26 is set as the character write routine
 
- EQUW IRQ1              \ IRQ1V is set to the address in these two bytes by
+ EQUW IRQG              \ IRQ1V is set to the address in these two bytes by
                         \ elite-loader3.asm, so IRQ1V points to IRQ1
 
  JMP BRBR1              \ BRKV is set to point here by elite-loader3.asm, so

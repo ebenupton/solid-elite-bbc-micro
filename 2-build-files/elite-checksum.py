@@ -27,17 +27,19 @@ for m in re.finditer(r"'([^']+)':(\d+)", open("3-assembled-output/loader-symbols
     sy.setdefault(m.group(1), int(m.group(2)))
 
 load_address = 0x1900
-tvt1_code = sy["TVT1code"]
-tvt1 = sy["TVT1"]
+resa_code = sy["RESAcode"]          # (NA% and CHK2 are in the resident block A,
+resa = 0x0400                       # which the loader copies from RESAcode to &0400)
 na_per_cent = sy["NA%"]
 chk2 = sy["CHK2"]
+assert resa <= na_per_cent < 0x0800 and resa <= chk2 < 0x0800
 
 data_block = bytearray(open("3-assembled-output/ELITE4.unprot.bin", "rb").read())
 
 # Commander data checksum (as the original script, at the port's addresses)
 
-na_per_cent_offset = na_per_cent - tvt1 + tvt1_code - load_address
-checksum_offset = chk2 - tvt1 + tvt1_code - load_address
+na_per_cent_offset = na_per_cent - resa + resa_code - load_address
+checksum_offset = chk2 - resa + resa_code - load_address
+assert 0 <= na_per_cent_offset < len(data_block) and 0 <= checksum_offset < len(data_block)
 CH = 0x4B - 2
 CY = 0
 for i in range(CH, 0, -1):

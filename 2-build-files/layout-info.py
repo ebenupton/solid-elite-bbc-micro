@@ -18,6 +18,10 @@
 #
 #   * PCLI, the game's OSCLI (OSCLI = PCLI in the programs' sources)
 #
+#   * IRQG, the game's interrupt handler, and NA% (the last saved
+#     commander), CHK2, CHK and BRBR1 (the break handler), which were the
+#     original's block B at &1100
+#
 # It also writes 3-assembled-output/flight-banks.txt and docked-banks.txt,
 # the bank of each label of each program, for the harness (below).
 #
@@ -28,7 +32,8 @@
 import re
 
 OUT = "3-assembled-output/"
-NAMES = ("farC", "farCj", "farH", "farHj", "BANKH", "BANKC", "BANKR", "BANKF", "PCLI")
+NAMES = ("farC", "farCj", "farH", "farHj", "BANKH", "BANKC", "BANKR", "BANKF", "PCLI",
+         "IRQG", "NA%", "CHK2", "CHK", "BRBR1")
 
 sy = {}
 for m in re.finditer(r"'([^']+)':(\d+)", open(OUT + "loader-symbols.txt").read()):
