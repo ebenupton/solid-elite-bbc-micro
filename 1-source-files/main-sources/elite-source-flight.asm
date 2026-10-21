@@ -12609,60 +12609,79 @@ ENDIF
 
 .FMLTU
 
- EOR #%11111111         \ Flip the bits in A, set the C flag and rotate right,
- SEC                    \ so the C flag now contains bit 0 of A inverted, and P
- ROR A                  \ contains A inverted and shifted right by one, with bit
- STA P                  \ 7 set to a 1. We can now use P as our source of bits
-                        \ to shift right, just as in MU11, just with the logic
-                        \ reversed
-
- LDA #0                 \ Set A = 0 so we can start building the answer in A
-
-.MUL3
-
- BCS MU7                \ If C (i.e. the next bit from P) is set, do not do the
-                        \ addition for this bit of P, and instead skip to MU7
-                        \ to just do the shifts
-
- ADC Q                  \ Do the addition for this bit of P:
+                        \ Port: the product comes from the quarter squares in
+                        \ main RAM (QSL and QSH, elite-map.asm) rather than a
+                        \ shift-and-add loop:
                         \
-                        \   A = A + Q + C
-                        \     = A + Q
+                        \   A * Q = QS(A + Q) - QS(|A - Q|)
+                        \
+                        \ where QS(n) = INT(n * n / 4), exactly (see MU11), and
+                        \ only the high byte is kept. The results are the
+                        \ original's: A = A * Q / 256, with P = 0, X, Y and Q
+                        \ unchanged, C set, Z set and N clear (as the original's
+                        \ last LSR P left them)
 
- ROR A                  \ Shift A right to catch the next digit of our result.
-                        \ If we were interested in the low byte of the result we
-                        \ would want to save the bit that falls off the end, but
-                        \ we aren't, so we can ignore it
+ STX fmlx+1             \ Store X in the LDX at fmlx, to restore it at the end
 
- LSR P                  \ Shift P right to fetch the next bit for the
-                        \ calculation into the C flag
+ STA P                  \ Set A = A - Q, with C set if A >= Q
+ SEC
+ SBC Q
 
- BNE MUL3               \ Loop back to MUL3 if P still contains some set bits
-                        \ (so we loop through the bits of P until we get to the
-                        \ 1 we inserted before the loop, and then we stop)
+ BCS fmla               \ If A < Q, negate A to get Q - A (C is clear, so the
+ EOR #&FF               \ ADC adds 1 to the one's complement), so A = |A - Q|
+ ADC #1
 
-                        \ If we get here then the C flag is set as we just
-                        \ rotated a 1 out of the right end of P
+.fmla
+
+ TAX                    \ Patch QS(|A - Q|) into the two SBC instructions
+ LDA QSL,X              \ below that subtract it
+ STA fmll+1
+ STA fmlm+1
+ LDA QSH,X
+ STA fmlh+1
+ STA fmli+1
+
+ LDA P                  \ Set X = A + Q, with the high bit of the 9-bit sum in
+ CLC                    \ C
+ ADC Q
+ TAX
+
+ BCS fmlb               \ If A + Q >= 256, jump to fmlb to read the tables'
+                        \ second pages
+
+ LDA QSL,X              \ Set A = the high byte of QS(A + Q) - QS(|A - Q|),
+ SEC                    \ subtracting the low bytes first for the borrow
+.fmll
+ SBC #0                 \ (patched above)
+ LDA QSH,X
+.fmlh
+ SBC #0                 \ (patched above)
+
+.fmlc
+
+ LDX #0                 \ Set P = 0, as the original's loop leaves it
+ STX P
+
+.fmlx
+
+ LDX #0                 \ Restore X (the value is patched above)
+
+ BIT P                  \ Set Z and clear N (as P = 0), and set C, as the
+ SEC                    \ original's loop leaves them
 
  RTS                    \ Return from the subroutine
 
-.MU7
+.fmlb
 
- LSR A                  \ Shift A right to catch the next digit of our result,
-                        \ pushing a 0 into bit 7 as we aren't adding anything
-                        \ here (we can't use a ROR here as the C flag is set, so
-                        \ a ROR would push a 1 into bit 7)
+ LDA QSL+256,X          \ As above, for A + Q = 256 + X
+ SEC
+.fmlm
+ SBC #0                 \ (patched above)
+ LDA QSH+256,X
+.fmli
+ SBC #0                 \ (patched above)
 
- LSR P                  \ Fetch the next bit from P into the C flag
-
- BNE MUL3               \ Loop back to MUL3 if P still contains some set bits
-                        \ (so we loop through the bits of P until we get to the
-                        \ 1 we inserted before the loop, and then we stop)
-
-                        \ If we get here then the C flag is set as we just
-                        \ rotated a 1 out of the right end of P
-
- RTS                    \ Return from the subroutine
+ JMP fmlc               \ Jump to fmlc to finish off
 
 \ ******************************************************************************
 \
