@@ -58,6 +58,11 @@
 
  PANELROWS = 7          \ The dashboard's character rows
 
+ RLINEUS = 64           \ The screen's line, in microseconds
+ RPA = 188 * RLINEUS - 2  \ Timer 1's periods for the rupture (resident's IRQG):
+ RPB = 124 * RLINEUS - 2  \ point 2 (line 8) to point 1 (line 196), and point 1 to
+                        \ point 2 (the latch counts N + 2 microseconds)
+
  BUF0 = &1000           \ The filled renderer's second screen buffer, buffer 0
                         \ (&1000-&3FFF; buffer 1 is SCREEN%), which the
                         \ rasteriser (bank R, gfx-rws.asm) draws into; not

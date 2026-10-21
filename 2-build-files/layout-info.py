@@ -33,7 +33,7 @@ import re
 
 OUT = "3-assembled-output/"
 NAMES = ("farC", "farCj", "farH", "farHj", "BANKH", "BANKC", "BANKR", "BANKF", "PCLI",
-         "IRQG", "NA%", "CHK2", "CHK", "BRBR1")
+         "IRQG", "NA%", "CHK2", "CHK", "BRBR1", "PANR", "RSHOW")
 
 sy = {}
 for m in re.finditer(r"'([^']+)':(\d+)", open(OUT + "loader-symbols.txt").read()):

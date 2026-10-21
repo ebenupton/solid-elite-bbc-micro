@@ -820,10 +820,42 @@ ENDIF
  DEY
  BPL palt
 
- LDA #&0E               \ Set timer 1's latch back to the MOS's 10 ms (9998),
- STA VIA+&46            \ as the game no longer uses timer 1 to split the
- LDA #&27               \ screen: the MOS's 100 Hz clock (and the sound) gets
- STA VIA+&47            \ timer 1 back
+                        \ Start the rupture (IRQG, in the resident block A):
+                        \ the field as one 39-row frame for now, with vsync
+                        \ at its row 34 and no interlace (so that a field is
+                        \ exactly 312 lines, timer 1's period), then, once the
+                        \ vertical sync comes, timer 1 started to fire at line
+                        \ 8 (point 2), where IRQG sets up frame A, and then
+                        \ every RPA and RPB microseconds in turn
+
+ LDX #(rinit_end - rinit - 2)
+
+.rnl
+
+ LDA rinit,X            \ Set 6845 register rinit+X to rinit+X+1, for each
+ STA VIA+&00            \ pair in rinit
+ LDA rinit+1,X
+ STA VIA+&01
+ DEX
+ DEX
+ BPL rnl
+
+ LDA #%00000010         \ Clear the vertical sync's flag, and wait for it to be
+ STA VIA+&4D            \ set again
+
+.rnw
+
+ BIT VIA+&4D
+ BEQ rnw
+
+ LDA #LO(48*RLINEUS-200)  \ Start timer 1 to fire 48 lines on (line 8), less the
+ STA VIA+&44            \ time to here, and then RPA microseconds on
+ LDA #HI(48*RLINEUS-200)
+ STA VIA+&45
+ LDA #LO(RPA)
+ STA VIA+&46
+ LDA #HI(RPA)
+ STA VIA+&47
 
  LDA VEC                \ Copy the MOS's IRQ1V handler from VEC to IRQMOS, for
  STA IRQMOS             \ IRQG
@@ -881,6 +913,17 @@ ENDIF
  EQUB 13, LO(SCREEN% DIV 8)  \ R12 R13 = SCREEN% / 8, the screen's start
 
 .scrtab_end
+
+.rinit
+
+                        \ Port: the 6845 registers for the rupture's start
+                        \ (register and value pairs)
+ EQUB 4, 38             \ R4 = 38, a 39-row frame
+ EQUB 5, 0              \ R5 = 0, no vertical adjust
+ EQUB 7, 34             \ R7 = 34, vsync at row 34
+ EQUB 8, 0              \ R8 = 0, no interlace
+
+.rinit_end
 
  EQUS "Does your mother know you do this?"
 

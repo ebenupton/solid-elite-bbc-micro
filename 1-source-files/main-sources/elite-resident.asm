@@ -677,6 +677,10 @@ ENDIF
 
 .IRQG
 
+ BIT VIA+&4D            \ If timer 1 has fired (bit 6, V), this is one of the
+ BVS irqt               \ rupture's two points: set up the 6845 for the next
+                        \ CRTC frame at irqt
+
  LDA #%00000010         \ If this is not the vertical sync (CA1), pass it to the
  BIT VIA+&4D            \ MOS, through IRQMOS (the original's handler kept the
  BNE irqv               \ MOS's vector in VEC, at &7FFE, which the docked code
@@ -715,6 +719,158 @@ ENDIF
  LDA &FC                \ Restore A from the MOS's save register and return
  RTI                    \ (the vertical sync is not passed to the MOS, as in
                         \ the original, so the MOS never rewrites the ULA)
+
+.irqt
+
+                        \ The rupture: each 312-line field is two CRTC frames,
+                        \ frame A (24 rows of the screen buffer shown, no
+                        \ vsync) and frame B (15 rows, of which the first 7
+                        \ show the dashboard, vsync at its row 10); the 6845
+                        \ latches the start address at each frame's start, so
+                        \ timer 1, free running, fires twice a field (point 2
+                        \ at line 8, in frame A, and point 1 at line 196, in
+                        \ frame B; its latch alternates) to set the other
+                        \ frame's registers (the Tube branch's Model B host's
+                        \ hb_irq, ~/elite-full-tube tube/src/hb-irq.asm). The
+                        \ timer interrupt also goes to the MOS, whose 100 Hz
+                        \ clock, keyboard and sound it drives (twice a field)
+
+                        \ Writing timer 1's latch clears its interrupt flag,
+                        \ so the MOS handles the interrupt first: an extra
+                        \ return frame on the stack brings its RTI back to
+                        \ irqr, which then sets up the rupture and returns
+                        \ from the interrupt itself
+
+ LDA #HI(irqr)          \ Push a return frame for the MOS's RTI: irqr, with the
+ PHA                    \ I flag set
+ LDA #LO(irqr)
+ PHA
+ LDA #%00000100
+ PHA
+
+ LDA &FC                \ Pass the interrupt on to the MOS, with A restored
+ JMP (IRQMOS)
+
+.irqr
+
+ PHA                    \ Store A, X and Y on the stack (the MOS has restored
+ TXA                    \ them as they were when the interrupt came)
+ PHA
+ TYA
+ PHA
+
+ LDA rphase             \ Flip the rupture's phase (1 at point 2, 0 at point 1)
+ EOR #1
+ STA rphase
+ BEQ irq1
+
+                        \ Point 2 (frame A has started): frame A's registers,
+                        \ and the dashboard's address for frame B
+
+ LDX #(rregA - rreg)    \ R4, R6, R7 for frame A (24 rows, all shown, no vsync)
+ JSR rregs
+
+ LDA #12                \ R12/R13 = the dashboard, latched when frame A ends
+ STA VIA+&00
+ LDA #HI(PANEL% DIV 8)
+ STA VIA+&01
+ LDA #13
+ STA VIA+&00
+ LDA #LO(PANEL% DIV 8)
+ STA VIA+&01
+
+ LDA #LO(RPB)           \ Point 1 next, RPB microseconds on
+ STA VIA+&46
+ LDA #HI(RPB)
+ STA VIA+&47
+
+ JMP irq2
+
+.irq1
+
+                        \ Point 1 (frame B has started): frame B's registers,
+                        \ and the screen buffer to show in the next frame A
+
+ LDX #(rregB - rreg)    \ R4, R6, R7 for frame B (15 rows, PANR shown, vsync at
+ JSR rregs              \ row 10)
+
+ LDA #12                \ R12/R13 = the buffer to show, latched when frame B
+ STA VIA+&00            \ ends (RSHOW: 0 for SCREEN%, 1 for BUF0)
+ LDX RSHOW
+ LDA rsah,X
+ STA VIA+&01
+ LDA #13
+ STA VIA+&00
+ LDA rsal,X
+ STA VIA+&01
+
+ LDA #LO(RPA)           \ Point 2 next, RPA microseconds on
+ STA VIA+&46
+ LDA #HI(RPA)
+ STA VIA+&47
+
+.irq2
+
+ PLA                    \ Restore Y, X and A from the stack and return from the
+ TAY                    \ interrupt
+ PLA
+ TAX
+ PLA
+ RTI
+
+.rregs
+
+                        \ Set R4, R6 and R7 from rreg+X: R4 and R7, then R6
+                        \ (which in frame B is PANR, so that DET1 can hide the
+                        \ dashboard)
+
+ LDA #4
+ STA VIA+&00
+ LDA rreg,X
+ STA VIA+&01
+ LDA #7
+ STA VIA+&00
+ LDA rreg+1,X
+ STA VIA+&01
+ LDA #6
+ STA VIA+&00
+ LDA rreg+2,X
+ BPL P%+5
+ LDA PANR
+ STA VIA+&01
+ RTS
+
+.rreg
+
+.rregA
+
+ EQUB 23, 127, 24       \ Frame A: R4, R7, R6
+
+.rregB
+
+ EQUB 14, 10, &FF       \ Frame B: R4, R7, R6 (&FF: PANR)
+
+.rsah
+
+ EQUB HI(SCREEN% DIV 8), HI(BUF0 DIV 8)
+
+.rsal
+
+ EQUB LO(SCREEN% DIV 8), LO(BUF0 DIV 8)
+
+.rphase
+
+ EQUB 0                 \ The rupture's phase
+
+.RSHOW
+
+ EQUB 0                 \ The buffer to show: 0 for SCREEN%, 1 for BUF0
+
+.PANR
+
+ EQUB 7                 \ The dashboard rows to show in frame B: 7, or 0 to hide
+                        \ the dashboard (DET1)
+
 
 \ ******************************************************************************
 \

@@ -18419,15 +18419,12 @@ ENDIF
 
 .DET1
 
- LDA #6                 \ Set A to 6 so we can update 6845 register R6 below
+ TXA                    \ Port: the dashboard is the second CRTC frame of the
+ SEC                    \ rupture (the resident block's IRQG), which shows PANR
+ SBC #24                \ of its rows: X - 24, so 0 hides it (X = 24) and 7
+ STA PANR               \ shows it (X = 31); IRQG sets R6 from it
 
- SEI                    \ Disable interrupts so we can update the 6845
-
- STA VIA+&00            \ Set 6845 register R6 to the value in X. Register R6
- STX VIA+&01            \ is the "vertical displayed" register, which sets the
-                        \ number of rows shown on the screen
-
- CLI                    \ Re-enable interrupts
+ LDA #6                 \ Return with A = 6, as the original does
 
  RTS                    \ Return from the subroutine
 
