@@ -13546,6 +13546,35 @@ ENDMACRO
                         \
                         \ This also leaves A = P+2, which we use below
 
+.dvb9
+
+                        \ Port: while the high byte A is 0 and the middle byte
+                        \ P+1 is below 64, the loop below would shift eight
+                        \ times without stopping, so shift a whole byte at once,
+                        \ adding 8 to the scale factor in Y
+
+ BNE DVL9               \ If A is not 0, shift a bit at a time from DVL9
+
+ LDA P+1                \ If P+1 >= 64, set A back to 0 and shift a bit at a
+ CMP #64                \ time from DVL9 (the loop would stop within the byte)
+ BCC P%+7
+ LDA #0
+ JMP DVL9
+
+ PHA                    \ Shift (A P+1 P) left by a byte, so A = P+1, P+1 = P
+ LDA P                  \ and P = 0
+ STA P+1
+ LDA #0
+ STA P
+
+ TYA                    \ Set Y = Y + 8
+ CLC
+ ADC #8
+ TAY
+
+ PLA                    \ Set A to the new high byte (and Z if it is 0), and
+ JMP dvb9               \ loop back to dvb9 to see if we can shift another byte
+
 .DVL9
 
                         \ We now shift (A P+1 P) left until A >= 64, counting
@@ -13584,6 +13613,34 @@ ENDMACRO
                         \ instruction has no effect as bit 7 of the above AND
                         \ can never be set, which is why this instruction was
                         \ removed from later versions)
+
+.dvb6
+
+                        \ Port: while the high byte A is 0, the loop below would
+                        \ shift at least eight times, so shift a whole byte at
+                        \ once, subtracting 8 from the scale factor in Y; if
+                        \ that sets bit 7 of A, the loop would have stopped
+                        \ there, after its eighth shift
+
+ BNE DVL6               \ If A is not 0, shift a bit at a time from DVL6
+
+ TYA                    \ Set Y = Y - 8
+ SEC
+ SBC #8
+ TAY
+
+ LDA R                  \ Shift (A R Q) left by a byte, so A = R, R = Q and
+ PHA                    \ Q = 0
+ LDA Q
+ STA R
+ LDA #0
+ STA Q
+ PLA
+
+ BMI DV9                \ If bit 7 of A is now set, the shifting is done
+
+ JMP dvb6               \ Otherwise loop back to dvb6 to see if we can shift
+                        \ another byte
 
 .DVL6
 

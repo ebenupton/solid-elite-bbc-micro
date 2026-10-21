@@ -179,6 +179,10 @@ TESTS = [
      ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R"]),
     ("DV42", "DV42", lambda: ((0, 0x81, y, c, {"SZ": q, "SZ+1": q, "DELTA": d}) for d, q, y, c in grid(range(1, 41), range(16, 256), [0, 1], [0, 1])),
      ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R"]),
+    # (DVID3B2: z is never 0, as the original would loop for ever)
+    ("DVID3B2", "DVID3B2", lambda: ((a, 0x81, 0x5A, c, {"P": p, "P+1": p1, "INWK+6": zl, "INWK+7": zh, "INWK+8": zs}) for a, p, p1, zl, zh, zs, c in
+        ((a, p, p1, zl, zh, zs, c) for a, p, p1, zl, zh, zs, c in sample(4000 if QUICK else 300000, B, B, B, B, B, list(range(4)) + [0x80, 0x81, 0x7F, 0xFF], [0, 1]) if zl | zh | (zs & 0x7F))),
+     ["A", "X", "Y", "N", "Z", "C", "K", "K+1", "K+2", "K+3", "P", "P+1", "P+2", "Q", "R", "S", "T"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]
