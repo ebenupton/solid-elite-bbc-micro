@@ -7967,6 +7967,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Text
 \    Summary: Print a character at the text cursor by poking into screen memory
+\       Area: cold
 \  Deep dive: Drawing text
 \
 \ ------------------------------------------------------------------------------
@@ -20690,6 +20691,7 @@ ENDMACRO
 \   Category: Dashboard
 \    Summary: Start up the E.C.M. (light up the indicator, start the countdown
 \             and make the E.C.M. sound)
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -20709,6 +20711,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Light up the E.C.M. indicator bulb ("E") on the dashboard
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -20732,6 +20735,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Light up the space station indicator ("S") on the dashboard
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -20753,6 +20757,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Draw an indicator bulb on the dashboard
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -20795,6 +20800,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Dashboard
 \    Summary: The character bitmap for the E.C.M. indicator bulb
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -20825,6 +20831,7 @@ ENDMACRO
 \       Type: Variable
 \   Category: Dashboard
 \    Summary: The bitmap definition for the space station indicator bulb
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
