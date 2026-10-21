@@ -55,7 +55,7 @@ PYTHON=${PYTHON:-python3}
 
 # ---- 1. the rasteriser's soak test, and the build
 if [ -f 1-source-files/main-sources/gfx-raster.asm ]; then
-    if python3 6-harness/test_raster.py --quick > "$LOG/test_raster.log" 2>&1; then
+    if BEEBASM="$BEEBASM" python3 6-harness/test_raster.py --quick > "$LOG/test_raster.log" 2>&1; then
         echo "test_raster: PASS"
     else
         tail -20 "$LOG/test_raster.log"; echo "test_raster: FAIL"; fail test_raster
