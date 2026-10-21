@@ -122,6 +122,6 @@ cycles per flight iteration.
 | `bsavetest.mjs` | Exercises the disc menu: save, load, a failed load, a catalogue and a launch, and compares the saved commander file with the reference's. |
 | `btrace.mjs` | Traces chosen routines and variables over chosen iterations (`bcompare.mjs --trace`). |
 | `bprofile.mjs` | Profiles cycles by PC over exactly the gate's run, with the share of flight iterations that run each PC. |
-| `test_routines.py` | Calls the speed-ups' routines in the original and the port on py65, for every input (or a sample, with `--quick`, as the gate does), and compares their results: registers, flags and variables. |
-| `hotset.py` | From a profile of the original, lists the flight program's blocks with their cycles and the share of flight iterations that run them: the hot and cold split. |
+| `test_routines.py` | Calls the speed-ups' routines in the original and the port on py65, for every input (or a sample, with `--quick`, as the gate does), and compares their results: registers, flags, variables, and for the drawing routines (STARS1, BLINE, PIX1) the screen. A port's routine in the cold bank runs from that bank's image, and a test can compare it with an original routine of another name. |
+| `hotset.py` | From a profile of the original (or, with `--port`, of the port's home bank), lists the flight program's blocks with their cycles, the share of flight iterations that run them and their calls per iteration: the hot and cold split, and what a far call into a block would cost. |
 | `verify.sh` | The gate. |

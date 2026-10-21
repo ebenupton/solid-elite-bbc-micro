@@ -33,3 +33,6 @@ run.bat
 3-assembled-output/elite-tokens-*.asm
 3-assembled-output/resident.asm
 3-assembled-output/*-banks.txt
+
+# Python bytecode (the harness imports test_routines.py)
+__pycache__/

@@ -53,6 +53,7 @@ default commander's checksum.
 |---|---:|---:|---:|
 | The original (Stairway to Hell) | 11.85 | 1.000 | 168,749 |
 | End of part 1: the memory map | 11.87 | 1.001 | 168,533 |
+| End of part 2: the speed-ups ([speedups.md](speedups.md)) | 14.51 | 1.224 | 137,864 |
 
 These are the gate's run: the pilot's mix of launches, fights, approaches to
 the station and hyperspace jumps, over 10,000 iterations. Saved commander

@@ -44,7 +44,10 @@ program's source.
    tokens, the charts and the market, launching, hyperspace and docking,
    the in-flight messages, the missions, and the once-per-event parts of
    fighting (firing a missile, the dashboard's bulbs and missile blocks,
-   placing a new ship). `6-harness/hotset.py` lists each block's share of
+   placing a new ship, a ship turning hostile, our shields being hit). The
+   dashboard's indicators (`DIALS`) are drawn every iteration, but from the
+   cold bank, through one far call an iteration: part 2 moved them there
+   to make room for the speed-ups ([speedups.md](speedups.md)). `6-harness/hotset.py` lists each block's share of
    the gate's flight iterations; the rules above decide, block by block.
 4. **Both home banks have one layout.** `S%`, the program's entry table,
    is at `&8000` (`HOME%`) in both, as the original's was at `&11E3` in
