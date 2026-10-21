@@ -25,7 +25,9 @@
 // The disc version reads the keyboard in one place only: DKS4 tests one key
 // by writing its internal number to the System VIA and reading back bit 7
 // (pressed). DKS1 (the primary flight keys), RDKEY (a scan of keys 16-127,
-// returning the first one pressed) and CTRL (key 1) all call DKS4. MT26 reads
+// returning the first one pressed) and CTRL (key 1) all call DKS4 (the port's
+// RDKEY scans a column at a time instead, so RDKEY's result is also set at
+// Rd2, its end, in both runs: the lowest of the pilot's keys from 16 on). MT26 reads
 // a commander name with OSWORD 0 (the pilot never goes there; the run stops
 // with an error if it does). The hardware keyboard is never pressed after
 // boot, and keys are injected at DKS4+17 (the LDA #%00001011 after the LDX
@@ -285,7 +287,7 @@ export async function runElite(opts) {
     const H = {};
     for (const p of [P.flight, P.docked]) {
         H[p.name] = {
-            RDKEY: hookOf(p, "RDKEY"), DKS4: hookOf(p, "DKS4", 17), DOKEY: hookOf(p, "DOKEY"),
+            RDKEY: hookOf(p, "RDKEY"), Rd2: hookOf(p, "Rd2"), DKS4: hookOf(p, "DKS4", 17), DOKEY: hookOf(p, "DOKEY"),
             MLOOP: hookOf(p, "MLOOP"), TT100: hookOf(p, "TT100"),
         };
     }
@@ -361,6 +363,16 @@ export async function runElite(opts) {
                 keysDown = ask({ kind: "rdkey", site, callSite: c.site, waitFor, prog: pn, psy: h.prog.sy });
                 break;
             }
+            case "Rd2":
+                // RDKEY's result, the lowest pressed key from 16 on, with bit 7
+                // set (or &80 for none), just before its EOR #&80 and TAX: the
+                // port scans the keyboard a column at a time, not through
+                // DKS4, so the result is set here, in both runs
+                if (started) {
+                    const ks = keysDown.filter(k => k >= 16 && k < 128);
+                    cpu.a = ks.length ? Math.min(...ks) | 0x80 : 0x80;
+                }
+                break;
             case "DKS4": {
                 if (!started) break;
                 const key = cpu.x & 0x7f;

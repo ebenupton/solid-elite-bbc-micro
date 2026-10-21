@@ -26241,25 +26241,92 @@ ENDIF
 
 .RDKEY
 
- LDX #16                \ Start the scan with internal key number 16 ("Q")
+                        \ Port: the keyboard is scanned a column at a time, as
+                        \ the MOS does, rather than key by key through DKS4: the
+                        \ System VIA's CA2 flag is set when a key in rows 1 to 7
+                        \ of the selected column goes down, so only a column
+                        \ with a key down has its rows read. The result is the
+                        \ original's: the lowest internal key number from 16
+                        \ on that is being pressed, or 0, in A and X, with the
+                        \ flags from the TAX at Rd2, and Y unchanged
 
-.Rd1
+ STY rdy+1              \ Store Y in the LDY at rdy, to restore it at the end
 
- JSR DKS4               \ Scan the keyboard to see if the key in X is currently
-                        \ being pressed, returning the result in A and X
+ LDA #&FF               \ Set the best key found so far, in the LDA at rdk, to
+ STA rdk+1              \ &FF (none)
 
- BMI Rd2                \ Jump to Rd2 if this key is being pressed (in which
-                        \ case DKS4 will have returned the key number with bit
-                        \ 7 set, which is negative)
+ LDA #%00000011         \ Set 6522 System VIA output register ORB (SHEILA &40)
+ SEI                    \ to %00000011 to stop auto scan of the keyboard, with
+ STA VIA+&40            \ interrupts disabled, as DKS4 does
 
- INX                    \ Increment the key number, which was unchanged by the
-                        \ above call to DKS4
+ LDA #%01111111         \ Set 6522 System VIA data direction register DDRA
+ STA VIA+&43            \ (SHEILA &43) to %01111111, so bits 0-6 of port A are
+                        \ outputs and bit 7 an input, as DKS4 does
 
- BPL Rd1                \ Loop back to test the next key, ending the loop when
-                        \ X is negative (i.e. 128)
+ LDX #0                 \ Set X = 0, to work through the keyboard's ten columns
 
- TXA                    \ If we get here, nothing is being pressed, so copy X
-                        \ into A so that X = A = 128 = %10000000
+.rdc
+
+ LDA #&0F               \ Select column 15, which has no keys, so CA2 goes low
+ STA VIA+&4F
+
+ LDA #%00000001         \ Clear the CA2 flag in the interrupt flag register
+ STA VIA+&4D
+
+ STX VIA+&4F            \ Select column X: CA2 goes high, and sets the flag, if
+                        \ a key in rows 1-7 of the column is down
+
+ LDA VIA+&4D            \ If the CA2 flag is clear, no key in this column is
+ AND #%00000001         \ down, so jump to rdn for the next column
+ BEQ rdn
+
+ TXA                    \ Set A to the column's key in row 1, the first row
+ ORA #&10               \ above row 0 (whose keys are SHIFT, CTRL and the DIP
+                        \ switches)
+
+.rdr
+
+ STA VIA+&4F            \ Read the key in A: bit 7 is set if it is pressed
+ TAY
+ LDA VIA+&4F
+ BMI rdf
+
+ TYA                    \ Move on to the next row, until we pass row 7
+ CLC
+ ADC #&10
+ BPL rdr
+
+ BMI rdn                \ No key turned up in this column after all, so jump to
+                        \ rdn (this BMI is effectively a JMP)
+
+.rdf
+
+ CPY rdk+1              \ The key in Y is the column's first: if its number is
+ BCS rdn                \ lower than the best so far, it is the best so far
+ STY rdk+1
+
+.rdn
+
+ INX                    \ Move on to the next column, until we have done all
+ CPX #10                \ ten
+ BNE rdc
+
+ LDA #%00001011         \ Set 6522 System VIA output register ORB (SHEILA &40)
+ STA VIA+&40            \ to %00001011 to restart auto scan of the keyboard
+
+ CLI                    \ Allow interrupts again
+
+.rdy
+
+ LDY #0                 \ Restore Y (the value is patched above)
+
+.rdk
+
+ LDA #0                 \ Set A to the best key found (patched above), with bit
+ ORA #%10000000         \ 7 set as DKS4 returns a pressed key, or to &FF if
+ CMP #&FF               \ there is none, in which case set A to %10000000, as
+ BNE Rd2                \ the original's loop leaves it
+ LDA #%10000000
 
 .Rd2
 
