@@ -11083,6 +11083,7 @@ ENDIF
 \   Category: Tactics
 \    Summary: Make a ship or station hostile, and if this is a ship then enable
 \             the ship's AI and give it a kick of speed
+\       Area: cold
 \  Deep dive: Aggression and hostility in ship tactics
 \
 \ ------------------------------------------------------------------------------
@@ -11121,9 +11122,10 @@ ENDIF
  LDY #32                \ Fetch the ship's byte #32 (AI flag)
  LDA (INF),Y
 
- BEQ HI1                \ If the AI flag is zero then this ship has no AI and
+ BEQ AN3                \ If the AI flag is zero then this ship has no AI and
                         \ zero aggression, so return from the subroutine (as
-                        \ HI1 contains an RTS)
+                        \ AN3 contains an RTS; Port: the original branched to
+                        \ the RTS at HI1, in HITCH, which is in the home bank)
 
  ORA #%10000000         \ Otherwise set bit 7 (AI enabled) to ensure AI is
  STA (INF),Y            \ definitely enabled, so the ship can start acting
@@ -11230,6 +11232,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Spawn a child ship from the current (parent) ship
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11446,6 +11449,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Moving
 \    Summary: Move a ship in space along one of the coordinate axes
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -20056,6 +20060,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Take some damage
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -26654,6 +26659,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Tactics
 \    Summary: Add an enemy missile to our local bubble of universe
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -26671,17 +26677,24 @@ ENDIF
                         \ but this is ignored as the hostile flags means we
                         \ are the target
 
- BCC KYTB               \ The C flag will be set if the call to SFS1-2 was a
-                        \ success, so if it's clear, jump to KYTB to return from
-                        \ the subroutine (as KYTB contains an RTS)
+ BCC sfr9               \ The C flag will be set if the call to SFS1-2 was a
+                        \ success, so if it's clear, jump to sfr9 to return from
+                        \ the subroutine (as sfr9 contains an RTS; Port: the
+                        \ original branched to the RTS in KYTB, in the home
+                        \ bank)
 
  LDA #120               \ Print recursive token 120 ("INCOMING MISSILE") as an
  JSR MESS               \ in-flight message
 
  LDA #48                \ Call the NOISE routine with A = 48 to make the sound
- BNE NOISE              \ of the missile being launched and return from the
-                        \ subroutine using a tail call (this BNE is effectively
-                        \ a JMP as A will never be zero)
+ JMP NOISE              \ of the missile being launched and return from the
+                        \ subroutine using a tail call (Port: the original's
+                        \ BNE was effectively a JMP as A is never zero; NOISE is
+                        \ in the home bank)
+
+.sfr9
+
+ RTS                    \ Return from the subroutine
 
 \ ******************************************************************************
 \
