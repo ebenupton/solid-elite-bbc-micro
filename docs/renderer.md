@@ -17,7 +17,8 @@ same hand fixes. `2-build-files/bankr.py` converts them into
 `3-assembled-output/nmos/`, assembles `gfx-bankr.asm`, makes long any
 branch that the longer NMOS code put out of range (`longbr.py`), and writes
 `3-assembled-output/R.bin` (the 16K bank image) and `bankr-symbols.txt`.
-`make` runs it; nothing loads or calls bank R yet.
+`make` runs it. The loader's `LOAD` routine loads it from the disc's
+`R.BANK` into bank R (through `STAGE%`, as `PCLI` loads a program).
 
 ### The memory
 
@@ -116,8 +117,8 @@ writes the game's addresses and constants that bank F reads into
 that `docked-symbols.txt` agrees, `loader-symbols.txt` for `BANKR` and
 `BANKF`, and `elite-source-flight.asm` for `NOST`, `NI%`, `SST`, `PLT`),
 assembles `gfx-bankf.asm`, and writes `F.bin` (the 16K bank), `GLUE.bin`
-(the glue, below) and `bankf-symbols.txt`. Nothing loads or calls bank F
-yet.
+(the glue, below) and `bankf-symbols.txt`. The loader's `LOAD` routine
+loads it from the disc's `F.BANK` into bank F and calls `F_INIT`.
 
 ### The memory
 

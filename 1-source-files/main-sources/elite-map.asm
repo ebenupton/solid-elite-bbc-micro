@@ -107,15 +107,18 @@
                         \ (a disc load): F_FRAME blanks both before drawing
  GA = GVARS + 14        \ GCALL's A across the paging (gfx-glue.asm)
 
- PCBUF = &7EB0          \ PCLI's command (32 bytes) and OSFILE block (18), after
- PBLK = &7ED0           \ the renderer's shared variables (nothing draws during
-                        \ a disc command)
+ PCBUF = MBOX           \ PCLI's command (32 bytes) and OSFILE block (18), in
+ PBLK = MBOX + &20      \ the mailbox's polygon vertices (R_PXL to R_PYH),
+                        \ which hold nothing between two calls of R_POLY, and
+                        \ nothing draws during a disc command
 
- PALCMYK = &7EE2        \ The screen's palette (16 bytes), which the loader's
-                        \ LOAD routine puts there and the vertical sync's
-                        \ interrupt writes (elite-resident.asm)
+ RESH% = &7EB0          \ The high resident block (&7EB0-&7EFF, after the
+                        \ renderer's shared variables): the screen's palette
+                        \ and the rupture's registers, which the loader's LOAD
+                        \ routine copies there (elite-resident-high.asm)
 
- ASSERT PALCMYK + 16 <= &7F00
+ PALCMYK = RESH%        \ The screen's palette (16 bytes), which the vertical
+                        \ sync's interrupt writes
 
  GLUE% = &0730          \ The glue the game calls the frame layer through, and
                         \ the trampolines into bank R (gfx-glue.asm): at a

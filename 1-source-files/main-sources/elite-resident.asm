@@ -75,6 +75,10 @@
  LDA &F4                \ Note the caller's bank
  STA pbank
 
+ LDA #&FF               \ Tell the frame layer that the screen buffers have
+ STA GSTASH             \ been used (the staging area and DFS's workspace are
+                        \ in buffer 0), so that its next frame blanks both
+
  JSR dfsin              \ Put DFS's workspace back at &1000-&10FF, where the
                         \ renderer's second screen buffer may have drawn over
                         \ it since the last disc command (dfsin, below)
@@ -794,9 +798,18 @@ ENDIF
  LDX #(rregB - rreg)    \ R4, R6, R7 for frame B (15 rows, PANR shown, vsync at
  JSR rregs              \ row 10)
 
- LDA #12                \ R12/R13 = the buffer to show, latched when frame B
- STA VIA+&00            \ ends (RSHOW: 0 for SCREEN%, 1 for BUF0)
- LDX RSHOW
+ LDA GFLIP              \ If the frame layer has asked for a flip (GFLIP), show
+ BEQ irq3               \ buffer GPEND from the next frame A on, and note that
+ LDA GPEND              \ it is done: the buffer that was on show is no longer
+ STA GFRONT             \ read from here on, as frame B shows the dashboard
+ LDA #0                 \ (docs/renderer.md, "The frame layer's bank F")
+ STA GFLIP
+
+.irq3
+
+ LDA #12                \ R12/R13 = the buffer on show, GFRONT (0 for BUF0, 1
+ STA VIA+&00            \ for SCREEN%), latched when frame B ends
+ LDX GFRONT
  LDA rsah,X
  STA VIA+&01
  LDA #13
@@ -818,53 +831,9 @@ ENDIF
  PLA
  RTI
 
-.rregs
-
-                        \ Set R4, R6 and R7 from rreg+X: R4 and R7, then R6
-                        \ (which in frame B is PANR, so that DET1 can hide the
-                        \ dashboard)
-
- LDA #4
- STA VIA+&00
- LDA rreg,X
- STA VIA+&01
- LDA #7
- STA VIA+&00
- LDA rreg+1,X
- STA VIA+&01
- LDA #6
- STA VIA+&00
- LDA rreg+2,X
- BPL P%+5
- LDA PANR
- STA VIA+&01
- RTS
-
-.rreg
-
-.rregA
-
- EQUB 23, 127, 24       \ Frame A: R4, R7, R6
-
-.rregB
-
- EQUB 14, 10, &FF       \ Frame B: R4, R7, R6 (&FF: PANR)
-
-.rsah
-
- EQUB HI(SCREEN% DIV 8), HI(BUF0 DIV 8)
-
-.rsal
-
- EQUB LO(SCREEN% DIV 8), LO(BUF0 DIV 8)
-
 .rphase
 
  EQUB 0                 \ The rupture's phase
-
-.RSHOW
-
- EQUB 0                 \ The buffer to show: 0 for SCREEN%, 1 for BUF0
 
 .PANR
 

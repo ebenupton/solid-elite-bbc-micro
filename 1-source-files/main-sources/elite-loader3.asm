@@ -712,6 +712,12 @@ ENDIF
  BNE loop3              \ Loop back to copy the next byte until we have done a
                         \ whole page of 256 bytes
 
+ INC P+1                \ Port: and a second page (LOAD loads the renderer's
+ INC ZP+1               \ banks too), to &0C00-&0CFF, which is free until the
+ LDA ZP+1               \ game starts
+ CMP #HI(LOAD) + 2
+ BNE loop3
+
  JMP LOAD               \ Jump to the start of the routine we just decrypted
 
 \ ******************************************************************************
@@ -766,6 +772,48 @@ ENDIF
 
 .LOAD
 
+ LDX #(RESH_END - RESH% - 1)  \ Port: copy the high resident block to RESH%
+                        \ (elite-resident-high.asm), with the palette and the
+.rhl                    \ rupture's registers, first, while the loader's image
+                        \ is still in memory (the loads below go through
+ LDA RESHcode,X         \ STAGE%, over it)
+ STA RESH%,X
+ DEX
+ BPL rhl
+
+                        \ Port: load the renderer's two banks, the rasteriser
+                        \ R.BANK into bank R and the frame layer F.BANK into
+                        \ bank F, each to STAGE% and then into its bank, as
+                        \ PCLI loads a program's images (before the first disc
+                        \ command through PCLI, so that DFS's workspace at
+                        \ &1000 is still DFS's own)
+
+ LDX #(LRBK_END - LRBK - 1)  \ Put "R.BANK" in PCLI's command buffer, for pload
+
+.lbk1
+
+ LDA LRBK,X
+ STA pcbuf,X
+ DEX
+ BPL lbk1
+
+ JSR pload              \ Load R.BANK to STAGE% and copy it into bank R
+ LDA BANKR
+ LDX #64
+ LDY #&80
+ JSR bcopy
+
+ LDA #'F'               \ Load F.BANK to STAGE% and copy it into bank F
+ STA pcbuf+2
+ JSR pload
+ LDA BANKF
+ LDX #64
+ LDY #&80
+ JSR bcopy
+
+ LDX #FG_INIT           \ Start the frame layer: direct mode, buffer 1 (SCREEN%)
+ JSR GCALL              \ on show, as the rupture shows it from the start
+
  LDX #LO(LTLI)          \ Set (Y X) to point to LTLI ("L.T.CODE")
  LDY #HI(LTLI)
 
@@ -801,12 +849,11 @@ ENDIF
  STA VIA+&20            \ value (a 2 MHz 6845 clock, four colours), and the
  STA &0248              \ MOS's copy of it
 
- LDY #15                \ Write the four-colour palette, and put it at PALCMYK
-                        \ (after the renderer's shared variables), where the
-.palt                   \ vertical sync's interrupt reads it
+ LDY #15                \ Write the four-colour palette, PALCMYK
 
- LDA palcmyk0,Y
- STA PALCMYK,Y
+.palt
+
+ LDA PALCMYK,Y
  STA VIA+&21
  DEY
  BPL palt
@@ -885,38 +932,12 @@ ENDIF
  EQUS "L.T.CODE"        \ This is short for "*LOAD T.CODE"
  EQUB 13
 
-\ ******************************************************************************
-\
-\       Name: palcmyk0
-\       Type: Variable
-\   Category: Drawing the screen
-\    Summary: The screen's palette: logical colours 0 to 3 are black, cyan,
-\             magenta and yellow
-\
-\ ------------------------------------------------------------------------------
-\
-\ Port: the sixteen palette register bytes of the four-colour screen, as the
-\ BBC Master port's CMYK palette: in a four-colour mode a pixel's two bits
-\ are bits 3 and 1 of the palette index, so logical colour L is indices
-\ with those bits equal to L's; each byte is the index in bits 4-7 and the
-\ physical colour EOR 7 in bits 0-3 (black 0, magenta 5, cyan 6, yellow 3).
-\
-\ ******************************************************************************
+.LRBK
 
-.palcmyk0
+ EQUS "L.R.BANK"        \ Port: the rasteriser's bank (pload loads the file
+ EQUB 13                \ named from the third character on)
 
- FOR I%, 0, 15
-  L% = ((I% DIV 8) AND 1) * 2 + ((I% DIV 2) AND 1)
-  IF L% = 0
-   EQUB I% * 16 + (0 EOR 7)
-  ELIF L% = 1
-   EQUB I% * 16 + (6 EOR 7)
-  ELIF L% = 2
-   EQUB I% * 16 + (5 EOR 7)
-  ELSE
-   EQUB I% * 16 + (3 EOR 7)
-  ENDIF
- NEXT
+.LRBK_END
 
 .LTPN
 
@@ -950,6 +971,9 @@ ENDIF
 .rinit_end
 
  EQUS "Does your mother know you do this?"
+
+ PRINT "LOAD: ", ~LOAD, "-", ~P%-1, ", free ", LOAD+&200-P%
+ ASSERT P% <= LOAD + &200       \ (the loader moves two pages to LOAD)
 
  COPYBLOCK LOAD, P%, LOADcode
 
@@ -1968,6 +1992,27 @@ ENDIF
  COPYBLOCK &0400, &0800, RESAcode
 
  ORG RESAcode + &0400
+
+\ ******************************************************************************
+\
+\       Name: RESHcode
+\       Type: Subroutine
+\   Category: Loader
+\    Summary: The high resident block, which the LOAD routine copies to RESH%
+\
+\ ******************************************************************************
+
+.RESHcode
+
+ ORG RESH%
+
+ INCLUDE "1-source-files/main-sources/elite-resident-high.asm"
+
+.RESH_END
+
+ COPYBLOCK RESH%, RESH_END, RESHcode
+
+ ORG RESHcode + RESH_END - RESH%
 
 \ ******************************************************************************
 \

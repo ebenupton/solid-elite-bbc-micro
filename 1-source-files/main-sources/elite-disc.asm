@@ -44,8 +44,10 @@
  \ Port: the loader (the original's third loader, ELITE4, which the disc's
  \ !Boot runs: the copy protection's first two loaders are gone), the two
  \ programs' images (each program's home and cold banks, which the loader's
- \ PCLI loads into sideways RAM, docs/memory-map.md), and the ship blueprint
- \ files (which PCLI loads into the flight code's home bank)
+ \ PCLI loads into sideways RAM, docs/memory-map.md), the renderer's two
+ \ banks (which the loader loads into banks R and F, docs/renderer.md), and
+ \ the ship blueprint files (which PCLI loads into the flight code's home
+ \ bank)
 
  PUTFILE "3-assembled-output/ELITE4.bin", "ELITE4", &FF1900, &FF197B
 
@@ -55,6 +57,8 @@
  PUTFILE "3-assembled-output/T.CODEH.bin", "T.CODEH", &008000, &008000
  PUTFILE "3-assembled-output/T.CODEC.bin", "T.CODEC", &008000, &008000
 
+ PUTFILE "3-assembled-output/R.bin", "R.BANK", &008000, &008000
+ PUTFILE "3-assembled-output/F.bin", "F.BANK", &008000, &008000
  PUTFILE "3-assembled-output/D.MOA.bin", "D.MOA", &00B600, &00B600
  PUTFILE "3-assembled-output/D.MOB.bin", "D.MOB", &00B600, &00B600
  PUTFILE "3-assembled-output/D.MOC.bin", "D.MOC", &00B600, &00B600
