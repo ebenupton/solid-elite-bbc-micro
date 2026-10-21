@@ -9822,19 +9822,9 @@ ENDIF
 \    Summary: These bytes appear to be unused (the same block appears in both
 \             the flight and docked code)
 \
+\ Port: removed (unused bytes).
+\
 \ ******************************************************************************
-
- EQUB &8C, &E7
- EQUB &8D, &ED
- EQUB &8A, &E6
- EQUB &C1, &C8
- EQUB &C8, &8B
- EQUB &E0, &8A
- EQUB &E6, &D6
- EQUB &C5, &C6
- EQUB &C1, &CA
- EQUB &95, &9D
- EQUB &9C, &97
 
 \ ******************************************************************************
 \
@@ -10258,37 +10248,9 @@ ENDIF
 \   Category: Maths (Arithmetic)
 \    Summary: An unused duplicate of the MULTU routine
 \
-\ ------------------------------------------------------------------------------
-\
-\ This is a duplicate of the MULTU routine, but with no entry label, so it can't
-\ be called by name. It is unused, and could have been culled to save a few
-\ bytes (24 to be precise), but it's still here, unnamed, unloved and unvisited,
-\ through no fault of its own.
+\ Port: removed (unreachable: it has no label).
 \
 \ ******************************************************************************
-
- LDX Q
- BEQ MU1
- DEX
- STX T
- LDA #0
- LDX #8
- LSR P
-
-.MUL6K                  \ This label is a duplicate of a label in the MULTU
-                        \ routine
-                        \
-                        \ In the original source this label is MUL6, but
-                        \ because BeebAsm doesn't allow us to redefine labels,
-                        \ I have renamed it to MUL6K
-
- BCC P%+4
- ADC T
- ROR A
- ROR P
- DEX
- BNE MUL6K
- RTS
 
 \ ******************************************************************************
 \
@@ -10392,22 +10354,9 @@ ENDIF
 \   Category: Maths (Arithmetic)
 \    Summary: An unused routine that does the same as MUT2
 \
-\ ------------------------------------------------------------------------------
-\
-\ This routine is never actually called, but it is identical to MUT2, as the
-\ extra instructions have no effect.
+\ Port: removed (unreachable: nothing calls it).
 \
 \ ******************************************************************************
-
-.MUT3
-
- LDX ALP1               \ Set P = ALP1, though this gets overwritten by the
- STX P                  \ following, so this has no effect
-
-                        \ Fall through into MUT2 to do the following:
-                        \
-                        \   (S R) = XX(1 0)
-                        \   (A P) = Q * A
 
 \ ******************************************************************************
 \
@@ -32942,47 +32891,10 @@ ENDMACRO
 \    Summary: Contains a checksum at &55FF that is checked by the loader
 \       Area: cold
 \
+\ Port: removed (unused bytes, and the copy protection's checksum, which the
+\ port does not check).
+\
 \ ******************************************************************************
-
-IF _STH_DISC OR _SRAM_DISC
-
- EQUB &45, &4E          \ These bytes appear to be unused
- EQUB &44, &2D
- EQUB &45, &4E
- EQUB &44, &2D
- EQUB &45, &4E
- EQUB &44, &52
- EQUB &50, &53
- EQUB &00, &8E
- EQUB &11, &D8
- EQUB &00, &00
- EQUB &06, &56
- EQUB &52, &49
- EQUB &45
-
- EQUB &E6               \ This checksum is at location &55FF, and is checked in
-                        \ the LOAD routine in elite-loader3.asm
-
-ELIF _IB_DISC
-
- EQUB &45, &4E          \ These bytes appear to be unused
- EQUB &44, &2D
- EQUB &45, &4E
- EQUB &44, &2D
- EQUB &45, &4E
- EQUB &44, &8E
- EQUB &13, &1C
- EQUB &00, &00
- EQUB &73, &56
- EQUB &52, &49
- EQUB &53, &00
- EQUB &8E, &13
- EQUB &34
-
- EQUB &B3               \ This checksum is at location &55FF, and is checked in
-                        \ the LOAD routine in elite-loader3.asm
-
-ENDIF
 
 \ ******************************************************************************
 \
