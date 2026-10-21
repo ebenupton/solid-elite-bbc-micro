@@ -4058,6 +4058,7 @@ ENDIF
 \       Type: Variable
 \   Category: Drawing pixels
 \    Summary: Ready-made single-pixel character row bytes for the screen
+\       Area: cold
 \  Deep dive: Drawing monochrome pixels on the BBC Micro
 \
 \ ------------------------------------------------------------------------------
@@ -4090,6 +4091,7 @@ ENDIF
 \       Type: Variable
 \   Category: Drawing pixels
 \    Summary: Ready-made double-pixel character row bytes for the screen
+\       Area: cold
 \  Deep dive: Drawing monochrome pixels on the BBC Micro
 \
 \ ------------------------------------------------------------------------------
@@ -4153,6 +4155,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a line: Calculate the line gradient in the form of deltas
+\       Area: cold
 \  Deep dive: Elite's line-drawing algorithm
 \
 \ ------------------------------------------------------------------------------
@@ -4257,6 +4260,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a line: Line has a shallow gradient, step right along x-axis
+\       Area: cold
 \  Deep dive: Elite's line-drawing algorithm
 \
 \ ------------------------------------------------------------------------------
@@ -4409,6 +4413,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a shallow line going right and up or left and down
+\       Area: cold
 \  Deep dive: Elite's line-drawing algorithm
 \
 \ ------------------------------------------------------------------------------
@@ -4516,6 +4521,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a shallow line going right and down or left and up
+\       Area: cold
 \  Deep dive: Elite's line-drawing algorithm
 \
 \ ------------------------------------------------------------------------------
@@ -4611,6 +4617,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a line: Line has a steep gradient, step up along y-axis
+\       Area: cold
 \  Deep dive: Elite's line-drawing algorithm
 \
 \ ------------------------------------------------------------------------------
@@ -4765,6 +4772,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a steep line going up and left or down and right
+\       Area: cold
 \  Deep dive: Elite's line-drawing algorithm
 \
 \ ------------------------------------------------------------------------------
@@ -4859,6 +4867,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a steep line going up and right or down and left
+\       Area: cold
 \  Deep dive: Elite's line-drawing algorithm
 \
 \ ------------------------------------------------------------------------------
@@ -4959,6 +4968,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Keyboard
 \    Summary: Flush the keyboard buffer
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -4975,6 +4985,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Print a title and draw a horizontal line at row 19 to box it in
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -4997,6 +5008,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a horizontal line at pixel row 19 to box in a title
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5018,6 +5030,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a horizontal line at pixel row 23 to box in a title
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5042,6 +5055,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a screen-wide horizontal line at the pixel row in A
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5131,6 +5145,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a horizontal line from (X1, Y1) to (X2, Y1)
+\       Area: cold
 \  Deep dive: Drawing monochrome pixels on the BBC Micro
 \
 \ ------------------------------------------------------------------------------
@@ -5313,6 +5328,7 @@ ENDIF
 \   Category: Drawing lines
 \    Summary: Ready-made character rows for the left end of a horizontal line
 \             on the screen (Port: the four-colour screen's)
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -5330,6 +5346,7 @@ ENDIF
 \   Category: Drawing lines
 \    Summary: Ready-made character rows for the right end of a horizontal line
 \             on the screen (Port: the four-colour screen's)
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -5346,6 +5363,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing pixels
 \    Summary: Plot a single pixel at (X, Y) within a character block
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5547,6 +5565,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing pixels
 \    Summary: Draw a one-pixel dot, two-pixel dash or four-pixel square
+\       Area: cold
 \  Deep dive: Drawing monochrome pixels on the BBC Micro
 \
 \ ------------------------------------------------------------------------------
@@ -31790,6 +31809,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Clip line: Work out which end-points are on-screen, if any
+\       Area: cold
 \  Deep dive: Line-clipping
 \             Extended screen coordinates
 \
@@ -31956,6 +31976,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Clip line: Work out if any part of the line is on-screen
+\       Area: cold
 \  Deep dive: Line-clipping
 \             Extended screen coordinates
 \
@@ -32043,6 +32064,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Clip line: Calculate the line's gradient
+\       Area: cold
 \  Deep dive: Line-clipping
 \             Extended screen coordinates
 \
@@ -32177,6 +32199,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Clip line: Call the routine in LL188 to do the actual clipping
+\       Area: cold
 \  Deep dive: Line-clipping
 \             Extended screen coordinates
 \
@@ -32412,8 +32435,8 @@ ENDMACRO
  STA XX20               \ Store the heap size in XX20
 
  CMP #4                 \ If the heap size is less than 4, there is nothing to
- BCC LL118-1            \ draw, so return from the subroutine (as LL118-1
-                        \ contains an RTS)
+ BCS P%+3               \ draw, so return from the subroutine (Port: with an
+ RTS                    \ RTS of its own, as LL118-1's is in the cold bank)
 
  INY                    \ Set Y = 1, which we will use as an index into the ship
                         \ line heap, starting at byte #1 (as byte #0 contains
@@ -32454,6 +32477,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Move a point along a line until it is on-screen
+\       Area: cold
 \  Deep dive: Line-clipping
 \
 \ ------------------------------------------------------------------------------
@@ -32662,6 +32686,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (Y X) = (S x1_lo) * XX12+2 or (S x1_lo) / XX12+2
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -32778,6 +32803,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (Y X) = (S R) / XX12+2 or (S R) * XX12+2
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -32932,6 +32958,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate Q = XX12+2, A = S EOR XX12+3 and (S R) = |S R|
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \

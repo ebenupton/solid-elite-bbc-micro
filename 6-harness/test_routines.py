@@ -49,6 +49,33 @@ def flight_constants(path):
     return out
 
 
+class PagedMemory:
+    """the port's memory as the CPU sees it: main RAM, with one of the
+    sideways RAM banks at &8000-&BFFF, paged by a write to ROMSEL (&FE30), as
+    the far calls do"""
+
+    def __init__(self, main, banks, cur):
+        self.main, self.banks, self.cur = main, banks, cur
+
+    def __getitem__(self, a):
+        if isinstance(a, slice):
+            return self.main[a]
+        if 0x8000 <= a < 0xC000:
+            return self.banks[self.cur][a - 0x8000]
+        return self.main[a]
+
+    def __setitem__(self, a, v):
+        if 0x8000 <= a < 0xC000:
+            self.banks[self.cur][a - 0x8000] = v
+        else:
+            if a == 0xFE30:
+                self.cur = v & 15
+            self.main[a] = v
+
+    def __len__(self):
+        return 65536
+
+
 class Machine:
     """a 64K py65 machine with one build of the flight code loaded"""
 
@@ -63,7 +90,12 @@ class Machine:
 
     def call(self, routine, a=0, x=0, y=0, c=0, mem=None, limit=200000):
         mpu = self.mpu
-        mpu.memory = list(self.base)
+        if getattr(self, "banks", None):          # (the port: main RAM and its banks)
+            bank = self.cold_bank if routine in self.cold_labels else self.home_bank
+            mpu.memory = PagedMemory(list(self.base), {k: list(v) for k, v in self.banks.items()}, bank)
+            mpu.memory.main[0xF4] = bank
+        else:
+            mpu.memory = list(self.base)
         for k, v in (mem or {}).items():
             mpu.memory[self.addr(k)] = v & 255
         mpu.a, mpu.x, mpu.y = a & 255, x & 255, y & 255
@@ -148,7 +180,7 @@ def load():
     cand_sy = syms(os.path.join(REPO, "3-assembled-output/flight-symbols.txt"))
     mc = map_constants()
     extra = []
-    if "QSL" in mc:                               # (the quarter squares, as the loader installs them)
+    if "QSL" in mc:                               # (the quarter squares, as the flight code's home image has them)
         lo = [(n * n // 4) & 255 for n in range(512)]
         hi = [(n * n // 4) >> 8 for n in range(512)]
         extra = [(mc["QSL"], lo), (mc["QSH"], hi)]
@@ -156,15 +188,30 @@ def load():
         cand_sy.setdefault("QSH", mc["QSH"])
     if "LCOL" in mc:                              # (the drawing routines' colour: yellow, both bit planes)
         extra = extra + [(mc["LCOL"], [0xFF])]
-    cand = Machine("port", cand_sy, [(0x8000, open(os.path.join(REPO, "3-assembled-output/D.CODEH.bin"), "rb").read())], extra)
-    # (the port's routines in the flight code's cold bank run on a machine with
-    # that bank's image at &8000 instead)
-    cand.cold = Machine("port (cold bank)", cand_sy, [(0x8000, open(os.path.join(REPO, "3-assembled-output/D.CODEC.bin"), "rb").read())], extra)
+    # (the port: main RAM with the loader's resident block A, which holds the
+    # far calls, and the flight code's home and cold images in two banks,
+    # numbered as jsbeeb's PROBE finds them, 7 and 6)
+    ld = syms(os.path.join(REPO, "3-assembled-output/loader-symbols.txt"))
+    loader = open(os.path.join(REPO, "3-assembled-output/ELITE4.bin"), "rb").read()
+    resa = loader[ld["RESAcode"] - 0x1900:ld["RESAcode"] - 0x1900 + 0x400]
+    cand = Machine("port", cand_sy, [(0x0400, resa)], extra)
+    cand.home_bank, cand.cold_bank = 7, 6
+    ref.base[0x07C0:0x0800] = list(resa[0x3C0:0x400])   # (SNE and ACT, as the original's loader puts them)
+    for k, v in (("BANKH", 7), ("BANKC", 6), ("BANKR", 5), ("BANKF", 4)):
+        cand.base[ld[k]] = v
+    def bank(path):
+        d = list(open(os.path.join(REPO, path), "rb").read())
+        return d + [0] * (16384 - len(d))
+    cand.banks = {7: bank("3-assembled-output/D.CODEH.bin"), 6: bank("3-assembled-output/D.CODEC.bin")}
+    for (a, data) in extra:                       # (the quarter squares, in the home bank)
+        if 0x8000 <= a < 0xC000:
+            cand.banks[7][a - 0x8000:a - 0x8000 + len(data)] = list(data)
     cand.cold_labels = set()
     for l in open(os.path.join(REPO, "3-assembled-output/flight-banks.txt")):
         f = l.split()
         if len(f) == 2 and f[1] == "C":
             cand.cold_labels.add(f[0])
+    cand.cold = cand
     return ref, cand
 
 

@@ -32,10 +32,25 @@
 
 .HOME_END%
 
- PRINT "Flight home bank: &8000-", ~HOME_END%-1, ", free ", BPSLOT%-HOME_END%
- ASSERT HOME_END% <= BPSLOT%
+ PRINT "Flight home bank: &8000-", ~HOME_END%-1, ", free ", QSL-HOME_END%
+ ASSERT HOME_END% <= QSL
 
- SAVE "3-assembled-output/D.CODEH.bin", HOME%, HOME_END%, HOME%
+                        \ Port: the quarter squares, QSL and QSH, in the home
+                        \ bank just below the blueprint slot (elite-map.asm)
+
+ ORG QSL
+
+ FOR I%, 0, 511
+  EQUB LO(I% * I% DIV 4)
+ NEXT
+
+ FOR I%, 0, 511
+  EQUB HI(I% * I% DIV 4)
+ NEXT
+
+ ASSERT QSH = QSL + &200 AND P% = BPSLOT%
+
+ SAVE "3-assembled-output/D.CODEH.bin", HOME%, BPSLOT%, HOME%
 
  CLEAR &8000, &C000
  ORG &8000

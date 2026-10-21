@@ -36,15 +36,17 @@
 
  STAGE% = &1600         \ Where files are loaded before they are copied into
                         \ their bank (main RAM &1600 to &55FF, over the top of
-                        \ the screen, which the game clears after each load)
+                        \ the screens, which the game clears after each load)
 
- QSL = &1200            \ The quarter squares, QS(n) = INT(n * n / 4) for n = 0
- QSH = &1400            \ to 511: their low bytes at QSL and high bytes at QSH,
+ QSL = &B200            \ The quarter squares, QS(n) = INT(n * n / 4) for n = 0
+ QSH = &B400            \ to 511: their low bytes at QSL and high bytes at QSH,
                         \ two pages each, page aligned (their users index them
                         \ by an operand's low byte and pick the page by its
-                        \ high bit), in main RAM where every bank's code can
-                        \ read them; the loader puts them there, below the
-                        \ screen and the staging area
+                        \ high bit), in the flight code's home bank, just
+                        \ below its blueprint slot (elite-layout-flight.asm
+                        \ assembles them there): only the flight code's home
+                        \ code uses them, and main RAM below the screen is
+                        \ the renderer's second buffer (BUF0)
 
  SCREEN% = &4000        \ The screen: 256 x 192 pixels in four colours (MODE 1's
                         \ format, 64-byte rows), then the dashboard's 256 x 56

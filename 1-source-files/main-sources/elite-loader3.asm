@@ -655,18 +655,8 @@ ENDIF
 
  JSR PROBE              \ Port: find four sideways RAM banks for the game
 
- LDA #LO(QSL)           \ Set the following:
- STA ZP                 \
- LDA #HI(QSL)           \   ZP(1 0) = QSL
- STA ZP+1               \   P(1 0) = QSTAB
- LDA #LO(QSTAB)         \   X = 4
- STA P
- LDA #HI(QSTAB)
- STA P+1
- LDX #4
-
- JSR MVBL               \ Port: call MVBL to move the quarter squares, QSL and
-                        \ QSH, into main RAM (elite-map.asm)
+ \ Port: the quarter squares are in the flight code's home
+                        \ image now (elite-layout-flight.asm)
 
  LDX #35                \ We now want to copy the disc catalogue routine from
                         \ CATDcode to CATD, so set a counter in X for the 36
@@ -1918,33 +1908,6 @@ ENDIF
                         \ cold bank; the quarter squares and the resident block
                         \ A follow
 
-\ ******************************************************************************
-\
-\       Name: QSTAB
-\       Type: Variable
-\   Category: Maths (Arithmetic)
-\    Summary: The quarter squares, bundled up in the loader so they can be
-\             moved to QSL and QSH in main RAM
-\
-\ ------------------------------------------------------------------------------
-\
-\ Port: QS(n) = INT(n * n / 4) for n = 0 to 511, the low bytes and then the
-\ high bytes, two pages each, for the game's multiplications (a * b = QS(a + b)
-\ - QS(|a - b|), exactly, as a + b and a - b are both odd or both even).
-\
-\ ******************************************************************************
-
-.QSTAB
-
- FOR I%, 0, 511
-  EQUB LO(I% * I% DIV 4)
- NEXT
-
- FOR I%, 0, 511
-  EQUB HI(I% * I% DIV 4)
- NEXT
-
- ASSERT QSH = QSL + &200
 
 \ ******************************************************************************
 \
