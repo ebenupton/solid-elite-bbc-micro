@@ -201,6 +201,8 @@ TESTS = [
      ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R", "S", "T", "T1", "INWK+9", "INWK+10", "INWK+11", "INWK+12", "INWK+13", "INWK+14", "INWK+15", "INWK+16", "INWK+17", "INWK+18", "INWK+19", "INWK+20", "INWK+21", "INWK+22", "INWK+23", "INWK+24", "INWK+25", "INWK+26"]),
     ("LL5", "LL5", lambda: ((0x11, 0x81, 0x5A, c, {"R": r, "Q": q, "S": 0x22, "T": 0x33}) for r, q, c in EVERY(B, B, [0, 1])),
      ["A", "X", "Y", "N", "Z", "C", "V", "Q", "R", "S", "T"]),
+    ("LL38", "LL38", lambda: ((a, 0x81, 0x5A, c, {"R": r, "Q": q, "S": ss}) for a, r, q, ss, c in grid([0, 0x80, 0x33, 0xB3], B, B, [0, 0x80], [0, 1]) if not QUICK or (r ^ q) & 7 == 0),
+     ["A", "X", "Y", "N", "Z", "C", "V", "Q", "R", "S"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]
