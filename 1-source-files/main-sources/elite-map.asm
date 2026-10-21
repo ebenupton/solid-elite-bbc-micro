@@ -107,11 +107,21 @@
                         \ (a disc load): F_FRAME blanks both before drawing
  GA = GVARS + 14        \ GCALL's A across the paging (gfx-glue.asm)
 
- GLUE% = &06E0          \ The glue the game calls the frame layer through, and
+ PCBUF = &7EB0          \ PCLI's command (32 bytes) and OSFILE block (18), after
+ PBLK = &7ED0           \ the renderer's shared variables (nothing draws during
+                        \ a disc command)
+
+ PALCMYK = &7EE2        \ The screen's palette (16 bytes), which the loader's
+                        \ LOAD routine puts there and the vertical sync's
+                        \ interrupt writes (elite-resident.asm)
+
+ ASSERT PALCMYK + 16 <= &7F00
+
+ GLUE% = &0730          \ The glue the game calls the frame layer through, and
                         \ the trampolines into bank R (gfx-glue.asm): at a
-                        \ fixed address in the resident block A's spare room
-                        \ (&06E0-&07BC), so that bank F can be built against
-                        \ it before the resident block includes it
+                        \ fixed address at the end of the resident block A
+                        \ (&0730-&07BC), which includes it there, so that bank F
+                        \ can be built against it
 
  DTMP = &07BD          \ Workspace for the dashboard's drawing routines, at
  DTMP2 = &07BE          \ the end of the resident block A (elite-resident.asm)

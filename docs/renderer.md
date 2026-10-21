@@ -44,7 +44,7 @@ the Tube's host kept at `&E5-&E7`, are in bank R (`R_NTMP`, `R_NTMPY`,
 
 Bank R's entry points are in its jump table, `RJT` (`gfx-rws.asm`), in this
 order; the frame layer calls them through the trampolines `T_INIT` to
-`T_STARPLOT` (`gfx-rtramp.asm`, 136 bytes, for the resident block A), each
+`T_STARPLOT` (`gfx-rtramp.asm`, 108 bytes, in the resident block A: each `T_n` is four bytes, a `JSR` to a shared body and the low byte of `RJT`'s entry), each
 of which pages bank R in (`BANKR`), calls the entry and pages the caller's
 bank back. A, X and Y are passed through; nothing is returned in them.
 
@@ -123,7 +123,8 @@ yet.
 
 | Where | What |
 |---|---|
-| main `&06E0-&0785` | the glue, `GLUE%` (`gfx-glue.asm`): bank R's trampolines (136 bytes) and `GCALL` (30), at a fixed address in the resident block A's spare room, for the resident block to include |
+| main `&0730-&07B9` | the glue, `GLUE%` (`gfx-glue.asm`): bank R's trampolines (108 bytes) and `GCALL` (30), at a fixed address at the end of the resident block A, which includes it |
+| main `&7EB0-&7EF1` | PCLI's command and OSFILE block (`PCBUF`, `PBLK`) and the palette (`PALCMYK`), moved out of the resident block to make room for the glue |
 | main `&7EA0-&7EFF` | the shared variables, `GVARS` (`elite-map.asm`) |
 | zero page `&06-&27`, `&D2-&E1` | the rasteriser's, and the frame layer's pointers (the game's `XX2`, `K3` and `K4`, dead between iterations): `F_FRAME` and `F_INIT` keep the game's bytes in bank F and put them back |
 | bank F `&8000-&95D5` | the code: the entries, the drawing steps, the lighting (5,590 bytes) |

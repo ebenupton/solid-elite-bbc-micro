@@ -110,7 +110,7 @@ class Mem:
         self.main[S['GLUE%']:S['GLUE%'] + len(g)] = g
         ok = bytearray(0x10000)                  # the write guard's allowed bytes
         for lo, hi in ((0x06, 0x28), (0xD2, 0xE2), (0xF4, 0xF5), (0x100, 0x200), (0x1000, 0x7000),
-                       (0x7E00, 0x7F00), (S['rtA'], S['rtA'] + 1), (S['rtB'], S['rtB'] + 1)):
+                       (0x7E00, 0x7F00), (S['rtA'], S['rtA'] + 3), (S['rtl'] + 1, S['rtl'] + 3), (S['rtj'] + 1, S['rtj'] + 2)):
             ok[lo:hi] = b'\1' * (hi - lo)
         self.ok = ok
         self.bad = []

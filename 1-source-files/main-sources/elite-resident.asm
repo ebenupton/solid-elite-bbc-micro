@@ -872,55 +872,18 @@ ENDIF
                         \ the dashboard (DET1)
 
 
-\ ******************************************************************************
-\
-\       Name: PALCMYK
-\       Type: Variable
-\   Category: Drawing the screen
-\    Summary: The screen's palette: logical colours 0 to 3 are black, cyan,
-\             magenta and yellow
-\
-\ ------------------------------------------------------------------------------
-\
-\ Port: the sixteen palette register bytes of the four-colour screen, as the
-\ BBC Master port's CMYK palette: in a four-colour mode a pixel's two bits
-\ are bits 3 and 1 of the palette index, so logical colour L is indices
-\ with those bits equal to L's; each byte is the index in bits 4-7 and the
-\ physical colour EOR 7 in bits 0-3 (black 0, magenta 5, cyan 6, yellow 3).
-\
-\ ******************************************************************************
-
 .IRQMOS
 
  EQUW 0                 \ The MOS's IRQ1V handler, which IRQG passes interrupts
                         \ on to (the loader's LOAD routine sets it from VEC)
 
-.PALCMYK
-
- FOR I%, 0, 15
-  L% = ((I% DIV 8) AND 1) * 2 + ((I% DIV 2) AND 1)
-  IF L% = 0
-   EQUB I% * 16 + (0 EOR 7)
-  ELIF L% = 1
-   EQUB I% * 16 + (6 EOR 7)
-  ELIF L% = 2
-   EQUB I% * 16 + (5 EOR 7)
-  ELSE
-   EQUB I% * 16 + (3 EOR 7)
-  ENDIF
- NEXT
-
 .pbank
 
  EQUB 0                 \ PCLI: the caller's bank
 
-.pblk
+pblk = PBLK             \ PCLI: the OSFILE block (elite-map.asm)
 
- SKIP 18                \ PCLI: the OSFILE block
-
-.pcbuf
-
- SKIP 40                \ PCLI: the command
+pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
 
 \ ******************************************************************************
 \
@@ -929,7 +892,23 @@ ENDIF
 \
 \ ******************************************************************************
 
- PRINT "Resident block A: &0400-", ~P%-1, ", free ", DTMP-P%, " (then the dashboard's workspace, SNE and ACT)"
+ PRINT "Resident block A: &0400-", ~P%-1, ", free ", GLUE%-P%, " (then the renderer's glue, the dashboard's workspace, SNE and ACT)"
+ ASSERT P% <= GLUE%
+
+\ ******************************************************************************
+\
+\ Port: the renderer's glue (gfx-glue.asm): GCALL, which the game calls bank
+\ F's entries through, and the trampolines that bank F calls bank R through,
+\ at GLUE% (which bank F is built against, 2-build-files/bankf.py)
+\
+\ ******************************************************************************
+
+ ORG GLUE%
+
+ INCLUDE "1-source-files/main-sources/gfx-rws.asm"
+ INCLUDE "1-source-files/main-sources/gfx-glue.asm"
+
+ PRINT "The renderer's glue: ", ~GLUE%, "-", ~P%-1, ", free ", DTMP-P%
  ASSERT P% <= DTMP
 
  ORG &07C0

@@ -801,11 +801,12 @@ ENDIF
  STA VIA+&20            \ value (a 2 MHz 6845 clock, four colours), and the
  STA &0248              \ MOS's copy of it
 
- LDY #15                \ Write the four-colour palette, PALCMYK
+ LDY #15                \ Write the four-colour palette, and put it at PALCMYK
+                        \ (after the renderer's shared variables), where the
+.palt                   \ vertical sync's interrupt reads it
 
-.palt
-
- LDA PALCMYK,Y
+ LDA palcmyk0,Y
+ STA PALCMYK,Y
  STA VIA+&21
  DEY
  BPL palt
@@ -883,6 +884,39 @@ ENDIF
 
  EQUS "L.T.CODE"        \ This is short for "*LOAD T.CODE"
  EQUB 13
+
+\ ******************************************************************************
+\
+\       Name: palcmyk0
+\       Type: Variable
+\   Category: Drawing the screen
+\    Summary: The screen's palette: logical colours 0 to 3 are black, cyan,
+\             magenta and yellow
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the sixteen palette register bytes of the four-colour screen, as the
+\ BBC Master port's CMYK palette: in a four-colour mode a pixel's two bits
+\ are bits 3 and 1 of the palette index, so logical colour L is indices
+\ with those bits equal to L's; each byte is the index in bits 4-7 and the
+\ physical colour EOR 7 in bits 0-3 (black 0, magenta 5, cyan 6, yellow 3).
+\
+\ ******************************************************************************
+
+.palcmyk0
+
+ FOR I%, 0, 15
+  L% = ((I% DIV 8) AND 1) * 2 + ((I% DIV 2) AND 1)
+  IF L% = 0
+   EQUB I% * 16 + (0 EOR 7)
+  ELIF L% = 1
+   EQUB I% * 16 + (6 EOR 7)
+  ELIF L% = 2
+   EQUB I% * 16 + (5 EOR 7)
+  ELSE
+   EQUB I% * 16 + (3 EOR 7)
+  ENDIF
+ NEXT
 
 .LTPN
 
