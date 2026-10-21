@@ -11989,6 +11989,82 @@ ENDIF
 
 \ ******************************************************************************
 \
+\       Name: QSMUL
+\       Type: Macro
+\   Category: Maths (Arithmetic)
+\    Summary: Port: multiply two unsigned 8-bit numbers by quarter squares
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the macro QSMUL lo, x, y sets (A lo) = x * y for two unsigned 8-bit
+\ numbers in memory, from the quarter squares in main RAM (QSL and QSH,
+\ elite-map.asm):
+\
+\   x * y = QS(x + y) - QS(|x - y|)
+\
+\ where QS(n) = INT(n * n / 4), exactly (see MU11). QS(|x - y|) is patched into
+\ the SBCs that subtract it. X is changed; x and y are read before lo is
+\ written, so lo may be x. C is set at the end (the subtraction cannot
+\ borrow).
+\
+\ ******************************************************************************
+
+MACRO QSMUL lo, x, y
+
+ LDA x                  \ Set A = x - y, with C set if x >= y
+ SEC
+ SBC y
+
+ BCS t1                 \ If x < y, negate A (C is clear, so the ADC adds 1 to
+ EOR #&FF               \ the one's complement), so A = |x - y|
+ ADC #1
+
+.t1
+
+ TAX                    \ Patch QS(|x - y|) into the SBCs below
+ LDA QSL,X
+ STA l1+1
+ STA l2+1
+ LDA QSH,X
+ STA h1+1
+ STA h2+1
+
+ LDA x                  \ Set X = x + y, with the high bit of the 9-bit sum in
+ CLC                    \ C
+ ADC y
+ TAX
+
+ BCS t2                 \ If x + y >= 256, jump to t2 to read the tables'
+                        \ second pages
+
+ LDA QSL,X              \ Set (A lo) = QS(x + y) - QS(|x - y|)
+ SEC
+.l1
+ SBC #0
+ STA lo
+ LDA QSH,X
+.h1
+ SBC #0
+
+ JMP t3
+
+.t2
+
+ LDA QSL+256,X          \ As above, for x + y = 256 + X
+ SEC
+.l2
+ SBC #0
+ STA lo
+ LDA QSH+256,X
+.h2
+ SBC #0
+
+.t3
+
+ENDMACRO
+
+\ ******************************************************************************
+\
 \       Name: MU5
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
@@ -12053,72 +12129,46 @@ ENDIF
  BEQ MU5                \ If |Q| = 0, jump to MU5 to set K(3 2 1 0) to 0,
                         \ returning from the subroutine using a tail call
 
- SEC                    \ Set T = |Q| - 1
- SBC #1
+                        \ Port: the three bytes' products come from the quarter
+                        \ squares (QSMUL) rather than a 24-step shift-and-add,
+                        \ and are added up:
+                        \
+                        \   (|A| P+1 P) * |Q| = |A| * |Q| * 65536
+                        \                     + P+1 * |Q| * 256 + P * |Q|
+                        \
+                        \ The results are the original's: K(3 2 1 0), R = A,
+                        \ T = the high byte of the magnitude, X = 0, P, P+1, Q
+                        \ and Y unchanged, C clear, and N and Z from K+3
+
+ STA T                  \ Set T = |Q| for now
+
+ QSMUL K, P, T          \ Set (h1 K) = P * |Q|, with h1 patched into the ADC
+ STA m3a+1              \ at m3a
+
+ QSMUL K+1, P+1, T      \ Set (h2 K+1) = P+1 * |Q|, with h2 patched into the
+ STA m3b+1              \ ADC at m3b
+
+ QSMUL K+2, K+2, T      \ Set (h3 K+2) = |A| * |Q|, with h3 patched into the
+ STA m3c+1              \ LDA at m3c
+
+ LDA K+1                \ Set K+1 = K+1 + h1
+ CLC
+.m3a
+ ADC #0                 \ (patched above)
+ STA K+1
+
+ LDA K+2                \ Set K+2 = K+2 + h2, plus the carry
+.m3b
+ ADC #0                 \ (patched above)
+ STA K+2
+
+.m3c
+ LDA #0                 \ Set T = h3, plus the carry, the high byte of the
+ ADC #0                 \ result's magnitude, as the original leaves it
  STA T
 
-                        \ We now use the same shift-and-add algorithm as MULT1
-                        \ to calculate the following:
-                        \
-                        \ K(2 1 0) = K(2 1 0) * |Q|
-                        \
-                        \ so we start with the first shift right, in which we
-                        \ take (K+2 P+1 P) and shift it right, storing the
-                        \ result in K(2 1 0), ready for the multiplication loop
-                        \ (so the multiplication loop actually calculates
-                        \ (|A| P+1 P) * |Q|, as the following sets K(2 1 0) to
-                        \ (|A| P+1 P) shifted right)
-
- LDA P+1                \ Set A = P+1
-
- LSR K+2                \ Shift the high byte in K+2 to the right
-
- ROR A                  \ Shift the middle byte in A to the right and store in
- STA K+1                \ K+1 (so K+1 contains P+1 shifted right)
-
- LDA P                  \ Shift the middle byte in P to the right and store in
- ROR A                  \ K, so K(2 1 0) now contains (|A| P+1 P) shifted right
- STA K
-
-                        \ We now use the same shift-and-add algorithm as MULT1
-                        \ to calculate the following:
-                        \
-                        \ K(2 1 0) = K(2 1 0) * |Q|
-
- LDA #0                 \ Set A = 0 so we can start building the answer in A
-
- LDX #24                \ Set up a counter in X to count the 24 bits in K(2 1 0)
-
-.MUL2
-
- BCC P%+4               \ If C (i.e. the next bit from K) is set, do the
- ADC T                  \ addition for this bit of K:
-                        \
-                        \   A = A + T + C
-                        \     = A + |Q| - 1 + 1
-                        \     = A + |Q|
-
- ROR A                  \ Shift A right by one place to catch the next digit
- ROR K+2                \ next digit of our result in the left end of K(2 1 0),
- ROR K+1                \ while also shifting K(2 1 0) right to fetch the next
- ROR K                  \ bit for the calculation into the C flag
-                        \
-                        \ On the last iteration of this loop, the bit falling
-                        \ off the end of K will be bit 0 of the original A, as
-                        \ we did one shift before the loop and we are doing 24
-                        \ iterations. We set A to 0 before looping, so this
-                        \ means the loop exits with the C flag clear
-
- DEX                    \ Decrement the loop counter
-
- BNE MUL2               \ Loop back for the next bit until K(2 1 0) has been
-                        \ rotated all the way
-
-                        \ The result (|A| P+1 P) * |Q| is now in (A K+2 K+1 K),
-                        \ but it is positive and doesn't have the correct sign
-                        \ of the final result yet
-
- STA T                  \ Save the high byte of the result into T
+ LDX #0                 \ Set X = 0 and clear the C flag, as the original's
+ CLC                    \ loop leaves them
 
  LDA R                  \ Fetch the sign byte from the original (A P+1 P)
                         \ argument that we stored in R
@@ -12740,49 +12790,38 @@ ENDIF
 
 .MLTU2
 
- EOR #%11111111         \ Flip the bits in A and rotate right, storing the
- LSR A                  \ result in P+1, so we now calculate (P+1 P) * Q
- STA P+1
-
- LDA #0                 \ Set A = 0 so we can start building the answer in A
-
- LDX #16                \ Set up a counter in X to count the 16 bits in (P+1 P)
-
- ROR P                  \ Set P = P >> 1 with bit 7 = bit 0 of A
-                        \ and C flag = bit 0 of P
-
-.MUL7
-
- BCS MU21               \ If C (i.e. the next bit from P) is set, do not do the
-                        \ addition for this bit of P, and instead skip to MU21
-                        \ to just do the shifts
-
- ADC Q                  \ Do the addition for this bit of P:
+                        \ Port: the two bytes' products come from the quarter
+                        \ squares (QSMUL) rather than a 16-step shift-and-add,
+                        \ and are added up:
                         \
-                        \   A = A + Q + C
-                        \     = A + Q
+                        \   (A ~P) * Q = A * Q * 256 + ~P * Q
+                        \
+                        \ The results are the original's: (A P+1 P), X = 0, Q
+                        \ and Y unchanged, C clear, Z set and N clear (as the
+                        \ original's loop leaves them)
 
- ROR A                  \ Rotate (A P+1 P) to the right, so we capture the next
- ROR P+1                \ digit of the result in P+1, and extract the next digit
- ROR P                  \ of (P+1 P) in the C flag
+ STA P+1                \ Set P+1 = A, the high byte, for now
 
- DEX                    \ Decrement the loop counter
+ LDA P                  \ Set P = ~P, the low byte
+ EOR #%11111111
+ STA P
 
- BNE MUL7               \ Loop back for the next bit until P has been rotated
-                        \ all the way
+ QSMUL P, P, Q          \ Set (h1 P) = ~P * Q, with h1 patched into the ADC at
+ STA mt2a+1             \ mt2a
 
- RTS                    \ Return from the subroutine
+ QSMUL P+1, P+1, Q      \ Set (A P+1) = A * Q
 
-.MU21
+ TAX                    \ Set (A P+1) = (A P+1) + h1
+ LDA P+1
+ CLC
+.mt2a
+ ADC #0                 \ (patched above)
+ STA P+1
+ TXA
+ ADC #0
 
- LSR A                  \ Shift (A P+1 P) to the right, so we capture the next
- ROR P+1                \ digit of the result in P+1, and extract the next digit
- ROR P                  \ of (P+1 P) in the C flag
-
- DEX                    \ Decrement the loop counter
-
- BNE MUL7               \ Loop back for the next bit until P has been rotated
-                        \ all the way
+ LDX #0                 \ Set X = 0, Z set and N clear, and clear the C flag,
+ CLC                    \ as the original's loop leaves them
 
  RTS                    \ Return from the subroutine
 

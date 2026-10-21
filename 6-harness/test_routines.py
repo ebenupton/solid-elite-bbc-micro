@@ -167,6 +167,10 @@ TESTS = [
      ["A", "X", "Y", "N", "Z", "C", "P", "R", "S", "T", "T1"]),
     ("MULTS", "MULTS", lambda: ((a, 0x81, 0x5A, c, {"P": p, "T1": 0x33}) for a, p, c in EVERY(B, range(32), [0, 1])),
      ["A", "X", "Y", "N", "Z", "C", "P", "T", "T1"]),
+    ("MLTU2", "MLTU2", lambda: ((a, 0x81, 0x5A, c, {"P": p, "Q": q, "P+1": 0x33}) for a, p, q, c in sample(4000 if QUICK else 200000, B, B, B, [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "P+1", "Q"]),
+    ("MULT3", "MULT3", lambda: ((a, 0x81, 0x5A, c, {"P": p, "P+1": p1, "Q": q, "T": 0x44}) for a, p, p1, q, c in sample(200000 if not QUICK else 4000, B, B, B, B, [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "K", "K+1", "K+2", "K+3", "P", "P+1", "Q", "R", "T"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]
