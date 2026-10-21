@@ -282,6 +282,10 @@ TESTS = [
     # and the heap holds the ends of every line drawn)
     ("BLINE", "BLINE", lambda: ((0, x, 0x5A, c, m) for (x, m), c in ((bline_mem(i), i & 1) for i in range(3000 if QUICK else 100000))),
      ["CNT", "LSP", "FLAG", "K5", "K5+1", "K5+2", "K5+3", "XX13", "LSX2*80", "LSY2*80", "&6000*7936"]),
+    # (PIX1: P = 0, as all its callers set it; Y indexes the particle)
+    ("PIX1", "PIX1", lambda: ((a, 0x81, y, c, {"P": 0, "R": r, "S": ss, "X1": x1, "Y1": y1, "ZZ": zz}) for a, r, ss, x1, y1, zz, y, c in
+        sample(20000 if QUICK else 300000, B, B, B, B, B, [16, 40, 90, 144, 255], [1, 5, 18], [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "YY+1", "SYL*19", "T", "T1", "&6000*7936"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]

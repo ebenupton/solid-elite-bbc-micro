@@ -5417,9 +5417,45 @@ ENDIF
 \
 \ ******************************************************************************
 
+.PX24
+
+                        \ Port: PIXEL2's negative y-coordinate offset, out of
+                        \ line (here, within reach of its branch)
+
+ AND #%01111111         \ Clear the sign bit, so A = |Y1|
+
+ CMP #96                \ If |Y1| >= 96 then it's off the screen, so return
+ BCS PX4                \ from the subroutine (as PX4 contains an RTS)
+
+ EOR #%11111111         \ The y-coordinate offset is negative, so negate |Y1|
+ ADC #1                 \ (C is clear) to convert A from a sign-magnitude number
+                        \ into a traditional signed number (the same ADC
+                        \ operand, &FF - |Y1|, as the original's Y1 EOR
+                        \ %01111111, so the result and flags are as before)
+
+ JMP PX2                \ Jump to PX2 to convert it to a screen y-coordinate
+
 .PIX1
 
- JSR ADD                \ Set (A X) = (A P) + (S R)
+ STA T1                 \ Set (A X) = (A P) + (S R) (Port: ADD inline; all
+ AND #%10000000         \ three callers set P = 0, so the same-sign low byte
+ STA T                  \ is X = R + 0 with C = 0, as ADD's CLC, LDA R, ADC P,
+ EOR S                  \ TAX makes it, and the opposite-sign case calls MU8,
+ BPL pxad               \ ADD's tail, with T and T1 set as ADD sets them, as
+ JSR MU8                \ the BBC Master port does)
+ JMP pxst
+
+.pxad
+
+ LDX R                  \ X = R + P = R (P = 0, no carry)
+
+ LDA S                  \ A = S + T1 + 0, with ADD's C
+ CLC
+ ADC T1
+
+ ORA T                  \ Give the result the sign of argument A
+
+.pxst
 
  STA YY+1               \ Set YY+1 to A, the high byte of the result
 
@@ -5479,29 +5515,21 @@ ENDIF
                         \ So X is now the offset converted to an x-coordinate,
                         \ centred on x-coordinate 128
 
- LDA Y1                 \ Fetch the y-coordinate offset into A and clear the
- AND #%01111111         \ sign bit, so A = |Y1|
+ LDA Y1                 \ Fetch the y-coordinate offset into A (Port: if it
+ BMI PX24               \ is negative, the sign is cleared and the offset
+                        \ negated at PX24, out of line, which rejoins at PX2)
 
- CMP #96                \ If |Y1| >= 96 then it's off the screen (as 96 is half
+ CMP #96                \ If Y1 >= 96 then it's off the screen (as 96 is half
  BCS PX4                \ the screen height), so return from the subroutine (as
                         \ PX4 contains an RTS)
 
- LDA Y1                 \ Fetch the y-coordinate offset into A
-
- BPL PX2                \ If the y-coordinate offset is positive, jump to PX2
-                        \ to skip the following negation
-
- EOR #%01111111         \ The y-coordinate offset is negative, so flip all the
- ADC #1                 \ bits apart from the sign bit and subtract 1 to convert
-                        \ A from a sign-magnitude number into a traditional
-                        \ signed number, so A is now Y1 in a form that can be
-                        \ used with the SBC instruction
-
 .PX2
 
- STA T                  \ Set A = #Y + 1 - Y1
- LDA #Y+1               \
- SBC T                  \ So if Y1 is positive we display the point up from the
+ STA T                  \ Set A = #Y + 1 - Y1 (Port: as ~T + #Y + 1 + C, which
+ EOR #%11111111         \ is exactly what SBC T computes, with the same C, N,
+ ADC #Y+1               \ Z and V; T is still stored)
+                        \
+                        \ So if Y1 is positive we display the point up from the
                         \ centre at y-coordinate 97, while a negative Y1 means
                         \ down from the centre
 
