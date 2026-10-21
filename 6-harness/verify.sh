@@ -5,7 +5,9 @@
 #  1. build: make (from the repository's root); FAIL on a non-zero exit or an
 #     error or failed ASSERT in the output. Once the build has the filled
 #     renderer's rasteriser, its soak test (6-harness/test_raster.py --quick:
-#     every primitive against a pixel-exact model, on py65) runs first.
+#     every primitive against a pixel-exact model, on py65) runs first. Once
+#     the speed-ups begin, their routines are checked against the original's
+#     on py65 (6-harness/test_routines.py --quick) after the build.
 #  2. determinism: 6-harness/bcompare.mjs --iters N (default 10000) of the
 #     released disc (4-reference-binaries/sth/build.json) against the new build
 #     (3-assembled-output/build.json), both flown by the same pilot; FAIL on a
@@ -60,6 +62,13 @@ if grep -iE "error|assertion failed" "$LOG/build.log" 3-assembled-output/compile
     cat "$LOG/build.errors"; echo "build: FAIL (error/ASSERT in output)"; fail build
 fi
 echo "build: PASS"
+if [ -f 6-harness/test_routines.py ]; then
+    if python3 6-harness/test_routines.py --quick > "$LOG/test_routines.log" 2>&1; then
+        echo "test_routines: PASS"
+    else
+        grep -v " pass " "$LOG/test_routines.log" | tail -20; echo "test_routines: FAIL"; fail test_routines
+    fi
+fi
 
 # ---- 2. determinism (and speed)
 OPTS=

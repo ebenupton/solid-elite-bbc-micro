@@ -12208,8 +12208,9 @@ ENDIF
  TXA                    \ Set A = |A|
  AND #%01111111
 
- BEQ MU6                \ If A = 0, jump to MU6 to set P(1 0) = 0 and return
-                        \ from the subroutine using a tail call
+ BNE P%+5               \ If A = 0, jump to MU6 to set P(1 0) = 0 and return
+ JMP MU6                \ from the subroutine using a tail call (Port: MU6 is
+                        \ out of a branch's reach since MU11 grew)
 
  TAX                    \ Set T1 = X - 1
  DEX                    \
@@ -12440,45 +12441,78 @@ ENDIF
 
 .MU11
 
- DEX                    \ Set T = X - 1
- STX T                  \
-                        \ We subtract 1 as the C flag will be set when we want
-                        \ to do an addition in the loop below
-
- LDA #0                 \ Set A = 0 so we can start building the answer in A
-
- LDX #8                 \ Set up a counter in X to count the 8 bits in P
-
- LSR P                  \ Set P = P >> 1
-                        \ and C flag = bit 0 of P
-
-                        \ We are now going to work our way through the bits of
-                        \ P, and do a shift-add for any bits that are set,
-                        \ keeping the running total in A. We just did the first
-                        \ shift right, so we now need to do the first add and
-                        \ loop through the other bits in P
-
-.MUL6
-
- BCC P%+4               \ If C (i.e. the next bit from P) is set, do the
- ADC T                  \ addition for this bit of P:
+                        \ Port: the product comes from the quarter squares in
+                        \ main RAM (QSL and QSH, elite-map.asm) rather than a
+                        \ shift-and-add loop:
                         \
-                        \   A = A + T + C
-                        \     = A + X - 1 + 1
-                        \     = A + X
+                        \   P * X = QS(P + X) - QS(|P - X|)
+                        \
+                        \ where QS(n) = INT(n * n / 4); this is exact, as P + X
+                        \ and P - X are both odd or both even. X is never 0
+                        \ here (MULTU and SQUA2 return 0 for that themselves).
+                        \ The results are the original's: (A P) = P * X, with
+                        \ T = X - 1, X = 0, Y unchanged, C clear, Z set and N
+                        \ clear (as the loop's last DEX left them)
 
- ROR A                  \ Shift A right to catch the next digit of our result,
-                        \ which the next ROR sticks into the left end of P while
-                        \ also extracting the next bit of P
+ DEX                    \ Set T = X - 1, as the original does
+ STX T
 
- ROR P                  \ Add the overspill from shifting A to the right onto
-                        \ the start of P, and shift P right to fetch the next
-                        \ bit for the calculation into the C flag
+ LDA P                  \ Set A = P - X (= P - T - 1, as C is clear), with C
+ CLC                    \ set if P >= X
+ SBC T
 
- DEX                    \ Decrement the loop counter
+ BCS mu11a              \ If P < X, negate A to get X - P (C is clear, so the
+ EOR #&FF               \ ADC adds 1 to the one's complement), so A = |P - X|
+ ADC #1
 
- BNE MUL6               \ Loop back for the next bit until P has been rotated
-                        \ all the way
+.mu11a
+
+ TAX                    \ Patch QS(|P - X|) into the two SBC instructions
+ LDA QSL,X              \ below that subtract it
+ STA mu11l+1
+ STA mu11m+1
+ LDA QSH,X
+ STA mu11h+1
+ STA mu11i+1
+
+ LDA T                  \ Set A = P + X (= T + 1 + P, as C is set), with the
+ SEC                    \ high bit of the 9-bit sum in C
+ ADC P
+ TAX
+
+ BCS mu11b              \ If P + X >= 256, jump to mu11b to read the tables'
+                        \ second pages
+
+ LDA QSL,X              \ Set (A P) = QS(P + X) - QS(|P - X|), starting with
+ SEC                    \ the low bytes
+.mu11l
+ SBC #0                 \ (patched above)
+ STA P
+
+ LDA QSH,X              \ And then the high bytes
+.mu11h
+ SBC #0                 \ (patched above)
+
+ LDX #0                 \ Set X = 0, Z set and N clear, and clear the C flag
+ CLC                    \ (the subtraction cannot borrow), as the original's
+                        \ loop leaves them
+
+ RTS                    \ Return from the subroutine
+
+.mu11b
+
+ LDA QSL+256,X          \ As above, for P + X = 256 + X
+ SEC
+.mu11m
+ SBC #0                 \ (patched above)
+ STA P
+
+ LDA QSH+256,X
+.mu11i
+ SBC #0                 \ (patched above)
+
+ LDX #0
+ CLC
 
  RTS                    \ Return from the subroutine
 

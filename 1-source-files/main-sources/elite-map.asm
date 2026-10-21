@@ -36,3 +36,11 @@
 
  STAGE% = &1200         \ Where files are loaded before they are copied into
                         \ their bank (main RAM &1200 to &51FF, below the screen)
+
+ QSL = &5C00            \ The quarter squares, QS(n) = INT(n * n / 4) for n = 0
+ QSH = &5E00            \ to 511: their low bytes at QSL and high bytes at QSH,
+                        \ two pages each, page aligned (their users index them
+                        \ by an operand's low byte and pick the page by its
+                        \ high bit), in main RAM where every bank's code can
+                        \ read them; the loader puts them there (main RAM &5C00
+                        \ to &5FFF is free below the original's screen)
