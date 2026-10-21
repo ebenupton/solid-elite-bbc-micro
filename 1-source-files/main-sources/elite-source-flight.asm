@@ -28656,68 +28656,75 @@ ENDMACRO
 
 .LL5
 
- LDY R                  \ Set (Y S) = (R Q)
- LDA Q
+                        \ Port: the dividend's high byte lives in T and the
+                        \ remainder in A during the loop, so both shift in
+                        \ place, with Y as the loop counter, and the loop runs
+                        \ as two calls of four steps (as the BBC Master port's
+                        \ LL5 does); the low byte waits in S until the first
+                        \ four steps have shifted T's eight bits out
+
+ LDA R                  \ Set T = R, the dividend's high byte
+ STA T
+
+ LDA Q                  \ Set S = Q, the dividend's low byte
  STA S
 
-                        \ So now to calculate Q = SQRT(Y S)
+                        \ So now to calculate Q = SQRT(T S)
 
- LDX #0                 \ Set X = 0, to hold the remainder
+ LDA #0                 \ Set Q = 0, to hold the result
+ STA Q
 
- STX Q                  \ Set Q = 0, to hold the result
+                        \ And A = 0, to hold the remainder
 
- LDA #8                 \ Set T = 8, to use as a loop counter
- STA T
+ JSR LL5h               \ Do the first four steps, shifting zeroes into T
+
+ LDX S                  \ T is now 0, so set T to the dividend's low byte, as
+ STX T                  \ the original has it at this point, and S = 0, as the
+ LDX #0                 \ original's sixteen shifts leave it, and fall through
+ STX S                  \ into LL5h to do the last four steps
+
+.LL5h
+
+ LDY #4                 \ Set Y = 4, to use as a loop counter
 
 .LL6
 
- CPX Q                  \ If X < Q, jump to LL7
+ CMP Q                  \ If A < Q, jump to LL7
  BCC LL7
 
- BNE LL8                \ If X > Q, jump to LL8
+ BNE LL8                \ If A > Q, jump to LL8
 
- CPY #64                \ If Y < 64, jump to LL7 with the C flag clear,
- BCC LL7                \ otherwise fall through into LL8 with the C flag set
+ LDX T                  \ If T < 64, jump to LL7 with the C flag clear,
+ CPX #64                \ otherwise fall through into LL8 with the C flag set
+ BCC LL7
 
 .LL8
 
- TYA                    \ Set Y = Y - 64
- SBC #64                \
- TAY                    \ This subtraction will work as we know C is set from
-                        \ the BCC above, and the result will not underflow as we
-                        \ already checked that Y >= 64, so the C flag is also
-                        \ set for the next subtraction
-
- TXA                    \ Set X = X - Q
+ TAX                    \ Set (A T) = (A T) - (Q 64), with C set on entry
+ LDA T                  \ (the same subtractions, in the same order, as the
+ SBC #64                \ original, so C and V end up the same)
+ STA T
+ TXA
  SBC Q
- TAX
 
 .LL7
 
  ROL Q                  \ Shift the result in Q to the left, shifting the C flag
                         \ into bit 0 and bit 7 into the C flag
 
- ASL S                  \ Shift the dividend in (Y S) to the left, inserting
- TYA                    \ bit 7 from above into bit 0
+ ASL T                  \ Shift (A T) to the left
  ROL A
- TAY
 
- TXA                    \ Shift the remainder in X to the left
+ ASL T                  \ Shift (A T) to the left
  ROL A
- TAX
 
- ASL S                  \ Shift the dividend in (Y S) to the left
- TYA
- ROL A
- TAY
+ DEY                    \ Decrement the loop counter
 
- TXA                    \ Shift the remainder in X to the left
- ROL A
- TAX
+ BNE LL6                \ Loop back to LL6 until we have done 4 loops
 
- DEC T                  \ Decrement the loop counter
-
- BNE LL6                \ Loop back to LL6 until we have done 8 loops
+ TAX                    \ Return with X = A = the remainder; the sixteen shifts
+ LDY #0                 \ leave T = 0, and Y = 0 with Z set and N clear, as
+                        \ the original's
 
  RTS                    \ Return from the subroutine
 

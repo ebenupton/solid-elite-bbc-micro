@@ -199,6 +199,8 @@ TESTS = [
         ((y, al, be, c, v) for y, al, be, c, v in sample(4000 if QUICK else 200000, [9, 15, 21], [0, 0x80, 1, 0x81, 2, 0x7F, 0xFF], [0, 0x80, 1, 0x81, 3, 0x7F, 0xFE], [0, 1],
             [tuple(x) for x in sample(500, B, [0, 0x80, 0x60, 0xE0] + list(B), B, [0x80, 0, 0x60, 0xE0] + list(B), B, [0, 0x80] + list(B))]))),
      ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R", "S", "T", "T1", "INWK+9", "INWK+10", "INWK+11", "INWK+12", "INWK+13", "INWK+14", "INWK+15", "INWK+16", "INWK+17", "INWK+18", "INWK+19", "INWK+20", "INWK+21", "INWK+22", "INWK+23", "INWK+24", "INWK+25", "INWK+26"]),
+    ("LL5", "LL5", lambda: ((0x11, 0x81, 0x5A, c, {"R": r, "Q": q, "S": 0x22, "T": 0x33}) for r, q, c in EVERY(B, B, [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "V", "Q", "R", "S", "T"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]
