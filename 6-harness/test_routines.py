@@ -85,6 +85,8 @@ class Machine:
     def addr(self, k):
         if isinstance(k, int):
             return k
+        if k.startswith("&"):
+            return int(k[1:], 16)
         base, _, off = k.partition("+")
         return self.sy[base] + (int(off) if off else 0)
 
@@ -92,7 +94,17 @@ class Machine:
         mpu = self.mpu
         r = {"A": mpu.a, "X": mpu.x, "Y": mpu.y,
              "N": mpu.p >> 7 & 1, "V": mpu.p >> 6 & 1, "Z": mpu.p >> 1 & 1, "C": mpu.p & 1}
-        return {n: (r[n] if n in r else mpu.memory[self.addr(n)]) for n in names}
+        out = {}
+        for n in names:
+            if n in r:
+                out[n] = r[n]
+            elif "*" in n:                        # (NAME*N: N bytes from NAME, as one output)
+                k, _, c = n.partition("*")
+                a = self.addr(k)
+                out[n] = tuple(mpu.memory[a:a + int(c)])
+            else:
+                out[n] = mpu.memory[self.addr(n)]
+        return out
 
 
 def load():
@@ -131,6 +143,35 @@ def sample(n, *ranges):
     rnd = random.Random(1)
     for _ in range(n):
         yield tuple(rnd.choice(r) for r in ranges)
+
+
+def stars_mem(i):
+    """a random pass of the front view's stardust (STARS1): 18 particles,
+    a speed, roll and pitch, and seeds, as the game has them"""
+    rnd = random.Random(i)
+    m = {"NOSTM": 18}
+    for k in range(1, 19):
+        sx = rnd.choice([rnd.randrange(256), rnd.randrange(120), rnd.randrange(8)])
+        sy = rnd.choice([rnd.randrange(256), rnd.randrange(120), rnd.randrange(8)])
+        m["SX+%d" % k] = sx | rnd.choice([0, 0x80])
+        m["SY+%d" % k] = sy | rnd.choice([0, 0x80])
+        m["SZ+%d" % k] = rnd.choice([rnd.randrange(16, 256), rnd.randrange(1, 256), rnd.randrange(16, 41)])
+        m["SXL+%d" % k] = rnd.randrange(256)
+        m["SYL+%d" % k] = rnd.randrange(256)
+        m["SZL+%d" % k] = rnd.randrange(256)
+    d = rnd.randrange(1, 41)
+    m["DELTA"] = d
+    m["DELT4"] = (d * 64) & 255
+    m["DELT4+1"] = (d * 64) >> 8
+    a = rnd.choice([0, rnd.randrange(32), rnd.randrange(8)])
+    sa = rnd.choice([0, 0x80])
+    m["ALP1"], m["ALP2"], m["ALP2+1"], m["ALPHA"] = a, sa, sa ^ 0x80, a | sa
+    b = rnd.choice([0, rnd.randrange(9), rnd.randrange(32)])
+    sb = rnd.choice([0, 0x80])
+    m["BET1"], m["BET2"], m["BET2+1"], m["BETA"] = b, sb, sb ^ 0x80, b | sb
+    for k in range(4):
+        m["RAND+%d" % k] = rnd.randrange(256)
+    return m
 
 
 B = range(256)
@@ -207,6 +248,10 @@ TESTS = [
      ["A", "X", "Y", "N", "Z", "C", "Q", "T"]),
     ("TIS1", "TIS1", lambda: ((a, x, 0x5A, c, {"R": r, "S": ss}) for a, x, r, ss, c in sample(5000 if QUICK else 300000, B, B, B, B, [0, 1])),
      ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R", "S", "T", "T1"]),
+    # (STARS1 for whole passes over the stardust, with random particles and
+    # flight: the particles, the seeds and the screen are compared)
+    ("STARS1", "STARS1", lambda: ((0, 0, 0, c, stars_mem(i)) for i, c in zip(range(150 if QUICK else 2000), [0, 1] * 2000)),
+     ["Y", "SX*19", "SXL*19", "SY*19", "SYL*19", "SZ*19", "SZL*19", "RAND*4", "&6000*7936"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]
