@@ -155,6 +155,10 @@ TESTS = [
      ["A", "X", "Y", "N", "Z", "C", "P", "Q"]),
     ("FMLTU2", "FMLTU2", lambda: ((a, 0x81, 0x5A, c, {"K": k, "Q": 0x11}) for a, k, c in EVERY(B, B, [0, 1])),
      ["A", "X", "Y", "N", "Z", "C", "P", "Q"]),
+    ("MULT1", "MULT1", lambda: ((a, 0x81, 0x5A, c, {"Q": q, "T1": 0x33}) for a, q, c in EVERY(B, B, [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "Q", "T", "T1"]),
+    ("MULT12", "MULT12", lambda: ((a, 0x81, 0x5A, c, {"Q": q, "T1": 0x33}) for a, q, c in EVERY(B, B, [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R", "S", "T", "T1"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]

@@ -12869,11 +12869,23 @@ ENDIF
 
 .MULT1
 
+                        \ Port: the product of the magnitudes comes from the
+                        \ quarter squares in main RAM (QSL and QSH, elite-map.asm)
+                        \ rather than a shift-and-add loop:
+                        \
+                        \   |A| * |Q| = QS(|A| + |Q|) - QS(||A| - |Q||)
+                        \
+                        \ where QS(n) = INT(n * n / 4), exactly (see MU11); both
+                        \ indices are below 256. The results are the original's:
+                        \ (A P) = Q * A, T = the sign of the result, T1 = |Q| - 1,
+                        \ X = 0, Y unchanged, C clear, and N and Z from the high
+                        \ byte (or, if |Q| = 0, the original's mu10 exit)
+
  TAX                    \ Store A in X
 
- AND #%01111111         \ Set P = |A| >> 1
- LSR A                  \ and C flag = bit 0 of A
- STA P
+ AND #%01111111         \ Set P = |A| for now, and C = bit 0 of A, as the
+ STA P                  \ original sets it (it is still set at mu10)
+ LSR A
 
  TXA                    \ Restore argument A
 
@@ -12886,49 +12898,42 @@ ENDIF
 
  BEQ mu10               \ If |Q| = 0 jump to mu10 (with A set to 0)
 
- TAX                    \ Set T1 = |Q| - 1
- DEX                    \
- STX T1                 \ We subtract 1 as the C flag will be set when we want
-                        \ to do an addition in the loop below
+ TAX                    \ Set T1 = |Q| - 1, as the original does
+ DEX
+ STX T1
 
-                        \ We are now going to work our way through the bits of
-                        \ P, and do a shift-add for any bits that are set,
-                        \ keeping the running total in A. We already set up
-                        \ the first shift at the start of this routine, as
-                        \ P = |A| >> 1 and C = bit 0 of A, so we now need to set
-                        \ up a loop to sift through the other 7 bits in P
+ SEC                    \ Set A = |Q| - |A|, with C set if |Q| >= |A|
+ SBC P
 
- LDA #0                 \ Set A = 0 so we can start building the answer in A
+ BCS mu1a               \ If |Q| < |A|, negate A (C is clear, so the ADC adds
+ EOR #&FF               \ 1 to the one's complement), so A = ||A| - |Q||
+ ADC #1
 
- LDX #7                 \ Set up a counter in X to count the 7 bits remaining
-                        \ in P
+.mu1a
 
-.MUL4
+ TAX                    \ Patch QS(||A| - |Q||) into the two SBC instructions
+ LDA QSL,X              \ below that subtract it
+ STA mu1l+1
+ LDA QSH,X
+ STA mu1h+1
 
- BCC P%+4               \ If C (i.e. the next bit from P) is set, do the
- ADC T1                 \ addition for this bit of P:
-                        \
-                        \   A = A + T1 + C
-                        \     = A + |Q| - 1 + 1
-                        \     = A + |Q|
+ LDA P                  \ Set X = |A| + |Q| (= |A| + T1 + 1), which is below
+ SEC                    \ 256
+ ADC T1
+ TAX
 
- ROR A                  \ As mentioned above, this ROR shifts A right and
-                        \ catches bit 0 in C - giving another digit for our
-                        \ result - and the next ROR sticks that bit into the
-                        \ left end of P while also extracting the next bit of P
-                        \ for the next addition
+ LDA QSL,X              \ Set (A P) = QS(|A| + |Q|) - QS(||A| - |Q||), starting
+ SEC                    \ with the low bytes
+.mu1l
+ SBC #0                 \ (patched above)
+ STA P
 
- ROR P                  \ Add the overspill from shifting A to the right onto
-                        \ the start of P, and shift P right to fetch the next
-                        \ bit for the calculation
+ LDA QSH,X              \ And then the high bytes
+.mu1h
+ SBC #0                 \ (patched above)
 
- DEX                    \ Decrement the loop counter
-
- BNE MUL4               \ Loop back for the next bit until P has been rotated
-                        \ all the way
-
- LSR A                  \ Rotate (A P) once more to get the final result, as
- ROR P                  \ we only pushed 7 bits through the above process
+ LDX #0                 \ Set X = 0 and clear the C flag, as the original's
+ CLC                    \ loop leaves them
 
  ORA T                  \ Set the sign bit of the result that we stored in T
 
