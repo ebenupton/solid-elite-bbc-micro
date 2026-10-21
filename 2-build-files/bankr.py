@@ -61,5 +61,7 @@ else:
     sys.exit('bankr: too many long branches')
 open('3-assembled-output/compile.txt', 'a').write(out)
 print('\n'.join(l for l in out.splitlines() if l.startswith('Bank R')))
-subprocess.run([BEEBASM, '-i', os.path.join(MS, 'gfx-bankr.asm'), '-labels', '3-assembled-output/bankr-symbols.txt'],
-               capture_output=True, text=True, check=True)     # (labels and constants)
+d = subprocess.run([BEEBASM, '-i', os.path.join(MS, 'gfx-bankr.asm'), '-d'],
+                   capture_output=True, text=True, check=True)  # (the labels, as the Makefile's
+open('3-assembled-output/bankr-symbols.txt', 'w').write(    # beebasm -d for the programs)
+    '\n'.join(l for l in d.stdout.splitlines() if l.startswith('[{')) + '\n')
