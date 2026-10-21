@@ -28657,6 +28657,16 @@ ENDMACRO
 \
 \ ******************************************************************************
 
+                        \ Port: LL2 is before LL28, within its BCS's reach of
+                        \ the unrolled division below
+
+.LL2
+
+ LDA #255               \ The division is very close to 1, so return the closest
+ STA R                  \ possible answer to 256, i.e. R = 255
+
+ RTS                    \ Return from the subroutine
+
 .LL28
 
  CMP Q                  \ If A >= Q, then the answer will not fit in one byte,
@@ -28669,47 +28679,111 @@ ENDMACRO
 
 .LL31
 
- ASL A                  \ Shift A to the left
+                        \ Port: the original's loop is unrolled, its eight
+                        \ steps done one after another, with R only catching
+                        \ the result bits (it no longer counts the steps). The
+                        \ results are the original's: R = 256 * A / Q, A = the
+                        \ remainder, C clear (as the last ROL shifts out bit 0
+                        \ of R's starting value, 254), X and Y unchanged
 
- BCS LL29               \ If bit 7 of A was set, then jump straight to the
-                        \ subtraction
+ ASL A                  \ Step 1: shift A left; if a bit falls out, the 9-bit
+ BCS l28s1              \ value is at least 256, so subtract Q at l28s1
+ CMP Q                  \ If A < Q, the result bit is 0 (C clear)
+ BCC l28n1
+ SBC Q                  \ Otherwise subtract Q (C stays set: the result bit is
+ BCS l28n1              \ 1); this BCS is effectively a JMP
+.l28s1
+ SBC Q                  \ Subtract Q and set C, for a result bit of 1
+ SEC
+.l28n1
+ ROL R                  \ Catch the result bit in R
 
- CMP Q                  \ If A < Q, skip the following subtraction
- BCC P%+4
+ ASL A                  \ Step 2: shift A left; if a bit falls out, the 9-bit
+ BCS l28s2              \ value is at least 256, so subtract Q at l28s2
+ CMP Q                  \ If A < Q, the result bit is 0 (C clear)
+ BCC l28n2
+ SBC Q                  \ Otherwise subtract Q (C stays set: the result bit is
+ BCS l28n2              \ 1); this BCS is effectively a JMP
+.l28s2
+ SBC Q                  \ Subtract Q and set C, for a result bit of 1
+ SEC
+.l28n2
+ ROL R                  \ Catch the result bit in R
 
- SBC Q                  \ A >= Q, so set A = A - Q
+ ASL A                  \ Step 3: shift A left; if a bit falls out, the 9-bit
+ BCS l28s3              \ value is at least 256, so subtract Q at l28s3
+ CMP Q                  \ If A < Q, the result bit is 0 (C clear)
+ BCC l28n3
+ SBC Q                  \ Otherwise subtract Q (C stays set: the result bit is
+ BCS l28n3              \ 1); this BCS is effectively a JMP
+.l28s3
+ SBC Q                  \ Subtract Q and set C, for a result bit of 1
+ SEC
+.l28n3
+ ROL R                  \ Catch the result bit in R
 
- ROL R                  \ Rotate the counter in R to the left, and catch the
-                        \ result bit into bit 0 (which will be a 0 if we didn't
-                        \ do the subtraction, or 1 if we did)
+ ASL A                  \ Step 4: shift A left; if a bit falls out, the 9-bit
+ BCS l28s4              \ value is at least 256, so subtract Q at l28s4
+ CMP Q                  \ If A < Q, the result bit is 0 (C clear)
+ BCC l28n4
+ SBC Q                  \ Otherwise subtract Q (C stays set: the result bit is
+ BCS l28n4              \ 1); this BCS is effectively a JMP
+.l28s4
+ SBC Q                  \ Subtract Q and set C, for a result bit of 1
+ SEC
+.l28n4
+ ROL R                  \ Catch the result bit in R
 
- BCS LL31               \ If we still have set bits in R, loop back to LL31 to
-                        \ do the next iteration of 7
+ ASL A                  \ Step 5: shift A left; if a bit falls out, the 9-bit
+ BCS l28s5              \ value is at least 256, so subtract Q at l28s5
+ CMP Q                  \ If A < Q, the result bit is 0 (C clear)
+ BCC l28n5
+ SBC Q                  \ Otherwise subtract Q (C stays set: the result bit is
+ BCS l28n5              \ 1); this BCS is effectively a JMP
+.l28s5
+ SBC Q                  \ Subtract Q and set C, for a result bit of 1
+ SEC
+.l28n5
+ ROL R                  \ Catch the result bit in R
 
- RTS                    \ R left with remainder of division
+ ASL A                  \ Step 6: shift A left; if a bit falls out, the 9-bit
+ BCS l28s6              \ value is at least 256, so subtract Q at l28s6
+ CMP Q                  \ If A < Q, the result bit is 0 (C clear)
+ BCC l28n6
+ SBC Q                  \ Otherwise subtract Q (C stays set: the result bit is
+ BCS l28n6              \ 1); this BCS is effectively a JMP
+.l28s6
+ SBC Q                  \ Subtract Q and set C, for a result bit of 1
+ SEC
+.l28n6
+ ROL R                  \ Catch the result bit in R
 
-.LL29
+ ASL A                  \ Step 7: shift A left; if a bit falls out, the 9-bit
+ BCS l28s7              \ value is at least 256, so subtract Q at l28s7
+ CMP Q                  \ If A < Q, the result bit is 0 (C clear)
+ BCC l28n7
+ SBC Q                  \ Otherwise subtract Q (C stays set: the result bit is
+ BCS l28n7              \ 1); this BCS is effectively a JMP
+.l28s7
+ SBC Q                  \ Subtract Q and set C, for a result bit of 1
+ SEC
+.l28n7
+ ROL R                  \ Catch the result bit in R
 
- SBC Q                  \ A >= Q, so set A = A - Q
-
- SEC                    \ Set the C flag to rotate into the result in R
-
- ROL R                  \ Rotate the counter in R to the left, and catch the
-                        \ result bit into bit 0 (which will be a 0 if we didn't
-                        \ do the subtraction, or 1 if we did)
-
- BCS LL31               \ If we still have set bits in R, loop back to LL31 to
-                        \ do the next iteration of 7
+ ASL A                  \ Step 8: shift A left; if a bit falls out, the 9-bit
+ BCS l28s8              \ value is at least 256, so subtract Q at l28s8
+ CMP Q                  \ If A < Q, the result bit is 0 (C clear)
+ BCC l28n8
+ SBC Q                  \ Otherwise subtract Q (C stays set: the result bit is
+ BCS l28n8              \ 1); this BCS is effectively a JMP
+.l28s8
+ SBC Q                  \ Subtract Q and set C, for a result bit of 1
+ SEC
+.l28n8
+ ROL R                  \ Catch the result bit in R
 
  RTS                    \ Return from the subroutine with R containing the
-                        \ remainder of the division
-
-.LL2
-
- LDA #255               \ The division is very close to 1, so return the closest
- STA R                  \ possible answer to 256, i.e. R = 255
-
- RTS                    \ Return from the subroutine
+                        \ result and A the remainder of the division
 
 \ ******************************************************************************
 \
