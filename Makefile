@@ -87,6 +87,7 @@ all:
 	echo _MAX_COMMANDER=$(max-commander) >> 1-source-files/main-sources/elite-build-options.asm
 	echo _INTERLACE_FIX=$(interlace-fix) >> 1-source-files/main-sources/elite-build-options.asm
 	$(PYTHON) 2-build-files/streams.py > 3-assembled-output/compile.txt
+	$(PYTHON) 2-build-files/panel.py >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-missile.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-loader3.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-loader3.asm -d | grep "^\[{" > 3-assembled-output/loader-symbols.txt

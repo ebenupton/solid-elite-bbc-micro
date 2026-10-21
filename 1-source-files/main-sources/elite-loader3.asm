@@ -784,6 +784,59 @@ ENDIF
                         \ T.CODEH and T.CODEC, into its two sideways RAM banks,
                         \ through the game's own OSCLI, in the resident block)
 
+ LDX #LO(LTPN)          \ Port: load the dashboard's image, P.PANEL, into
+ LDY #HI(LTPN)          \ PANEL% (through PCLI, which passes the command to the
+ JSR PCLI               \ MOS)
+
+                        \ Port: switch the screen to the game's four-colour
+                        \ screen (elite-map.asm): the loading screen was the
+                        \ original's split mode 4 and mode 5, with its own
+                        \ interrupt handler, IRQ1 in block B
+
+ SEI                    \ Disable interrupts while we change the screen
+
+ LDX #(scrtab_end - scrtab - 2)
+
+.scrl
+
+ LDA scrtab,X           \ Set 6845 register scrtab+X to scrtab+X+1, for each
+ STA VIA+&00            \ pair in scrtab
+ LDA scrtab+1,X
+ STA VIA+&01
+ DEX
+ DEX
+ BPL scrl
+
+ LDA #&D8               \ Set the Video ULA's control register to MODE 1's
+ STA VIA+&20            \ value (a 2 MHz 6845 clock, four colours), and the
+ STA &0248              \ MOS's copy of it
+
+ LDY #15                \ Write the four-colour palette, PALCMYK
+
+.palt
+
+ LDA PALCMYK,Y
+ STA VIA+&21
+ DEY
+ BPL palt
+
+ LDA #&0E               \ Set timer 1's latch back to the MOS's 10 ms (9998),
+ STA VIA+&46            \ as the game no longer uses timer 1 to split the
+ LDA #&27               \ screen: the MOS's 100 Hz clock (and the sound) gets
+ STA VIA+&47            \ timer 1 back
+
+ LDA VEC                \ Copy the MOS's IRQ1V handler from VEC to IRQMOS, for
+ STA IRQMOS             \ IRQG
+ LDA VEC+1
+ STA IRQMOS+1
+
+ LDA #LO(IRQG)          \ Point IRQ1V at the game's interrupt handler, IRQG
+ STA IRQ1V              \ (in the resident block), which handles the vertical
+ LDA #HI(IRQG)          \ sync and passes everything else to the MOS (at VEC)
+ STA IRQ1V+1
+
+ CLI                    \ Re-enable interrupts
+
  LDA #LO(BRKR)          \ Point BRKV to BRKR, which pages in the home bank and
  STA BRKV               \ goes on to the fifth entry in the main docked code's
  LDA #HI(BRKR)          \ S% workspace, which contains JMP BRBR1 (Port: the
@@ -808,6 +861,26 @@ ENDIF
 
  EQUS "L.T.CODE"        \ This is short for "*LOAD T.CODE"
  EQUB 13
+
+.LTPN
+
+ EQUS "L.P.PANEL"       \ Port: "*LOAD P.PANEL", the dashboard's image (to its
+ EQUB 13                \ own load address, PANEL%)
+
+.scrtab
+
+                        \ Port: the 6845 registers for the game's screen, as
+                        \ register and value pairs (the others keep mode 4's
+                        \ values, which mode 1 shares):
+ EQUB 0, 127            \ R0 = 127, the horizontal total for a 2 MHz clock
+ EQUB 1, 64             \ R1 = 64, 64 characters (256 pixels) a line
+ EQUB 2, 90             \ R2 = 90, the horizontal sync's position for that
+ EQUB 3, &28            \ R3 = &28, mode 1's sync widths
+ EQUB 6, 31             \ R6 = 31, 24 rows of space view and 7 of dashboard
+ EQUB 12, HI(SCREEN% DIV 8)
+ EQUB 13, LO(SCREEN% DIV 8)  \ R12 R13 = SCREEN% / 8, the screen's start
+
+.scrtab_end
 
  EQUS "Does your mother know you do this?"
 

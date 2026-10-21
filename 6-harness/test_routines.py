@@ -98,6 +98,8 @@ class Machine:
         for n in names:
             if n in r:
                 out[n] = r[n]
+            elif n == "SCREENPIX":                # (the space view's lit pixels, whatever the format)
+                out[n] = self.lit()
             elif "*" in n:                        # (NAME*N: N bytes from NAME, as one output)
                 k, _, c = n.partition("*")
                 a = self.addr(k)
@@ -105,6 +107,39 @@ class Machine:
             else:
                 out[n] = mpu.memory[self.addr(n)]
         return out
+
+
+def _lit(self):
+    """the set of (x, y) pixels of the space view (256 x 192) that are lit: in
+    the original's mono screen at &6000 (32 bytes a line, 256 a character
+    row), or the port's four-colour screen at SCREEN% (four pixels a byte,
+    512 bytes a character row), where a pixel is lit if either bit plane is
+    set; so a routine that draws in one colour with EOR leaves the same set"""
+    m = self.mpu.memory
+    out = set()
+    if self.name == "original":
+        for y in range(192):
+            base = 0x6000 + (y // 8) * 256 + y % 8
+            for c in range(32):
+                b = m[base + c * 8]
+                if b:
+                    for p in range(8):
+                        if b >> (7 - p) & 1:
+                            out.add((c * 8 + p, y))
+    else:
+        scr = map_constants()["SCREEN%"]
+        for y in range(192):
+            base = scr + (y // 8) * 512 + y % 8
+            for c in range(64):
+                b = m[base + c * 8]
+                if b:
+                    for p in range(4):
+                        if (b >> (7 - p) | b >> (3 - p)) & 1:
+                            out.add((c * 4 + p, y))
+    return frozenset(out)
+
+
+Machine.lit = _lit
 
 
 def load():
@@ -119,6 +154,8 @@ def load():
         extra = [(mc["QSL"], lo), (mc["QSH"], hi)]
         cand_sy.setdefault("QSL", mc["QSL"])
         cand_sy.setdefault("QSH", mc["QSH"])
+    if "LCOL" in mc:                              # (the drawing routines' colour: yellow, both bit planes)
+        extra = extra + [(mc["LCOL"], [0xFF])]
     cand = Machine("port", cand_sy, [(0x8000, open(os.path.join(REPO, "3-assembled-output/D.CODEH.bin"), "rb").read())], extra)
     # (the port's routines in the flight code's cold bank run on a machine with
     # that bank's image at &8000 instead)
@@ -284,16 +321,18 @@ TESTS = [
     # (STARS1 for whole passes over the stardust, with random particles and
     # flight: the particles, the seeds and the screen are compared)
     ("STARS1", "STARS1", lambda: ((0, 0, 0, c, stars_mem(i)) for i, c in zip(range(150 if QUICK else 2000), [0, 1] * 2000)),
-     ["Y", "SX*19", "SXL*19", "SY*19", "SYL*19", "SZ*19", "SZL*19", "RAND*4", "&6000*7936"]),
+     ["Y", "SX*19", "SXL*19", "SY*19", "SYL*19", "SZ*19", "SZL*19", "RAND*4", "SCREENPIX"]),
     # (BLINE: the line ends in XX15 are not compared, as on the first call the
     # port has already copied the points into them; they are temporaries,
     # and the heap holds the ends of every line drawn)
     ("BLINE", "BLINE", lambda: ((0, x, 0x5A, c, m) for (x, m), c in ((bline_mem(i), i & 1) for i in range(3000 if QUICK else 100000))),
-     ["CNT", "LSP", "FLAG", "K5", "K5+1", "K5+2", "K5+3", "XX13", "LSX2*80", "LSY2*80", "&6000*7936"]),
-    # (PIX1: P = 0, as all its callers set it; Y indexes the particle)
+     ["CNT", "LSP", "FLAG", "K5", "K5+1", "K5+2", "K5+3", "XX13", "LSX2*80", "LSY2*80", "SCREENPIX"]),
+    # (PIX1: P = 0, as all its callers set it; Y indexes the particle; A, X,
+    # N and Z are PIXEL's, which differ on the four-colour screen and which
+    # its callers do not read; C they do, as DORND's input)
     ("PIX1", "PIX1", lambda: ((a, 0x81, y, c, {"P": 0, "R": r, "S": ss, "X1": x1, "Y1": y1, "ZZ": zz}) for a, r, ss, x1, y1, zz, y, c in
         sample(20000 if QUICK else 300000, B, B, B, B, B, [16, 40, 90, 144, 255], [1, 5, 18], [0, 1])),
-     ["A", "X", "Y", "N", "Z", "C", "YY+1", "SYL*19", "T", "T1", "&6000*7936"]),
+     ["Y", "C", "YY+1", "SYL*19", "T", "T1", "SCREENPIX"]),
     # (DADD: ADD's work for the dashboard's pitch and roll, against ADD)
     ("DADD", "ADD/DADD", lambda: ((a | sg, 0x81, 0x5A, c, {"P": 0, "R": 0, "S": 8, "T": 0x33, "T1": 0x44}) for a, sg, c in grid(range(8), [0, 0x80], [0, 1])),
      ["A", "X", "Y", "N", "Z", "C", "P", "R", "S", "T", "T1"]),

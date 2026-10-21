@@ -142,6 +142,7 @@ export const TIMING_EXCLUDE = {
 export const RELOC_EXCLUDE = {
     V: [2, "temporary; the token printers leave V(1 0) pointing into the token tables"],
     "P+1": [2, "temporary; BULB leaves P(2 1) pointing at a bulb's character data (SPBT, ECBT)"],
+    "&A8": [1, "the port's drawing colour (LCOL, elite-map.asm), in the MOS's OSCLI workspace"],
 };
 // Drawing temporaries and heaps: excluded with --loose (for builds whose drawing
 // differs; the pilot and the game logic never read them across iterations)
@@ -160,9 +161,13 @@ export const DRAW_EXCLUDE = {
 export function excludeSet(sy, lists) {
     const ex = new Map();
     for (const list of lists) for (const [n, [len0, why]] of Object.entries(list)) {
+        const len = typeof len0 === "function" ? len0(sy) : len0;
+        if (n.startsWith("&")) {                   // ("&hex": an address)
+            for (let i = 0; i < len; i++) ex.set(parseInt(n.slice(1), 16) + i, `${n}: ${why}`);
+            continue;
+        }
         const [base, off] = n.split("+");          // ("name+offset")
         if (sy[base] === undefined) continue;
-        const len = typeof len0 === "function" ? len0(sy) : len0;
         for (let i = 0; i < len; i++) ex.set(sy[base] + (+off || 0) + i, `${n}: ${why}`);
     }
     // with the drawing exclusions, also the ship line heap (the K% blocks

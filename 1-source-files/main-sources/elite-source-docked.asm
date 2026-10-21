@@ -4340,14 +4340,20 @@ ENDIF
 
 .TWOS
 
- EQUB %10000000
- EQUB %01000000
- EQUB %00100000
- EQUB %00010000
- EQUB %00001000
- EQUB %00000100
- EQUB %00000010
- EQUB %00000001
+                        \ Port: the four-colour screen's single pixels: pixel
+                        \ X of a character block's byte is bits 7-X and 3-X
+                        \ (the two bit planes), and the drawing routines AND
+                        \ these with the colour in LCOL; repeated, so PIXEL
+                        \ can index it by x mod 8, as TWOS2
+
+ EQUB %10001000
+ EQUB %01000100
+ EQUB %00100010
+ EQUB %00010001
+ EQUB %10001000
+ EQUB %01000100
+ EQUB %00100010
+ EQUB %00010001
 
 \ ******************************************************************************
 \
@@ -4366,14 +4372,21 @@ ENDIF
 
 .TWOS2
 
- EQUB %11000000
- EQUB %01100000
- EQUB %00110000
- EQUB %00011000
- EQUB %00001100
- EQUB %00000110
- EQUB %00000011
- EQUB %00000011
+                        \ Port: the four-colour screen's two-pixel dashes,
+                        \ indexed by x mod 8 as the original's, whose dash at
+                        \ x mod 8 = 7 ends with it (pixels 6 and 7): so the
+                        \ dash at x mod 8 = 3 is pixel 3 of this byte and
+                        \ pixel 0 of the next (PIXEL draws that one), and at 7
+                        \ pixels 2 and 3
+
+ EQUB %11001100
+ EQUB %01100110
+ EQUB %00110011
+ EQUB %00010001
+ EQUB %11001100
+ EQUB %01100110
+ EQUB %00110011
+ EQUB %00110011
 
 \ ******************************************************************************
 \
@@ -4554,16 +4567,16 @@ ENDIF
 
  LDA Y1                 \ Set A to the y-coordinate in Y1
 
- LSR A                  \ Set A = A >> 3
- LSR A                  \       = y div 8
- LSR A                  \
+ LSR A                  \ Set A = 2 * (y div 8), the character row's number
+ LSR A                  \ times two (Port: the four-colour screen's character
+ AND #%11111110         \ rows take 512 bytes, two pages, each)
                         \ So A now contains the number of the character row
                         \ that will contain the start of the line
 
- ORA #&60               \ As A < 32, this effectively adds &60 to A, which gives
-                        \ us the screen address of the character row (as each
-                        \ character row takes up 256 bytes, and the first
-                        \ character row is at screen address &6000, or page &60)
+ ORA #HI(SCREEN%)       \ As A < 64, this effectively adds the screen's page to
+                        \ A, which gives us the screen address of the character
+                        \ row (Port: SCREEN%, elite-map.asm, at &4000, rather
+                        \ than the original's &6000)
 
  STA SCH                \ Store the page number of the character row in SCH, so
                         \ the high byte of SC is set correctly for drawing the
@@ -4573,18 +4586,24 @@ ENDIF
  AND #7                 \ character block at which we want to draw the start of
  TAY                    \ our line (as each character block has 8 rows)
 
- TXA                    \ Set A = bits 3-7 of X1
- AND #%11111000
+ TXA                    \ Set A = 2 * bits 2-7 of X1, the offset of X1's
+ AND #%11111100         \ character block in the row (Port: each character
+ ASL A                  \ block is four pixels and eight bytes), with the C
+                        \ flag set if it is in the row's second page
 
  STA SC                 \ Store this value in SC, so SC(1 0) now contains the
                         \ screen address of the far left end (x-coordinate = 0)
                         \ of the horizontal pixel row that we want to draw the
-                        \ start of our line on
+                        \ start of our line on (Port: or of its second half,
+                        \ x-coordinate 128, if the line starts there)
 
- TXA                    \ Set X = X1 mod 8, which is the horizontal pixel number
- AND #7                 \ within the character block where the line starts (as
- TAX                    \ each pixel line in the character block is 8 pixels
-                        \ wide)
+ BCC P%+4               \ Port: if X1 is in the right half of the screen, move
+ INC SCH                \ SC(1 0) to the row's second page
+
+ TXA                    \ Set X = X1 mod 4, which is the horizontal pixel number
+ AND #3                 \ within the character block where the line starts (as
+ TAX                    \ each pixel line in the character block is 4 pixels
+                        \ wide on the four-colour screen)
 
  LDA TWOS,X             \ Fetch a one-pixel byte from TWOS where pixel X is set,
  STA R                  \ and store it in R
@@ -4698,6 +4717,8 @@ ENDIF
 
  LDA R                  \ Fetch the pixel byte from R
 
+ AND LCOL               \ Port: in the line's colour
+
  EOR (SC),Y             \ Store R into screen memory at SC(1 0), using EOR
  STA (SC),Y             \ logic so it merges with whatever is already on-screen
 
@@ -4710,13 +4731,17 @@ ENDIF
  BCC LI7                \ If the pixel didn't fall out of the right end of R
                         \ into the C flag, then jump to LI7
 
- ROR R                  \ Otherwise we need to move over to the next character
-                        \ block, so first rotate R right so the set C flag goes
-                        \ back into the left end, giving %10000000
+ LDA #%10001000         \ Otherwise we need to move over to the next character
+ STA R                  \ block, so first set R to its leftmost pixel (Port: in
+                        \ both of the four-colour screen's bit planes)
 
  LDA SC                 \ Add 8 to SC, so SC(1 0) now points to the next
- ADC #8                 \ character along to the right
- STA SC
+ ADC #7                 \ character along to the right (Port: the C flag is set
+ STA SC                 \ from the LSR, so this adds 8)
+
+ BCC P%+5               \ Port: if that moves into the row's second page,
+ INC SCH                \ increment SCH, and clear the C flag, as the
+ CLC                    \ original's addition leaves it
 
 .LI7
 
@@ -4733,6 +4758,7 @@ ENDIF
                         \ character block, so skip to LIC2
 
  DEC SCH                \ Otherwise we need to move up into the character block
+ DEC SCH                \ (Port: two pages up, on the four-colour screen)
  LDY #7                 \ above, so decrement the high byte of the screen
                         \ address and set the pixel line to the last line in
                         \ that character block
@@ -4786,6 +4812,8 @@ ENDIF
 
  LDA R                  \ Fetch the pixel byte from R
 
+ AND LCOL               \ Port: in the line's colour
+
  EOR (SC),Y             \ Store R into screen memory at SC(1 0), using EOR
  STA (SC),Y             \ logic so it merges with whatever is already on-screen
 
@@ -4798,13 +4826,17 @@ ENDIF
  BCC LI10               \ If the pixel didn't fall out of the right end of R
                         \ into the C flag, then jump to LI10
 
- ROR R                  \ Otherwise we need to move over to the next character
-                        \ block, so first rotate R right so the set C flag goes
-                        \ back into the left end, giving %10000000
+ LDA #%10001000         \ Otherwise we need to move over to the next character
+ STA R                  \ block, so first set R to its leftmost pixel (Port: in
+                        \ both of the four-colour screen's bit planes)
 
  LDA SC                 \ Add 8 to SC, so SC(1 0) now points to the next
- ADC #8                 \ character along to the right
- STA SC
+ ADC #7                 \ character along to the right (Port: the C flag is set
+ STA SC                 \ from the LSR, so this adds 8)
+
+ BCC P%+5               \ Port: if that moves into the row's second page,
+ INC SCH                \ increment SCH, and clear the C flag, as the
+ CLC                    \ original's addition leaves it
 
 .LI10
 
@@ -4821,6 +4853,7 @@ ENDIF
  BNE LIC3               \ so skip to LIC3
 
  INC SCH                \ Otherwise we need to move down into the character
+ INC SCH                \ (Port: two pages down, on the four-colour screen)
  LDY #0                 \ block below, so increment the high byte of the screen
                         \ address and set the pixel line to the first line in
                         \ that character block
@@ -4890,33 +4923,39 @@ ENDIF
                         \ Y1 >= Y2, so we're going from top to bottom as we go
                         \ from Y1 to Y2
 
- LSR A                  \ Set A = A >> 3
- LSR A                  \       = y div 8
- LSR A                  \
+ LSR A                  \ Set A = 2 * (y div 8), the character row's number
+ LSR A                  \ times two (Port: the four-colour screen's character
+ AND #%11111110         \ rows take 512 bytes, two pages, each)
                         \ So A now contains the number of the character row
                         \ that will contain the (X1, Y1) pixel
 
- ORA #&60               \ As A < 32, this effectively adds &60 to A, which gives
-                        \ us the screen address of the character row (as each
-                        \ character row takes up 256 bytes, and the first
-                        \ character row is at screen address &6000, or page &60)
+ ORA #HI(SCREEN%)       \ As A < 64, this effectively adds the screen's page to
+                        \ A, which gives us the screen address of the character
+                        \ row (Port: SCREEN%, elite-map.asm, at &4000, rather
+                        \ than the original's &6000)
 
  STA SCH                \ Store the page number of the character row in SCH, so
                         \ the high byte of SC is set correctly for drawing the
                         \ start of our line
 
- TXA                    \ Set A = bits 3-7 of X1
- AND #%11111000
+ TXA                    \ Set A = 2 * bits 2-7 of X1, the offset of X1's
+ AND #%11111100         \ character block in the row (Port: each character
+ ASL A                  \ block is four pixels and eight bytes), with the C
+                        \ flag set if it is in the row's second page
 
  STA SC                 \ Store this value in SC, so SC(1 0) now contains the
                         \ screen address of the far left end (x-coordinate = 0)
                         \ of the horizontal pixel row that we want to draw the
-                        \ start of our line on
+                        \ start of our line on (Port: or of its second half,
+                        \ x-coordinate 128, if the line starts there)
 
- TXA                    \ Set X = X1 mod 8, which is the horizontal pixel number
- AND #7                 \ within the character block where the line starts (as
- TAX                    \ each pixel line in the character block is 8 pixels
-                        \ wide)
+ BCC P%+4               \ Port: if X1 is in the right half of the screen, move
+ INC SCH                \ SC(1 0) to the row's second page
+
+ TXA                    \ Set X = X1 mod 4, which is the horizontal pixel number
+ AND #3                 \ within the character block where the line starts (as
+ TAX                    \ each pixel line in the character block is 4 pixels
+                        \ wide on the four-colour screen)
 
  LDA TWOS,X             \ Fetch a one-pixel byte from TWOS where pixel X is set,
  STA R                  \ and store it in R
@@ -5022,6 +5061,8 @@ ENDIF
 
  LDA R                  \ Fetch the pixel byte from R
 
+ AND LCOL               \ Port: in the line's colour
+
  EOR (SC),Y             \ Store R into screen memory at SC(1 0), using EOR
  STA (SC),Y             \ logic so it merges with whatever is already on-screen
 
@@ -5033,6 +5074,7 @@ ENDIF
                         \ character block, so skip to LI16
 
  DEC SCH                \ Otherwise we need to move up into the character block
+ DEC SCH                \ (Port: two pages up, on the four-colour screen)
  LDY #7                 \ above, so decrement the high byte of the screen
                         \ address and set the pixel line to the last line in
                         \ that character block
@@ -5052,13 +5094,17 @@ ENDIF
  BCC LIC5               \ If the pixel didn't fall out of the right end of R
                         \ into the C flag, then jump to LIC5
 
- ROR R                  \ Otherwise we need to move over to the next character
-                        \ block, so first rotate R right so the set C flag goes
-                        \ back into the left end, giving %10000000
+ LDA #%10001000         \ Otherwise we need to move over to the next character
+ STA R                  \ block, so first set R to its leftmost pixel (Port: in
+                        \ both of the four-colour screen's bit planes)
 
  LDA SC                 \ Add 8 to SC, so SC(1 0) now points to the next
- ADC #8                 \ character along to the right
- STA SC
+ ADC #7                 \ character along to the right (Port: the C flag is set
+ STA SC                 \ from the LSR, so this adds 8)
+
+ BCC P%+5               \ Port: if that moves into the row's second page,
+ INC SCH                \ increment SCH, and clear the C flag, as the
+ CLC                    \ original's addition leaves it
 
 .LIC5
 
@@ -5111,6 +5157,8 @@ ENDIF
 
  LDA R                  \ Fetch the pixel byte from R
 
+ AND LCOL               \ Port: in the line's colour
+
  EOR (SC),Y             \ Store R into screen memory at SC(1 0), using EOR
  STA (SC),Y             \ logic so it merges with whatever is already on-screen
 
@@ -5122,6 +5170,7 @@ ENDIF
                         \ character block, so skip to LI19
 
  DEC SCH                \ Otherwise we need to move up into the character block
+ DEC SCH                \ (Port: two pages up, on the four-colour screen)
  LDY #7                 \ above, so decrement the high byte of the screen
                         \ address and set the pixel line to the last line in
                         \ that character block
@@ -5141,13 +5190,16 @@ ENDIF
  BCC LIC6               \ If the pixel didn't fall out of the left end of R
                         \ into the C flag, then jump to LIC6
 
- ROL R                  \ Otherwise we need to move over to the next character
-                        \ block, so first rotate R left so the set C flag goes
-                        \ back into the right end, giving %0000001
+ LDA #%00010001         \ Otherwise we need to move over to the next character
+ STA R                  \ block, so first set R to its rightmost pixel (Port: in
+                        \ both of the four-colour screen's bit planes)
 
- LDA SC                 \ Subtract 7 from SC, so SC(1 0) now points to the
- SBC #7                 \ previous character along to the left
- STA SC
+ LDA SC                 \ Subtract 8 from SC, so SC(1 0) now points to the
+ SBC #8                 \ previous character along to the left (Port: the C
+ STA SC                 \ flag is set from the ASL)
+
+ BCS P%+4               \ Port: if that moves into the row's first page,
+ DEC SCH                \ decrement SCH
 
  CLC                    \ Clear the C flag so it doesn't affect the additions
                         \ if we loop back
@@ -5272,6 +5324,9 @@ ENDIF
 
  STA Y1                 \ Set Y1 = A
 
+ LDA #&FF               \ Port: draw the line in yellow
+ STA LCOL
+
  LDX #2                 \ Set X1 = 2, so (X1, Y1) = (2, A)
  STX X1
 
@@ -5378,79 +5433,69 @@ ENDIF
  DEC X2                 \ Decrement X2 so we do not draw a pixel at the end
                         \ point
 
- LDA Y1                 \ Set A to the y-coordinate in Y1
+                        \ Port: the rest of HLOIN draws on the four-colour
+                        \ screen, in the colour in LCOL: its character blocks
+                        \ are four pixels wide, a character row is two pages,
+                        \ and the line moves into the row's second page when
+                        \ it crosses x = 128
 
- LSR A                  \ Set A = A >> 3
- LSR A                  \       = y div 8
- LSR A                  \
-                        \ So A now contains the number of the character row
-                        \ that will contain our horizontal line
-
- ORA #&60               \ As A < 32, this effectively adds &60 to A, which gives
-                        \ us the screen address of the character row (as each
-                        \ character row takes up 256 bytes, and the first
-                        \ character row is at screen address &6000, or page &60)
-
- STA SCH                \ Store the page number of the character row in SCH, so
-                        \ the high byte of SC is set correctly for drawing our
-                        \ line
+ LDA Y1                 \ Set SCH = SCREEN% / 256 + 2 * (Y1 div 8), the page of
+ LSR A                  \ the character row that contains the line
+ LSR A
+ AND #%11111110
+ ORA #HI(SCREEN%)
+ STA SCH
 
  LDA Y1                 \ Set A = Y1 mod 8, which is the pixel row within the
- AND #7                 \ character block at which we want to draw our line (as
-                        \ each character block has 8 rows)
+ AND #7                 \ character block at which we want to draw our line
 
  STA SC                 \ Store this value in SC, so SC(1 0) now contains the
                         \ screen address of the far left end (x-coordinate = 0)
                         \ of the horizontal pixel row that we want to draw our
                         \ horizontal line on
 
- TXA                    \ Set Y = bits 3-7 of X1
- AND #%11111000
+ TXA                    \ Set Y = 2 * bits 2-7 of X1, the offset of X1's
+ AND #%11111100         \ character block in its page, moving SC(1 0) to the
+ ASL A                  \ row's second page if X1 >= 128
  TAY
+ BCC P%+4
+ INC SCH
 
 .HL1
 
- TXA                    \ Set T = bits 3-7 of X1, which will contain the
- AND #%11111000         \ character number of the start of the line * 8
+ TXA                    \ Set T = bits 2-7 of X1, which will contain the
+ AND #%11111100         \ character number of the start of the line * 4
  STA T
 
- LDA X2                 \ Set A = bits 3-7 of X2, which will contain the
- AND #%11111000         \ character number of the end of the line * 8
+ LDA X2                 \ Set A = bits 2-7 of X2, which will contain the
+ AND #%11111100         \ character number of the end of the line * 4
 
  SEC                    \ Set A = A - T, which will contain the number of
- SBC T                  \ character blocks we need to fill - 1 * 8
+ SBC T                  \ character blocks we need to fill - 1 * 4
 
  BEQ HL2                \ If A = 0 then the start and end character blocks are
                         \ the same, so the whole line fits within one block, so
                         \ jump down to HL2 to draw the line
 
-                        \ Otherwise the line spans multiple characters, so we
-                        \ start with the left character, then do any characters
-                        \ in the middle, and finish with the right character
+ LSR A                  \ Set R = A / 4, so R now contains the number of
+ LSR A                  \ character blocks we need to fill - 1 (this leaves the
+ STA R                  \ C flag clear, as A was a multiple of 4)
 
- LSR A                  \ Set R = A / 8, so R now contains the number of
- LSR A                  \ character blocks we need to fill - 1
- LSR A
- STA R
+ LDA X1                 \ Set X = X1 mod 4, which is the horizontal pixel number
+ AND #3                 \ within the character block where the line starts
+ TAX
 
- LDA X1                 \ Set X = X1 mod 8, which is the horizontal pixel number
- AND #7                 \ within the character block where the line starts (as
- TAX                    \ each pixel line in the character block is 8 pixels
-                        \ wide)
-
- LDA TWFR,X             \ Fetch a ready-made byte with X pixels filled in at the
-                        \ right end of the byte (so the filled pixels start at
-                        \ point X and go all the way to the end of the byte),
-                        \ which is the shape we want for the left end of the
-                        \ line
-
- EOR (SC),Y             \ Store this into screen memory at SC(1 0), using EOR
- STA (SC),Y             \ logic so it merges with whatever is already on-screen,
-                        \ so we have now drawn the line's left cap
+ LDA TWFR,X             \ Fetch a ready-made byte with the pixels from X to the
+ AND LCOL               \ right end of the block filled, in the colour in LCOL,
+ EOR (SC),Y             \ and EOR it into screen memory at SC(1 0) + Y
+ STA (SC),Y
 
  TYA                    \ Set Y = Y + 8 so (SC),Y points to the next character
- ADC #8                 \ block along, on the same pixel row as before
- TAY
+ ADC #8                 \ block along, on the same pixel row as before, moving
+ TAY                    \ to the row's second page (and clearing the C flag)
+ BCC P%+5               \ if this crosses it
+ INC SCH
+ CLC
 
  LDX R                  \ Fetch the number of character blocks we need to fill
                         \ from R
@@ -5458,21 +5503,22 @@ ENDIF
  DEX                    \ Decrement the number of character blocks in X
 
  BEQ HL3                \ If X = 0 then we only have the last block to do (i.e.
-                        \ the right cap), so jump down to HL3 to draw it
-
- CLC                    \ Otherwise clear the C flag so we can do some additions
-                        \ while we draw the character blocks with full-width
-                        \ lines in them
+                        \ the right end of the line), so jump down to HL3 to
+                        \ draw it
 
 .HLL1
 
- LDA #%11111111         \ Store a full-width eight-pixel horizontal line in
- EOR (SC),Y             \ SC(1 0) so that it draws the line on-screen, using EOR
- STA (SC),Y             \ logic so it merges with whatever is already on-screen
+ LDA LCOL               \ Store a full-width four-pixel horizontal line in the
+ EOR (SC),Y             \ colour in LCOL in SC(1 0) so that it draws the line
+ STA (SC),Y             \ on-screen, using EOR logic so it merges with whatever
+                        \ is already on-screen
 
  TYA                    \ Set Y = Y + 8 so (SC),Y points to the next character
- ADC #8                 \ block along, on the same pixel row as before
- TAY
+ ADC #8                 \ block along, on the same pixel row as before, moving
+ TAY                    \ to the row's second page (and clearing the C flag)
+ BCC P%+5               \ if this crosses it
+ INC SCH
+ CLC
 
  DEX                    \ Decrement the number of character blocks in X
 
@@ -5482,17 +5528,13 @@ ENDIF
 .HL3
 
  LDA X2                 \ Now to draw the last character block at the right end
- AND #7                 \ of the line, so set X = X2 mod 8, which is the
+ AND #3                 \ of the line, so set X = X2 mod 4, which is the
  TAX                    \ horizontal pixel number where the line ends
 
- LDA TWFL,X             \ Fetch a ready-made byte with X pixels filled in at the
-                        \ left end of the byte (so the filled pixels start at
-                        \ the left edge and go up to point X), which is the
-                        \ shape we want for the right end of the line
-
- EOR (SC),Y             \ Store this into screen memory at SC(1 0), using EOR
- STA (SC),Y             \ logic so it merges with whatever is already on-screen,
-                        \ so we have now drawn the line's right cap
+ LDA TWFL,X             \ Fetch a ready-made byte with the pixels from the left
+ AND LCOL               \ end of the block to X filled, in the colour in LCOL,
+ EOR (SC),Y             \ and EOR it into screen memory at SC(1 0) + Y
+ STA (SC),Y
 
  LDY YSAV               \ Restore Y from YSAV, so that it's preserved across the
                         \ call to this subroutine
@@ -5504,44 +5546,27 @@ ENDIF
                         \ If we get here then the entire horizontal line fits
                         \ into one character block
 
- LDA X1                 \ Set X = X1 mod 8, which is the horizontal pixel number
- AND #7                 \ within the character block where the line starts (as
- TAX                    \ each pixel line in the character block is 8 pixels
-                        \ wide)
-
- LDA TWFR,X             \ Fetch a ready-made byte with X pixels filled in at the
- STA T                  \ right end of the byte (so the filled pixels start at
-                        \ point X and go all the way to the end of the byte)
-
- LDA X2                 \ Set X = X2 mod 8, which is the horizontal pixel number
- AND #7                 \ where the line ends
+ LDA X1                 \ Set X = X1 mod 4, which is the horizontal pixel number
+ AND #3                 \ within the character block where the line starts
  TAX
 
- LDA TWFL,X             \ Fetch a ready-made byte with X pixels filled in at the
-                        \ left end of the byte (so the filled pixels start at
-                        \ the left edge and go up to point X)
+ LDA TWFR,X             \ Fetch a ready-made byte with the pixels from X to the
+ STA T                  \ right end of the block filled, and store it in T
 
- AND T                  \ We now have two bytes, one (T) containing pixels from
-                        \ the starting point X1 onwards, and the other (A)
-                        \ containing pixels up to the end point at X2, so we can
-                        \ get the actual line we want to draw by AND'ing them
-                        \ together. For example, if we want to draw a line from
-                        \ point 2 to point 5 (within the row of 8 pixels
-                        \ numbered from 0 to 7), we would have this:
-                        \
-                        \   T       = %00111111
-                        \   A       = %11111100
-                        \   T AND A = %00111100
-                        \
-                        \ So we can stick T AND A in screen memory to get the
-                        \ line we want, which is what we do here by setting
-                        \ A = A AND T
+ LDA X2                 \ Set X = X2 mod 4, which is the horizontal pixel number
+ AND #3                 \ where the line ends
+ TAX
 
- EOR (SC),Y             \ Store our horizontal line byte into screen memory at
- STA (SC),Y             \ SC(1 0), using EOR logic so it merges with whatever is
-                        \ already on-screen
+ LDA TWFL,X             \ Fetch a ready-made byte with the pixels from the left
+                        \ end of the block to X filled
 
- LDY YSAV               \ Restore Y from YSAV, so that it's preserved
+ AND T                  \ AND the two to get the pixels from X1 to X2, and the
+ AND LCOL               \ colour in LCOL, and EOR them into screen memory at
+ EOR (SC),Y             \ SC(1 0) + Y
+ STA (SC),Y
+
+ LDY YSAV               \ Restore Y from YSAV, so that it's preserved across the
+                        \ call to this subroutine
 
  RTS                    \ Return from the subroutine
 
@@ -5565,13 +5590,10 @@ ENDIF
 
 .TWFL
 
- EQUB %10000000
- EQUB %11000000
- EQUB %11100000
- EQUB %11110000
- EQUB %11111000
- EQUB %11111100
- EQUB %11111110
+ EQUB %10001000         \ Pixel 0 of a block
+ EQUB %11001100         \ Pixels 0 and 1
+ EQUB %11101110         \ Pixels 0 to 2
+ EQUB %11111111         \ Pixels 0 to 3
 
 \ ******************************************************************************
 \
@@ -5593,14 +5615,10 @@ ENDIF
 
 .TWFR
 
- EQUB %11111111
- EQUB %01111111
- EQUB %00111111
- EQUB %00011111
- EQUB %00001111
- EQUB %00000111
- EQUB %00000011
- EQUB %00000001
+ EQUB %11111111         \ Pixels 0 to 3 of a block
+ EQUB %01110111         \ Pixels 1 to 3
+ EQUB %00110011         \ Pixels 2 and 3
+ EQUB %00010001         \ Pixel 3
 
 \ ******************************************************************************
 \
@@ -5823,32 +5841,33 @@ ENDIF
 
  TAY                    \ Copy A into Y, for use later
 
- LSR A                  \ Set SCH = &60 + A >> 3
- LSR A
- LSR A
- ORA #&60
+ LSR A                  \ Set SCH = SCREEN% / 256 + 2 * (A >> 3) (Port: the
+ LSR A                  \ four-colour screen's character rows take two pages)
+ AND #%11111110
+ ORA #HI(SCREEN%)
  STA SCH
 
- TXA                    \ Set SC = (X >> 3) * 8
- AND #%11111000
+ TXA                    \ Set SC = (X >> 2) * 8 (Port: four pixels a character
+ AND #%11111100         \ block), moving to the row's second page if X >= 128
+ ASL A
  STA SC
+ BCC P%+4
+ INC SCH
 
  TYA                    \ Set Y = Y mod 8, which is the pixel row within the
  AND #7                 \ character block at which we want to draw our pixel
  TAY                    \ (as each character block has 8 rows)
 
- TXA                    \ Set X = X mod 8, which is the horizontal pixel number
- AND #7                 \ within the character block where the pixel lies (as
- TAX                    \ each pixel line in the character block is 8 pixels
-                        \ wide)
+ TXA                    \ Set X = X mod 8, the original's pixel number in its
+ AND #7                 \ character block (Port: TWOS and TWOS2 are indexed by
+ TAX                    \ it, for the four-colour screen's four-pixel blocks)
 
  LDA ZZ                 \ If distance in ZZ >= 144, then this point is a very
  CMP #144               \ long way away, so jump to PX3 to fetch a one-pixel
  BCS PX3                \ point from TWOS and EOR it into SC+Y
 
- LDA TWOS2,X            \ Otherwise fetch a two-pixel dash from TWOS2 and EOR it
- EOR (SC),Y             \ into SC+Y
- STA (SC),Y
+ JSR PXD                \ Otherwise draw a two-pixel dash from TWOS2 into SC+Y
+                        \ (Port: at PXD, in the colour in LCOL)
 
  LDA ZZ                 \ If distance in ZZ >= 80, then this point is a medium
  CMP #80                \ distance away, so jump to PX13 to stop drawing, as a
@@ -5868,9 +5887,8 @@ ENDIF
 
 .PX14
 
- LDA TWOS2,X            \ Fetch a two-pixel dash from TWOS2 and EOR it into this
- EOR (SC),Y             \ second row to make a four-pixel square
- STA (SC),Y
+ JSR PXD                \ Draw a two-pixel dash from TWOS2 into this second row
+                        \ to make a four-pixel square (Port: at PXD)
 
 .PX13
 
@@ -5879,6 +5897,40 @@ ENDIF
 .PX4
 
  RTS                    \ Return from the subroutine
+
+.PXD
+
+                        \ Port: EOR the two-pixel dash TWOS2,X (X = x mod 8)
+                        \ into SC+Y in the colour in LCOL, and if X = 3, the
+                        \ dash's second pixel, pixel 0 of the next character
+                        \ block (which is in the same page, as SC's bit 3 is
+                        \ then clear)
+
+ LDA TWOS2,X
+ AND LCOL
+ EOR (SC),Y
+ STA (SC),Y
+
+ TXA                    \ If X <> 3, we are done (testing it without changing
+ EOR #3                 \ the C flag, which PIXEL returns as the original does)
+ BNE pxd1
+
+ LDA SC
+ ORA #8
+ STA SC
+
+ LDA #%10001000
+ AND LCOL
+ EOR (SC),Y
+ STA (SC),Y
+
+ LDA SC
+ AND #%11110111
+ STA SC
+
+.pxd1
+
+ RTS
 
 \ ******************************************************************************
 \
@@ -7808,7 +7860,10 @@ ENDIF
  ASL A                  \ Multiply A by 8, and store in SC. As each character is
  ASL A                  \ 8 pixels wide, and the special screen mode Elite uses
  ASL A                  \ for the top part of the screen is 256 pixels across
- STA SC                 \ with one bit per pixel, this value is not only the
+ ASL A                  \ (Port: times 16 on the four-colour screen, where a
+ STA SC                 \ character is two character blocks, and the row's
+                        \ second page holds columns 16 to 31)
+                        \ with one bit per pixel, this value is not only the
                         \ screen address offset of the text cursor from the left
                         \ side of the screen, it's also the least significant
                         \ byte of the screen address where we want to print this
@@ -7836,35 +7891,8 @@ ENDIF
                         \ we're just updating the cursor so it's in the right
                         \ position following the deletion
 
- ADC #&5E               \ A contains YC (from above) and the C flag is set (from
- TAX                    \ the CPY #127 above), so these instructions do this:
-                        \
-                        \   X = YC + &5E + 1
-                        \     = YC + &5F
-
-                        \ Because YC starts at 0 for the first text row, this
-                        \ means that X will be &5F for row 0, &60 for row 1 and
-                        \ so on. In other words, X is now set to the page number
-                        \ for the row before the one containing the text cursor,
-                        \ and given that we set SC above to point to the offset
-                        \ in memory of the text cursor within the row's page,
-                        \ this means that (X SC) now points to the character
-                        \ above the text cursor
-
- LDY #&F8               \ Set Y = &F8, so the following call to ZES2 will count
-                        \ Y upwards from &F8 to &FF
-
- JSR ZES2               \ Call ZES2, which zero-fills from address (X SC) + Y to
-                        \ (X SC) + &FF. (X SC) points to the character above the
-                        \ text cursor, and adding &FF to this would point to the
-                        \ cursor, so adding &F8 points to the character before
-                        \ the cursor, which is the one we want to delete. So
-                        \ this call zero-fills the character to the left of the
-                        \ cursor, which erases it from the screen
-
- BEQ RR4                \ We are done deleting, so restore the registers and
-                        \ return from the subroutine (this BNE is effectively
-                        \ a JMP as ZES2 always returns with the Z flag set)
+ JMP RRD                \ Port: delete the character at RRD (after R5, to keep
+                        \ CHPR's branches in range)
 
 .RR2
 
@@ -7897,54 +7925,23 @@ ENDIF
 .RR3
 
                         \ A contains the value of YC - the screen row where we
-                        \ want to print this character - so now we need to
-                        \ convert this into a screen address, so we can poke
-                        \ the character data to the right place in screen
-                        \ memory
-
- ORA #&60               \ We already stored the least significant byte
-                        \ of this screen address in SC above (see the STA SC
-                        \ instruction above), so all we need is the most
-                        \ significant byte. As mentioned above, in Elite's
-                        \ square mode 4 screen, each row of text on-screen
-                        \ takes up exactly one page, so the first row is page
-                        \ &60xx, the second row is page &61xx, so we can get
-                        \ the page for character (XC, YC) by OR'ing with &60.
-                        \ To see this in action, consider that our two values
-                        \ are, in binary:
+                        \ want to print this character
                         \
-                        \   YC is between:  %00000000
-                        \             and:  %00010111
-                        \          &60 is:  %01100000
-                        \
-                        \ so YC OR &60 effectively adds &60 to YC, giving us
-                        \ the page number that we want
+                        \ Port: on the four-colour screen, a character row is
+                        \ two pages, from SCREEN% + 512 * YC, the second for
+                        \ columns 16 to 31, and each pixel row of a character
+                        \ is two bytes of four pixels, eight bytes apart, which
+                        \ RRC ORs into the screen from NIB (yellow)
 
-.RREN
+ ASL A                  \ Set SC+1 = SCREEN% / 256 + 2 * YC, plus 1 if the
+ ADC #HI(SCREEN%)       \ column was 16 or more (XC is now the column plus 1)
+ LDX XC
+ CPX #17
+ ADC #0
+ STA SC+1
 
- STA SC+1               \ Store the page number of the destination screen
-                        \ location in SC+1, so SC now points to the full screen
-                        \ location where this character should go
-
- LDY #7                 \ We want to print the 8 bytes of character data to the
-                        \ screen (one byte per row), so set up a counter in Y
-                        \ to count these bytes
-
-.RRL1
-
- LDA (P+1),Y            \ The character definition is at P(2 1) - we set this up
-                        \ above - so load the Y-th byte from P(2 1), which will
-                        \ contain the bitmap for the Y-th row of the character
-
- ORA (SC),Y             \ OR this value with the current contents of screen
-                        \ memory, so the pixels we want to draw are set
-
- STA (SC),Y             \ Store the Y-th byte at the screen address for this
-                        \ character location
-
- DEY                    \ Decrement the loop counter
-
- BPL RRL1               \ Loop back for the next byte to print to the screen
+ JMP RRC                \ Draw the character's rows at RRC (after R5, to keep
+                        \ CHPR's branches in range)
 
 .RR4
 
@@ -7961,6 +7958,89 @@ ENDIF
 
  JMP RR4                \ Jump to RR4 to restore the registers and return from
                         \ the subroutine using a tail call
+
+.RRD
+
+                        \ Port: on the four-colour screen, clear the sixteen
+                        \ bytes of the character cell at column XC of row YC
+                        \ (A = YC and the C flag is set), at SCREEN% + 512 *
+                        \ YC + 16 * XC
+
+ ASL A                  \ Set SC+1 = SCREEN% / 256 + 2 * YC, plus 1 if XC >= 16
+ CLC
+ ADC #HI(SCREEN%)
+ LDX XC
+ CPX #16
+ ADC #0
+ STA SC+1
+
+ TXA                    \ Set SC = 16 * XC (mod 256)
+ ASL A
+ ASL A
+ ASL A
+ ASL A
+ STA SC
+
+ LDY #15                \ Zero the sixteen bytes
+ LDA #0
+
+.rrdl
+
+ STA (SC),Y
+ DEY
+ BPL rrdl
+
+ LDY #0                 \ We are done deleting, so restore the registers and
+ JMP RR4                \ return from the subroutine
+
+.RRC
+
+ LDY #7                 \ Draw the left halves of the character's eight rows
+
+.RRC1
+
+ LDA (P+1),Y            \ Fetch the character's row Y and OR the MODE 1 byte of
+ LSR A                  \ its left four pixels into the screen
+ LSR A
+ LSR A
+ LSR A
+ TAX
+ LDA NIB,X
+ ORA (SC),Y
+ STA (SC),Y
+
+ DEY                    \ Loop back for the next row
+ BPL RRC1
+
+ LDA SC                 \ Move SC(1 0) on to the right character block (SC is a
+ ORA #8                 \ multiple of 16, so this adds 8)
+ STA SC
+
+ LDY #7                 \ Draw the right halves of the character's eight rows
+
+.RRC2
+
+ LDA (P+1),Y            \ Fetch the character's row Y and OR the MODE 1 byte of
+ AND #%00001111         \ its right four pixels into the screen
+ TAX
+ LDA NIB,X
+ ORA (SC),Y
+ STA (SC),Y
+
+ DEY                    \ Loop back for the next row
+ BPL RRC2
+
+ JMP RR4                \ Restore the registers and return
+
+.NIB
+
+                        \ Port: four pixels of a character row (bit 3 the left
+                        \ one) as a MODE 1 byte in yellow: the bits in both bit
+                        \ planes
+
+ FOR I%, 0, 15
+  EQUB I% * 16 + I%
+ NEXT
 
 \ ******************************************************************************
 \
@@ -7983,10 +8063,12 @@ ENDIF
 
 .DIALS
 
- LDA #&D0               \ Set SC(1 0) = &78D0, which is the screen address for
+ LDA #&A0               \ Set SC(1 0) = &71A0, which is the screen address for
  STA SC                 \ the character block containing the left end of the
- LDA #&78               \ top indicator in the right part of the dashboard, the
- STA SC+1               \ one showing our speed
+ LDA #&71               \ top indicator in the right part of the dashboard, the
+ STA SC+1               \ one showing our speed (Port: on the four-colour
+                        \ screen, where the original's column 26 of row 24,
+                        \ &78D0, is at PANEL% + 26 * 16)
 
  JSR PZW                \ Call PZW to set A to the colour for dangerous values
                         \ and X to the colour for safe values
@@ -8209,10 +8291,12 @@ ENDIF
 \
 \ ******************************************************************************
 
- LDA #&78               \ Set SC(1 0) = &7810, which is the screen address for
+ LDA #&70               \ Set SC(1 0) = &7020, which is the screen address for
  STA SC+1               \ the character block containing the left end of the
- LDA #&10               \ top indicator in the left part of the dashboard, the
- STA SC                 \ one showing the forward shield
+ LDA #&20               \ top indicator in the left part of the dashboard, the
+ STA SC                 \ one showing the forward shield (Port: on the
+                        \ four-colour screen, where the original's column 2 of
+                        \ row 24, &7810, is at PANEL% + 2 * 16)
 
  LDA FSH                \ Draw the forward shield indicator using a range of
  JSR DILX               \ 0-255, and increment SC to point to the next indicator
@@ -8443,20 +8527,40 @@ ENDIF
                         \ only keep pixels that have their equivalent bits set
                         \ in the mask byte in A
 
- STA (SC),Y             \ Draw the shape of the mask on pixel row Y of the
-                        \ character block we are processing
+                        \ Port: on the four-colour screen each of the
+                        \ original's mode 5 bytes is two MODE 1 bytes, EXPL and
+                        \ EXPR of it, eight bytes apart, so this draws the
+                        \ three rows of each (X, the block counter, waits in
+                        \ DTMP2)
 
- INY                    \ Draw the next pixel row, incrementing Y
+ STX DTMP2              \ Keep the block counter in DTMP2
+
+ TAX                    \ Draw the left MODE 1 byte of the shape on pixel rows
+ LDA EXPL,X             \ Y to Y + 2 of the character block
+ STA (SC),Y
+ INY
+ STA (SC),Y
+ INY
  STA (SC),Y
 
- INY                    \ And draw the third pixel row, incrementing Y
+ TYA                    \ Move Y to the same rows of the next character block
+ CLC                    \ along
+ ADC #6
+ TAY
+
+ LDA EXPR,X             \ Draw the right MODE 1 byte of the shape there
+ STA (SC),Y
+ INY
+ STA (SC),Y
+ INY
  STA (SC),Y
 
- TYA                    \ Add 6 to Y, so Y is now 8 more than when we started
+ TYA                    \ Add 6 to Y, so Y is now 16 more than when we started
  CLC                    \ this loop iteration, so Y now points to the address
  ADC #6                 \ of the first line of the indicator bar in the next
- TAY                    \ character block (as each character is 8 bytes of
-                        \ screen memory)
+ TAY                    \ pair of character blocks
+
+ LDX DTMP2              \ Restore the block counter
 
  DEX                    \ Decrement the loop counter for the next character
                         \ block along in the indicator
@@ -8516,6 +8620,7 @@ ENDIF
 .DL6
 
  INC SC+1               \ Increment the high byte of SC to point to the next
+ INC SC+1               \ (Port: two pages down a character row on the screen)
                         \ character row on-screen (as each row takes up exactly
                         \ one page of 256 bytes) - so this sets up SC to point
                         \ to the next indicator, i.e. the one below the one we
@@ -8624,31 +8729,46 @@ ENDIF
                         \ character blocks we display from now on will be blank
 .DLL12
 
- STA (SC),Y             \ Draw the shape of the mask on pixel row Y of the
-                        \ character block we are processing
+                        \ Port: on the four-colour screen, draw the mode 5 byte
+                        \ in A as its two MODE 1 bytes, EXPL and EXPR of it, on
+                        \ the four pixel rows of this pair of character blocks
 
- INY                    \ Draw the next pixel row, incrementing Y
+ TAX                    \ Draw the left byte on pixel rows Y to Y + 3
+ LDA EXPL,X
+ STA (SC),Y
+ INY
+ STA (SC),Y
+ INY
+ STA (SC),Y
+ INY
  STA (SC),Y
 
- INY                    \ And draw the third pixel row, incrementing Y
+ TYA                    \ Move Y to the same rows of the next character block
+ CLC
+ ADC #5
+ TAY
+
+ LDA EXPR,X             \ Draw the right byte there
+ STA (SC),Y
+ INY
+ STA (SC),Y
+ INY
+ STA (SC),Y
+ INY
  STA (SC),Y
 
- INY                    \ And draw the fourth pixel row, incrementing Y
- STA (SC),Y
-
- TYA                    \ Add 5 to Y, so Y is now 8 more than when we started
+ TYA                    \ Add 5 to Y, so Y is now 16 more than when we started
  CLC                    \ this loop iteration, so Y now points to the address
  ADC #5                 \ of the first line of the indicator bar in the next
- TAY                    \ character block (as each character is 8 bytes of
-                        \ screen memory)
+ TAY                    \ pair of character blocks
 
- CPY #30                \ If Y < 30 then we still have some more character
+ CPY #60                \ If Y < 60 then we still have some more character
  BCC DLL10              \ blocks to draw, so loop back to DLL10 to display the
-                        \ next one along
+                        \ next one along (Port: four pairs)
 
  INC SC+1               \ Increment the high byte of SC to point to the next
-                        \ character row on-screen (as each row takes up exactly
-                        \ one page of 256 bytes) - so this sets up SC to point
+ INC SC+1               \ character row on-screen (Port: two pages a row on the
+                        \ four-colour screen) - so this sets up SC to point
                         \ to the next indicator, i.e. the one below the one we
                         \ just drew
 
@@ -9145,13 +9265,14 @@ ENDIF
                         \ screen, so A is now the horizontal pixel row of the
                         \ line we want to draw to display the hangar floor
 
- LSR A                  \ Set A = A >> 3
- LSR A
- LSR A
+ LSR A                  \ Set A = 2 * (A >> 3) (Port: on the four-colour
+ LSR A                  \ screen, each character row takes two pages)
+ AND #%11111110
 
- ORA #&60               \ Each character row in Elite's screen mode takes up one
+ ORA #HI(SCREEN%)       \ Each character row in Elite's screen mode takes up one
                         \ page in memory (256 bytes), so we now OR with &60 to
-                        \ get the page containing the line
+                        \ get the page containing the line (Port: OR with
+                        \ SCREEN%'s page, for the row's first page)
 
  STA SCH                \ Store the screen page in the high byte of SC(1 0)
 
@@ -9161,22 +9282,19 @@ ENDIF
                         \ high), so SC(1 0) now points to the address of the
                         \ start of the horizontal line we want to draw
 
- LDY #0                 \ Set Y = 0 so the call to HAS2 starts drawing the line
-                        \ in the first byte of the screen row, at the left edge
-                        \ of the screen
+ LDY #2                 \ Set Y = 2 so the call to HAS2 starts drawing the line
+                        \ at the left edge of the screen, after the border
+                        \ (Port: HAS2 and HAS3 take the x-coordinate in Y on
+                        \ the four-colour screen)
 
  JSR HAS2               \ Draw a horizontal line from the left edge of the
                         \ screen, going right until we bump into something
                         \ already on-screen, at which point stop drawing
 
- LDA #%00000100         \ Now to draw the same line but from the right edge of
-                        \ the screen, so set a pixel mask in A to check the
-                        \ sixth pixel of the last byte, so we skip the two-pixel
-                        \ screen border at the right edge of the screen
-
- LDY #248               \ Set Y = 248 so the call to HAS3 starts drawing the
-                        \ line in the last byte of the screen row, at the right
-                        \ edge of the screen
+ LDY #253               \ Now to draw the same line but from the right edge of
+                        \ the screen, so set Y = 253, the sixth pixel of the
+                        \ last byte, so we skip the two-pixel screen border at
+                        \ the right edge of the screen (Port: the x-coordinate)
 
  JSR HAS3               \ Draw a horizontal line from the right edge of the
                         \ screen, going left until we bump into something
@@ -9187,6 +9305,9 @@ ENDIF
 
  BEQ HA2                \ If YSAV is zero, jump to HA2 to skip the following
                         \ as there is only one ship in the hangar
+
+ INY                    \ Port: set Y = YSAV + 2, the x-coordinate of the third
+ INY                    \ pixel of the original's byte at YSAV
 
                         \ If we get here then there are multiple ships in the
                         \ hangar, so we also need to draw the horizontal line in
@@ -9199,14 +9320,14 @@ ENDIF
                         \ going right until we bump into something already
                         \ on-screen, at which point it stops drawing
 
- LDY #128               \ We now draw the line from the centre of the screen
+ LDY #129               \ We now draw the line from the centre of the screen
                         \ to the left. SC(1 0) points to the start address of
                         \ the screen row, so we set Y to 128 so the call to
                         \ HAS3 starts drawing from halfway along the row (i.e.
                         \ from the centre of the screen)
 
- LDA #%01000000         \ We want to start drawing from the second pixel, to
-                        \ avoid the border, so we set a pixel mask accordingly
+ \ Port: Y = 129 is the second pixel of the original's
+                        \ byte at 128 (its mask was %01000000)
 
  JSR HAS3               \ Call HAS3, which draws a line from the halfway point
                         \ across the left half of the screen, going left until
@@ -9234,21 +9355,17 @@ ENDIF
 
 .HAL6
 
- LDX #&60               \ Set the high byte of SC(1 0) to &60, the high byte of
- STX SCH                \ the start of screen
-
  STA XSAV               \ Store this value in XSAV, so we can retrieve it later
 
- AND #%11111000         \ Each character block contains 8 pixel rows, so to get
-                        \ the address of the first byte in the character block
-                        \ that we need to draw into, as an offset from the start
-                        \ of the row, we clear bits 0-2
+ AND #%11111100         \ Port: on the four-colour screen, set SC(1 0) to the
+ ASL A                  \ character block of x-coordinate A in the first
+ STA SC                 \ character row (four pixels and eight bytes a block,
+ LDA #HI(SCREEN%)       \ the row's second page from x = 128)
+ ADC #0
+ STA SCH
 
- STA SC                 \ Set the low byte of SC(1 0) to this value, so SC(1 0)
-                        \ now points to the address where the line starts
-
- LDX #%10000000         \ Set a mask in X to the first pixel the eight-pixel
-                        \ byte
+ LDX #%10001000         \ Set a mask in X to the first pixel the four-pixel
+                        \ byte (A is a multiple of 16)
 
  LDY #1                 \ We are going to start drawing the line from the second
                         \ pixel from the top (to avoid drawing on the one-pixel
@@ -9277,7 +9394,8 @@ ENDIF
  BNE HAL7               \ have drawn all 8 in the character block
 
  INC SC+1               \ Point SC(1 0) to the next page in memory, i.e. the
-                        \ next character row
+ INC SC+1               \ next character row (Port: two pages on the
+                        \ four-colour screen)
 
  LDY #0                 \ Set Y = 0 to point to the first row in this character
                         \ block
@@ -9393,8 +9511,9 @@ ENDIF
  LDY XX15+2             \ Set Y = XX15+2, the ship type of the ship we need to
                         \ draw
 
- BEQ HA1                \ If Y = 0, return from the subroutine (as HA1 contains
-                        \ an RTS)
+ BNE P%+3               \ If Y = 0, return from the subroutine (Port: with an
+ RTS                    \ RTS of its own, as the RTS at HA1 is now out of the
+                        \ branch's reach)
 
                         \ We now work our way through the ship blueprints table
                         \ for the hangar, counting valid blueprints until we
@@ -9479,114 +9598,81 @@ ENDIF
 
 .HAS2
 
- LDA #%00100000         \ Set A to the pixel pattern for a mode 4 character row
-                        \ byte with the third pixel set, so we start drawing the
-                        \ horizontal line just to the right of the two-pixel
-                        \ border along the edge of the screen
+                        \ Port: on the four-colour screen, HAS2 draws a line
+                        \ to the right from x-coordinate Y on the pixel row at
+                        \ SC(1 0) (the row's first page and the pixel line in
+                        \ SC), and HAS3 to the left, a pixel at a time, until
+                        \ either reaches a pixel that is already set or the
+                        \ edge of the screen; the lines are yellow
+
+ JSR has1               \ Set up the row and the first pixel
 
 .HAL2
 
- TAX                    \ Store A in X so we can retrieve it after the following
-                        \ check and again after updating screen memory
+ JSR has2               \ Draw the pixel at DTMP, or return if it is set
 
- AND (SC),Y             \ If the pixel we want to draw is non-zero (using A as a
- BNE HA3                \ mask), then this means it already contains something,
-                        \ so we stop drawing because we have run into something
-                        \ that's already on-screen, and return from the
-                        \ subroutine (as HA3 contains an RTS)
-
- TXA                    \ Retrieve the value of A we stored above, so A now
-                        \ contains the pixel mask again
-
- ORA (SC),Y             \ OR the byte with the current contents of screen
-                        \ memory, so the pixel we want is set to red (because
-                        \ we know the bits are already 0 from the above test)
-
- STA (SC),Y             \ Store the updated pixel in screen memory
-
- TXA                    \ Retrieve the value of A we stored above, so A now
-                        \ contains the pixel mask again
-
- LSR A                  \ Shift A to the right to move on to the next pixel
-
- BCC HAL2               \ If bit 0 before the shift was clear (i.e. we didn't
-                        \ just do the fourth pixel in this block), loop back to
-                        \ HAL2 to check and draw the next pixel
-
- TYA                    \ Set Y = Y + 8 (as we know the C flag is set) to point
- ADC #7                 \ to the next character block along
- TAY
-
- LDA #%10000000         \ Reset the pixel mask in A to the first pixel in the
-                        \ new eight-pixel character block
-
- BCC HAL2               \ If the above addition didn't overflow, jump back to
-                        \ HAL2 to keep drawing the line in the next character
-                        \ block
+ INC DTMP               \ Move one pixel to the right, and loop back until we
+ BNE HAL2               \ fall off the right edge of the screen
 
 .HA3
 
- RTS                    \ The addition overflowed, so we have reached the last
-                        \ character block in this page of memory, which is the
-                        \ end of the line, so we return from the subroutine
-
-\ ******************************************************************************
-\
-\       Name: HAS3
-\       Type: Subroutine
-\   Category: Ship hangar
-\    Summary: Draw a hangar background line from right to left
-\
-\ ------------------------------------------------------------------------------
-\
-\ This routine draws a line to the left, starting with the pixel mask in A at
-\ screen address SC(1 0) and character block offset Y, and aborting if we bump
-\ into something that's already on-screen.
-\
-\ ******************************************************************************
+ LDA DTMP2              \ Restore SCH to the row's first page and return
+ STA SCH
+ RTS
 
 .HAS3
 
- TAX                    \ Store A in X so we can retrieve it after the following
-                        \ check and again after updating screen memory
+ JSR has1               \ Set up the row and the first pixel
 
- AND (SC),Y             \ If the pixel we want to draw is non-zero (using A as a
- BNE HA3                \ mask), then this means it already contains something,
-                        \ so we stop drawing because we have run into something
-                        \ that's already on-screen, and return from the
-                        \ subroutine (as HA3 contains an RTS)
+.HAL3
 
- TXA                    \ Retrieve the value of A we stored above, so A now
-                        \ contains the pixel mask again
+ JSR has2               \ Draw the pixel at DTMP, or return if it is set
 
- ORA (SC),Y             \ OR the byte with the current contents of screen
-                        \ memory, so the pixel we want is set to red (because
-                        \ we know the bits are already 0 from the above test)
+ LDA DTMP               \ Stop at the left edge of the screen
+ BEQ HA3
 
- STA (SC),Y             \ Store the updated pixel in screen memory
+ DEC DTMP               \ Move one pixel to the left and loop back
+ JMP HAL3
 
- TXA                    \ Retrieve the value of A we stored above, so A now
-                        \ contains the pixel mask again
+.has1
 
- ASL A                  \ Shift A to the left to move to the next pixel to the
-                        \ left
+ STY DTMP               \ Keep the x-coordinate in DTMP and the row's first page
+ LDA SCH                \ in DTMP2
+ STA DTMP2
+ RTS
 
- BCC HAS3               \ If bit 7 before the shift was clear (i.e. we didn't
-                        \ just do the first pixel in this block), loop back to
-                        \ HAS3 to check and draw the next pixel to the left
+.has2
 
- TYA                    \ Set Y = Y - 8 (as we know the C flag is set) to point
- SBC #8                 \ to the next character block to the left
+                        \ Draw the pixel at x-coordinate DTMP on the row, or if
+                        \ it is already set, return from HAS2 or HAS3 (by
+                        \ dropping this call's return address) through HA3
+
+ LDA DTMP               \ Set Y to the pixel's byte in the row and SCH to the
+ AND #%11111100         \ row's first page, or its second if x >= 128
+ ASL A
  TAY
+ LDA DTMP2
+ ADC #0
+ STA SCH
 
- LDA #%00000001         \ Set a mask in A to the last pixel in the eight-pixel
-                        \ byte
+ LDA DTMP               \ Set X = x mod 4, the pixel in the byte
+ AND #3
+ TAX
 
- BCS HAS3               \ If the above subtraction didn't underflow, jump back
-                        \ to HAS3 to keep drawing the line in the next character
-                        \ block to the left
+ LDA TWOS,X             \ If the pixel is already set, stop
+ AND (SC),Y
+ BNE has3
 
- RTS                    \ Return from the subroutine
+ LDA TWOS,X             \ Otherwise OR it into the screen (yellow: both bit
+ ORA (SC),Y             \ planes)
+ STA (SC),Y
+ RTS
+
+.has3
+
+ PLA                    \ Drop the return address and return from HAS2 or HAS3
+ PLA                    \ through HA3
+ JMP HA3
 
 \ ******************************************************************************
 \
@@ -9620,21 +9706,24 @@ ENDIF
 
 .UNWISE
 
- LDA LIL2+2             \ Flip bit 6 of LIL2+2 to change the EOR (SC),Y in LIL2
- EOR #%01000000         \ to an ORA (SC),Y (or back again)
- STA LIL2+2
+                        \ Port: each EOR (SC),Y is four bytes into its loop,
+                        \ after LOIN's AND LCOL on the four-colour screen
 
- LDA LIL3+2             \ Flip bit 6 of LIL3+2 to change the EOR (SC),Y in LIL3
+ LDA LIL2+4             \ Flip bit 6 of LIL2+4 to change the EOR (SC),Y in LIL2
  EOR #%01000000         \ to an ORA (SC),Y (or back again)
- STA LIL3+2
+ STA LIL2+4
 
- LDA LIL5+2             \ Flip bit 6 of LIL2+2 to change the EOR (SC),Y in LIL5
+ LDA LIL3+4             \ Flip bit 6 of LIL3+4 to change the EOR (SC),Y in LIL3
  EOR #%01000000         \ to an ORA (SC),Y (or back again)
- STA LIL5+2
+ STA LIL3+4
 
- LDA LIL6+2             \ Flip bit 6 of LIL2+2 to change the EOR (SC),Y in LIL6
+ LDA LIL5+4             \ Flip bit 6 of LIL5+4 to change the EOR (SC),Y in LIL5
  EOR #%01000000         \ to an ORA (SC),Y (or back again)
- STA LIL6+2
+ STA LIL5+4
+
+ LDA LIL6+4             \ Flip bit 6 of LIL6+4 to change the EOR (SC),Y in LIL6
+ EOR #%01000000         \ to an ORA (SC),Y (or back again)
+ STA LIL6+4
 
 .HA1
 
@@ -12104,7 +12193,7 @@ ENDIF
  STA de                 \ Clear de, the flag that appends " DESTROYED" to the
                         \ end of the next text token, so that it doesn't
 
- LDX #&60               \ Set X to the screen memory page for the top row of the
+ LDX #HI(SCREEN%)       \ Set X to the screen memory page for the top row of the
                         \ screen (as screen memory starts at &6000)
 
 .BOL1
@@ -12115,8 +12204,10 @@ ENDIF
  INX                    \ Increment X to point to the next page, i.e. the next
                         \ character row
 
- CPX #&78               \ Loop back to BOL1 until we have cleared page &7700,
- BNE BOL1               \ the last character row in the space view part of the
+ CPX #HI(SCREEN%)+&30   \ Loop back to BOL1 until we have cleared the last
+ BNE BOL1               \ page of the space view part of the screen (the top
+                        \ part; Port: on the four-colour screen, its 48 pages
+                        \ from SCREEN%, &4000 to &6FFF)
                         \ screen (the top part)
 
  LDY #1                 \ Move the text cursor to row 1
@@ -12146,6 +12237,9 @@ ENDIF
  JSR TT27
 
 .tt66
+
+ LDA #&FF               \ Port: draw the box in yellow
+ STA LCOL
 
  LDX #0                 \ Set (X1, Y1) to (0, 0)
  STX X1
@@ -12278,25 +12372,36 @@ ENDIF
  JSR TT67               \ Print a newline, which will move the text cursor down
                         \ a line (to row 21) and back to column 1
 
- LDA #&75               \ Set the two-byte value in SC to &7507
- STA SC+1
- LDA #7
- STA SC
+                        \ Port: on the four-colour screen, text rows 21 to 23
+                        \ are two pages each, from SCREEN% + 512 * 21, so this
+                        \ clears columns 1 to 30 of each: bytes 16 to 255 of
+                        \ the first page and 0 to 239 of the second
 
- LDA #0                 \ Call LYN to clear the pixels from &7507 to &75F0
+ LDX #HI(SCREEN%) + 42  \ Set X to the first page of text row 21
+
+.cly1
+
+ STX SC+1               \ Clear bytes 16 to 255 of page X (LYN clears SC + 1
+ LDA #&0F               \ to SC + 240)
+ STA SC
+ LDA #0
  JSR LYN
 
- INC SC+1               \ Increment SC+1 so SC points to &7607
+ LDA #&FF               \ Clear bytes 0 to 239 of page X + 1
+ STA SC
+ LDA #0
+ JSR LYN
 
- JSR LYN                \ Call LYN to clear the pixels from &7607 to &76F0
+ INX                    \ Move on to the next text row's first page, and loop
+ INX                    \ back until we have cleared rows 21 to 23
+ CPX #HI(SCREEN%) + 48
+ BNE cly1
 
- INC SC+1               \ Increment SC+1 so SC points to &7707
+ LDY #1                 \ Move the text cursor to column 1, and return with
+ STY XC                 \ A = Y = 0, as the original does
+ DEY
 
- INY                    \ Move the text cursor to column 1 (as LYN sets Y to 0)
- STY XC
-
-                        \ Fall through into LYN to clear the pixels from &7707
-                        \ to &77F0
+ RTS
 
 \ ******************************************************************************
 \
@@ -12332,7 +12437,8 @@ ENDIF
 
 .LYN
 
- LDY #233               \ Set up a counter in Y to count down from pixel 233
+ LDY #240               \ Set up a counter in Y to count down from byte 240
+                        \ (Port: the four-colour screen's rows, for CLYNS)
 
 .EE2
 
@@ -12408,82 +12514,90 @@ ENDIF
 
 .CPIX2
 
- LDA Y1                 \ Fetch the y-coordinate into A
+                        \ Port: CPIX2 draws on the four-colour screen's
+                        \ dashboard (PANEL%), where each of the original's mode
+                        \ 5 pixels is two pixels: the dash at (X1, Y1) is the
+                        \ four pixels from x = X1 AND %11111110 (a whole
+                        \ character block if X1 AND 2 is 0, else the right half
+                        \ of one and the left half of the next), in the
+                        \ colour COL on the original's dashboard: COL's colour
+                        \ in the screen's palette (CMYK: the original's red
+                        \ magenta, its yellow yellow, its green cyan). It
+                        \ leaves SC(1 0) pointing at the dash's right half,
+                        \ and in DSTK the pixels of the stick that SCAN draws
+                        \ there (the original's CTWOS+1,X AND COL)
 
+ LDA Y1                 \ Fetch the y-coordinate into A
  TAY                    \ Store the y-coordinate in Y
 
- LSR A                  \ Set A = A / 8, so A now contains the character row we
- LSR A                  \ need to draw in (as each character row contains 8
- LSR A                  \ pixel rows)
+ LSR A                  \ Set SCH = &40 + 2 * (Y1 div 8), the page of its
+ LSR A                  \ character row (rows 24 to 30, from PANEL%)
+ AND #%11111110
+ CLC
+ ADC #&40
+ STA SCH
 
- ORA #&60               \ Each character row in Elite's screen mode takes up one
-                        \ page in memory (256 bytes), so we now OR with &60 to
-                        \ get the page containing the dash (see the comments in
-                        \ routine TT26 for more discussion about calculating
-                        \ screen memory addresses)
-
- STA SCH                \ Store the screen page in the high byte of SC(1 0)
-
- LDA X1                 \ Each character block contains 8 pixel rows, so to get
- AND #%11111000         \ the address of the first byte in the character block
-                        \ that we need to draw into, as an offset from the start
-                        \ of the row, we clear bits 0-2
-
- STA SC                 \ Store the address of the character block in the low
-                        \ byte of SC(1 0), so now SC(1 0) points to the
-                        \ character block we need to draw into
+ LDA X1                 \ Set SC = 2 * bits 2-7 of X1, the offset of its
+ AND #%11111100         \ character block in the row, in the row's second page
+ ASL A                  \ if X1 >= 128
+ STA SC
+ BCC P%+4
+ INC SCH
 
  TYA                    \ Set Y to the y-coordinate mod 8, which will be the
  AND #7                 \ number of the pixel row we need to draw within the
  TAY                    \ character block
 
- LDA X1                 \ Copy bits 0-1 of X1 to bits 1-2 of X, and clear the C
- AND #%00000110         \ flag in the process (using the LSR). X will now be
- LSR A                  \ a value between 0 and 3, and will be the pixel number
- TAX                    \ in the character row for the left pixel in the dash.
-                        \ This is because each character row is one byte that
-                        \ contains 4 pixels, but covers 8 screen coordinates, so
-                        \ this effectively does the division by 2 that we need
+ LDA COL                \ Set DTMP to COL's colour on the four-colour screen:
+ CMP #&F0               \ &F0 (yellow) becomes &FF, &0F (red) &F0 (magenta),
+ BEQ cpx1               \ and &FF (green) &0F (cyan)
+ CMP #&0F
+ BEQ cpx2
+ LDA #&0F
+ BNE cpx3
+.cpx1
+ LDA #&FF
+ BNE cpx3
+.cpx2
+ LDA #&F0
+.cpx3
+ STA DTMP
 
- LDA CTWOS,X            \ Fetch a mode 5 one-pixel byte with the pixel position
- AND COL                \ at X, and AND with the colour byte so that pixel takes
-                        \ on the colour we want to draw (i.e. A is acting as a
-                        \ mask on the colour byte)
+ LDA X1                 \ If X1 AND 2 is 0, the dash is one whole character
+ AND #2                 \ block, so draw it and set DSTK to its right half
+ BNE cpx4
 
- EOR (SC),Y             \ Draw the pixel on-screen using EOR logic, so we can
- STA (SC),Y             \ remove it later without ruining the background that's
-                        \ already on-screen
+ LDA DTMP
+ EOR (SC),Y
+ STA (SC),Y
 
- LDA CTWOS+1,X          \ Fetch a mode 5 one-pixel byte with the pixel position
-                        \ at X+1, so we can draw the right pixel of the dash
+ LDA #%00110011
+ AND DTMP
+ STA DSTK
 
- BPL CP1                \ The CTWOS table has an extra row at the end of it that
-                        \ repeats the first value, %10001000, so if we have not
-                        \ fetched that value, then the right pixel of the dash
-                        \ is in the same character block as the left pixel, so
-                        \ jump to CP1 to draw it
+ RTS
 
- LDA SC                 \ Otherwise the left pixel we drew was at the last
- ADC #8                 \ position of four in this character block, so we add
- STA SC                 \ 8 to the screen address to move onto the next block
-                        \ along (as there are 8 bytes in a character block).
-                        \ The C flag was cleared above, so this ADC is correct
+.cpx4
 
- LDA CTWOS+1,X          \ Re-fetch the mode 5 one-pixel byte, as we just
-                        \ overwrote A (the byte will still be the fifth byte
-                        \ from the table, which is correct as we want to draw
-                        \ the leftmost pixel in the next character along as the
-                        \ dash's right pixel)
+ LDA #%00110011         \ Otherwise draw the right half of this block
+ AND DTMP
+ EOR (SC),Y
+ STA (SC),Y
 
-.CP1
+ LDA SC                 \ Move SC(1 0) on to the next character block (moving
+ CLC                    \ to the row's second page when crossing x = 128)
+ ADC #8
+ STA SC
+ BCC P%+4
+ INC SCH
 
- AND COL                \ Apply the colour mask to the pixel byte, as above
+ LDA #%11001100         \ And draw the left half of that one, which is also the
+ AND DTMP               \ stick's pixels
+ STA DSTK
+ EOR (SC),Y
+ STA (SC),Y
 
- EOR (SC),Y             \ Draw the dash's right pixel according to the mask in
- STA (SC),Y             \ A, with the colour in COL, using EOR logic, just as
-                        \ above
-
- RTS                    \ Return from the subroutine
+ RTS
 
 \ ******************************************************************************
 \
@@ -13493,6 +13607,9 @@ ENDIF
 
 .TT15
 
+ LDA #&FF               \ Port: draw the cross-hairs in yellow
+ STA LCOL
+
  LDA #24                \ Set A to 24, which we will use as the minimum
                         \ screen indent for the crosshairs (i.e. the minimum
                         \ distance from the top-left corner of the screen)
@@ -13711,6 +13828,9 @@ ENDIF
 \ ******************************************************************************
 
 .TT128
+
+ LDA #&FF               \ Port: draw the circle in yellow
+ STA LCOL
 
  LDA QQ19               \ Set K3 = the x-coordinate of the centre
  STA K3
@@ -18849,7 +18969,6 @@ ENDIF
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Light up the space station indicator ("S") on the dashboard
-\       Area: cold
 \
 \ ******************************************************************************
 
@@ -18871,7 +18990,6 @@ ENDIF
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Draw an indicator bulb on the dashboard
-\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -18895,18 +19013,53 @@ ENDIF
 
 .BULB
 
- STA SC                 \ Store the low byte of the screen address in SC
+                        \ Port: on the four-colour screen, the bulbs' row is at
+                        \ PANEL% + 5 * 512 (the original's &7D00), and each of
+                        \ the original's character blocks is two, so the bulb
+                        \ in the original's block A / 8 is at PANEL% + 5 * 512
+                        \ + 2 * A, its bitmap's rows drawn as their MODE 1
+                        \ bytes, EXPL and EXPR, with EOR
+
+ ASL A                  \ Set SC(1 0) = &7A00 + 2 * A
+ STA SC
+ LDA #&7A
+ ADC #0
+ STA SC+1
 
  STX P+1                \ Set P(2 1) = (Y X)
  STY P+2
 
- LDA #&7D               \ Set A to the high byte of the screen address, which is
-                        \ &7D as the bulbs are both in the character row from
-                        \ &7D00 to &7DFF
+ LDY #7                 \ Draw the left halves of the bitmap's eight rows
 
- JMP RREN               \ Call RREN to print the character definition pointed to
-                        \ by P(2 1) at the screen address pointed to by (A SC),
-                        \ returning from the subroutine using a tail call
+.BUL1
+
+ LDA (P+1),Y
+ TAX
+ LDA EXPL,X
+ EOR (SC),Y
+ STA (SC),Y
+ DEY
+ BPL BUL1
+
+ LDA SC                 \ Move SC(1 0) on to the next character block
+ ORA #8
+ STA SC
+
+ LDY #7                 \ Draw the right halves of the bitmap's eight rows
+
+.BUL2
+
+ LDA (P+1),Y
+ TAX
+ LDA EXPR,X
+ EOR (SC),Y
+ STA (SC),Y
+ DEY
+ BPL BUL2
+
+ RTS                    \ Return from the subroutine
+
+ INCLUDE "3-assembled-output/elite-panel-tables.asm"
 
 \ ******************************************************************************
 \
@@ -18914,7 +19067,6 @@ ENDIF
 \       Type: Variable
 \   Category: Dashboard
 \    Summary: The bitmap definition for the space station indicator bulb
-\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -18978,15 +19130,16 @@ ENDIF
 
 .MSBAR
 
- TXA                    \ Set T = X * 8
+ TXA                    \ Set T = X * 16 (Port: on the four-colour screen, where
+ ASL A                  \ each of the original's character blocks is two)
  ASL A                  \
  ASL A                  \ This also clears the C flag, as X is in the range 0
  ASL A                  \ to 3
  STA T
 
- LDA #49                \ Set SC = 49 - T - (1 - C)
- SBC T                  \        = 49 - (X * 8) - 1
- STA SC                 \        = 48 - (X * 8)
+ LDA #97                \ Set SC = 97 - T - (1 - C)
+ SBC T                  \        = 97 - (X * 16) - 1
+ STA SC                 \        = 96 - (X * 16)
 
                         \ So the low byte of SC(1 0) contains the row address
                         \ for the rightmost missile indicator, made up as
@@ -19000,9 +19153,9 @@ ENDIF
                         \     missile, for X = 1 we hop to the left by one
                         \     character, and so on
 
- LDA #&7E               \ Set the high byte of SC(1 0) to &7E, the character row
+ LDA #&7C               \ Set the high byte of SC(1 0) to &7C, the character row
  STA SCH                \ that contains the missile indicators (i.e. the bottom
-                        \ row of the screen)
+                        \ row of the screen; Port: PANEL% + 6 * 512)
 
  TYA                    \ Set A to the correct colour, which is a three-pixel
                         \ wide mode 5 character row in the correct colour (for
@@ -19013,12 +19166,33 @@ ENDIF
  LDY #5                 \ We now want to draw this line five times, so set a
                         \ counter in Y
 
+                        \ Port: on the four-colour screen, draw the mode 5 row
+                        \ as its two MODE 1 bytes, EXPL and EXPR of it, eight
+                        \ bytes apart
+
+ STX DSTK               \ Set DTMP = EXPL(A) and DTMP2 = EXPR(A), keeping X in
+ TAX                    \ DSTK
+ LDA EXPL,X
+ STA DTMP
+ LDA EXPR,X
+ STA DTMP2
+ LDX DSTK
+
 .MBL1
 
- STA (SC),Y             \ Draw the three-pixel row, and as we do not use EOR
-                        \ logic, this will overwrite anything that is already
-                        \ there (so drawing a black missile will delete what's
-                        \ there)
+ LDA DTMP               \ Draw the three-pixel row's left byte, and as we do not
+ STA (SC),Y             \ use EOR logic, this will overwrite anything that is
+                        \ already there (so drawing a black missile will delete
+                        \ what's there)
+
+ TYA                    \ Draw its right byte, eight bytes on
+ ORA #8
+ TAY
+ LDA DTMP2
+ STA (SC),Y
+ TYA
+ AND #7
+ TAY
 
  DEY                    \ Decrement the counter for the next row
 
@@ -19086,6 +19260,9 @@ ENDIF
                         \ never zero)
 
 .SUN
+
+ LDA #&FF               \ Port: draw the sun in yellow
+ STA LCOL
 
  LDA #1                 \ Set LSX = 1 to indicate the sun line heap is about to
  STA LSX                \ be filled up
@@ -19818,6 +19995,9 @@ ENDIF
 \ ******************************************************************************
 
 .WPLS
+
+ LDA #&FF               \ Port: the sun's lines are yellow
+ STA LCOL
 
  LDA LSX                \ If LSX < 0, the sun line heap is empty, so return from
  BMI PL44               \ the subroutine (as PL44 contains a CLC and RTS)
@@ -25153,6 +25333,24 @@ ENDMACRO
 
 \ ******************************************************************************
 \
+\       Name: SHCOL
+\       Type: Variable
+\   Category: Drawing ships
+\    Summary: The colours of the ships' lines on the four-colour screen
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: LL9 sets LCOL from this by the ship's type mod 4 (cyan &0F, magenta
+\ &F0, yellow &FF), as the flight code's LL9 does.
+\
+\ ******************************************************************************
+
+.SHCOL
+
+ EQUB &0F, &F0, &FF, &0F
+
+\ ******************************************************************************
+\
 \       Name: LL9 (Part 1 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
@@ -25197,6 +25395,12 @@ ENDMACRO
 \ ******************************************************************************
 
 .LL9
+
+ LDA TYPE               \ Port: set the colour of the ship's lines from its
+ AND #3                 \ type, in SHCOL (the docked code's ships are the
+ TAX                    \ title's, the hangar's and the briefing's)
+ LDA SHCOL,X
+ STA LCOL
 
  LDA #31                \ Set XX4 = 31 to store the ship's distance for later
  STA XX4                \ comparison with the visibility distance. We will

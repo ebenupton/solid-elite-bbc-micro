@@ -35,6 +35,7 @@
 \ ******************************************************************************
 
  INCLUDE "1-source-files/main-sources/elite-build-options.asm"
+ INCLUDE "1-source-files/main-sources/elite-map.asm"
 
  _IB_DISC               = (_VARIANT = 1)
  _STH_DISC              = (_VARIANT = 2)
@@ -48,6 +49,7 @@
 
  PUTFILE "3-assembled-output/ELITE4.bin", "ELITE4", &FF1900, &FF197B
 
+ PUTFILE "3-assembled-output/P.PANEL.bin", "P.PANEL", PANEL%, PANEL%
  PUTFILE "3-assembled-output/D.CODEH.bin", "D.CODEH", &008000, &008000
  PUTFILE "3-assembled-output/D.CODEC.bin", "D.CODEC", &008000, &008000
  PUTFILE "3-assembled-output/T.CODEH.bin", "T.CODEH", &008000, &008000

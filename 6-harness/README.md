@@ -46,7 +46,8 @@ cycles per flight iteration.
 * `loose` leaves out the drawing temporaries and the line heaps. This is
   for a build whose drawing code differs from the original's.
 * `screen` also compares the screen (`&6000-&7EFF`) at every iteration.
-  This is for a build that draws exactly as the original does.
+  This is for a build that draws exactly as the original does (up to the
+  end of part 2: the four-colour screen of part 3 is another format).
 
 `verify.sh` sets the mode the port's current state must meet.
 
@@ -123,5 +124,6 @@ cycles per flight iteration.
 | `btrace.mjs` | Traces chosen routines and variables over chosen iterations (`bcompare.mjs --trace`). |
 | `bprofile.mjs` | Profiles cycles by PC over exactly the gate's run, with the share of flight iterations that run each PC. |
 | `test_routines.py` | Calls the speed-ups' routines in the original and the port on py65, for every input (or a sample, with `--quick`, as the gate does), and compares their results: registers, flags, variables, and for the drawing routines (STARS1, BLINE, PIX1) the screen. A port's routine in the cold bank runs from that bank's image, and a test can compare it with an original routine of another name. |
+| `bshot.mjs` | Screenshots of a build at given iterations of the gate's run, from jsbeeb's video (headless), as PNG files: `--at N1,N2,...`, and `--after S` for the screen S emulated seconds after a run stops. |
 | `hotset.py` | From a profile of the original (or, with `--port`, of the port's home bank), lists the flight program's blocks with their cycles, the share of flight iterations that run them and their calls per iteration: the hot and cold split, and what a far call into a block would cost. |
 | `verify.sh` | The gate. |

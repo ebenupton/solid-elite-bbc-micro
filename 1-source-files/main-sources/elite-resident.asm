@@ -295,6 +295,106 @@
 
  JMP HOME%+11           \ Go on to the program's handler
 
+\ ******************************************************************************
+\
+\       Name: IRQG
+\       Type: Subroutine
+\   Category: Drawing the screen
+\    Summary: The game's interrupt handler: the vertical sync
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the screen is one MODE 1 frame in four fixed colours (SCREEN% and
+\ PANEL%, elite-map.asm), so there is no split to make: the original's IRQ1
+\ switched to mode 5 and the dashboard's palette at timer 1 and back at the
+\ vertical sync (LINSCN, in the loader's block B, which still runs the
+\ loading screen). This handles the vertical sync as LINSCN did, without the
+\ mode: it sets DL for WSCAN, writes the palette (which the energy bomb's
+\ flash changes for a frame) and decrements LASCT; everything else, timer 1
+\ included (the MOS's 100 Hz clock, which the game no longer takes), goes to
+\ the MOS's handler. The loader's LOAD routine installs it.
+\
+\ ******************************************************************************
+
+.IRQG
+
+ LDA #%00000010         \ If this is not the vertical sync (CA1), pass it to the
+ BIT VIA+&4D            \ MOS, through IRQMOS (the original's handler kept the
+ BNE irqv               \ MOS's vector in VEC, at &7FFE, which the docked code
+ JMP (IRQMOS)           \ overwrites: the original only rarely needed it)
+
+.irqv
+
+ TYA                    \ Store Y on the stack
+ PHA
+
+ LDA #30                \ Set the line scan counter to a non-zero value, as
+ STA DL                 \ LINSCN did, so WSCAN can wait for it to change
+
+ LDY #15                \ Write the palette, PALCMYK's sixteen bytes
+
+.irqp
+
+ LDA PALCMYK,Y
+ STA VIA+&21
+ DEY
+ BPL irqp
+
+ LDA LASCT              \ Decrement the value of LASCT, but if we go too far
+ BEQ P%+5               \ and it becomes negative, bump it back up again (this
+                        \ controls the pulsing of pulse lasers)
+
+.LASDEC
+
+ DEC LASCT
+
+ PLA                    \ Restore Y from the stack
+ TAY
+
+ LDA VIA+&41            \ Read the System VIA's IRA to clear the CA1 interrupt
+
+ LDA &FC                \ Restore A from the MOS's save register and return
+ RTI                    \ (the vertical sync is not passed to the MOS, as in
+                        \ the original, so the MOS never rewrites the ULA)
+
+\ ******************************************************************************
+\
+\       Name: PALCMYK
+\       Type: Variable
+\   Category: Drawing the screen
+\    Summary: The screen's palette: logical colours 0 to 3 are black, cyan,
+\             magenta and yellow
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the sixteen palette register bytes of the four-colour screen, as the
+\ BBC Master port's CMYK palette: in a four-colour mode a pixel's two bits
+\ are bits 3 and 1 of the palette index, so logical colour L is indices
+\ with those bits equal to L's; each byte is the index in bits 4-7 and the
+\ physical colour EOR 7 in bits 0-3 (black 0, magenta 5, cyan 6, yellow 3).
+\
+\ ******************************************************************************
+
+.IRQMOS
+
+ EQUW 0                 \ The MOS's IRQ1V handler, which IRQG passes interrupts
+                        \ on to (the loader's LOAD routine sets it from VEC)
+
+.PALCMYK
+
+ FOR I%, 0, 15
+  L% = ((I% DIV 8) AND 1) * 2 + ((I% DIV 2) AND 1)
+  IF L% = 0
+   EQUB I% * 16 + (0 EOR 7)
+  ELIF L% = 1
+   EQUB I% * 16 + (6 EOR 7)
+  ELIF L% = 2
+   EQUB I% * 16 + (5 EOR 7)
+  ELSE
+   EQUB I% * 16 + (3 EOR 7)
+  ENDIF
+ NEXT
+
 .pbank
 
  EQUB 0                 \ PCLI: the caller's bank
@@ -314,8 +414,8 @@
 \
 \ ******************************************************************************
 
- PRINT "Resident block A: &0400-", ~P%-1, ", free ", &07C0-P%, " (then SNE and ACT)"
- ASSERT P% <= &07C0
+ PRINT "Resident block A: &0400-", ~P%-1, ", free ", DTMP-P%, " (then the dashboard's workspace, SNE and ACT)"
+ ASSERT P% <= DTMP
 
  ORG &07C0
 

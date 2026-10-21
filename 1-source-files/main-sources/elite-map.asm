@@ -18,7 +18,7 @@
 \ and their cold banks hold the cold code from &8000 in the original's order,
 \ then the recursive text tokens (QQ18, the original's WORDS file at &0400).
 \ The missile's blueprint stays in main RAM at &7F00, as in the original,
-\ where both programs' blueprint tables point.
+\ where both programs' blueprint tables point, just above the screen.
 \
 \ Loads from disc cannot go straight into sideways RAM (DFS is paged in at
 \ &8000 while it loads), so each file is loaded into main RAM at STAGE% and
@@ -34,13 +34,34 @@
  BPSLOT% = &B600        \ The blueprint set in each home bank (2.5K, up to the
                         \ end of the bank)
 
- STAGE% = &1200         \ Where files are loaded before they are copied into
-                        \ their bank (main RAM &1200 to &51FF, below the screen)
+ STAGE% = &1600         \ Where files are loaded before they are copied into
+                        \ their bank (main RAM &1600 to &55FF, over the top of
+                        \ the screen, which the game clears after each load)
 
- QSL = &5C00            \ The quarter squares, QS(n) = INT(n * n / 4) for n = 0
- QSH = &5E00            \ to 511: their low bytes at QSL and high bytes at QSH,
+ QSL = &1200            \ The quarter squares, QS(n) = INT(n * n / 4) for n = 0
+ QSH = &1400            \ to 511: their low bytes at QSL and high bytes at QSH,
                         \ two pages each, page aligned (their users index them
                         \ by an operand's low byte and pick the page by its
                         \ high bit), in main RAM where every bank's code can
-                        \ read them; the loader puts them there (main RAM &5C00
-                        \ to &5FFF is free below the original's screen)
+                        \ read them; the loader puts them there, below the
+                        \ screen and the staging area
+
+ SCREEN% = &4000        \ The screen: 256 x 192 pixels in four colours (MODE 1's
+                        \ format, 64-byte rows), then the dashboard's 256 x 56
+                        \ at PANEL%, shown as one 31-row frame by the 6845, as
+                        \ BBC Master Elite's screen
+ PANEL% = &7000
+
+ PANELROWS = 7          \ The dashboard's character rows
+
+ DTMP = &07BD          \ Workspace for the dashboard's drawing routines, at
+ DTMP2 = &07BE          \ the end of the resident block A (elite-resident.asm)
+ DSTK = &07BF           \ The scanner stick's pixels (CPIX2 sets it for SCAN)
+
+ LCOL = &A8             \ The colour of the next lines, pixels and characters
+                        \ that the drawing routines draw on the space view: a
+                        \ byte of four pixels of the colour (&0F cyan, &F0
+                        \ magenta, &FF yellow), which they AND with their
+                        \ pixels; in zero page at &A8, in the MOS's OSCLI
+                        \ workspace (each drawing sets it first, and nothing
+                        \ draws in a disc command)
