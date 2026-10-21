@@ -100,3 +100,143 @@ that nothing outside the zero page `&06-&27`, the stack page, the two
 buffers, the mailbox and bank R is written, and that the row runs are left
 as they were (but for `r_pgfix` moving a page's stores to the other
 buffer). The gate runs it with `--quick`.
+
+## The frame layer's bank F
+
+The frame layer is the Master port's (`gfx-frame.asm`, `gfx-frame_cold.asm`
+and `gfx-light.asm` there), rewritten for the NMOS 6502 and simplified for a
+bank that cannot see bank R: it reaches the rasteriser only through the
+trampolines, with the inputs in the mailbox and the zero page. The game's
+drawing routines, in a space view, are to *record* what they would have
+drawn; once per main loop iteration `F_FRAME` draws the records into the
+buffer not on show and asks the vertical sync interrupt to show it.
+`2-build-files/bankf.py` (a `make` step after the programs are assembled)
+writes the game's addresses and constants that bank F reads into
+`3-assembled-output/bankf-game.asm` (from `flight-symbols.txt`, checking
+that `docked-symbols.txt` agrees, `loader-symbols.txt` for `BANKR` and
+`BANKF`, and `elite-source-flight.asm` for `NOST`, `NI%`, `SST`, `PLT`),
+assembles `gfx-bankf.asm`, and writes `F.bin` (the 16K bank), `GLUE.bin`
+(the glue, below) and `bankf-symbols.txt`. Nothing loads or calls bank F
+yet.
+
+### The memory
+
+| Where | What |
+|---|---|
+| main `&06E0-&0785` | the glue, `GLUE%` (`gfx-glue.asm`): bank R's trampolines (136 bytes) and `GCALL` (30), at a fixed address in the resident block A's spare room, for the resident block to include |
+| main `&7EA0-&7EFF` | the shared variables, `GVARS` (`elite-map.asm`) |
+| zero page `&06-&27`, `&D2-&E1` | the rasteriser's, and the frame layer's pointers (the game's `XX2`, `K3` and `K4`, dead between iterations): `F_FRAME` and `F_INIT` keep the game's bytes in bank F and put them back |
+| bank F `&8000-&95D5` | the code: the entries, the drawing steps, the lighting (5,590 bytes) |
+| bank F `&95D6-&A482` | the tables: faces, details, fins and dot colours (`gfx-faces.asm`) and the hue ramps (`gfx-light6.asm`), both from `faces.py` (3,757 bytes) |
+| bank F `&A500-&B3FF` | page-aligned: the lighting's quarter squares `F_QSL`/`F_QSH` (0 to 255; main RAM's are under buffer 0), the discs' half-widths `F_HW` (planet) and `F_HW2` (sun), the text map `F_TM` (24 x 32), the ships' records `F_DL` (2K) |
+| bank F `&B400-&BFBF` | free (3,008 bytes) |
+| bank F `&BFC0-&BFE7` | `FJT`, the dispatcher |
+
+The ships' tables are by `GTYPE`: the ship type, 1 to 31 as in the flight
+program's `XX21`, whatever blueprint set is loaded (`faces.py` reads all
+sixteen, `D.MOA` to `D.MOP`, with the missile, and checks that each type is
+the same ship in every set that has it), but 32 for the dodecahedron
+station, which is type 2 in half of the sets: the hooks are to pass 32 for
+a type 2 with 24 vertices. Type 15 (the rock hermit) is in no set and has
+empty tables.
+
+### The interface
+
+The game calls an entry as `LDX #FG_xxx : JSR GCALL` (`gfx-glue.asm`), with
+the inputs in A, Y and memory. `GCALL` pages bank F in, enters it through
+`FJT` and pages the caller's bank back; it returns A and Y as the entry left
+them, and every entry keeps Y. X and the flags are not kept. Not from an
+interrupt.
+
+| FG_ | Entry | Inputs |
+|---:|---|---|
+| 0 | `F_INIT`: once, first: `T_INIT`, empty lists and text map, direct mode (`GMODE` = 0, `GFRONT` = 1) | |
+| 1 | `F_DIRECT`: the screen is about to be cleared and drawn on directly (TT66): direct mode, buffer 1 on show, no sights, no beams, no text, no stars | |
+| 2 | `F_FRAME`: draw this frame (below) and empty the lists; not in a space view (`QQ11` non-zero), just empty them | `QQ11`, and what `L_SUN` reads: `FRIN+1`, the sun at `K%+NI%`, `ALPHA`, `BETA` |
+| 3 | `F_SHIP`: record the ship LL9 is drawing (lit at once from its orientation) | `GTYPE`, `GNF`, `GNV`, `XX2` (each face's visibility: 0 hidden, 255 cull by winding), `XX3` (the projected vertices), `XX4`, `INWK+6/7` (z), the orientation vectors at `INWK+9` to `INWK+26` |
+| 4 | `F_LINE`: record a line | `X1`, `Y1`, `X2`, `Y2`; `GLCOL` (a fixed colour index) |
+| 5 | `F_DOT`: record a dot: a dash if `ZZ` >= 80, else a double-height dash | Y = x, A = y; `ZZ`, `GDCOL` |
+| 6 | `F_PLANET`: record the planet (`TYPE` even) or the sun (odd) as a disc | `K3`, `K4` (centre, 16-bit), `K` (radius), `TYPE`; the planet's `INWK+6/7` (to hide ships behind it) |
+| 7 | `F_SHPPT`: record a distant ship as a 2x2 dot in its type's colour | `K3`, `K4`, `TYPE` |
+| 8 | `F_PCURVE`: start a planet curve (a meridian, the equator, a crater) | |
+| 9 | `F_PPOINT`: its next point (BLINE's), joined to the last by a line | `K6`, `K5+2` (x, y, 16-bit) |
+| 10 | `F_CHAR`: a character into the text map at (`XC` - 1, `YC`); the same character again removes it (as the original's EOR) | A = the character (32 to 127); `XC`, `YC` |
+| 11 | `F_DELCHAR`: clear a cell of the text map | A = column, Y = row |
+| 12 | `F_CLRTEXT`: clear rows of the text map | A = first row, Y = last row |
+| 13 | `F_BOMB`: a new energy bomb bolt: drop the bolt recorded before it in this frame | |
+
+Limits per frame: 13 ships (and 2K of ship records), 48 lines, 64 dots, 3
+curves with 64 points between them; a record past a limit is dropped. The
+stars are recorded by the hooks straight into the mailbox (`R_SX`, `R_SY`,
+`R_SS`, entries 1 to `NOST`; `R_SS` = 0 for none). The fixed colour indices
+(`FC_*` in `gfx-frame.asm`): 0 black, 1 our beams (yellow), 2 enemy lasers
+(magenta), 3 the planet's curves (cyan), 4 particles (yellow), 5 the sights
+(cyan), 6 stardust.
+
+The shared variables (`elite-map.asm`) that the game's hooks and the
+interrupt use:
+
+* `GMODE` bit 7: space mode (the hooks record); clear: direct mode (the game
+  draws on buffer 1, `SCREEN%`, as it always has). `F_DIRECT` clears it, the
+  first `F_FRAME` after it sets it.
+* `GDRAWON` (0 while the game is erasing: do not record) and `GFORCE`
+  (non-zero: draw directly even in a space view): for the hooks only.
+* `GSIGHT` (draw the sights), `GLASV` (draw our beams, from `LASX`, `LASY`;
+  cleared after each frame).
+* `GSTASH` bit 7: something else used the buffers (a disc load): the next
+  `F_FRAME` blanks both, as on entering space mode.
+* The flip: `F_FRAME` waits for `GFLIP` = 0 before drawing into its buffer,
+  then sets `GPEND` = that buffer and `GFLIP` = &FF. At each vertical sync
+  the interrupt must, if `GFLIP` is non-zero, set `GFRONT` = `GPEND` and
+  `GFLIP` = 0, and show buffer `GFRONT` (buffer 1 in direct mode). Until an
+  interrupt does this, a second `F_FRAME` waits for ever.
+
+### A frame
+
+`F_FRAME`: `L_SUN` (the light for the next iteration's ships); save the
+game's zero page; clip window 2..253 x 1..191; on the first frame since
+direct mode (or with `GSTASH` set) blank both buffers' windows, keeping
+buffer 1's border and copying it to buffer 0, `T_RESETBUF` both, and draw
+first into the buffer not on show; `T_SETBUF`; wait for the last flip;
+`T_STARERASE`, `T_REPAIR`; then, in order, the sun and the planet (each a
+filled disc, a span per row from its half-width table, `T_SPAN` then
+`T_MARKDIRTY`), the planet's curves (`T_LINE`), the lines, the ships far to
+near (insertion sort by z; faces flat-shaded and lit, fins and details, a
+ship behind the planet skipped, as on the Master), the dots, our beams, the
+text (every non-empty cell of the text map, ORed in yellow from the MOS's
+font at `&C000`, then each row's extent marked dirty for its 8 lines), the
+sights (four `T_LINE`s), the stars; put the zero page back; queue the flip.
+
+### What is not there
+
+* **The disc layer**: the planet's meridians, equator and craters are lines
+  over a plain disc, not two-colour bands, and both discs are drawn whole
+  every frame.
+* **The lens flare, the hangar, LL9B and the briefings** (docked-only
+  drawing).
+* **Text and sights tracked per buffer**: the Master port drew each cell
+  once per buffer and erased it when it changed; here both are redrawn
+  every frame (a full text row costs 32 glyphs), which needs no per-buffer
+  state.
+* The Master port's ACCCON paging (the Model B sees both buffers).
+
+### The test
+
+`6-harness/test_frame.py` builds banks R and F and runs them on py65's NMOS
+6502: main RAM with the glue (`GLUE.bin`), the bank numbers and the game's
+variables at the flight program's addresses; `&8000-&BFFF` paged by ROMSEL
+(`&FE30`) between the game's home bank, bank R and bank F; the MOS ROM at
+`&C000`. Every entry is called as the game will call it, `LDX #n : JSR
+GCALL` from main RAM with the home bank paged. Three synthetic frames
+(ships with their real faces, projected from the blueprints; the sun and
+the planet; a curve; lines, dots, a distant ship, stars, text, the sights
+and the beams) check that nothing is written outside the renderer's zero
+page, the stack, the buffers, `&7E00-&7EFF`, the glue's two bytes, `&F4`,
+ROMSEL and banks R and F; that the zero page and Y are kept and the home
+bank paged back after every call; the blanking and the border on entering
+space mode; the flip handshake; what was drawn (the discs' colours, the
+ships, the glyphs, the sights, nothing on the border); and the repair:
+buffer 0 after one scene and then another is byte for byte buffer 0 after
+the second alone. It writes the frames as PNGs (`--png DIR`, default
+`3-assembled-output`) to look at. `F_FRAME` takes about 300K to 380K cycles
+for these scenes (820K for the first frame, which blanks both buffers).
