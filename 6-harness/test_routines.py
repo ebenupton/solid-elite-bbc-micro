@@ -195,6 +195,10 @@ TESTS = [
     ("TAS3", "TAS3", lambda: ((0, 0x81, y, c, {"XX15": x0, "XX15+1": x1, "XX15+2": x2, "INWK+%d" % y: v0, "INWK+%d" % (y + 2): v1, "INWK+%d" % (y + 4): v2}) for y, x0, x1, x2, v0, v1, v2, c in
         sample(5000 if QUICK else 300000, [10, 12, 14, 16, 18, 20], B, B, B, [0, 0x80] + list(B), [0, 0x80] + list(B), [0, 0x80] + list(B), [0, 1])),
      ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R", "S", "T", "T1"]),
+    ("MVS4", "MVS4", lambda: ((0, 0x81, y, c, {"ALPHA": al, "BETA": be, **{"INWK+%d" % (y + k): v[k] for k in range(6)}}) for y, al, be, c, v in
+        ((y, al, be, c, v) for y, al, be, c, v in sample(4000 if QUICK else 200000, [9, 15, 21], [0, 0x80, 1, 0x81, 2, 0x7F, 0xFF], [0, 0x80, 1, 0x81, 3, 0x7F, 0xFE], [0, 1],
+            [tuple(x) for x in sample(500, B, [0, 0x80, 0x60, 0xE0] + list(B), B, [0x80, 0, 0x60, 0xE0] + list(B), B, [0, 0x80] + list(B))]))),
+     ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R", "S", "T", "T1", "INWK+9", "INWK+10", "INWK+11", "INWK+12", "INWK+13", "INWK+14", "INWK+15", "INWK+16", "INWK+17", "INWK+18", "INWK+19", "INWK+20", "INWK+21", "INWK+22", "INWK+23", "INWK+24", "INWK+25", "INWK+26"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]
