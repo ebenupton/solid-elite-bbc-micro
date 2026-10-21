@@ -175,6 +175,10 @@ TESTS = [
      ["A", "X", "Y", "N", "Z", "C", "Q", "R"]),
     ("LL31", "LL31", lambda: ((a, 0x81, 0x5A, c, {"Q": q, "R": 254}) for a, q, c in EVERY(B, B, [0, 1])),
      ["A", "X", "Y", "N", "Z", "C", "Q", "R"]),
+    ("DVID4", "DVID4", lambda: ((a, 0x81, 0x5A, c, {"Q": q, "P": 0x33, "R": 0x44}) for a, q, c in EVERY(B, B1, [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R"]),
+    ("DV42", "DV42", lambda: ((0, 0x81, y, c, {"SZ": q, "SZ+1": q, "DELTA": d}) for d, q, y, c in grid(range(1, 41), range(16, 256), [0, 1], [0, 1])),
+     ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R"]),
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]

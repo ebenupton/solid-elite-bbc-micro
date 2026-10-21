@@ -13426,6 +13426,14 @@ ENDMACRO
 
 .DVID4
 
+ CMP Q                  \ Port: if A < Q, the quotient is 0 and the remainder
+ BCS dv4a               \ is A, which is what the loop below would give (and
+ LDX #0                 \ the stardust, which calls this through DV42, nearly
+ STX P                  \ always has A < Q), so set P = 0 and jump straight to
+ JMP LL28+4             \ LL28+4 with A as the remainder (LL28+4 sets X)
+
+.dv4a
+
  LDX #8                 \ Set a counter in X to count the 8 bits in A
 
  ASL A                  \ Shift A left and store in P (we will build the result
