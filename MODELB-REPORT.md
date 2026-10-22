@@ -31,7 +31,9 @@ modelb-memory, speedups, renderer) and `6-harness/README.md`.
    `&1000`, buffer 1 at `&4000`, the dashboard at `&7000`). In a space view
    the flight code records what it would draw; each main-loop iteration the
    frame layer draws the frame (lit, flat-shaded ships far to near; the sun
-   and the planet as discs with the planet's meridians and craters; stars,
+   and the planet as discs, the bigger kept from frame to frame by a disc
+   layer in the flight code's cold bank, with a crater planet's crater as a
+   dark band and a meridian planet's meridians as lines; stars,
    particles, beams, sights and text) into the buffer not on show and the
    interrupt flips. Everything else (charts, the launch and hyperspace
    rings, the docked code) draws directly on buffer 1 in colour.
@@ -78,6 +80,8 @@ Part 3, the renderer:
 | `828b473` | a run page checked once per buffer, and patched without clearing the carry | PASS, 247,931 |
 | `48c5bfa` | the lens flare, in bank F | PASS, 247,951 |
 | `edad30d` | the docked code's title, hangar and briefings as filled frames | PASS, 247,961 |
+| `9bfefc3` | documentation of the flare, the docked frames and the banks; the output refreshed | (docs and output) |
+| `c3e3f30` | the disc layer, in the flight code's cold bank; the big planet and sun close scenes | PASS, 226,316 (gated at `e0c1610`, the same binaries before the last comments and docs) |
 
 ## Gate results by part
 
@@ -109,27 +113,33 @@ regressions.
 | End of part 2 | 14.51 | 1.224 | 137,864 |
 | End of part 3, first | 6.48 | 0.547 | 308,463 |
 | After the bookkeeping went (`4c6b936`) | 7.86 | 0.663 | 254,590 |
-| Now (`48c5bfa`) | 8.07 | 0.681 | 247,951 |
+| `48c5bfa` | 8.07 | 0.681 | 247,951 |
+| Now, with the disc layer (`c3e3f30`) | 8.84 | 0.746 | 226,316 |
 
 By scene, over the gate's run (front-view flight iterations classified by
-the game state; `6-harness/bscenes.mjs` and `scenes.py`), against the
-original (patched as below):
+the game state, the first class that fits; `6-harness/bscenes.mjs` and
+`scenes.py`), against the original (patched as below). The scenes were
+redrawn for the disc layer: "big planet" and "sun close" are new (the big
+discs had been in an unclassified remainder), so the iteration counts
+differ from earlier tables:
 
-| Scene | Iterations | Original | `270e60a` | `4c6b936` | `48c5bfa` (now) | Ratio now |
-|---|---:|---:|---:|---:|---:|---:|
-| Open space (planet far, no ships, no station near) | 270 | 19.39 it/s | 12.06 | 13.66 | 13.94 | 0.72 |
-| Planet close (ahead, z below 128 x 256) | 1,032 | 13.70 it/s | 9.63 | 10.95 | 11.10 | 0.81 |
-| Station close (ahead, z below 16 x 256) | 706 | 10.67 it/s | 5.51 | 5.93 | 6.02 | 0.56 |
-| Ships about | 2,662 | 11.77 it/s | 7.50 | 8.98 | 9.18 | 0.78 |
+| Scene | Iterations | Original | `9bfefc3` (before) | `c3e3f30` (now) | Ratio now |
+|---|---:|---:|---:|---:|---:|
+| Station close (ahead, z below 16 x 256) | 706 | 10.67 it/s | 6.00 | 6.01 | 0.56 |
+| Sun close (ahead, z below 1,024 x 256) | 402 | 11.82 it/s | 9.00 | 9.02 | 0.76 |
+| Planet close (ahead, z below 128 x 256) | 1,032 | 13.70 it/s | 11.10 | 11.16 | 0.81 |
+| Big planet (ahead, z 128 to 512 x 256) | 6,681 | 11.03 it/s | 7.36 | 8.35 | 0.76 |
+| Open space (planet far, no ships, no station near) | 270 | 19.39 it/s | 13.94 | 13.55 | 0.70 |
+| Ships about (the rest) | 745 | 14.50 it/s | 11.87 | 11.70 | 0.81 |
 
-(The "planet close" scene, the planet ahead nearer than 128 x 256, turns
-out to draw few disc rows, 7.6 a frame on average: so close, the planet is
-mostly off the screen or not drawn. The big discs are in the remaining
-iterations, 128 disc rows a frame.)
+(The "planet close" scene, the planet ahead nearer than 128 x 256, draws
+few disc rows, 7.6 a frame on average: so close, the planet is mostly off
+the screen or not drawn. The big discs, 100 to 190 rows a frame, are in
+"big planet".)
 
-The filled port is about two thirds as fast as the original wireframe
-game. The speed-ups of part 2 are kept, but each frame is drawn in full on
-the same 2 MHz CPU. A profile (docs/renderer.md, "Speed") put about 156K
+The filled port is about three quarters as fast as the original wireframe
+game. The speed-ups of part 2 are kept, but each frame is drawn (all of
+it but the bigger disc) on the same 2 MHz CPU. A profile (docs/renderer.md, "Speed") put about 156K
 cycles an iteration in the rasteriser, before the bookkeeping went. Of
 that, about 26K goes to re-patching the unrolled row runs for the other
 buffer at every flip, and about 26K to the trampolines into bank R.
@@ -226,19 +236,105 @@ Work queued after the two evaluations above, in the order asked:
    meridians and craters are lines over the disc, which dirty most of its
    rows each frame, so most of the disc is repaired and repainted anyway,
    and a call per row costs more than the old whole-row fill. It was
-   reverted; the test stayed (`382af78`).
+   reverted; the test stayed (`382af78`). The disc layer was then built
+   in the flight code's cold bank instead (`c3e3f30`, next section).
 3. **The lens flare**: back (`48c5bfa`), in bank F, pixel for pixel the
    Master model's.
 4. **Filled docked screens**: the title, the hangar and the briefings are
    frames (`edad30d`). The title and the hangar were looked at; the
    briefings were not (no mission was run).
 
+## The disc layer in the flight code's cold bank
+
+Asked: the Master port's two-colour disc layer, made NMOS, with its code
+and per-buffer arrays in the flight code's cold bank (7,558 bytes free),
+its row changes queued as commands, bank R paged in only now and then to
+drain them, and single edge bytes written directly where that pays.
+
+**Measured first.** With the frame layer's disc drawing cut out (a
+measurement build of `48c5bfa`, `f_discs` returning at once), the cycles per
+iteration by scene: big planet 271,614 with the discs, 148,036 without
+(the discs, filled and repaired, were 45% of those frames); ships about
+168,471 and 138,909; open space 143,503 and 121,197; station close
+332,277 and 315,975; planet close 180,108 and 170,016; sun close 220,362
+and 222,122 (the sun close frames draw no disc). A profile of the big
+planet frames put 87K cycles a frame in the discs' spans and 66K in the
+repair.
+
+**Built** (`c3e3f30`, `gfx-dlayer.asm`, 6,066 bytes of the cold bank: 2.9K
+of code, records and state, and 11 page tables). The bigger of the sun and
+the planet is kept on each buffer from frame to frame, not marked dirty.
+Each frame `DL_FRAME` (a far call from bank F, after the repair) gets the
+repair's extents from bank R twenty rows at a time (`T_GETW`, into the
+mailbox), compares each row's new span and crater band with what the disc
+left on that row of this buffer, blacks what the disc left and fills what
+changed or was repaired. As the screen is main RAM, it writes all of
+that itself (a byte with both masks, or the end bytes masked and the
+middle through an unrolled run): the queue to bank R's row runs
+(`T_DRAINQ`, nine spans at `MBOX + &28`) is there for spans over 32
+bytes, which no disc the frames draw needs, so bank R is paged in only for
+the extents, ten times a frame for a full-screen disc. A disc two frames
+unchanged on its buffer only refills what the repair blacked. A disc with
+a radius under 40 is drawn whole each frame and marked dirty (the marks
+queued for bank R the same way), as small discs move about and keeping
+them cost more. Bank R's side is 113 bytes (`R_GETW`, `R_DRAINQ`).
+
+* **The painter's order and the repair.** The layer draws first, after the
+  repair, so ships, lines, text and sights go over it; whatever they cover
+  is repaired black on that buffer's next frame and refilled by the layer
+  from the repair's extents. The other disc, if both are recorded, is bank
+  F's as before, drawn whole over the layer's: so where a smaller sun
+  overlaps a bigger planet it shows in front of it, even when it is
+  behind (before, the sun was drawn first).
+* **Surface detail.** As the Master port draws a planet without meridians,
+  a crater planet's crater is a band of the Master's dark crater colour
+  across the disc (the closed ellipse that `PLS22` works out, recorded
+  into the cold bank, `DL_CURVE`/`DL_POINT`); a meridian planet's meridians
+  and equator are still lines over a plain disc (the beach ball is the next
+  task). The sun is the same plain dithered disc as before.
+* **Steps and their gates** (cycles per flight iteration, the gate's run):
+  the first working version, which tracked every row, 249,521 (slower
+  than 247,961: rows that only moved their ends cost about 1,000 cycles
+  each); a fast path for rows with no band or repair, and the static disc's
+  repair-only path, 237,834; the hot variables in the frame layer's zero
+  page and the band's tables skipped when there is no band, 232,629; the
+  unrolled middle bytes, and small discs drawn whole, 226,316.
+* **Speeds** by scene, before (`9bfefc3`) and after: big planet 7.36 to
+  8.35 it/s (271,629 to 239,431 cycles), planet close 11.10 to 11.16,
+  sun close 9.00 to 9.02, station close 6.00 to 6.01, open space 13.94 to
+  13.55 and ships about 11.87 to 11.70. The last two lose 3% and 1%: their
+  planet is small and moving, the case the layer helps least, and every
+  frame now makes a far call to the cold bank and its row bookkeeping for
+  the disc's rows. Over the gate's run, 247,961 to 226,316 (8.07 to 8.84
+  it/s, 0.681 to 0.746 of the original).
+* **Checked**: bank F's test draws eight discs (on and off the screen's
+  edges, the sun and the planet as the layer and over it, craters partly
+  off the screen and with points far outside it) and compares every
+  pixel with a Python model of the layer, and flies a 23-frame sequence on
+  both buffers (moving, growing and still discs, the sun taking over, no
+  disc, small discs and back, ships and lines over them), each frame's
+  buffer byte for byte the same scene drawn on a fresh machine. The gate
+  passes. Two big-planet frames with craters were looked at.
+* **Free space after**: the flight code's home bank 230 bytes (the hooks
+  and their far calls took 45), its cold bank 1,492, bank R 6, 0 and 229
+  (after `R_LINE`'s cold part and the two new entries), bank F 1,728, the
+  glue 3 (the two trampolines took 8), resident block A 13, the high
+  resident block 15; `GVARS` is full (`GDL`, which buffers hold the
+  layer's disc, took the last byte). The docked code's banks are
+  unchanged (4,484 and 5,756).
+* **The harness**: `scenes.py` gained the big planet and sun close
+  scenes; the bank map now lists the labels of files that a cold block
+  INCLUDEs (without that, the pilot read a key wait in the home bank as a
+  call from the disc layer's code at the same address, and the run
+  diverged).
+
 ## Compromises
 
-* **The disc layer is cut** (it does not fit; above). The sun and the
-  planet are plain dithered discs filled whole every frame, with the
-  planet's meridians, equator and craters as cyan lines over it, not
-  two-colour bands.
+* **The beach ball is not drawn.** A meridian planet's meridians and
+  equator are cyan lines over a plain dithered disc, not two-colour bands;
+  a crater planet's crater is a dark band (the disc layer, above), except
+  when the sun is the bigger disc and the planet is drawn whole over it
+  without its crater.
 * **The altitude's leftover `Q` is defined.** The original's altitude takes
   a square root of `R` and of whatever its drawing left in `Q`; the port
   sets `Q` = 0 there, and the gate's reference is patched the same way
