@@ -12,6 +12,9 @@
 #   open space:    the planet at 512 x 256 or more, no station within
 #                  64 x 256, no other ships
 #   ships about:   other ships in the bubble
+# and, apart from the scenes, the window "Lave": the first system's front-view
+# flight iterations (combat just after launch at Lave, a meridian planet:
+# the beach ball's), when both runs recorded the system (bscenes.mjs's sys)
 import json, sys, collections
 def buckets(rows):
     out = {}
@@ -30,7 +33,17 @@ def buckets(rows):
         else: k = 'other'
         out[a['i']] = (k, dt)
     return out
-br = buckets(json.load(open(sys.argv[1]))); bc = buckets(json.load(open(sys.argv[2])))
+def lave(rows):
+    """the window "combat at Lave just after launch": every front-view flight
+    iteration in the first system, Lave (20, 173), from the first launch to the
+    first hyperspace jump (a meridian planet: the beach ball's window)"""
+    out = {}
+    for a, b in zip(rows, rows[1:]):
+        if b['tt'] - a['tt'] == 1 and a['qq11'] == 0 and a['view'] == 0 and tuple(a.get('sys', ())) == (20, 173):
+            out[a['i']] = ('lave', b['t'] - a['t'])
+    return out
+rr, rc = json.load(open(sys.argv[1])), json.load(open(sys.argv[2]))
+br = buckets(rr); bc = buckets(rc)
 agg = collections.defaultdict(lambda: [0, 0.0, 0.0])
 for i, (k, dt) in br.items():
     if i in bc and bc[i][0] == k:
@@ -39,3 +52,11 @@ for k in ['open space', 'planet close', 'big planet', 'sun close', 'station clos
     n, tr, tc = agg[k]
     if n:
         print(f"{k:14s} {n:5d} it  ref {n/tr:6.2f} it/s  cand {n/tc:6.2f} it/s  cand/ref {tr/tc:5.3f}  cycles/it ref {tr/n*2e6:8.0f} cand {tc/n*2e6:8.0f}")
+lr, lc = lave(rr), lave(rc)
+if lr and lc:
+    n = tr = tc = 0
+    for i, (k, dt) in lr.items():
+        if i in lc:
+            n += 1; tr += dt; tc += lc[i][1]
+    if n:
+        print(f"{'window: Lave':14s} {n:5d} it  ref {n/tr:6.2f} it/s  cand {n/tc:6.2f} it/s  cand/ref {tr/tc:5.3f}  cycles/it ref {tr/n*2e6:8.0f} cand {tc/n*2e6:8.0f}")
