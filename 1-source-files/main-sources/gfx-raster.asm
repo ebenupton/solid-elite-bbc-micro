@@ -320,6 +320,7 @@ IF _HOSTB AND _RBANK = 2
 .r_lcold                        \ (bank R): the state of gfx-rws.asm's RDATA,
  INCLUDE "3-assembled-output/nmos/gfx-raster_lcold.asm"   \ then R_LINE's cold part)
  CPU 1
+ INCLUDE "1-source-files/main-sources/gfx-raster_dq.asm"   \ (the disc layer's)
 .r_lcold_end
   SKIP R_BDN0 + &980 - P%
 ELSE

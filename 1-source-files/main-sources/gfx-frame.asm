@@ -95,6 +95,7 @@ F_CPO = F_CPE
  STA GLASV
  STA GSTASH
  STA GFORCE
+ STA GDL
  LDA #&FF
  STA GDRAWON
  LDA #1
@@ -632,6 +633,7 @@ F_CPO = F_CPE
  BNE f_enter
  LDA #0
  STA GSTASH
+ STA GDL                \ (no disc layer on either buffer)
  TAX                    \ line 0: buffer 1's to buffer 0 (byte 8k of pages
 .fen1                   \ &40 and &41)
  LDA SCREEN%,X
@@ -713,7 +715,30 @@ F_CPO = F_CPE
 \ ------------------------------------------------------------------------------
 
 .f_discs
+ LDA #0                 \ the disc layer (gfx-dlayer.asm, in the flight
+ STA f_lay              \ code's cold bank: a far call) draws the bigger disc
+ LDA F_SUON             \ if there is one, or takes the old one off the buffer
+ AND #1                 \ if it has one (GDL); f_lay = the one it drew (1 the
+ STA fz_t               \ sun, 2 the planet), which is not drawn below
+ LDA F_PLON
+ AND #2
+ ORA fz_t
+ TAX
+ BNE fds0
+ LDY F_BACK
+ INY
+ TYA
+ AND GDL
+ BEQ fds4
+.fds0
+ LDA F_BACK
+ JSR f_dlframe
+ STA f_lay
+.fds4
  LDA F_SUON             \ the sun first (it is further away)
+ BEQ fds1
+ LDA f_lay
+ CMP #1
  BEQ fds1
  LDA F_SUX
  STA f_cx
@@ -759,6 +784,9 @@ F_CPO = F_CPE
  STA fhw_st+2
  JSR f_hwbuild
 .fds3
+ LDA f_lay              \ (the layer's: its half-widths only, for the flare)
+ CMP #2
+ BEQ fds9
  LDA #HI(F_HW)
  STA fdh_ld+2
  LDA #FC_PLANE
@@ -768,6 +796,11 @@ F_CPO = F_CPE
  JMP f_disc
 .fds9
  RTS
+
+.f_dlframe              \ DL_FRAME, in the flight code's cold bank
+ JSR farC
+ EQUW DL_FRAME
+.f_lay EQUB 0
 
 \ f_disc: the disc at (f_cx, f_cy) (16-bit) of radius f_r, its half-widths at
 \ fdh_ld's page, in the colour pair: each row inside the clip window a span,

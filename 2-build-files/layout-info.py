@@ -33,7 +33,8 @@ import re
 
 OUT = "3-assembled-output/"
 NAMES = ("farC", "farCj", "farH", "farHj", "BANKH", "BANKC", "BANKR", "BANKF", "PCLI",
-         "IRQG", "NA%", "CHK2", "CHK", "BRBR1", "PANR", "GCALL", "dfsin", "dfsout")
+         "IRQG", "NA%", "CHK2", "CHK", "BRBR1", "PANR", "GCALL", "dfsin", "dfsout",
+         "T_GETW", "T_DRAINQ")
 
 sy = {}
 for m in re.finditer(r"'([^']+)':(\d+)", open(OUT + "loader-symbols.txt").read()):
@@ -55,7 +56,13 @@ with open(OUT + "resident.asm", "w") as f:
 
 
 def labels(path):
-    return re.findall(r"^\s*\.([A-Za-z_][\w%]*)", open(path, encoding="latin-1").read(), re.M)
+    """the labels a copy defines, with those of the files it INCLUDEs from
+    1-source-files/main-sources (the cold bank's disc layer, gfx-dlayer.asm)"""
+    t = open(path, encoding="latin-1").read()
+    out = re.findall(r"^\s*\.([A-Za-z_][\w%]*)", t, re.M)
+    for inc in re.findall(r'^\s*INCLUDE\s+"(1-source-files/main-sources/[^"]+)"', t, re.M):
+        out += labels(inc)
+    return out
 
 
 for prog in ("flight", "docked"):

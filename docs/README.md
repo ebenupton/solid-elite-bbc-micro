@@ -58,7 +58,9 @@ default commander's checksum.
 | Part 3: the wireframe drawing moved to the cold bank, for room | 11.58 | 0.977 | 172,638 |
 | Part 3: the filled renderer | 6.21 | 0.524 | 322,228 |
 | Part 3: one disc row in one call, the clipper's first part home | 6.48 | 0.547 | 308,463 |
-| End of part 3 ([renderer.md](renderer.md)) | 7.86 | 0.663 | 254,590 |
+| Part 3: record mode's line bookkeeping dropped | 7.86 | 0.663 | 254,590 |
+| Part 3: a run page checked once per buffer | 8.07 | 0.681 | 247,931 |
+| Part 3: the disc layer ([renderer.md](renderer.md)) | 8.84 | 0.746 | 226,316 |
 
 These are the gate's run: the pilot's mix of launches, fights, approaches to
 the station and hyperspace jumps, over 10,000 iterations. Saved commander
@@ -74,11 +76,14 @@ the original's state; [renderer.md](renderer.md), "Speed"):
 
 | Scene | Iterations | The original, it/s | The port, it/s | Against the original |
 |---|---:|---:|---:|---:|
-| Open space (planet far, no ships, no station near) | 270 | 19.39 | 13.66 | 0.70 |
-| Planet close (nearer than 128 x 256) | 1,032 | 13.70 | 10.95 | 0.80 |
-| Station close (nearer than 16 x 256, ahead) | 706 | 10.67 | 5.93 | 0.56 |
-| Ships about | 2,662 | 11.77 | 8.98 | 0.76 |
+| Station close (nearer than 16 x 256, ahead) | 706 | 10.67 | 6.01 | 0.56 |
+| Sun close (nearer than 1,024 x 256, ahead) | 402 | 11.82 | 9.02 | 0.76 |
+| Planet close (nearer than 128 x 256, ahead; mostly off the screen) | 1,032 | 13.70 | 11.16 | 0.81 |
+| Big planet (128 x 256 to 512 x 256, ahead) | 6,681 | 11.03 | 8.35 | 0.76 |
+| Open space (planet far, no ships, no station near) | 270 | 19.39 | 13.55 | 0.70 |
+| Ships about | 745 | 14.50 | 11.70 | 0.81 |
 
 The filled renderer is slower than the original's wireframe: every frame
-is drawn in full, filled, into the buffer not on show, on the same 2 MHz
+is drawn filled (all of it but the bigger disc, which is kept from frame
+to frame) into the buffer not on show, on the same 2 MHz
 6502 that runs the game.

@@ -5841,9 +5841,16 @@ ENDIF
 
  JSR RECM               \ Port: in record mode, record the point for the
  BNE bld                \ renderer (K6, K5+2), which joins it to the curve's
- LDX #FG_PPOINT         \ last, and return as BLINE does, with FLAG = 0 and
- JSR GCALL              \ CNT stepped on (the clipping and the ball line heap
- LDA #0                 \ are only ever the drawing's)
+ LDA TYPE               \ last (a crater's for the disc layer, DL_POINT, the
+ CMP #128               \ meridians' and equator's for bank F), and return
+ BEQ bld1               \ as BLINE does, with FLAG = 0 and CNT stepped on
+ JSR dlpoint            \ (the clipping and the ball line heap are only ever
+ JMP bld2               \ the drawing's)
+.bld1
+ LDX #FG_PPOINT
+ JSR GCALL
+.bld2
+ LDA #0
  STA FLAG
  CLC
  BCC BL7
@@ -22249,9 +22256,16 @@ ENDMACRO
 .PLS22
 
  JSR RECM               \ Port: in record mode, start a new curve for the
- BNE P%+7               \ renderer (BLINE records its points)
+ BNE pls22c             \ renderer (BLINE records its points): a crater's
+ LDA TYPE               \ for the disc layer (DL_CURVE), the meridians' and
+ CMP #128               \ equator's for bank F
+ BEQ pls22b
+ JSR dlcurve
+ JMP pls22c
+.pls22b
  LDX #FG_PCURVE
  JSR GCALL
+.pls22c
 
  LDX #0                 \ Set CNT = 0
  STX CNT
@@ -22613,9 +22627,10 @@ ENDMACRO
                         \ call
 
  JSR RECM               \ Port: in record mode, record the sun for the renderer
- BNE P%+7               \ (a filled disc, centre K3 K4 and radius K, TYPE odd);
- LDX #FG_PLANET         \ the rows below are worked out as before, for the
- JSR GCALL              \ random numbers and the heap, but HLS and HL2S draw
+ BNE P%+10              \ (a filled disc, centre K3 K4 and radius K, TYPE odd)
+ LDX #FG_PLANET         \ and the disc layer; the rows below are worked out as
+ JSR GCALL              \ before, for the random numbers and the heap, but HLS
+ JSR dlplan             \ and HL2S draw
                         \ them only outside record mode
 
  LDA #0                 \ Set A = 0
@@ -23147,7 +23162,8 @@ ENDMACRO
  BNE circd              \ renderer (a filled disc, centre K3 K4 and radius K,
  STA FLAG               \ TYPE even) and return as CIRCLE2 would, with the
  LDX #FG_PLANET         \ circle drawn: FLAG = 0 (A is 0) and C clear (the
- JSR GCALL              \ ball line heap is only ever the drawing's)
+ JSR GCALL              \ ball line heap is only ever the drawing's); and for
+ JSR dlplan             \ the disc layer
  CLC
  RTS
 
@@ -29821,6 +29837,13 @@ ENDMACRO
  ORA GFORCE
  RTS
 
+                        \ Port: the far calls to the disc layer's records, in
+                        \ the cold bank (gfx-dlayer.asm, DLAYER below)
+
+.dlplan JSR farC : EQUW DL_PLAN
+.dlcurve JSR farC : EQUW DL_CURVE
+.dlpoint JSR farC : EQUW DL_POINT
+
 \ ******************************************************************************
 \
 \       Name: MFRAME
@@ -29954,6 +29977,27 @@ ENDMACRO
 
  PLA
  RTS
+
+\ ******************************************************************************
+\
+\       Name: DLAYER
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Port: the disc layer (the sun or the planet, kept on each screen
+\             buffer and redrawn where it changed)
+\       Area: cold
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: gfx-dlayer.asm (docs/renderer.md, "The disc layer"). The frame layer
+\ calls DL_FRAME by a far call; the hooks call DL_PLAN, DL_CURVE and DL_POINT
+\ through dlplan, dlcurve and dlpoint (by RECM).
+\
+\ ******************************************************************************
+
+.DLAYER
+
+ INCLUDE "1-source-files/main-sources/gfx-dlayer.asm"
 
 \ ******************************************************************************
 \

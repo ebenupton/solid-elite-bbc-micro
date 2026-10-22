@@ -42,7 +42,9 @@ for v in VARS:
     assert docked.get(v) == a, '%s is at &%04X in the flight program, %r in the docked' % (v, a, docked.get(v))
     assert a < 0x1000 or 0x7F00 <= a < 0x8000, '%s (&%04X) is not in main RAM below the screen buffers' % (v, a)
     L.append('%-8s = &%04X' % (v, a))
-for b in ('BANKR', 'BANKF'):
+for c in ('DL_FRAME',):   # the disc layer, in the flight code's cold bank
+    L.append('%-8s = &%04X' % (c, flight[c]))
+for b in ('BANKR', 'BANKF', 'farC'):
     L.append('%-8s = &%04X' % (b, loader[b]))
 src = open(os.path.join(MS, 'elite-source-flight.asm'), encoding='latin-1').read()
 for c in CONSTS:

@@ -106,6 +106,9 @@
  GSTASH = GVARS + 13    \ Bit 7 set: something else used the screen buffers
                         \ (a disc load): F_FRAME blanks both before drawing
  GA = GVARS + 14        \ GCALL's A across the paging (gfx-glue.asm)
+ GDL = GVARS + 15       \ The disc layer (gfx-dlayer.asm): bit 0 set if buffer
+                        \ 0 has the layer's disc on it, bit 1 buffer 1 (F_FRAME
+                        \ clears both when it blanks the buffers)
 
                         \ The frame layer's entries, as the game calls them
                         \ (LDX #FG_xxx : JSR GCALL, gfx-glue.asm), in the order

@@ -202,21 +202,22 @@ see the history of this file).
 | Buffer 0 | `&1000-&3FFF` | the renderer's second screen buffer (`BUF0`); also DFS's workspace page (`&1000-&10FF`, which `PCLI` puts back for each disc command and keeps in `DFSSAVE%` between them) and, during a load, the staging area `STAGE%` (`&1600`, up to 16K, into buffer 1) |
 | Buffer 1 | `&4000-&6FFF` | the screen (`SCREEN%`): the space view's first buffer, and the only one outside a space view |
 | The dashboard | `&7000-&7DFF` | `PANEL%`: the dashboard's seven character rows, shown by the rupture's frame B |
-| The mailbox | `&7E00-&7E9D` | the rasteriser's inputs (`MBOX`, `gfx-rws.asm`); `PCLI`'s command and OSFILE block (`PCBUF`, `PBLK`) share its polygon vertices |
-| The shared variables | `&7EA0-&7EAF` | `GVARS`: the renderer's state that the game's hooks, the interrupt and the frame layer share |
+| The mailbox | `&7E00-&7E9D` | the rasteriser's inputs (`MBOX`, `gfx-rws.asm`); `PCLI`'s command and OSFILE block (`PCBUF`, `PBLK`) share its polygon vertices, and the disc layer its first `&4C` bytes (the repair's extents at `&00`, its span queue at `&28`) |
+| The shared variables | `&7EA0-&7EAF` | `GVARS`: the renderer's state that the game's hooks, the interrupt and the frame layer share (the last, `GDL`, the disc layer's: which buffers have its disc) |
 | The high resident block | `&7EB0-&7EF0` | `RESH%` (`elite-resident-high.asm`): the palette and the rupture's register routine and tables |
 | The missile's blueprint | `&7F00-&7FFF` | as in the original (with `VEC` at `&7FFE`) |
 | Home bank | `&8000-&BFFF`, ROMSEL `BANKH` | the flight or docked code's home image: `S%` and the home code from `&8000`; in the flight code, the quarter squares at `&B200-&B5FF` (`QSL`, `QSH`); the blueprint set at `&B600` |
-| Cold bank | `&8000-&BFFF`, ROMSEL `BANKC` | the flight or docked code's cold image: the cold code from `&8000`, then `QQ18`; `DFSSAVE%` at `&BF00` |
+| Cold bank | `&8000-&BFFF`, ROMSEL `BANKC` | the flight or docked code's cold image: the cold code from `&8000` (in the flight code, the disc layer, `DLAYER`, at `&9B0E-&B2BF` with its tables), then `QQ18`; `DFSSAVE%` at `&BF00` |
 | Bank R | ROMSEL `BANKR` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), the jump table `RJT` |
 | Bank F | ROMSEL `BANKF` | the frame layer, from `F.BANK`: its code with the lens flare and the hangar's background (`&8000-&9B0E`), the faces' and lighting tables, its state (`&AA00-&B8FF`), the dispatcher `FJT` |
 
-Free space now: 275 bytes in the flight code's home bank, 7,558 in its
-cold bank, 4,484 in the docked code's home bank (below its blueprints) and
-5,756 in its cold bank, 13 in resident block A and 11 in the glue, 15 in the
+Free space now: 230 bytes in the flight code's home bank, 1,492 in its
+cold bank (the disc layer took 6,066: [renderer.md](renderer.md), "The disc
+layer"), 4,484 in the docked code's home bank (below its blueprints) and
+5,756 in its cold bank, 13 in resident block A and 3 in the glue, 15 in the
 high resident block, 1,728 in bank F, and in bank R 6 in its low region
-(&8000-&8FFF), none in its high region (&9000-&BFBF) and 342 after R_LINE's
-cold part (&982A-&997F). The flight code's banks are what the frames can
+(&8000-&8FFF), none in its high region (&9000-&BFBF) and 229 after R_LINE's
+cold part and the disc layer's two entries (&989B-&997F). The flight code's banks are what the frames can
 use; the docked code's are free only while docked.
 
 ## What is not in the original's order

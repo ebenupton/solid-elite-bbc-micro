@@ -45,7 +45,7 @@ the Tube's host kept at `&E5-&E7`, are in bank R (`R_NTMP`, `R_NTMPY`,
 
 Bank R's entry points are in its jump table, `RJT` (`gfx-rws.asm`), in this
 order; the frame layer calls them through the trampolines `T_INIT` to
-`T_STARPLOT` (`gfx-rtramp.asm`, 108 bytes, in the resident block A: each `T_n` is four bytes, a `JSR` to a shared body and the low byte of `RJT`'s entry), each
+`T_DRAINQ` (`gfx-rtramp.asm`, 116 bytes, in the resident block A: each `T_n` is four bytes, a `JSR` to a shared body and the low byte of `RJT`'s entry), each
 of which pages bank R in (`BANKR`), calls the entry and pages the caller's
 bank back. A, X and Y are passed through; nothing is returned in them.
 
@@ -62,6 +62,9 @@ bank back. A, X and Y are passed through; nothing is returned in them.
 | 24 | `R_LINE`: a one-pixel line, clipped exactly | mailbox `R_X0`, `R_Y0`, `R_X1`, `R_Y1` (signed 16-bit words); the colour pair |
 | 27 | `R_STARERASE`: black what the last `R_STARPLOT` on this buffer set | |
 | 30 | `R_STARPLOT`: the stars (last in a frame) | mailbox `R_SN` (0..24), `R_SX`, `R_SY`, `R_SS` (24 each), `R_SCOL` |
+| 33 | `R_MARKBOX`: mark rows Y to `R_BY1` dirty from `R_XL` to `R_XR` (the lens flare's boxes) | Y; `R_BY1`, `R_XL`, `R_XR` |
+| 36 | `R_GETW`: rows Y to Y + A - 1's repair extents (`R_WL`, `R_WR`) into the mailbox (pairs from `MBOX`); or, with A = `&80` + n, mark the n spans queued at `MBOX + &28` dirty (`R_MARKDIRTY` each) | A, Y; the mailbox |
+| 39 | `R_DRAINQ`: draw the A spans queued at `MBOX + &28` (row, left, right, colour byte each) through the row runs, not marked | A; the mailbox |
 
 The clip window is `R_CL`, `R_CR`, `R_CT`, `R_CB` in zero page (`&0A-&0D`).
 The mailbox's offsets are in `gfx-rws.asm`: vertices at `&00`, `&10`, `&20`
@@ -73,15 +76,16 @@ else, such as a disc or text), then `R_STARPLOT`.
 
 ### What is not there
 
-* **The disc layer.** The Master port's `R_DISCROWS` drew the planet and the
-  sun incrementally (only the bytes that change, with two-colour crater and
-  meridian bands), with 3.9K of code, 1.5K of inputs and 2.4K of boundary
-  arrays per buffer: with the rest it would need about 24K, and bank R is
-  16K. `R_REPAIR` keeps its other job, the repair of each buffer's dirty
-  rows. A disc can still be drawn, as spans (`R_SPAN`, then `R_MARKDIRTY` so
-  that the next frame on the buffer repairs it): whole each frame, so a big
-  planet costs more than on the Master, and with bands only if the caller
-  splits each row's span into its colours.
+* **The disc layer's window.** The Master port's `R_DISCROWS` drew the
+  planet and the sun incrementally (only the bytes that change, with
+  two-colour crater and meridian bands), with 3.9K of code, 1.5K of inputs
+  and 2.4K of boundary arrays per buffer: with the rest it would need about
+  24K, and bank R is 16K. `R_REPAIR` keeps its other job, the repair of each
+  buffer's dirty rows. The Model B's disc layer is in the flight code's cold
+  bank instead (`gfx-dlayer.asm`: "The disc layer", below), and bank R only
+  hands it the repair's extents and draws or marks the spans it queues
+  (`R_GETW`, `R_DRAINQ`: `gfx-raster_dq.asm`, 113 bytes after `R_LINE`'s
+  cold part).
 * **The lens flare** (`R_FLARE`): no room in bank R. It is in bank F
   instead (below).
 * The page-crossing alignments of the Master port's arrays (`R_DIRTYR0` at a
@@ -201,9 +205,12 @@ game's zero page; clip window 2..253 x 1..191; on the first frame since
 direct mode (or with `GSTASH` set) blank both buffers' windows, keeping
 buffer 1's border and copying it to buffer 0, `T_RESETBUF` both, and draw
 first into the buffer not on show; `T_SETBUF`; wait for the last flip;
-`T_STARERASE`, `T_REPAIR`; then, in order, the sun and the planet (each a
-filled disc, a span per row from its half-width table, `T_SPAN`, which
-marks it dirty too), the planet's curves (`T_LINE`), the lines, the ships far to
+`T_STARERASE`, `T_REPAIR`; then, in order, the disc layer (`DL_FRAME`, in
+the flight code's cold bank, by a far call: the bigger of the sun and the
+planet; below), the other disc if both are recorded (a filled disc, a span
+per row from its half-width table, `T_SPAN`, which marks it dirty too), the
+planet's curves (`T_LINE`: a meridian planet's meridians and equator), the
+lines, the ships far to
 near (insertion sort by z; faces flat-shaded and lit, fins and details, a
 ship behind the planet skipped, as on the Master), the dots, our beams, the
 text (every non-empty cell of the text map, ORed in yellow from the MOS's
@@ -225,11 +232,65 @@ entry, `R_MARKBOX` (`RJT` + 33, `T_MARKBOX`: `R_MARKDIRTY` for rows `Y` to
 the Master model's: drawn with five suns on both buffers and compared with
 `flare.py`'s, every pixel matched.
 
+### The disc layer
+
+The sun or the planet, whichever is bigger (the sun if not smaller, the
+Master port's choice), is kept on each screen buffer from frame to frame
+by the disc layer, `gfx-dlayer.asm`, which is in the flight code's cold
+bank (6,066 bytes: 2.9K of code, records and state, then 11 page-aligned
+tables of rows, crater extents and half-widths) and is
+reached from bank F by a far call (`DL_FRAME`, after `T_REPAIR`). Its disc
+is not marked dirty, so the repair leaves it alone except where something
+else was drawn over it the frame before on that buffer.
+
+* **Records.** `CIRCLE` and `SUN` record the disc for it too (`DL_PLAN`, a
+  far call from the hook), and `PLS22` and `BLINE` record a crater planet's
+  crater (`DL_CURVE`, `DL_POINT`) for it rather than for bank F; a meridian
+  planet's curves stay bank F's, drawn as lines over the disc. `F_FRAME`
+  calls `DL_FRAME` when a disc is recorded or the back buffer has the
+  layer's disc on it (`GDL`, `GVARS + 15`: bit b for buffer b, cleared when
+  `F_FRAME` blanks both buffers), with A = the buffer and X = which discs
+  are recorded; it returns the one it drew, which bank F then leaves out
+  (bank F still builds the planet's half-widths, which the lens flare
+  reads).
+* **Rows.** For each row of the old disc's or the new one's (twenty at a
+  time, with the repair's extents `R_WL`/`R_WR` for them from bank R,
+  `T_GETW`), it works out the new span and the crater's band on it, and
+  compares them with what the disc left on that row of this buffer (four
+  page tables per buffer): the old disc's pixels that the new one does not
+  cover go black, the new pixels and those the band moved over or the
+  repair blacked are filled. A row that only moved its ends (the usual
+  case) costs its two ends; a disc where it was two frames ago on this
+  buffer (and with no band) fills only what the repair blacked. When the
+  disc on the buffer was the other one, or none is known, all of the new
+  disc is filled.
+* **Writing.** The screen is main RAM, so it writes the spans itself: one
+  byte with both masks, or the end bytes masked and the middle ones through
+  an unrolled run (up to 32 bytes). A longer span would go to bank R's row
+  runs through a queue in the mailbox (`MBOX + &28`, nine spans, drained by
+  `T_DRAINQ`); no disc that the frames draw needs it, so bank R is paged in
+  only for the extents.
+* **Small discs.** A disc with a radius under 40 is drawn whole each frame
+  and marked dirty (the spans queued and marked by `T_GETW` with A = `&80`
+  + n) after the buffer's kept disc, if any, is taken off: small discs
+  move across the screen, and keeping them costs more than the repair.
+* **The crater** is a band of the Master port's dark crater colour
+  (`&50`/`&A0`) across the disc's rows: the closed ellipse that `PLS22`
+  works out, each edge stepped row by row (halved while longer than 255),
+  its x at each row widening the row's extent.
+
+The tests are bank F's (`6-harness/test_frame.py`): eight discs against a
+model of the layer (the half-widths, the clipping, the crater's extents),
+and a sequence of 23 frames on both buffers (moving, growing and static
+discs, the sun and the planet swapping, small discs and back, no disc,
+ships and lines over them), each frame's buffer byte for byte the same
+scene drawn on a fresh machine.
+
 ### What is not there
 
-* **The disc layer**: the planet's meridians, equator and craters are lines
-  over a plain disc, not two-colour bands, and both discs are drawn whole
-  every frame.
+* **The beach ball**: a planet with meridians and an equator keeps them as
+  lines over a plain disc, not two-colour bands (a crater planet's crater
+  is a band: "The disc layer" below).
 * **Text and sights tracked per buffer**: the Master port drew each cell
   once per buffer and erased it when it changed; here both are redrawn
   every frame (a full text row costs 32 glyphs), which needs no per-buffer
@@ -307,10 +368,10 @@ instead, with `VLOIN` working out each line's `LOIN` division, which cost about
 | `SHPPT` | home | the distant ship's dot is recorded (`F_SHPPT`) |
 | `DOEXP` (`PTCLSE`), `PTCLS` (`HDOT`) | home | the old cloud is run again with `GDRAWON` = 0, recording nothing; each particle of the new one is recorded (`F_DOT`) |
 | `PIXEL2` (`PX2`, `px24r`) | home | star `Y` is recorded straight into the mailbox (`MB_SX`, `MB_SY`, `MB_SS`; size 1, 2 or 3 by `ZZ`, as `PIXEL` draws it), or marked absent if it is off screen |
-| `SUN` (`HLS`, `HL2S`) | home | the sun is recorded as a disc (`F_PLANET`); its rows are worked out as before (they take random numbers), but not drawn |
+| `SUN` (`HLS`, `HL2S`) | home | the sun is recorded as a disc (`F_PLANET`, and the disc layer's `DL_PLAN`); its rows are worked out as before (they take random numbers), but not drawn |
 | `WPLS` | home | the sun's heap is emptied, nothing erased |
-| `CIRCLE` | home | the planet is recorded as a disc (`F_PLANET`), and `CIRCLE` returns as `CIRCLE2` would (FLAG = 0, C clear) |
-| `PLS22`, `BLINE` | home | a new curve (`F_PCURVE`), and each point (`F_PPOINT`), without the clipping and the heap |
+| `CIRCLE` | home | the planet is recorded as a disc (`F_PLANET`, and `DL_PLAN`), and `CIRCLE` returns as `CIRCLE2` would (FLAG = 0, C clear) |
+| `PLS22`, `BLINE` | home | a new curve, and each point, without the clipping and the heap: a meridian planet's (`TYPE` 128) for bank F (`F_PCURVE`, `F_PPOINT`), a crater's for the disc layer (`DL_CURVE`, `DL_POINT`, far calls to the cold bank) |
 | `WPLS2` | home | the heap is reset, nothing erased |
 | `LASLI`, `LASLI2` | home | `GLASV` is set (the frame draws the beams from `LASX`, `LASY`); nothing to draw or remove |
 | `MA93` | home | (every mode) `Q = 0` before the altitude's `JSR LL5`; the reference is patched to match |
@@ -371,19 +432,22 @@ leaves everything as the original's drawing does.
 
 ## Speed
 
-The gate's run, 10,000 iterations: 254,590 cycles per flight iteration,
-7.86 flight iterations per second, against the original's 168,749 and
-11.85 (0.663 times). By scene (`6-harness/bscenes.mjs` records each
+The gate's run, 10,000 iterations: 226,316 cycles per flight iteration,
+8.84 flight iterations per second, against the original's 168,749 and
+11.85 (0.746 times). By scene (`6-harness/bscenes.mjs` records each
 iteration's time and the planet's, the station's and the ships' positions
 in a build's run; `6-harness/scenes.py` compares two such runs, counting a
-flight iteration in the front view that both put in the same scene):
+flight iteration in the front view that both put in the same scene, the
+first of these that fits):
 
 | Scene | Iterations | The original | The port | Against the original |
 |---|---:|---:|---:|---:|
-| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 270 | 103,168 cycles, 19.39 it/s | 146,463 cycles, 13.66 it/s | 0.70 |
-| Planet close: the planet ahead, nearer than 128 x 256 | 1,032 | 146,033, 13.70 | 182,610, 10.95 | 0.80 |
-| Station close: the station ahead, nearer than 16 x 256 | 706 | 187,528, 10.67 | 337,173, 5.93 | 0.56 |
-| Ships about | 2,662 | 169,996, 11.77 | 222,598, 8.98 | 0.76 |
+| Station close: the station ahead, nearer than 16 x 256 | 706 | 187,528 cycles, 10.67 it/s | 332,805 cycles, 6.01 it/s | 0.56 |
+| Sun close: the sun ahead, nearer than 1,024 x 256 | 402 | 169,142, 11.82 | 221,851, 9.02 | 0.76 |
+| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen: 7.6 disc rows a frame) | 1,032 | 146,033, 13.70 | 179,186, 11.16 | 0.81 |
+| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 6,681 | 181,260, 11.03 | 239,431, 8.35 | 0.76 |
+| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 270 | 103,168, 19.39 | 147,629, 13.55 | 0.70 |
+| Ships about (the rest, with other ships in the bubble) | 745 | 137,912, 14.50 | 170,930, 11.70 | 0.81 |
 
 ### Where the time goes
 
@@ -407,14 +471,12 @@ spans, polygons and the repair), `r_pgfix` 28,055, the repair's row code
   nothing is patched at a flip): it was slower, 257,536 cycles an
   iteration against 254,590, as the second call and its look-ups cost more
   per span than the patching saved (MODELB-REPORT.md has the numbers).
-* **Everything is drawn every frame.** The Master port's disc layer (which
-  drew only the rows of the planet that changed) did not fit in bank R, so
-  the sun and the planet are filled whole every frame, and the repair
-  blacks last frame's whole disc first. A trim of the repair inside a
-  square that the new disc covers (`R_REPAIR` repairing only the parts of a
-  row's dirty extent outside it) was tried: two repairs of a row cost more
-  than they saved for discs of the sizes the frames draw, and it was
-  dropped.
+* **Most of it is drawn every frame.** Only the disc layer's disc (the
+  bigger of the sun and the planet, with a radius of 40 or more) is kept
+  from frame to frame. Before it, a trim of the repair inside a square that
+  the new disc covers was tried and dropped (two repairs of a row cost more
+  than they saved), and so was a plain kept disc in bank R (`R_DISCROW`, a
+  call per row), slower than the whole fill (MODELB-REPORT.md).
 * **Record mode was faithful at first.** The renderer's first commits
   still built the ship line heap, clipped its lines and worked out every
   line's `LOIN` division (`VLOIN`), so that the state stayed the
@@ -427,3 +489,5 @@ spans, polygons and the repair), `r_pgfix` 28,055, the repair's row code
 | Draw the space view through the filled renderer | 322,228 | |
 | Fill and mark a disc's row in one call, and clip in the home bank first | 308,463 | 13,765 |
 | Drop record mode's line bookkeeping, with Q = 0 at the altitude in both | 254,590 | 53,873 |
+| Check a run page once per buffer, and patch it without clearing the carry (`828b473`) | 247,931 | 6,659 |
+| Keep the bigger disc on each buffer: the disc layer, in the flight code's cold bank (from `9bfefc3`'s 247,961) | 226,316 | 21,645 |
