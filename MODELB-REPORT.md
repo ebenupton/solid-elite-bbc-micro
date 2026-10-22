@@ -74,6 +74,7 @@ Part 3, the renderer:
 | `270e60a` | a disc row filled and marked in one call; the clipper's first part back home | PASS, 308,463 |
 | `76f97e4` | documentation of part 3 | (docs only) |
 | `d1d23c1` | the assembled output and the disc refreshed | PASS, 308,463 |
+| `4c6b936` | record mode's line bookkeeping dropped, with `Q` = 0 at the altitude in both the port and the (patched) reference | PASS, 254,590 |
 
 ## Gate results by part
 
@@ -103,26 +104,88 @@ regressions.
 | The original | 11.85 | 1.000 | 168,749 |
 | End of part 1 | 11.87 | 1.001 | 168,533 |
 | End of part 2 | 14.51 | 1.224 | 137,864 |
-| End of part 3 | 6.48 | 0.547 | 308,463 |
+| End of part 3, first | 6.48 | 0.547 | 308,463 |
+| Now (`4c6b936`) | 7.86 | 0.663 | 254,590 |
 
 By scene, over the gate's run (front-view flight iterations classified by
-the game state; `6-harness/bscenes.mjs` and `scenes.py`), the final build
-against the original:
+the game state; `6-harness/bscenes.mjs` and `scenes.py`), against the
+original (patched as below):
 
-| Scene | Iterations | Original | Port | Ratio |
-|---|---:|---:|---:|---:|
-| Open space (planet far, no ships, no station near) | 270 | 19.39 it/s | 12.06 it/s | 0.62 |
-| Planet close (ahead, z below 128 x 256) | 1,032 | 13.70 it/s | 9.63 it/s | 0.70 |
-| Station close (ahead, z below 16 x 256) | 706 | 10.67 it/s | 5.51 it/s | 0.52 |
-| Ships about | 2,662 | 11.77 it/s | 7.50 it/s | 0.64 |
+| Scene | Iterations | Original | Port at `270e60a` | Port now | Ratio now |
+|---|---:|---:|---:|---:|---:|
+| Open space (planet far, no ships, no station near) | 270 | 19.39 it/s | 12.06 it/s | 13.66 it/s | 0.70 |
+| Planet close (ahead, z below 128 x 256) | 1,032 | 13.70 it/s | 9.63 it/s | 10.95 it/s | 0.80 |
+| Station close (ahead, z below 16 x 256) | 706 | 10.67 it/s | 5.51 it/s | 5.93 it/s | 0.56 |
+| Ships about | 2,662 | 11.77 it/s | 7.50 it/s | 8.98 it/s | 0.76 |
 
-The filled port is about half as fast as the original wireframe game. The
-speed-ups of part 2 are kept, but each frame is drawn in full on the same
-2 MHz CPU. A profile (docs/renderer.md, "Speed") puts about 156K cycles an
-iteration in the rasteriser. Of that, 28K goes to re-patching the unrolled
-row runs for the other buffer at every flip, and about 26K to the
-trampolines into bank R. Another 10K goes to keeping the record mode
-faithful.
+The filled port is about two thirds as fast as the original wireframe
+game. The speed-ups of part 2 are kept, but each frame is drawn in full on
+the same 2 MHz CPU. A profile (docs/renderer.md, "Speed") put about 156K
+cycles an iteration in the rasteriser, before the bookkeeping went. Of
+that, about 26K goes to re-patching the unrolled row runs for the other
+buffer at every flip, and about 26K to the trampolines into bank R.
+
+## The reference's patch
+
+Since `4c6b936` the gate's reference, the original disc, runs with one
+patch, applied by the harness (`6-harness/blib.mjs`, `PATCHES`, named in
+`4-reference-binaries/sth/build.json`):
+
+* **`ma93-q`**: at the main flight loop's altitude check (`MA93`: `STA R`,
+  `JSR LL5`), `Q` = 0 before the square root of `R Q`. The original leaves
+  in `Q` whatever ran last, usually `LOIN`'s division (two times in five in
+  a trace of the gate's run), so its altitude depends on what it drew. The
+  port's source has `LDA #0 : STA Q` there. The harness finds the
+  reference's `STA R`, `JSR LL5` after `MA93` by its bytes (it must be
+  there exactly once, or the run fails) and sets `Q` to 0 when the `JSR`
+  runs; `LL5` reads `R` and `Q` first and no register, so this is the
+  port's two instructions. The altitude can differ from the unpatched
+  original's by one unit. No other state diverged once the record mode
+  stopped working out the original's lines (game state identical at all
+  10,000 iterations).
+
+## The alternate-column fill: evaluated, not adopted
+
+The idea: instead of re-patching each unrolled row run for the other
+buffer at a flip, keep for each buffer a run that stores every other byte
+column (stride 16 bytes), half the length, so that both fit in a page;
+a span calls it twice, once indexed by the row (even columns) and once by
+the row + 8 (odd columns). Measured first, over the gate's run (counters on
+bank R, per flight iteration):
+
+| Scene | `r_pgfix` calls | pages patched | patching, cycles | run calls | bytes stored by runs |
+|---|---:|---:|---:|---:|---:|
+| Open space | 72.8 | 8.4 | 12,952 | 71.8 | 729 |
+| Planet close | 61.3 | 8.1 | 12,149 | 59.4 | 608 |
+| Station close | 144.4 | 15.1 | 23,901 | 273.0 | 6,717 |
+| Ships about | 122.1 | 11.8 | 19,081 | 123.4 | 2,044 |
+| All | 190.8 | 15.0 | 25,873 | 201.3 | 5,740 |
+
+(patching = pages patched x about 1,155 cycles + calls x about 45.) The
+runs take 24 pages x 191 bytes (4,584); the two-buffer alternate-column
+runs take 24 x 195 (4,680), which fitted after moving three run pages'
+tails (R_SETBUF's high-byte tables and `R_SPAN`) and putting a second
+256-byte offset table in the free room after `R_LINE`'s cold part. It was
+built (`r_rcols`, used by the spans, the polygons' phase B and the repair),
+and passed bank R's pixel-for-pixel test, bank F's test and the gate's
+state comparison, but the gate's run took **257,536** cycles per flight
+iteration against **254,590**: slower. The second call, the two entry and
+two plant look-ups, the buffer's offset and the two plant and unplant pairs
+(through `(zp),Y` on the NMOS 6502) add about 120 cycles to each of the
+200 to 235 run calls an iteration (the two counts are over the whole run
+and over its first 3,000 iterations), more than the 25,900 that patching
+cost. A
+tightened version (one plant when both halves end at the same store, the
+call inlined) would still add about 80 cycles a call, for a gain of a few
+thousand cycles at most. It was reverted.
+
+What would do better, without its cost per span: checking the page's tag
+inline in `r_rowset` instead of calling `r_pgfix` for every row (about 30
+of the 45 cycles a call, so about 5,700 an iteration), and a patch loop
+that sets the carry once (the additions never carry into or out of the
+next) for about 130 of the 1,155 cycles a page. A second full-length copy
+of only the most used rows' runs, if bank R has room after its cold parts
+move out, would take a share of the rest.
 
 ## Compromises
 
@@ -130,12 +193,10 @@ faithful.
   bank R without them). The sun and the planet are plain dithered discs
   filled whole every frame, with the planet's meridians, equator and
   craters as cyan lines over it, not two-colour bands.
-* **Record mode does all the drawing's bookkeeping.** The game still builds
-  the ship line heap, clips lines, works out the sun's rows and does each
-  line's `LOIN` division (`VLOIN`), because the original's state depends on
-  what its drawing leaves. Its altitude takes a square root of `R` and of
-  whatever `LOIN` left in `Q`; a first version that skipped this diverged.
-  This costs speed.
+* **The altitude's leftover `Q` is defined.** The original's altitude takes
+  a square root of `R` and of whatever its drawing left in `Q`; the port
+  sets `Q` = 0 there, and the gate's reference is patched the same way
+  (above), so that the record mode need not work out the original's lines.
 * **The dashboard** is the original's, doubled to the four-colour screen and
   recoloured (red to magenta, green to cyan), not the Master port's design.
 * **Palette effects are not reproduced**: the hyperspace rings' mode change

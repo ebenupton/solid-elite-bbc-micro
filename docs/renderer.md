@@ -363,6 +363,11 @@ spans, polygons and the repair), `r_pgfix` 28,055, the repair's row code
   addresses are patched. With a flip every frame, every page in use is
   patched every frame. Two sets of runs would end this, but bank R has no
   room for a second set (4.5K).
+* **An alternate-column fill was tried instead** (a half-length run per
+  buffer storing every other byte column, called twice per span, so that
+  nothing is patched at a flip): it was slower, 257,536 cycles an
+  iteration against 254,590, as the second call and its look-ups cost more
+  per span than the patching saved (MODELB-REPORT.md has the numbers).
 * **Everything is drawn every frame.** The Master port's disc layer (which
   drew only the rows of the planet that changed) did not fit in bank R, so
   the sun and the planet are filled whole every frame, and the repair
