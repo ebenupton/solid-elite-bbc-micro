@@ -130,6 +130,10 @@
 
 .pprog
 
+ LDX #FG_DIRECT         \ The new program starts on the screen as the docked code
+ JSR GCALL              \ draws it: the renderer in direct mode, buffer 1 on
+                        \ show
+
  LDA #'H'               \ Load x.CODEH, the program's home image, to STAGE%
  STA pcbuf+8
  LDA #13

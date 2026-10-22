@@ -242,3 +242,82 @@ buffer 0 after one scene and then another is byte for byte buffer 0 after
 the second alone. It writes the frames as PNGs (`--png DIR`, default
 `3-assembled-output`) to look at. `F_FRAME` takes about 300K to 380K cycles
 for these scenes (820K for the first frame, which blanks both buffers).
+
+## The game's side
+
+### Record mode
+
+In a space view (`QQ11` = 0) the flight code's drawing is *recorded* for
+the frame layer instead of drawn, unless `GFORCE` is set (only `HFS1`, the
+launch and hyperspace rings, sets it: they are drawn directly, on buffer
+1). `RECM` (home bank) returns `A` = `QQ11` OR `GFORCE`, zero in record
+mode. Outside a space view the game draws on buffer 1 (`SCREEN%`) as
+before, in direct mode. The docked code is unchanged: it never records, and
+`PCLI` switches the renderer to direct mode (`F_DIRECT`) whenever it loads a
+program.
+
+### Only the pixels are skipped
+
+In record mode the game still works out everything it would draw: the
+ship line heap with its clipping, the planet's outline and curves, the
+sun's rows, our lasers. Only the pixels are not plotted. This is needed
+for the gate, not for the picture: the original's state depends on what
+its drawing leaves behind. The altitude, `ALTIT`, is the square root of `R`
+and whatever was left in `Q`, and in the original `Q` was last written by
+`LOIN` about two times in five (a trace of the gate's run, from the
+original's `LI2` and `LI5`). A first version of the hooks that skipped the
+line heap and the curves diverged from the original at iteration 2,864 on
+`ALTIT`.
+
+So the lines go through `VLOIN` (home bank): outside record mode it is
+`LOIN`; in record mode it does only `LOIN`'s first part and the division
+of its second or third (`S`, `SWAP`, `P`, `Q`, and the ends swapped as
+`LOIN` swaps them), and plots nothing. The sun's rows go through `HLS` and
+`HL2S`, which skip `HLOIN` and `HLOIN2` in record mode. The particles of
+an explosion go through `HDOT`, and the stars are caught in `PIXEL2`.
+
+### The hooks
+
+| Where | Bank | In record mode |
+|---|---|---|
+| `TT100`, `DEATH` (`JSR MFRAME`) | home | after each `M%`, `F_FRAME`: the frame is drawn into the buffer not on show, and shown at the next flip (A, X, Y and the flags as `M%` left them: the main loop's `DORND` reads C) |
+| `ESCAPE` | cold | after each `LL9`, `F_FRAME` |
+| `LL9` part 9 (`EE31`), `HEE31` | home, cold | the ship is recorded (`F_SHIP`, with its faces and vertices, read from the blueprint in the home bank); then `LL9` goes on as before |
+| `LL9` part 9's laser beam | home | the beam is recorded (`F_LINE`) as it goes into the heap |
+| `LL155`, `BLINE`, `WPLS2`, `las` (`VLOIN`) | home | the line is only worked out (above) |
+| `SHPPT` | home | the distant ship's dot is recorded (`F_SHPPT`) |
+| `DOEXP` (`PTCLSE`), `PTCLS` (`HDOT`) | home | the old cloud is run again with `GDRAWON` = 0, recording nothing; each particle of the new one is recorded (`F_DOT`) |
+| `PIXEL2` (`PX2`, `px24r`) | home | star `Y` is recorded straight into the mailbox (`MB_SX`, `MB_SY`, `MB_SS`; size 1, 2 or 3 by `ZZ`, as `PIXEL` draws it), or marked absent if it is off screen |
+| `SUN` (`HLS`, `HL2S`), `WPLS` | home | the sun is recorded as a disc (`F_PLANET`); its rows are worked out as before, but not drawn |
+| `CIRCLE` | home | the planet is recorded as a disc (`F_PLANET`), then `CIRCLE2` runs with `GDRAWON` = 0, so that `BLINE` records none of the outline's points |
+| `PLS22`, `BLINE` | home | a new curve (`F_PCURVE`), and each point (`F_PPOINT`) |
+| `LASLI` | home | `GLASV` is set (the frame draws the beams from `LASX`, `LASY`) |
+| `SIGHT` | cold | `GSIGHT` is set to the laser power, `QQ19` as `TT15` leaves it |
+| `TTX66` | cold | (every mode) `F_DIRECT`: direct mode, buffer 1 on show, text map cleared |
+| `TT26` (`RR3`) | cold | (every mode) the character goes into the text map (`F_CHAR`); in record mode it is not drawn |
+| `CLYNS` | cold | (every mode) rows 21 and 22 of the text map are cleared (`F_CLRTEXT`); in record mode the screen is not touched |
+| `HFS1` | cold | sets `GFORCE` while it draws the rings |
+| `LOMOD`, `DEATH2` | cold, home | `CATD` is called with DFS's workspace put back at `&1000` (`dfsin`) and kept afterwards (`dfsout`), as `PCLI` does, as buffer 0 is drawn over it |
+
+To make room in the flight code's home bank for these, `CLYNS` and `LYN`,
+and the rarely run parts 1, 3 and 4 of the main game loop and 9 and 10 of
+the main flight loop, moved to the cold bank (`MA61`'s `BNE MA26`, always
+taken, became a `JMP`, as `MA26` stays in the home bank).
+
+### The buffers and the flip
+
+The rupture's interrupt (`IRQG`, `elite-resident.asm`) shows buffer
+`GFRONT` (0: `BUF0`, 1: `SCREEN%`) in each frame A, and at its point 1 (the
+start of frame B, the dashboard) carries out a pending flip: `GFRONT` =
+`GPEND`, `GFLIP` = 0. `PCLI` sets `GSTASH` at every disc command (the staging
+area and DFS's workspace page are in buffer 0), so the next frame blanks
+both buffers. The dashboard, in its own memory at `PANEL%`, is drawn
+directly in every mode.
+
+### The test
+
+`6-harness/test_routines.py` runs the port's routines with `GFORCE` set,
+so that the drawing paths are compared with the original's, pixel for
+pixel; the gate's run (record mode, in flight) compares the game's state
+with the original's at every iteration, which checks that the record mode
+leaves everything as the original's drawing does.

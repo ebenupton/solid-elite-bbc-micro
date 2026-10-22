@@ -65,6 +65,7 @@ R_NDX3   = MBOX + &9D
 R_NDISCL = MBOX + &9D
 R_NDISCR = MBOX + &9D
 MBOX_END = MBOX + &9E
+ ASSERT R_SX = MB_SX AND R_SY = MB_SY AND R_SS = MB_SS   \ (elite-map.asm's names)
 
 \ Bank R's state (gfx-raster.asm lays the bank out around it)
 R_DIRTYL0 = &9000       \ buffer 0's dirty extents (empty: L = 255, R = 0)

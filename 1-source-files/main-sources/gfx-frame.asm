@@ -70,13 +70,7 @@ F_DODO = 32             \ GTYPE of the dodecahedron station (gfx-faces.asm)
 
 \ Fixed colours (F_LC, F_DC, GLCOL and GDCOL hold these indices)
 
-FC_BLACK = 0
-FC_LASER = 1            \ our laser beams
-FC_ELASER = 2           \ enemy laser beams
-FC_PLINE = 3            \ planet meridians, equator and craters
-FC_PART = 4             \ explosion particles
-FC_SIGHT = 5            \ laser sights
-FC_STAR = 6             \ stardust
+\ (FC_BLACK to FC_STAR are in elite-map.asm, for the game's hooks)
 
 .F_CPE                  \ even rows' byte (the odd rows' are the same)
  EQUB &00, &FF, &F0, &0F, &FF, &0F, &FF

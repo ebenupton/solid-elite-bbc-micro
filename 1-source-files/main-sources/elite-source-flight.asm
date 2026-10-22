@@ -2173,10 +2173,13 @@ ENDIF
                         \ and fall through into the entry code for the game
                         \ to restart from the title screen
 
- JSR CATD               \ Call CATD to reload the disc catalogue
+ JSR dfsin              \ Port: with DFS's workspace put back at &1000 (where
+ JSR CATD               \ the renderer's buffer 0 may have drawn over it) and
+ JSR dfsout             \ kept afterwards, as PCLI does (elite-resident.asm),
+                        \ call CATD to reload the disc catalogue
 
- BNE INBAY              \ Jump to INBAY to load the docked code (this BNE is
-                        \ effectively a JMP)
+ JMP INBAY              \ Jump to INBAY to load the docked code (Port: a JMP,
+                        \ as the flags now come from dfsout, not CATD)
 
 \ ******************************************************************************
 \
@@ -2992,6 +2995,7 @@ ENDIF
 \   Category: Main loop
 \    Summary: For each nearby ship: If it is a space station, check whether we
 \             are successfully docking with it
+\       Area: cold
 \  Deep dive: Program flow of the main game loop
 \             Docking checks
 \
@@ -3073,6 +3077,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: For each nearby ship: Remove if scooped, or process collisions
+\       Area: cold
 \  Deep dive: Program flow of the main game loop
 \
 \ ------------------------------------------------------------------------------
@@ -3107,9 +3112,10 @@ ENDIF
 
 .MA61
 
- BNE MA26               \ Jump to MA26 to skip over the collision routines and
-                        \ to move on to missile targeting (this BNE is
-                        \ effectively a JMP as A will never be zero)
+ JMP MA26               \ Jump to MA26 to skip over the collision routines and
+                        \ to move on to missile targeting (Port: a JMP, as MA26
+                        \ is in the home bank and this in the cold; the
+                        \ original's BNE is always taken, as A is never zero)
 
 .MA67
 
@@ -5456,6 +5462,11 @@ ENDIF
 
 .px24r
 
+ LDA QQ11               \ Port: the particle is off screen: in record mode,
+ ORA GFORCE             \ there is no star Y for the renderer (and return with
+ BNE P%+5               \ C set, as before)
+ STA MB_SS,Y
+
  RTS                    \ Return from the subroutine
 
 .PIX1
@@ -5543,8 +5554,9 @@ ENDIF
                         \ negated at PX24, out of line, which rejoins at PX2)
 
  CMP #96                \ If Y1 >= 96 then it's off the screen (as 96 is half
- BCS PX4                \ the screen height), so return from the subroutine (as
-                        \ PX4 contains an RTS)
+ BCS px24r              \ the screen height), so return from the subroutine (as
+                        \ px24r contains an RTS: Port: after noting the star
+                        \ is off screen)
 
 .PX2
 
@@ -5555,6 +5567,33 @@ ENDIF
                         \ So if Y1 is positive we display the point up from the
                         \ centre at y-coordinate 97, while a negative Y1 means
                         \ down from the centre
+
+ PHA                    \ Port: in record mode, record star Y for the renderer
+ LDA QQ11               \ in the rasteriser's mailbox: its x, y and size (1
+ ORA GFORCE             \ for ZZ >= 144, 2 for ZZ >= 80, 3 below, as PIXEL
+ BNE pxdr               \ draws them), and return, instead of drawing it
+ PLA
+ STA MB_SY,Y
+ TXA
+ STA MB_SX,Y
+ LDX #1
+ LDA ZZ
+ CMP #144
+ BCS pxsz
+ INX
+ CMP #80
+ BCS pxsz
+ INX
+
+.pxsz
+
+ TXA
+ STA MB_SS,Y
+ RTS
+
+.pxdr
+
+ PLA                    \ Outside record mode, restore A
 
                         \ Fall through into PIXEL to draw the stardust at the
                         \ screen coordinates in (X, A)
@@ -5797,6 +5836,17 @@ ENDIF
  STA K5+1
  STA XX15+5
 
+ JSR RECM               \ Port: in record mode, record the point for the
+ BNE bld                \ renderer (K6, K5+2), which joins it to the curve's
+ LDA GDRAWON            \ last (unless GDRAWON is 0: the planet's outline);
+ BEQ bld                \ the clipping and the heap go on as before, and
+ LDX #FG_PPOINT         \ VLOIN "draws" the segment
+ JSR GCALL
+
+.bld
+
+ LDA XX15+5             \ Restore A = x_hi
+
  BIT FLAG               \ If FLAG = 0, jump down to BL1 (FLAG is only ever 0
  BPL BL1                \ or &FF; BIT keeps A = x_hi)
 
@@ -5884,7 +5934,7 @@ ENDIF
 
  STY LSP                \ Update LSP to point to the same as Y
 
- JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
+ JSR VLOIN              \ Draw a line from (X1, Y1) to (X2, Y2)
 
  CLC                    \ Port: clear C for the addition at BL7
 
@@ -8515,6 +8565,16 @@ ENDIF
 
 .RR3
 
+ TAY                    \ Port: record the character in the renderer's text
+ LDA K3                 \ map at (XC - 1, YC), in every mode, and in record
+ LDX #FG_CHAR           \ mode do not draw it (the frames draw the text map);
+ JSR GCALL              \ YC is kept in Y
+ LDA QQ11
+ ORA GFORCE
+ BEQ RR4
+ TYA
+ CLC
+
                         \ A contains the value of YC - the screen row where we
                         \ want to print this character - so now we need to
                         \ convert this into a screen address, so we can poke
@@ -9447,6 +9507,9 @@ ENDIF
  JSR MVEIT              \ Call MVEIT to move the Cobra in space
 
  JSR LL9                \ Call LL9 to draw the Cobra on-screen
+
+ LDX #FG_FRAME          \ Port: and draw the frame
+ JSR GCALL
 
  DEC INWK+32            \ Decrement the counter in byte #32
 
@@ -12024,6 +12087,9 @@ ENDIF
 
 .HFS1
 
+ LDX #&FF               \ Port: the rings are drawn directly, even in a space
+ STX GFORCE             \ view (GFORCE)
+
  LDX #X                 \ Set K3 = #X (the x-coordinate of the centre of the
  STX K3                 \ screen)
 
@@ -12049,6 +12115,9 @@ ENDIF
 
  CPX #8                 \ If we haven't drawn 8 sets of rings yet, loop back to
  BNE HFL5               \ HFL5 to draw the next ring
+
+ INC GFORCE             \ Port: back to recording (GFORCE = 0; A, X and the
+                        \ flags are as they were)
 
  RTS                    \ Return from the subroutine
 
@@ -14613,6 +14682,11 @@ ENDMACRO
 
  JSR DENGY              \ Call DENGY to deplete our energy banks by 1
 
+ JSR RECM               \ Port: in record mode, the renderer draws the beams
+ BNE LASLI2             \ in this iteration's frame (from LASX and LASY); the
+ LDA #&FF               \ lines below are only worked out (VLOIN)
+ STA GLASV
+
 .LASLI2
 
  LDA QQ11               \ If this is not a space view (i.e. QQ11 is non-zero)
@@ -14649,7 +14723,7 @@ ENDMACRO
                         \ this sets Y2 to 191, the y-coordinate of the bottom
                         \ pixel row of the space view
 
- JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2), so that's from
+ JSR VLOIN              \ Draw a line from (X1, Y1) to (X2, Y2), so that's from
                         \ the centre point to (A, 191)
 
  LDA LASX               \ Set (X1, Y1) to the random centre point we set above
@@ -14662,7 +14736,7 @@ ENDMACRO
  LDA #2*Y-1             \ Set Y2 = 2 * #Y - 1, the y-coordinate of the bottom
  STA Y2                 \ pixel row of the space view (as before)
 
- JMP LOIN               \ Draw a line from (X1, Y1) to (X2, Y2), so that's from
+ JMP VLOIN              \ Draw a line from (X1, Y1) to (X2, Y2), so that's from
                         \ the centre point to (Y, 191), and return from
                         \ the subroutine using a tail call
 
@@ -19356,8 +19430,8 @@ ENDMACRO
  BEQ P%+5               \ explosion cloud to remove, so skip the following
                         \ instruction
 
- JSR PTCLS              \ Call PTCLS to remove the existing cloud by drawing it
-                        \ again
+ JSR PTCLSE             \ Call PTCLS to remove the existing cloud by drawing it
+                        \ again (Port: through PTCLSE, which records nothing)
 
  LDA INWK+6             \ Set T = z_lo
  STA T
@@ -19630,8 +19704,9 @@ ENDMACRO
 
  LDA Y1                 \ Set A = our random y-coordinate within the cloud
 
- JSR PIXEL              \ Draw a point at screen coordinate (X, A) with the
-                        \ point size determined by the distance in ZZ
+ JSR HDOT               \ Draw a point at screen coordinate (X, A) with the
+                        \ point size determined by the distance in ZZ (Port:
+                        \ in record mode, record it, HDOT)
 
 .EX4
 
@@ -22164,6 +22239,11 @@ ENDMACRO
 
 .PLS22
 
+ JSR RECM               \ Port: in record mode, start a new curve for the
+ BNE P%+7               \ renderer (BLINE records its points)
+ LDX #FG_PCURVE
+ JSR GCALL
+
  LDX #0                 \ Set CNT = 0
  STX CNT
 
@@ -22523,6 +22603,12 @@ ENDMACRO
                         \ screen, returning from the subroutine using a tail
                         \ call
 
+ JSR RECM               \ Port: in record mode, record the sun for the renderer
+ BNE P%+7               \ (a filled disc, centre K3 K4 and radius K, TYPE odd);
+ LDX #FG_PLANET         \ the rows below are worked out as before, for the
+ JSR GCALL              \ random numbers and the heap, but HLS and HL2S draw
+                        \ them only outside record mode
+
  LDA #0                 \ Set A = 0
 
  LDX K                  \ Set X = K = radius of the new sun
@@ -22678,7 +22764,7 @@ ENDMACRO
  BEQ PLF13              \ If A = 0, skip the following call to HLOIN2 as there
                         \ is no sun line on this line of the screen
 
- JSR HLOIN2             \ Call HLOIN2 to draw a horizontal line on pixel line Y,
+ JSR HL2S               \ Call HLOIN2 to draw a horizontal line on pixel line Y,
                         \ with centre point YY(1 0) and half-width A, and remove
                         \ the line from the sun line heap once done
 
@@ -22868,7 +22954,7 @@ ENDMACRO
  STX X2
  STA XX
 
- JSR HLOIN              \ Draw a horizontal line from (X1, Y1) to (X2, Y1)
+ JSR HLS                \ Draw a horizontal line from (X1, Y1) to (X2, Y1)
 
 .PLF23
 
@@ -22883,7 +22969,7 @@ ENDMACRO
 
 .PLF16
 
- JSR HLOIN              \ Draw a horizontal line from (X1, Y1) to (X2, Y1)
+ JSR HLS                \ Draw a horizontal line from (X1, Y1) to (X2, Y1)
 
 .PLF6
 
@@ -22982,7 +23068,7 @@ ENDMACRO
  BEQ PLF9               \ If A = 0, skip the following call to HLOIN2 as there
                         \ is no sun line on this line of the screen
 
- JSR HLOIN2             \ Call HLOIN2 to draw a horizontal line on pixel line Y,
+ JSR HL2S               \ Call HLOIN2 to draw a horizontal line on pixel line Y,
                         \ with centre point YY(1 0) and half-width A, and remove
                         \ the line from the sun line heap once done
 
@@ -23047,6 +23133,21 @@ ENDMACRO
 
  LDA #0                 \ Set LSX2 = 0 to indicate that the ball line heap is
  STA LSX2               \ not empty, as we are about to fill it
+
+ JSR RECM               \ Port: in record mode, record the planet for the
+ BNE circd              \ renderer (a filled disc, centre K3 K4 and radius K,
+ LDX #FG_PLANET         \ TYPE even), then work out the circle as before, with
+ JSR GCALL              \ GDRAWON = 0 so that BLINE records none of its points
+ LDA #0
+ STA GDRAWON
+ JSR circd
+ PHA
+ LDA #&FF
+ STA GDRAWON
+ PLA
+ RTS
+
+.circd
 
  LDX K                  \ Set X = K = radius
 
@@ -23259,7 +23360,7 @@ ENDMACRO
  LDA LSX2,Y             \ heap
  STA X2
 
- JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
+ JSR VLOIN              \ Draw a line from (X1, Y1) to (X2, Y2)
 
  INY                    \ Increment the loop counter to point to the next point
 
@@ -23360,7 +23461,7 @@ ENDMACRO
  BEQ P%+5               \ If A = 0, skip the following call to HLOIN2 as there
                         \ is no sun line on this line of the screen
 
- JSR HLOIN2             \ Call HLOIN2 to draw a horizontal line on pixel line Y,
+ JSR HL2S               \ Call HLOIN2 to draw a horizontal line on pixel line Y,
                         \ with centre point YY(1 0) and half-width A, and remove
                         \ the line from the sun line heap once done
 
@@ -25128,6 +25229,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Spawn a trader (a Cobra Mk III, Python, Boa or Anaconda)
+\       Area: cold
 \  Deep dive: Program flow of the main game loop
 \             Ship data blocks
 \             Aggression and hostility in ship tactics
@@ -25251,7 +25353,8 @@ ENDMACRO
 
 .TT100
 
- JSR M%                 \ Call M% to iterate through the main flight loop
+ JSR MFRAME             \ Call M% to iterate through the main flight loop
+                        \ (Port: then draw the frame, MFRAME)
 
  DEC DLY                \ Decrement the delay counter in DLY, so any in-flight
                         \ messages get removed once the counter reaches zero
@@ -25417,6 +25520,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Potentially spawn a cop, particularly if we've been bad
+\       Area: cold
 \  Deep dive: Program flow of the main game loop
 \             Ship data blocks
 \             Fixing ship positions
@@ -25487,6 +25591,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Main loop
 \    Summary: Potentially spawn a lone bounty hunter or up to four pirates
+\       Area: cold
 \  Deep dive: Program flow of the main game loop
 \             Ship data blocks
 \             Fixing ship positions
@@ -26311,7 +26416,8 @@ ENDIF
 
 .D2
 
- JSR M%                 \ Call the M% routine to do the main flight loop once,
+ JSR MFRAME             \ Call the M% routine to do the main flight loop once,
+                        \ (Port: then draw the frame, MFRAME)
                         \ which will display our exploding canister scene and
                         \ move everything about
 
@@ -26438,7 +26544,10 @@ ENDIF
                         \ it overwrites the "0" in "D.MO0" with the file letter
                         \ to load, from D.MOA to D.MOP
 
- JSR CATD               \ Call CATD to reload the disc catalogue
+ JSR dfsin              \ Port: with DFS's workspace put back at &1000 (where
+ JSR CATD               \ the renderer's buffer 0 may have drawn over it) and
+ JSR dfsout             \ kept afterwards, as PCLI does (elite-resident.asm),
+                        \ call CATD to reload the disc catalogue
 
  LDX #LO(SHIPI)         \ Set (Y X) to point to the OS command at SHIPI, which
  LDY #HI(SHIPI)         \ loads the relevant ship blueprints file
@@ -29109,6 +29218,11 @@ ENDMACRO
  ORA XX1+31             \ have now drawn something on-screen for this ship
  STA XX1+31
 
+ JSR RECM               \ Port: in record mode, record the dot for the
+ BNE P%+7               \ renderer (K3, K4, TYPE); LL155 then draws nothing
+ LDX #FG_SHPPT
+ JSR GCALL
+
  LDA #8                 \ Set A = 8 so when we call LL18+2 next, byte #0 of the
                         \ heap gets set to 8, for the 8 bytes we just stuck on
                         \ the heap
@@ -29668,6 +29782,340 @@ ENDMACRO
 .SHCOL
 
  EQUB &0F, &F0, &FF, &0F
+
+\ ******************************************************************************
+\
+\       Name: RECM
+\       Type: Subroutine
+\   Category: Drawing the screen
+\    Summary: Port: the renderer's record mode test, and the hooks in the
+\             flight code's home bank that it decides
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: in a space view (QQ11 = 0) the game's drawing is recorded for the
+\ filled renderer (bank F, docs/renderer.md) instead of drawn, unless GFORCE
+\ is set (the launch and hyperspace rings, which are drawn directly). RECM
+\ returns A = QQ11 OR GFORCE: Z set in record mode. X and Y are kept.
+\
+\ ******************************************************************************
+
+.RECM
+
+ LDA QQ11
+ ORA GFORCE
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: MFRAME
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: Port: one iteration of the main flight loop, then the frame
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: calls M%, then the renderer's F_FRAME, which draws what the iteration
+\ recorded into the buffer not on show and asks the interrupt to show it (in
+\ a view that is not a space view it only empties the records). A, X, Y and
+\ the flags are kept as M% leaves them (the main loop's DORND reads C).
+\
+\ ******************************************************************************
+
+.MFRAME
+
+ JSR M%
+ PHP
+ PHA
+ TXA
+ PHA
+ LDX #FG_FRAME          \ (GCALL keeps Y)
+ JSR GCALL
+ PLA
+ TAX
+ PLA
+ PLP
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: HLS
+\       Type: Subroutine
+\   Category: Drawing suns
+\    Summary: Port: HLOIN and HLOIN2 for the sun, outside record mode only
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: SUN and WPLS work out the sun's rows as before (for the random
+\ numbers and the heap) and call these in place of HLOIN and HLOIN2, which
+\ draw only outside record mode (the renderer fills the sun's disc). Y is
+\ kept, as HLOIN keeps it.
+\
+\ ******************************************************************************
+
+.HLS
+
+ JSR RECM
+ BEQ hls9
+ JMP HLOIN
+
+.HL2S
+
+ PHA
+ JSR RECM
+ BEQ hl2s9
+ PLA
+ JMP HLOIN2
+
+.hl2s9
+
+ PLA
+
+.hls9
+
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: PTCLSE
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: run PTCLS to remove an explosion cloud, recording nothing
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: DOEXP removes the old cloud by drawing it again; PTCLS still runs
+\ (for its random numbers), with GDRAWON = 0, so that HDOT records none of
+\ its particles.
+\
+\ ******************************************************************************
+
+.PTCLSE
+
+ LDA #0
+ STA GDRAWON
+ JSR PTCLS
+ LDA #&FF
+ STA GDRAWON
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: HDOT
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: PIXEL for an explosion particle: in record mode, record it
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: PTCLS's particles: X = x, A = y, ZZ the distance. In record mode the
+\ dot is recorded for the renderer (F_DOT, unless GDRAWON is 0) and Y kept;
+\ otherwise PIXEL draws it.
+\
+\ ******************************************************************************
+
+.HDOT
+
+ PHA
+ JSR RECM
+ BNE hdt8
+ LDA GDRAWON
+ BEQ hdt9
+ STY T1
+ TXA
+ TAY
+ PLA
+ LDX #FG_DOT
+ JSR GCALL
+ LDY T1
+ RTS
+
+.hdt8
+
+ PLA
+ JMP PIXEL
+
+.hdt9
+
+ PLA
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: VLOIN
+\       Type: Subroutine
+\   Category: Drawing lines
+\    Summary: Port: LOIN, or in record mode only what LOIN leaves behind
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: in record mode the game still works out every line it would draw (the
+\ ship line heap, the planet's curves, our lasers), as the original's state
+\ depends on what its drawing leaves behind: the altitude (ALTIT) is the
+\ square root of R and whatever is left in Q, and LOIN leaves Q as the
+\ steeper line's |delta_y| or the shallower line's gradient. So in record
+\ mode VLOIN does LOIN's part 1 and the division of part 2 or 3 (S, SWAP,
+\ P, Q, and X1, Y1, X2, Y2 swapped as LOIN swaps them), but plots nothing;
+\ outside record mode it is LOIN. Y is kept, as LOIN keeps it.
+\
+\ ******************************************************************************
+
+.VLOIN
+
+ JSR RECM               \ Outside record mode, draw the line
+ BEQ vl0
+ JMP LOIN
+
+.vl0
+
+ LDA #128               \ As LOIN: S = 128, SWAP = 0, P = |X2 - X1|,
+ STA S                  \ Q = |Y2 - Y1|
+ ASL A
+ STA SWAP
+ LDA X2
+ SBC X1
+ BCS vl1
+ EOR #%11111111
+ ADC #1
+ SEC
+
+.vl1
+
+ STA P
+ LDA Y2
+ SBC Y1
+ BCS vl2
+ EOR #%11111111
+ ADC #1
+
+.vl2
+
+ STA Q
+ CMP P
+ BCC vlx
+
+ LDA Y1                 \ As STPY: if Y1 < Y2, swap the ends, then
+ CMP Y2                 \ P = 256 * |delta_x| / |delta_y| (7 bits)
+ BCS vly1
+ JSR vswap
+
+.vly1
+
+ LDA P
+ LDX #1
+ STX P
+
+.vlyl
+
+ ASL A
+ BCS vly3
+ CMP Q
+ BCC vly4
+
+.vly3
+
+ SBC Q
+ SEC
+
+.vly4
+
+ ROL P
+ BCC vlyl
+ RTS
+
+.vlx
+
+ LDA X1                 \ As STPX: if X1 >= X2, swap the ends, then
+ CMP X2                 \ Q = 256 * |delta_y| / |delta_x| (7 bits)
+ BCC vlx1
+ JSR vswap
+
+.vlx1
+
+ LDA Q
+ LDX #%11111110
+ STX Q
+
+.vlxl
+
+ ASL A
+ BCS vlx3
+ CMP P
+ BCC vlx4
+
+.vlx3
+
+ SBC P
+ SEC
+
+.vlx4
+
+ ROL Q
+ BCS vlxl
+ RTS
+
+.vswap
+
+ DEC SWAP               \ Swap (X1, Y1) and (X2, Y2), noting it in SWAP
+ LDX X1
+ LDA X2
+ STA X1
+ STX X2
+ LDX Y1
+ LDA Y2
+ STA Y1
+ STX Y2
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: HEE31
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: record the ship that LL9 is drawing
+\       Area: cold
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: LL9's part 9 (EE31) calls this in record mode, with GNF = the faces
+\ and GNV = byte #8 of the blueprint (6 times the vertices). The ship is
+\ recorded for the renderer, lit from its orientation (F_SHIP), with GTYPE =
+\ TYPE, or 32 for the dodecahedron station (in the station's slot, with 24
+\ vertices). LL9 then goes on as before (its laser beam is recorded as it
+\ goes into the heap). A, X and the flags are not kept.
+\
+\ ******************************************************************************
+
+.HEE31
+
+ LDA GNV                \ GNV = byte #8 / 6, the number of vertices
+ LDX #0
+
+.hee1
+
+ CMP #6
+ BCC hee2
+ SBC #6
+ INX
+ BNE hee1
+
+.hee2
+
+ STX GNV
+
+ LDA TYPE               \ GTYPE = TYPE, or 32 for a station with 24 vertices
+ CMP #SST               \ (the dodecahedron)
+ BNE hee3
+ CPX #24
+ BNE hee3
+ LDA #32
+
+.hee3
+
+ STA GTYPE
+
+ LDX #FG_SHIP           \ Record the ship, and return
+ JMP GCALL
 
 \ ******************************************************************************
 \
@@ -31504,6 +31952,21 @@ ENDMACRO
 
 .EE31
 
+ JSR RECM               \ Port: in record mode, record the ship for the
+ BNE ee31d              \ renderer (HEE31, in the cold bank, given the
+                        \ blueprint's faces and vertices, which the cold bank
+ LDY #12                \ cannot read: GNF = byte #12 / 4, GNV = byte #8); LL9
+ LDA (XX0),Y            \ then carries on as before, building the ship line
+ LSR A                  \ heap, which LL155 "draws" through VLOIN
+ LSR A
+ STA GNF
+ LDY #8
+ LDA (XX0),Y
+ STA GNV
+ JSR HEE31
+
+.ee31d
+
  LDA #%00001000         \ If bit 3 of the ship's byte #31 is clear, then there
  BIT XX1+31             \ is nothing already being shown for this ship, so skip
  BEQ LL74               \ to LL74 as we don't need to erase anything from the
@@ -31643,6 +32106,15 @@ ENDMACRO
  INY                    \ Increment the heap pointer
 
  STY U                  \ Store the updated ship line heap pointer in U
+
+ JSR RECM               \ Port: in record mode, record the beam for the
+ BNE ll9p10             \ renderer, in the enemy lasers' colour (F_LINE; it is
+ LDA #FC_ELASER         \ in the heap too, which only VLOIN "draws")
+ STA GLCOL
+ LDX #FG_LINE
+ JSR GCALL
+
+.ll9p10
 
 \ ******************************************************************************
 \
@@ -32462,7 +32934,8 @@ ENDMACRO
  LDA (XX19),Y           \ Fetch the Y2 line coordinate from the heap and store
  STA XX15+3             \ it in XX15+3
 
- JSR LL30               \ Draw a line from (X1, Y1) to (X2, Y2)
+ JSR VLOIN              \ Draw a line from (X1, Y1) to (X2, Y2) (Port: in
+                        \ record mode, only work out what LOIN leaves, VLOIN)
 
  INY                    \ Increment the heap pointer
 
@@ -34588,6 +35061,23 @@ ENDMACRO
                         \ view), jump to LO2 to return from the subroutine (as
                         \ LO2 contains an RTS)
 
+ TAX                    \ Port: in record mode the renderer draws the sights in
+ LDA QQ11               \ each frame while GSIGHT is non-zero (TTX66 clears
+ ORA GFORCE             \ it): set it to the laser power, and return with
+ BNE sgd                \ QQ19 as TT15 leaves it after the second crosshairs
+ STX GSIGHT
+ LDA #128
+ STA QQ19
+ LDA #Y-24
+ STA QQ19+1
+ LDA #10
+ STA QQ19+2
+ LDA #24
+ STA QQ19+5
+ RTS
+
+.sgd
+
  LDA #128               \ Set QQ19 to the x-coordinate of the centre of the
  STA QQ19               \ screen
 
@@ -34663,6 +35153,11 @@ ENDMACRO
 \ ******************************************************************************
 
 .TTX66
+
+ LDX #FG_DIRECT         \ Port: the renderer goes to direct mode, with buffer 1
+ JSR GCALL              \ (SCREEN%) on show, and the explosion particles'
+ LDA #FC_PART           \ colour is set for the next frames
+ STA GDCOL
 
  LDA #%10000000         \ Set bit 7 of QQ17 to switch to Sentence Case
  STA QQ17
@@ -34833,6 +35328,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing the screen
 \    Summary: Clear the bottom three text rows of the space view
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -34867,6 +35363,14 @@ ENDMACRO
  JSR TT67               \ Print a newline, which will move the text cursor down
                         \ a line (to row 21) and back to column 1
 
+ LDA #21                \ Port: clear rows 21 and 22 of the renderer's text
+ LDY #22                \ map, and in record mode return without clearing the
+ LDX #FG_CLRTEXT        \ screen (with A = 0)
+ JSR GCALL
+ LDA QQ11
+ ORA GFORCE
+ BEQ cly2
+
                         \ Port: on the four-colour screen, text rows 21 and 22
                         \ are two pages each, from SCREEN% + 512 * 21, so this
                         \ clears columns 1 to 30 of each: bytes 16 to 255 of
@@ -34892,6 +35396,8 @@ ENDMACRO
  CPX #HI(SCREEN%) + 46
  BNE cly1
 
+.cly2
+
  LDY #1                 \ Move the text cursor to column 1, and return with
  STY XC                 \ A = Y = 0, as the original does
  DEY
@@ -34904,6 +35410,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing the screen
 \    Summary: Clear most of a row of pixels
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \

@@ -196,6 +196,10 @@ def load():
     resa = loader[ld["RESAcode"] - 0x1900:ld["RESAcode"] - 0x1900 + 0x400]
     cand = Machine("port", cand_sy, [(0x0400, resa)], extra)
     cand.home_bank, cand.cold_bank = 7, 6
+    mp = open(os.path.join(REPO, "1-source-files/main-sources/elite-map.asm"), encoding="latin-1").read()
+    gvars = int(re.search(r"^ GVARS = &([0-9A-F]+)", mp, re.M).group(1), 16)
+    gforce = gvars + int(re.search(r"^ GFORCE = GVARS \+ (\d+)", mp, re.M).group(1))
+    cand.base[gforce] = 0xFF                      # (GFORCE: the renderer's direct mode, so the drawing is compared)
     ref.base[0x07C0:0x0800] = list(resa[0x3C0:0x400])   # (SNE and ACT, as the original's loader puts them)
     for k, v in (("BANKH", 7), ("BANKC", 6), ("BANKR", 5), ("BANKF", 4)):
         cand.base[ld[k]] = v

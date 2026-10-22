@@ -20,21 +20,7 @@
 
 FJT = &BFC0             \ bank F's dispatcher (gfx-bankf.asm)
 
-FG_INIT     = 0         \ the entries, in fjt_lo's order (gfx-bankf.asm)
-FG_DIRECT   = 1
-FG_FRAME    = 2
-FG_SHIP     = 3
-FG_LINE     = 4
-FG_DOT      = 5
-FG_PLANET   = 6
-FG_SHPPT    = 7
-FG_PCURVE   = 8
-FG_PPOINT   = 9
-FG_CHAR     = 10
-FG_DELCHAR  = 11
-FG_CLRTEXT  = 12
-FG_BOMB     = 13
-FG_N        = 14
+\ (the entries' numbers, FG_*, are in elite-map.asm, for the game's hooks)
 
  INCLUDE "1-source-files/main-sources/gfx-rtramp.asm"
 

@@ -68,6 +68,13 @@ if grep -iE "error|assertion failed" "$LOG/build.log" 3-assembled-output/compile
     cat "$LOG/build.errors"; echo "build: FAIL (error/ASSERT in output)"; fail build
 fi
 echo "build: PASS"
+if [ -f 6-harness/test_frame.py ]; then
+    if BEEBASM="$BEEBASM" python3 6-harness/test_frame.py --png "$LOG" > "$LOG/test_frame.log" 2>&1; then
+        echo "test_frame: PASS"
+    else
+        grep -v "^  ok" "$LOG/test_frame.log" | tail -20; echo "test_frame: FAIL"; fail test_frame
+    fi
+fi
 if [ -f 6-harness/test_routines.py ]; then
     if python3 6-harness/test_routines.py --quick > "$LOG/test_routines.log" 2>&1; then
         echo "test_routines: PASS"
