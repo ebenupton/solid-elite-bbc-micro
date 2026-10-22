@@ -125,7 +125,9 @@
  FG_DELCHAR  = 11
  FG_CLRTEXT  = 12
  FG_BOMB     = 13
- FG_N        = 14
+ FG_HANG0    = 14
+ FG_HANGAR   = 15
+ FG_N        = 16
 
                         \ The fixed colours of the frame layer's lines and dots
                         \ (GLCOL and GDCOL hold these indices, gfx-frame.asm)

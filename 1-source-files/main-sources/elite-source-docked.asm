@@ -7914,6 +7914,15 @@ ENDIF
 
 .RR3
 
+ TAY                    \ Port: record the character in the renderer's text
+ LDA K3                 \ map at (XC - 1, YC), in every mode, and draw it only
+ LDX #FG_CHAR           \ outside record mode and space mode (DRAWQ); YC is
+ JSR GCALL              \ kept in Y
+ JSR DRAWQ
+ BEQ RR4
+ TYA
+ CLC
+
                         \ A contains the value of YC - the screen row where we
                         \ want to print this character
                         \
@@ -7951,6 +7960,15 @@ ENDIF
 
 .RRD
 
+ LDA XC                 \ Port: clear the cell in the renderer's text map, and
+ LDY YC                 \ clear it on the screen only outside record mode and
+ LDX #FG_DELCHAR        \ space mode (DRAWQ)
+ JSR GCALL
+ LDY #0
+ JSR DRAWQ
+ BEQ rrd9
+ LDA YC
+
                         \ Port: on the four-colour screen, clear the sixteen
                         \ bytes of the character cell at column XC of row YC
                         \ (A = YC and the C flag is set), at SCREEN% + 512 *
@@ -7979,6 +7997,8 @@ ENDIF
  STA (SC),Y
  DEY
  BPL rrdl
+
+.rrd9
 
  LDY #0                 \ We are done deleting, so restore the registers and
  JMP RR4                \ return from the subroutine
@@ -9054,6 +9074,11 @@ ENDIF
  JSR TT66               \ and set the current view type in QQ11 to 0 (space
                         \ view)
 
+ PHP                    \ Port: the hangar is one frame of the renderer: empty
+ LDX #FG_HANG0          \ its lists and set the hangar's light (QQ11 = 0: the
+ JSR GCALL              \ ships are recorded); C kept, for DORND
+ PLP
+
  JSR DORND              \ Set A and X to random numbers
 
  BPL HA7                \ Jump to HA7 if A is positive (50% chance)
@@ -9180,6 +9205,13 @@ ENDIF
                         \ between EOR and OR logic (in this case, switching it
                         \ back to EOR logic so that we can erase anything we
                         \ draw on-screen)
+
+ JSR RECM               \ Port: in record mode the hangar's lines are the
+ BNE hall9              \ frame's background: draw the frame (F_HANGAR) and
+ LDX #FG_HANGAR         \ return, in place of HANGER
+ JMP GCALL
+
+.hall9
 
                         \ Fall through into HANGER to draw the hangar background
 
@@ -11829,7 +11861,7 @@ ENDIF
  STX INWK+30            \ Set the ship's pitch counter to a positive pitch that
                         \ doesn't dampen (a diving pitch)
 
- JSR LL9                \ Draw the ship on screen
+ JSR LL9B               \ Draw the ship on screen (Port: a frame, LL9B)
 
  JSR MVEIT              \ Call MVEIT to rotate the ship in space
 
@@ -11869,7 +11901,7 @@ ENDIF
                         \ so the ship moves up the screen (as space coordinates
                         \ have the y-axis going up)
 
- JSR LL9                \ Draw the ship on screen
+ JSR LL9B               \ Draw the ship on screen (Port: a frame, LL9B)
 
  JSR MVEIT              \ Call MVEIT to move and rotate the ship in space
 
@@ -12030,7 +12062,7 @@ ENDIF
  LDA #2                 \ Set z_hi = 1, so (z_hi z_lo) = 256
  STA INWK+7
 
- JSR LL9                \ Draw the ship on screen
+ JSR LL9B               \ Draw the ship on screen (Port: a frame, LL9B)
 
  JSR MVEIT              \ Call MVEIT to move and rotate the ship in space
 
@@ -12164,6 +12196,9 @@ ENDIF
 \ ******************************************************************************
 
 .TTX66
+
+ LDX #FG_DIRECT         \ Port: the renderer goes to direct mode, with buffer 1
+ JSR GCALL              \ (SCREEN%) on show
 
  JSR MT2                \ Switch to Sentence Case when printing extended tokens
 
@@ -12362,6 +12397,13 @@ ENDIF
  JSR TT67               \ Print a newline, which will move the text cursor down
                         \ a line (to row 21) and back to column 1
 
+ LDA #21                \ Port: clear rows 21 to 23 of the renderer's text map,
+ LDY #23                \ and clear the screen only outside record mode and
+ LDX #FG_CLRTEXT        \ space mode (DRAWQ; A = 0 if not)
+ JSR GCALL
+ JSR DRAWQ
+ BEQ cly2
+
                         \ Port: on the four-colour screen, text rows 21 to 23
                         \ are two pages each, from SCREEN% + 512 * 21, so this
                         \ clears columns 1 to 30 of each: bytes 16 to 255 of
@@ -12386,6 +12428,8 @@ ENDIF
  INX                    \ back until we have cleared rows 21 to 23
  CPX #HI(SCREEN%) + 48
  BNE cly1
+
+.cly2
 
  LDY #1                 \ Move the text cursor to column 1, and return with
  STY XC                 \ A = Y = 0, as the original does
@@ -16266,7 +16310,9 @@ ENDIF
  BPL eny1               \ Loop back to copy the next byte until we have copied
                         \ the whole table
 
- JSR CATD               \ Call CATD to reload the disc catalogue
+ JSR dfsin              \ Port: with DFS's workspace put back at &1000 and kept
+ JSR CATD               \ afterwards, as PCLI does (elite-resident.asm), call
+ JSR dfsout             \ CATD to reload the disc catalogue
 
  LDX #LO(RDLI)          \ Set (Y X) to point to RDLI ("R.D.CODE")
  LDY #HI(RDLI)
@@ -21943,6 +21989,9 @@ ENDIF
 
  JSR LL9                \ Call LL9 to display the ship
 
+ LDX #FG_FRAME          \ Port: and draw the frame (QQ11 = 0: the ship is
+ JSR GCALL              \ recorded, filled)
+
  DEC MCNT               \ Decrement the main loop counter
 
  LDA VIA+&40            \ Read 6522 System VIA input register IRB (SHEILA &40)
@@ -22854,6 +22903,10 @@ ENDIF
  BCS QUR                \ If the C flag is set, then an invalid drive number was
                         \ entered, so jump to QUR to return from the subroutine
 
+ PHA                    \ Port: put DFS's workspace back at &1000 first (the
+ JSR dfsin              \ renderer's buffer 0 may have drawn over it: the title
+ PLA                    \ and the hangar are frames), as PCLI does
+
  LDX #INWK              \ Store a pointer to INWK at the start of the block at
  STX &0C00              \ &0C00, storing #INWK in the low byte because INWK is
                         \ in zero page
@@ -22864,6 +22917,8 @@ ENDIF
  JSR OSFILE             \ Call OSFILE to do the file operation specified in
                         \ &0C00 (i.e. save or load a file depending on the value
                         \ of A)
+
+ JSR dfsout             \ Port: and keep DFS's workspace afterwards
 
  CLC                    \ Clear the C flag
 
@@ -25338,6 +25393,177 @@ ENDMACRO
 
 \ ******************************************************************************
 \
+\       Name: RECM
+\       Type: Subroutine
+\   Category: Drawing the screen
+\    Summary: Port: the renderer's record mode test, and the docked code's
+\             other hooks that it decides
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: with QQ11 = 0 (the title, the hangar, the briefings' frames) the
+\ docked code's ships are recorded for the filled renderer (bank F) instead
+\ of drawn, unless GFORCE is set. RECM returns A = QQ11 OR GFORCE: Z set in
+\ record mode. X and Y are kept.
+\
+\ ******************************************************************************
+
+.RECM
+
+ LDA QQ11
+ ORA GFORCE
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: DRAWQ
+\       Type: Subroutine
+\   Category: Text
+\    Summary: Port: Z set if text is not to be drawn on the screen directly
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: in record mode, or once the renderer's frames are running (GMODE bit
+\ 7, space mode: a briefing's text while its ship turns), the text goes only
+\ into the renderer's text map, which each frame draws. Returns Z set (and A
+\ = 0) if so. X and Y are kept.
+\
+\ ******************************************************************************
+
+.DRAWQ
+
+ JSR RECM
+ BEQ drq9
+ LDA GMODE
+ AND #%10000000
+ EOR #%10000000
+
+.drq9
+
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: LL9B
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: draw the ship as a frame of the renderer (the briefings)
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the briefings show their ship with QQ11 = 1; LL9B sets QQ11 = 0 for
+\ LL9, which records the ship, and for the frame (F_FRAME), and puts QQ11
+\ back.
+\
+\ ******************************************************************************
+
+.LL9B
+
+ LDA QQ11
+ PHA
+ LDA #0
+ STA QQ11
+ JSR LL9
+ LDX #FG_FRAME
+ JSR GCALL
+ PLA
+ STA QQ11
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: HEE31
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: record the ship that LL9 is drawing, and its laser beam
+\       Area: cold
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: as the flight code's HEE31: LL9's part 9 (EE31) jumps here in record
+\ mode, with GNF = the faces, GNV = byte #8 of the blueprint and T = byte #6.
+\ The ship is recorded for the renderer (F_SHIP), with GTYPE = TYPE, or 32
+\ for the dodecahedron station, and if it is firing, its beam (F_LINE).
+\ Byte #31 is left as EE31 leaves it.
+\
+\ ******************************************************************************
+
+.HEE31
+
+ LDA #%00001000         \ Set bit 3 of the ship's byte #31, as EE31 does: the
+ ORA XX1+31             \ ship is on the screen
+ STA XX1+31
+
+ LDA GNV                \ GNV = byte #8 / 6, the number of vertices
+ LDX #0
+
+.hee1
+
+ CMP #6
+ BCC hee2
+ SBC #6
+ INX
+ BNE hee1
+
+.hee2
+
+ STX GNV
+
+ LDA TYPE               \ GTYPE = TYPE, or 32 for a station with 24 vertices
+ CMP #SST               \ (the dodecahedron)
+ BNE hee3
+ CPX #24
+ BNE hee3
+ LDA #32
+
+.hee3
+
+ STA GTYPE
+
+ LDX #FG_SHIP           \ Record the ship
+ JSR GCALL
+
+ BIT XX1+31             \ If the ship is firing its laser, clear bit 6 of its
+ BVC hee9               \ byte #31 and record its beam, clipped as EE31 clips
+ LDA XX1+31             \ it
+ AND #%10111111
+ STA XX1+31
+ LDY T
+ LDX XX3,Y
+ STX XX15
+ INX
+ BEQ hee9
+ LDX XX3+1,Y
+ STX XX15+1
+ INX
+ BEQ hee9
+ LDX XX3+2,Y
+ STX XX15+2
+ LDX XX3+3,Y
+ STX XX15+3
+ LDA #0
+ STA XX15+4
+ STA XX15+5
+ STA XX12+1
+ LDA XX1+6
+ STA XX12
+ LDA XX1+2
+ BPL P%+4
+ DEC XX15+4
+ JSR LL145
+ BCS hee9
+ LDA #FC_ELASER
+ STA GLCOL
+ LDX #FG_LINE
+ JSR GCALL
+
+.hee9
+
+ SEC                    \ Return with C set, as LL155 does after drawing the
+ RTS                    \ ship's lines
+
+\ ******************************************************************************
+\
 \       Name: LL9 (Part 1 of 12)
 \       Type: Subroutine
 \   Category: Drawing ships
@@ -27159,6 +27385,24 @@ ENDMACRO
 
 .EE31
 
+ JSR RECM               \ Port: in record mode (the title, the hangar and the
+ BNE ee31d              \ briefings: QQ11 = 0), record the ship for the
+                        \ renderer and return from LL9 (HEE31, in the cold
+ LDY #12                \ bank, given what it cannot read from the blueprint:
+ LDA (XX0),Y            \ GNF = byte #12 / 4, GNV = byte #8, T = byte #6);
+ LSR A                  \ the ship line heap is not built, as nothing draws
+ LSR A                  \ from it
+ STA GNF
+ LDY #8
+ LDA (XX0),Y
+ STA GNV
+ LDY #6
+ LDA (XX0),Y
+ STA T
+ JMP HEE31
+
+.ee31d
+
  LDA #%00001000         \ If bit 3 of the ship's byte #31 is clear, then there
  BIT XX1+31             \ is nothing already being shown for this ship, so skip
  BEQ LL74               \ to LL74 as we don't need to erase anything from the
@@ -28079,6 +28323,11 @@ ENDMACRO
 \ ******************************************************************************
 
 .LL155
+
+ JSR RECM               \ Port: in record mode nothing is drawn from the heap:
+ BNE P%+4               \ return at once, with C set (as LL155 leaves it after
+ SEC                    \ drawing a heap of lines)
+ RTS
 
  LDY #0                 \ Fetch the first byte from the ship line heap into A,
  LDA (XX19),Y           \ which contains the number of bytes in the heap

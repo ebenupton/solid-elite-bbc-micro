@@ -40,6 +40,7 @@
  INCLUDE "1-source-files/main-sources/gfx-frame.asm"
  INCLUDE "1-source-files/main-sources/gfx-light.asm"
  INCLUDE "1-source-files/main-sources/gfx-flare.asm"
+ INCLUDE "1-source-files/main-sources/gfx-hangar.asm"
 .F_CODEEND
  INCLUDE "1-source-files/main-sources/gfx-faces.asm"
  INCLUDE "1-source-files/main-sources/gfx-light6.asm"
@@ -72,12 +73,12 @@
  EQUB LO(F_INIT-1), LO(F_DIRECT-1), LO(F_FRAME-1), LO(F_SHIP-1)
  EQUB LO(F_LINE-1), LO(F_DOT-1), LO(F_PLANET-1), LO(F_SHPPT-1)
  EQUB LO(F_PCURVE-1), LO(F_PPOINT-1), LO(F_CHAR-1), LO(F_DELCHAR-1)
- EQUB LO(F_CLRTEXT-1), LO(F_BOMB-1)
+ EQUB LO(F_CLRTEXT-1), LO(F_BOMB-1), LO(F_HANG0-1), LO(F_HANGAR-1)
 .fjt_hi
  EQUB HI(F_INIT-1), HI(F_DIRECT-1), HI(F_FRAME-1), HI(F_SHIP-1)
  EQUB HI(F_LINE-1), HI(F_DOT-1), HI(F_PLANET-1), HI(F_SHPPT-1)
  EQUB HI(F_PCURVE-1), HI(F_PPOINT-1), HI(F_CHAR-1), HI(F_DELCHAR-1)
- EQUB HI(F_CLRTEXT-1), HI(F_BOMB-1)
+ EQUB HI(F_CLRTEXT-1), HI(F_BOMB-1), HI(F_HANG0-1), HI(F_HANGAR-1)
 .FJT_END
  ASSERT fjt_hi - fjt_lo = FG_N AND FJT_END <= &C000
 

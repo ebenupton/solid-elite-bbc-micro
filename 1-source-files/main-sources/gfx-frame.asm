@@ -554,6 +554,7 @@ F_CPO = F_CPE
  JSR T_REPAIR           \ and the rest of what was drawn on it
  JSR f_discs            \ the sun and the planet
  JSR f_curves           \ the planet's meridians, equator and craters
+.ff_lin                 \ (F_HANGAR points this call at f_hback for its frame)
  JSR f_lines            \ lines (enemy lasers, the energy bomb)
  JSR f_ships            \ filled ships, far to near
  JSR f_dots             \ particles, distant ships
