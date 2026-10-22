@@ -56,6 +56,7 @@ _RBANK = 2              \ (the Tube host's bank P's layout, which this extends)
  JMP R_LINE             \ RJT + 24
  JMP R_STARERASE        \ RJT + 27
  JMP R_STARPLOT         \ RJT + 30
+ JMP R_MARKBOX          \ RJT + 33
 .RJT_END
 
  ASSERT R_HIEND <= RJT AND R_LOEND <= &9000 AND r_lcold_end <= &9980

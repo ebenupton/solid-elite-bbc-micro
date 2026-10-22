@@ -39,6 +39,7 @@
 
  INCLUDE "1-source-files/main-sources/gfx-frame.asm"
  INCLUDE "1-source-files/main-sources/gfx-light.asm"
+ INCLUDE "1-source-files/main-sources/gfx-flare.asm"
 .F_CODEEND
  INCLUDE "1-source-files/main-sources/gfx-faces.asm"
  INCLUDE "1-source-files/main-sources/gfx-light6.asm"

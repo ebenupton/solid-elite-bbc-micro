@@ -155,10 +155,10 @@
  PALCMYK = RESH%        \ The screen's palette (16 bytes), which the vertical
                         \ sync's interrupt writes
 
- GLUE% = &0730          \ The glue the game calls the frame layer through, and
+ GLUE% = &0724          \ The glue the game calls the frame layer through, and
                         \ the trampolines into bank R (gfx-glue.asm): at a
                         \ fixed address at the end of the resident block A
-                        \ (&0730-&07BC), which includes it there, so that bank F
+                        \ (&0724-&07BC), which includes it there, so that bank F
                         \ can be built against it
 
  DTMP = &07BD          \ Workspace for the dashboard's drawing routines, at

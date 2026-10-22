@@ -193,7 +193,7 @@ see the history of this file).
 |---|---|---|
 | Zero page, stack | `&0000-&00E1`, `&0100-&01FF` | as in the original; the rasteriser uses `&06-&27` and the frame layer `&D2-&E1` during a frame, and put the game's bytes back |
 | `UP` | `&0300-&03CF` | as in the original |
-| Resident block A | `&0400-&07BF` | the port's (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin` and `dfsout`, `WRCHR`, `BRKR`, the last saved commander and the break handler (`S1%`, `NA%`, `CHK2`, `CHK`, `BRBR1`, block B's in the original), the interrupt handler `IRQG` (the rupture and the flip), and at `GLUE%` = `&0730` the renderer's glue (`GCALL` and the trampolines into bank R); the dashboard's workspace at `&07BD-&07BF` |
+| Resident block A | `&0400-&07BF` | the port's (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin` and `dfsout`, `WRCHR`, `BRKR`, the last saved commander and the break handler (`S1%`, `NA%`, `CHK2`, `CHK`, `BRBR1`, block B's in the original), the interrupt handler `IRQG` (the rupture and the flip), and at `GLUE%` = `&0724` the renderer's glue (`GCALL` and the trampolines into bank R); the dashboard's workspace at `&07BD-&07BF` |
 | `SNE`, `ACT` | `&07C0-&07FF` | as in the original |
 | `QQ16` | `&0880-&08BF` | as in the original |
 | `K%` and the line heaps | `&0900-&0CFF` | as in the original (the loader's `LOAD` runs at `&0B00-&0CFF` before the game starts) |

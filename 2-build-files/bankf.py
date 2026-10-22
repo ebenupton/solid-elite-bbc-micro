@@ -25,7 +25,7 @@ OUT = '3-assembled-output'
 
 # the game's variables the frame layer reads (all in main RAM)
 VARS = ['INWK', 'XX2', 'XX3', 'XX4', 'K', 'K3', 'K4', 'K5', 'K6', 'TYPE', 'X1', 'Y1', 'X2', 'Y2',
-        'ZZ', 'QQ11', 'FRIN', 'K%', 'ALPHA', 'BETA', 'LASX', 'LASY', 'XC', 'YC']
+        'ZZ', 'QQ11', 'FRIN', 'K%', 'ALPHA', 'BETA', 'LASX', 'LASY', 'XC', 'YC', 'VIEW']
 # and its constants
 CONSTS = ['NOST', 'NI%', 'SST', 'PLT']
 

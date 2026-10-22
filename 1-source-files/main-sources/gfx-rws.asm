@@ -64,7 +64,8 @@ R_NDX2   = MBOX + &9D
 R_NDX3   = MBOX + &9D
 R_NDISCL = MBOX + &9D
 R_NDISCR = MBOX + &9D
-MBOX_END = MBOX + &9E
+R_BY1    = MBOX + &9E   \ R_MARKBOX: the last row
+MBOX_END = MBOX + &9F
  ASSERT R_SX = MB_SX AND R_SY = MB_SY AND R_SS = MB_SS   \ (elite-map.asm's names)
 
 \ Bank R's state (gfx-raster.asm lays the bank out around it)

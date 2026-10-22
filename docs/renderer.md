@@ -82,7 +82,8 @@ else, such as a disc or text), then `R_STARPLOT`.
   that the next frame on the buffer repairs it): whole each frame, so a big
   planet costs more than on the Master, and with bands only if the caller
   splits each row's span into its colours.
-* **The lens flare** (`R_FLARE`, `gfx-flare.asm`): no room.
+* **The lens flare** (`R_FLARE`): no room in bank R. It is in bank F
+  instead (below).
 * The page-crossing alignments of the Master port's arrays (`R_DIRTYR0` at a
   low byte of `&B5`) are not kept: only cycles depend on them.
 
@@ -124,7 +125,7 @@ loads it from the disc's `F.BANK` into bank F and calls `F_INIT`.
 
 | Where | What |
 |---|---|
-| main `&0730-&07B9` | the glue, `GLUE%` (`gfx-glue.asm`): bank R's trampolines (108 bytes) and `GCALL` (30), at a fixed address at the end of the resident block A, which includes it |
+| main `&0724-&07B1` | the glue, `GLUE%` (`gfx-glue.asm`): bank R's trampolines (112 bytes) and `GCALL` (30), at a fixed address at the end of the resident block A, which includes it |
 | main `&7EB0-&7EF1` | PCLI's command and OSFILE block (`PCBUF`, `PBLK`) and the palette (`PALCMYK`), moved out of the resident block to make room for the glue |
 | main `&7EA0-&7EFF` | the shared variables, `GVARS` (`elite-map.asm`) |
 | zero page `&06-&27`, `&D2-&E1` | the rasteriser's, and the frame layer's pointers (the game's `XX2`, `K3` and `K4`, dead between iterations): `F_FRAME` and `F_INIT` keep the game's bytes in bank F and put them back |
@@ -209,13 +210,27 @@ text (every non-empty cell of the text map, ORed in yellow from the MOS's
 font at `&C000`, then each row's extent marked dirty for its 8 lines), the
 sights (four `T_LINE`s), the stars; put the zero page back; queue the flip.
 
+### The lens flare
+
+The Master port's lens flare (its `gfx-flare.asm` and `gfx-flare6.asm`,
+the recipe of its `2-build-files/flare.py`), rewritten for the NMOS 6502 in
+bank F (`gfx-flare.asm`): `F_FRAME` runs it after the lasers, when the sun
+is recorded, the view is the front one, the sun's centre is on the screen
+and not inside the planet's disc. Eight ghosts along the line from the sun
+through the screen's centre, six dithered discs and two dotted rings, ORed
+into the back buffer, which bank F writes itself. As bank F cannot reach
+bank R's dirty extents, each ghost's box is marked dirty through a new
+entry, `R_MARKBOX` (`RJT` + 33, `T_MARKBOX`: `R_MARKDIRTY` for rows `Y` to
+`R_BY1`), so that the next frame on the buffer repairs it. Its pixels are
+the Master model's: drawn with five suns on both buffers and compared with
+`flare.py`'s, every pixel matched.
+
 ### What is not there
 
 * **The disc layer**: the planet's meridians, equator and craters are lines
   over a plain disc, not two-colour bands, and both discs are drawn whole
   every frame.
-* **The lens flare, the hangar, LL9B and the briefings** (docked-only
-  drawing).
+* **The hangar, LL9B and the briefings** (docked-only drawing).
 * **Text and sights tracked per buffer**: the Master port drew each cell
   once per buffer and erased it when it changed; here both are redrawn
   every frame (a full text row costs 32 glyphs), which needs no per-buffer

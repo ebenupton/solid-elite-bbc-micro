@@ -558,6 +558,7 @@ F_CPO = F_CPE
  JSR f_ships            \ filled ships, far to near
  JSR f_dots             \ particles, distant ships
  JSR f_lasers           \ our laser beams
+ JSR f_flt              \ (Model B) the lens flare (gfx-flare.asm)
  JSR f_text             \ the text
  JSR f_sights           \ the sights
  JSR f_stars            \ the stardust, last (on black only)

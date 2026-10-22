@@ -183,3 +183,18 @@
   LDY RZ_Y
   JMP R_MARKDIRTY
 
+\ ============================================================================
+\ R_MARKBOX (Model B): R_MARKDIRTY for rows Y .. R_BY1, each by R_XL..R_XR
+\ (the lens flare's ghosts, which bank F draws itself: gfx-flare.asm)
+\ ============================================================================
+.R_MARKBOX
+  STY rmb_y
+.rmb1
+  JSR R_MARKDIRTY
+  LDY rmb_y
+  CPY R_BY1
+  INY
+  STY rmb_y
+  BCC rmb1
+  RTS
+.rmb_y EQUB 0

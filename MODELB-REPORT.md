@@ -189,8 +189,8 @@ move out, would take a share of the rest.
 
 ## Compromises
 
-* **The disc layer and the lens flare are cut** (the rasteriser only fits
-  bank R without them). The sun and the planet are plain dithered discs
+* **The disc layer is cut** (the rasteriser only fits bank R without it;
+  the lens flare, cut at first too, is now in bank F). The sun and the planet are plain dithered discs
   filled whole every frame, with the planet's meridians, equator and
   craters as cyan lines over it, not two-colour bands.
 * **The altitude's leftover `Q` is defined.** The original's altitude takes
