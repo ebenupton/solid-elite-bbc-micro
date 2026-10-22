@@ -3723,6 +3723,9 @@ ENDIF
                         \ the planet
 
  STA R                  \ We are getting close to the planet, so we need to
+ LDA #0                 \ Port: Q = 0 (the original leaves in Q whatever ran
+ STA Q                  \ last, usually LOIN; the gate's reference is patched
+                        \ the same way, 6-harness/blib.mjs, REF_PATCHES)
  JSR LL5                \ work out how close. We know from the above that A
                         \ contains our altitude squared, so we store A in R
                         \ and call LL5 to calculate:
@@ -5838,10 +5841,12 @@ ENDIF
 
  JSR RECM               \ Port: in record mode, record the point for the
  BNE bld                \ renderer (K6, K5+2), which joins it to the curve's
- LDA GDRAWON            \ last (unless GDRAWON is 0: the planet's outline);
- BEQ bld                \ the clipping and the heap go on as before, and
- LDX #FG_PPOINT         \ VLOIN "draws" the segment
- JSR GCALL
+ LDX #FG_PPOINT         \ last, and return as BLINE does, with FLAG = 0 and
+ JSR GCALL              \ CNT stepped on (the clipping and the ball line heap
+ LDA #0                 \ are only ever the drawing's)
+ STA FLAG
+ CLC
+ BCC BL7
 
 .bld
 
@@ -5934,7 +5939,7 @@ ENDIF
 
  STY LSP                \ Update LSP to point to the same as Y
 
- JSR VLOIN              \ Draw a line from (X1, Y1) to (X2, Y2)
+ JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
 
  CLC                    \ Port: clear C for the addition at BL7
 
@@ -14683,11 +14688,15 @@ ENDMACRO
  JSR DENGY              \ Call DENGY to deplete our energy banks by 1
 
  JSR RECM               \ Port: in record mode, the renderer draws the beams
- BNE LASLI2             \ in this iteration's frame (from LASX and LASY); the
- LDA #&FF               \ lines below are only worked out (VLOIN)
+ BNE LASLI2             \ in this iteration's frame (from LASX and LASY)
+ LDA #&FF
  STA GLASV
+ RTS
 
 .LASLI2
+
+ JSR RECM               \ Port: in record mode there are no beams on the screen
+ BEQ LASLI-1            \ to remove
 
  LDA QQ11               \ If this is not a space view (i.e. QQ11 is non-zero)
  BNE LASLI-1            \ then jump to MA9 to return from the main flight loop
@@ -14723,7 +14732,7 @@ ENDMACRO
                         \ this sets Y2 to 191, the y-coordinate of the bottom
                         \ pixel row of the space view
 
- JSR VLOIN              \ Draw a line from (X1, Y1) to (X2, Y2), so that's from
+ JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2), so that's from
                         \ the centre point to (A, 191)
 
  LDA LASX               \ Set (X1, Y1) to the random centre point we set above
@@ -14736,7 +14745,7 @@ ENDMACRO
  LDA #2*Y-1             \ Set Y2 = 2 * #Y - 1, the y-coordinate of the bottom
  STA Y2                 \ pixel row of the space view (as before)
 
- JMP VLOIN              \ Draw a line from (X1, Y1) to (X2, Y2), so that's from
+ JMP LOIN               \ Draw a line from (X1, Y1) to (X2, Y2), so that's from
                         \ the centre point to (Y, 191), and return from
                         \ the subroutine using a tail call
 
@@ -23136,15 +23145,10 @@ ENDMACRO
 
  JSR RECM               \ Port: in record mode, record the planet for the
  BNE circd              \ renderer (a filled disc, centre K3 K4 and radius K,
- LDX #FG_PLANET         \ TYPE even), then work out the circle as before, with
- JSR GCALL              \ GDRAWON = 0 so that BLINE records none of its points
- LDA #0
- STA GDRAWON
- JSR circd
- PHA
- LDA #&FF
- STA GDRAWON
- PLA
+ STA FLAG               \ TYPE even) and return as CIRCLE2 would, with the
+ LDX #FG_PLANET         \ circle drawn: FLAG = 0 (A is 0) and C clear (the
+ JSR GCALL              \ ball line heap is only ever the drawing's)
+ CLC
  RTS
 
 .circd
@@ -23330,6 +23334,9 @@ ENDMACRO
 
 .WPLS2
 
+ JSR RECM               \ Port: in record mode the planet's lines are not on
+ BEQ WP1                \ the screen: just reset the heap
+
  LDA #&0F               \ Port: the planet's lines are cyan
  STA LCOL
 
@@ -23360,7 +23367,7 @@ ENDMACRO
  LDA LSX2,Y             \ heap
  STA X2
 
- JSR VLOIN              \ Draw a line from (X1, Y1) to (X2, Y2)
+ JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2)
 
  INY                    \ Increment the loop counter to point to the next point
 
@@ -23441,6 +23448,14 @@ ENDMACRO
 
  LDA LSX                \ If LSX < 0, the sun line heap is empty, so return from
  BMI WPLS-1             \ the subroutine (as WPLS-1 contains an RTS)
+
+ JSR RECM               \ Port: in record mode the sun's lines are not on the
+ BNE wpls1              \ screen: just empty the heap, with Y = &FF as below
+ LDY #&FF
+ STY LSX
+ RTS
+
+.wpls1
 
  LDA SUNX               \ Set YY(1 0) = SUNX(1 0), the x-coordinate of the
  STA YY                 \ vertical centre axis of the sun that's currently on
@@ -29942,151 +29957,31 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: VLOIN
-\       Type: Subroutine
-\   Category: Drawing lines
-\    Summary: Port: LOIN, or in record mode only what LOIN leaves behind
-\
-\ ------------------------------------------------------------------------------
-\
-\ Port: in record mode the game still works out every line it would draw (the
-\ ship line heap, the planet's curves, our lasers), as the original's state
-\ depends on what its drawing leaves behind: the altitude (ALTIT) is the
-\ square root of R and whatever is left in Q, and LOIN leaves Q as the
-\ steeper line's |delta_y| or the shallower line's gradient. So in record
-\ mode VLOIN does LOIN's part 1 and the division of part 2 or 3 (S, SWAP,
-\ P, Q, and X1, Y1, X2, Y2 swapped as LOIN swaps them), but plots nothing;
-\ outside record mode it is LOIN. Y is kept, as LOIN keeps it.
-\
-\ ******************************************************************************
-
-.VLOIN
-
- JSR RECM               \ Outside record mode, draw the line
- BEQ vl0
- JMP LOIN
-
-.vl0
-
- LDA #128               \ As LOIN: S = 128, SWAP = 0, P = |X2 - X1|,
- STA S                  \ Q = |Y2 - Y1|
- ASL A
- STA SWAP
- LDA X2
- SBC X1
- BCS vl1
- EOR #%11111111
- ADC #1
- SEC
-
-.vl1
-
- STA P
- LDA Y2
- SBC Y1
- BCS vl2
- EOR #%11111111
- ADC #1
-
-.vl2
-
- STA Q
- CMP P
- BCC vlx
-
- LDA Y1                 \ As STPY: if Y1 < Y2, swap the ends, then
- CMP Y2                 \ P = 256 * |delta_x| / |delta_y| (7 bits)
- BCS vly1
- JSR vswap
-
-.vly1
-
- LDA P
- LDX #1
- STX P
-
-.vlyl
-
- ASL A
- BCS vly3
- CMP Q
- BCC vly4
-
-.vly3
-
- SBC Q
- SEC
-
-.vly4
-
- ROL P
- BCC vlyl
- RTS
-
-.vlx
-
- LDA X1                 \ As STPX: if X1 >= X2, swap the ends, then
- CMP X2                 \ Q = 256 * |delta_y| / |delta_x| (7 bits)
- BCC vlx1
- JSR vswap
-
-.vlx1
-
- LDA Q
- LDX #%11111110
- STX Q
-
-.vlxl
-
- ASL A
- BCS vlx3
- CMP P
- BCC vlx4
-
-.vlx3
-
- SBC P
- SEC
-
-.vlx4
-
- ROL Q
- BCS vlxl
- RTS
-
-.vswap
-
- DEC SWAP               \ Swap (X1, Y1) and (X2, Y2), noting it in SWAP
- LDX X1
- LDA X2
- STA X1
- STX X2
- LDX Y1
- LDA Y2
- STA Y1
- STX Y2
- RTS
-
-\ ******************************************************************************
-\
 \       Name: HEE31
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Port: record the ship that LL9 is drawing
+\    Summary: Port: record the ship that LL9 is drawing, and its laser beam
 \       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
-\ Port: LL9's part 9 (EE31) calls this in record mode, with GNF = the faces
-\ and GNV = byte #8 of the blueprint (6 times the vertices). The ship is
-\ recorded for the renderer, lit from its orientation (F_SHIP), with GTYPE =
-\ TYPE, or 32 for the dodecahedron station (in the station's slot, with 24
-\ vertices). LL9 then goes on as before (its laser beam is recorded as it
-\ goes into the heap). A, X and the flags are not kept.
+\ Port: LL9's part 9 (EE31) jumps here in record mode, with GNF = the faces,
+\ GNV = byte #8 of the blueprint (6 times the vertices) and T = byte #6 (4
+\ times the laser's vertex). The ship is recorded for the renderer, lit from
+\ its orientation (F_SHIP), with GTYPE = TYPE, or 32 for the dodecahedron
+\ station (in the station's slot, with 24 vertices), and if it is firing at
+\ us, its beam, clipped as EE31 clips it (F_LINE). The game's state is left
+\ as EE31 leaves it: bit 3 of byte #31 set (the ship is on the screen) and
+\ bit 6 clear if it fired. The ship line heap is not built: only LL155 reads
+\ it, and in record mode LL155 draws nothing.
 \
 \ ******************************************************************************
 
 .HEE31
+
+ LDA #%00001000         \ Set bit 3 of the ship's byte #31, as EE31 does: the
+ ORA XX1+31             \ ship is on the screen
+ STA XX1+31
 
  LDA GNV                \ GNV = byte #8 / 6, the number of vertices
  LDX #0
@@ -30114,8 +30009,47 @@ ENDMACRO
 
  STA GTYPE
 
- LDX #FG_SHIP           \ Record the ship, and return
- JMP GCALL
+ LDX #FG_SHIP           \ Record the ship
+ JSR GCALL
+
+ BIT XX1+31             \ If the ship is firing its laser at us, clear bit 6 of
+ BVC hee9               \ its byte #31 and record its beam, clipped as EE31
+ LDA XX1+31             \ clips it (F_LINE, in the enemy lasers' colour)
+ AND #%10111111
+ STA XX1+31
+ LDY T
+ LDX XX3,Y
+ STX XX15
+ INX
+ BEQ hee9
+ LDX XX3+1,Y
+ STX XX15+1
+ INX
+ BEQ hee9
+ LDX XX3+2,Y
+ STX XX15+2
+ LDX XX3+3,Y
+ STX XX15+3
+ LDA #0
+ STA XX15+4
+ STA XX15+5
+ STA XX12+1
+ LDA XX1+6
+ STA XX12
+ LDA XX1+2
+ BPL P%+4
+ DEC XX15+4
+ JSR LL145
+ BCS hee9
+ LDA #FC_ELASER
+ STA GLCOL
+ LDX #FG_LINE
+ JSR GCALL
+
+.hee9
+
+ SEC                    \ Return with C set, as LL155 does after drawing the
+ RTS                    \ ship's lines
 
 \ ******************************************************************************
 \
@@ -31952,18 +31886,21 @@ ENDMACRO
 
 .EE31
 
- JSR RECM               \ Port: in record mode, record the ship for the
- BNE ee31d              \ renderer (HEE31, in the cold bank, given the
-                        \ blueprint's faces and vertices, which the cold bank
- LDY #12                \ cannot read: GNF = byte #12 / 4, GNV = byte #8); LL9
- LDA (XX0),Y            \ then carries on as before, building the ship line
- LSR A                  \ heap, which LL155 "draws" through VLOIN
+ JSR RECM               \ Port: in record mode, record the ship (and its laser
+ BNE ee31d              \ beam) for the renderer and return from LL9 (HEE31,
+                        \ in the cold bank, given what it cannot read from the
+ LDY #12                \ blueprint: GNF = byte #12 / 4, GNV = byte #8, T =
+ LDA (XX0),Y            \ byte #6); the ship line heap is not built, as
+ LSR A                  \ nothing draws from it
  LSR A
  STA GNF
  LDY #8
  LDA (XX0),Y
  STA GNV
- JSR HEE31
+ LDY #6
+ LDA (XX0),Y
+ STA T
+ JMP HEE31
 
 .ee31d
 
@@ -32106,15 +32043,6 @@ ENDMACRO
  INY                    \ Increment the heap pointer
 
  STY U                  \ Store the updated ship line heap pointer in U
-
- JSR RECM               \ Port: in record mode, record the beam for the
- BNE ll9p10             \ renderer, in the enemy lasers' colour (F_LINE; it is
- LDA #FC_ELASER         \ in the heap too, which only VLOIN "draws")
- STA GLCOL
- LDX #FG_LINE
- JSR GCALL
-
-.ll9p10
 
 \ ******************************************************************************
 \
@@ -32916,6 +32844,11 @@ ENDMACRO
 
 .LL155
 
+ JSR RECM               \ Port: in record mode nothing is drawn from the heap:
+ BNE P%+4               \ return at once, with C set (as LL155 leaves it after
+ SEC                    \ drawing a heap of lines; LL9's kill path reads C,
+ RTS                    \ in DORND)
+
  LDY #0                 \ Fetch the first byte from the ship line heap into A,
  LDA (XX19),Y           \ which contains the number of bytes in the heap
 
@@ -32949,8 +32882,7 @@ ENDMACRO
  LDA (XX19),Y           \ Fetch the Y2 line coordinate from the heap and store
  STA XX15+3             \ it in XX15+3
 
- JSR VLOIN              \ Draw a line from (X1, Y1) to (X2, Y2) (Port: in
-                        \ record mode, only work out what LOIN leaves, VLOIN)
+ JSR LL30               \ Draw a line from (X1, Y1) to (X2, Y2)
 
  INY                    \ Increment the heap pointer
 

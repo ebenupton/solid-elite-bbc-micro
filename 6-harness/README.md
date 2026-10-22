@@ -116,7 +116,7 @@ cycles per flight iteration.
 
 | File | What it does |
 |---|---|
-| `blib.mjs` | Boots a disc on the emulated Model B and runs the game under the pilot. Handles the two programs, input injection, the laser pulse counter, state snapshots and the screen hash, and walks far-call frames. |
+| `blib.mjs` | Boots a disc on the emulated Model B and runs the game under the pilot. Handles the two programs, input injection, the laser pulse counter, state snapshots and the screen hash, and walks far-call frames. Applies a build's named patches (`PATCHES`, listed in its `build.json`): the reference has one, `ma93-q`, which sets `Q` to 0 at the altitude check's `JSR LL5`, as the port's source does (docs/renderer.md). |
 | `bpilot.mjs` | The deterministic pilot and its commander patch. |
 | `bcompare.mjs` | Compares the reference against a candidate and reports the first divergence, the speed per window and by pilot phase, and the cycles per flight iteration. |
 | `bredock.mjs` | The regression check for docking, launching and docking again, with real key presses (each docking within `--limit` emulated seconds, 300 by default). |

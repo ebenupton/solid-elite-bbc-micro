@@ -256,25 +256,31 @@ before, in direct mode. The docked code is unchanged: it never records, and
 `PCLI` switches the renderer to direct mode (`F_DIRECT`) whenever it loads a
 program.
 
-### Only the pixels are skipped
+### What record mode skips, and the reference's patch
 
-In record mode the game still works out everything it would draw: the
-ship line heap with its clipping, the planet's outline and curves, the
-sun's rows, our lasers. Only the pixels are not plotted. This is needed
-for the gate, not for the picture: the original's state depends on what
-its drawing leaves behind. The altitude, `ALTIT`, is the square root of `R`
-and whatever was left in `Q`, and in the original `Q` was last written by
-`LOIN` about two times in five (a trace of the gate's run, from the
-original's `LI2` and `LI5`). A first version of the hooks that skipped the
-line heap and the curves diverged from the original at iteration 2,864 on
-`ALTIT`.
+In record mode the game skips its drawing and the drawing's own
+bookkeeping: the ship line heap and the clipping of its lines, the
+planet's outline and the clipping and heap of its curves, the erasing of
+the sun's and the planet's old lines, and our lasers' lines. What is real
+game state still runs: the sun's rows (which take random numbers for the
+fringe), the explosion clouds (likewise), byte #31's bits.
 
-So the lines go through `VLOIN` (home bank): outside record mode it is
-`LOIN`; in record mode it does only `LOIN`'s first part and the division
-of its second or third (`S`, `SWAP`, `P`, `Q`, and the ends swapped as
-`LOIN` swaps them), and plots nothing. The sun's rows go through `HLS` and
-`HL2S`, which skip `HLOIN` and `HLOIN2` in record mode. The particles of
-an explosion go through `HDOT`, and the stars are caught in `PIXEL2`.
+One thing in the original depends on what the drawing leaves behind: the
+altitude (`ALTIT`, in the main flight loop at `MA93`) is `SQRT(R Q)` with
+`Q` left over from whatever ran last, which a trace of the gate's run
+shows is `LOIN`'s division about two times in five. So the port sets
+`Q = 0` before that `JSR LL5` (`LDA #0 : STA Q`), and the gate's reference
+gets the same patch: the harness applies the named patch `ma93-q`
+(`6-harness/blib.mjs`, `PATCHES`; listed in the reference's `build.json`)
+as a hook at the reference's `JSR LL5` after `MA93`, which it finds by
+its bytes (`STA R`, `JSR LL5`, which must be there exactly once) and at
+which it sets `Q` to 0. Without it, a record mode that skips the line heap
+diverges on `ALTIT` (at iteration 2,864 of the gate's run). The altitude
+the patched game shows can differ from the original's by one unit.
+
+(The first version of the renderer's integration kept the bookkeeping
+instead, with `VLOIN` working out each line's `LOIN` division, which cost about
+54,000 cycles an iteration.)
 
 ### The hooks
 
@@ -282,16 +288,18 @@ an explosion go through `HDOT`, and the stars are caught in `PIXEL2`.
 |---|---|---|
 | `TT100`, `DEATH` (`JSR MFRAME`) | home | after each `M%`, `F_FRAME`: the frame is drawn into the buffer not on show, and shown at the next flip (A, X, Y and the flags as `M%` left them: the main loop's `DORND` reads C) |
 | `ESCAPE` | cold | after each `LL9`, `F_FRAME` |
-| `LL9` part 9 (`EE31`), `HEE31` | home, cold | the ship is recorded (`F_SHIP`, with its faces and vertices, read from the blueprint in the home bank); then `LL9` goes on as before |
-| `LL9` part 9's laser beam | home | the beam is recorded (`F_LINE`) as it goes into the heap |
-| `LL155`, `BLINE`, `WPLS2`, `las` (`VLOIN`) | home | the line is only worked out (above) |
+| `LL9` part 9 (`EE31`), `HEE31` | home, cold | the ship is recorded (`F_SHIP`, with its faces and vertices, read from the blueprint in the home bank), and its laser beam if it fires (`F_LINE`, clipped by `LL145`); byte #31 is left as `EE31` leaves it, and `LL9` returns without building the heap |
+| `LL155` | home | returns at once, with C set |
 | `SHPPT` | home | the distant ship's dot is recorded (`F_SHPPT`) |
 | `DOEXP` (`PTCLSE`), `PTCLS` (`HDOT`) | home | the old cloud is run again with `GDRAWON` = 0, recording nothing; each particle of the new one is recorded (`F_DOT`) |
 | `PIXEL2` (`PX2`, `px24r`) | home | star `Y` is recorded straight into the mailbox (`MB_SX`, `MB_SY`, `MB_SS`; size 1, 2 or 3 by `ZZ`, as `PIXEL` draws it), or marked absent if it is off screen |
-| `SUN` (`HLS`, `HL2S`), `WPLS` | home | the sun is recorded as a disc (`F_PLANET`); its rows are worked out as before, but not drawn |
-| `CIRCLE` | home | the planet is recorded as a disc (`F_PLANET`), then `CIRCLE2` runs with `GDRAWON` = 0, so that `BLINE` records none of the outline's points |
-| `PLS22`, `BLINE` | home | a new curve (`F_PCURVE`), and each point (`F_PPOINT`) |
-| `LASLI` | home | `GLASV` is set (the frame draws the beams from `LASX`, `LASY`) |
+| `SUN` (`HLS`, `HL2S`) | home | the sun is recorded as a disc (`F_PLANET`); its rows are worked out as before (they take random numbers), but not drawn |
+| `WPLS` | home | the sun's heap is emptied, nothing erased |
+| `CIRCLE` | home | the planet is recorded as a disc (`F_PLANET`), and `CIRCLE` returns as `CIRCLE2` would (FLAG = 0, C clear) |
+| `PLS22`, `BLINE` | home | a new curve (`F_PCURVE`), and each point (`F_PPOINT`), without the clipping and the heap |
+| `WPLS2` | home | the heap is reset, nothing erased |
+| `LASLI`, `LASLI2` | home | `GLASV` is set (the frame draws the beams from `LASX`, `LASY`); nothing to draw or remove |
+| `MA93` | home | (every mode) `Q = 0` before the altitude's `JSR LL5`; the reference is patched to match |
 | `SIGHT` | cold | `GSIGHT` is set to the laser power, `QQ19` as `TT15` leaves it |
 | `TTX66` | cold | (every mode) `F_DIRECT`: direct mode, buffer 1 on show, text map cleared |
 | `TT26` (`RR3`) | cold | (every mode) the character goes into the text map (`F_CHAR`); in record mode it is not drawn |
@@ -324,19 +332,19 @@ leaves everything as the original's drawing does.
 
 ## Speed
 
-The gate's run, 10,000 iterations: 308,463 cycles per flight iteration,
-6.48 flight iterations per second, against the original's 168,749 and
-11.85 (0.547 times). By scene (`6-harness/bscenes.mjs` records each
+The gate's run, 10,000 iterations: 254,590 cycles per flight iteration,
+7.86 flight iterations per second, against the original's 168,749 and
+11.85 (0.663 times). By scene (`6-harness/bscenes.mjs` records each
 iteration's time and the planet's, the station's and the ships' positions
 in a build's run; `6-harness/scenes.py` compares two such runs, counting a
 flight iteration in the front view that both put in the same scene):
 
 | Scene | Iterations | The original | The port | Against the original |
 |---|---:|---:|---:|---:|
-| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 270 | 103,168 cycles, 19.39 it/s | 165,801 cycles, 12.06 it/s | 0.62 |
-| Planet close: the planet ahead, nearer than 128 x 256 | 1,032 | 146,033, 13.70 | 207,603, 9.63 | 0.70 |
-| Station close: the station ahead, nearer than 16 x 256 | 706 | 187,529, 10.67 | 362,689, 5.51 | 0.52 |
-| Ships about | 2,662 | 169,996, 11.77 | 266,673, 7.50 | 0.64 |
+| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 270 | 103,168 cycles, 19.39 it/s | 146,463 cycles, 13.66 it/s | 0.70 |
+| Planet close: the planet ahead, nearer than 128 x 256 | 1,032 | 146,033, 13.70 | 182,610, 10.95 | 0.80 |
+| Station close: the station ahead, nearer than 16 x 256 | 706 | 187,528, 10.67 | 337,173, 5.93 | 0.56 |
+| Ships about | 2,662 | 169,996, 11.77 | 222,598, 8.98 | 0.76 |
 
 ### Where the time goes
 
@@ -363,9 +371,10 @@ spans, polygons and the repair), `r_pgfix` 28,055, the repair's row code
   row's dirty extent outside it) was tried: two repairs of a row cost more
   than they saved for discs of the sizes the frames draw, and it was
   dropped.
-* **Record mode is faithful.** The game still builds the ship line heap,
-  clips its lines and works out every line's `LOIN` division (`VLOIN`),
-  about 10,000 cycles an iteration, so that its state stays the original's.
+* **Record mode was faithful at first.** The renderer's first commits
+  still built the ship line heap, clipped its lines and worked out every
+  line's `LOIN` division (`VLOIN`), so that the state stayed the
+  original's; with the altitude's `Q` defined in both (above), that went.
 
 ### Speed-ups made
 
@@ -373,3 +382,4 @@ spans, polygons and the repair), `r_pgfix` 28,055, the repair's row code
 |---|---:|---:|
 | Draw the space view through the filled renderer | 322,228 | |
 | Fill and mark a disc's row in one call, and clip in the home bank first | 308,463 | 13,765 |
+| Drop record mode's line bookkeeping, with Q = 0 at the altitude in both | 254,590 | 53,873 |

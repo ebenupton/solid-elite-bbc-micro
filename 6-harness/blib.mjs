@@ -113,9 +113,34 @@ export function loadBuild(file) {
     };
     return {
         file, disc: p(d.disc), progs: { flight: prog("flight", d.flight), docked: prog("docked", d.docked) },
-        loader: loadSyms(p(d.loader)), banks: d.banks || {},
+        loader: loadSyms(p(d.loader)), banks: d.banks || {}, patches: d.patches || [],
     };
 }
+
+// Patches to a build's behaviour, named in its build.json ("patches"), which
+// runElite applies as hooks: the gate's reference (the original disc) has
+// one, as the port defines a value that the original leaves to chance.
+//
+//  * "ma93-q": in the main flight loop's altitude check (MA93: STA R, JSR
+//    LL5), the original takes SQRT(R Q) with Q left over from whatever ran
+//    last, usually LOIN's division: so the altitude depends on what was
+//    drawn. The port sets Q = 0 there (LDA #0, STA Q before the JSR), so
+//    that its record mode need not work out the original's lines; the
+//    reference gets the same: at the JSR LL5, Q = 0. The JSR is found from
+//    MA93 by its bytes (STA R, JSR LL5: &85 R &20 LL5), which must be there
+//    once, or the run fails; LL5 reads R and Q first, and no register, so
+//    setting Q in memory at the JSR is the port's two instructions.
+export const PATCHES = {
+    "ma93-q": (prog) => {
+        const sy = prog.sy, img = prog.images.find(im => sy.MA93 >= im.base && sy.MA93 < im.base + im.data.length);
+        const want = [0x85, sy.R, 0x20, sy.LL5 & 255, sy.LL5 >> 8];
+        const at = [];
+        for (let a = sy.MA93; a < sy.MA93 + 96; a++) if (want.every((v, i) => img.data[a + i - img.base] === v)) at.push(a);
+        if (at.length !== 1) throw new Error(`patch ma93-q: STA R, JSR LL5 found ${at.length} times after MA93`);
+        const a = at[0] + 2;
+        return { a, map: img.map, sig: [0x20, sy.LL5 & 255, sy.LL5 >> 8], apply: cpu => { cpu.ramRomOs[sy.Q] = 0; } };
+    },
+};
 
 // Game state compared per iteration: [start, length, name]. The workspaces
 // are at the same addresses in both programs (and the regions are found by
@@ -308,6 +333,12 @@ export async function runElite(opts) {
     const add = (key, h) => { if (!h) return; h.key = key; (byPc.get(h.a) || byPc.set(h.a, []).get(h.a)).push(h); };
     for (const pn of ["flight", "docked"]) for (const [k, h] of Object.entries(H[pn])) add(k, h);
     add("LAS", lasHook); add("LASN", lasNext);
+    // the build's patches (PATCHES above), on the flight program
+    for (const name of b.patches) {
+        if (!PATCHES[name]) throw new Error(`unknown patch ${name}`);
+        const pt = PATCHES[name](P.flight);
+        add("PATCH", { prog: P.flight, name, ...pt });
+    }
 
     // label lookup for call sites, per program and mapping ("m": main RAM,
     // or a bank role; a cold body's label, name_C, is reported as name)
@@ -392,6 +423,7 @@ export async function runElite(opts) {
                 cpu.x = down ? key | 0x80 : key;
                 break;
             }
+            case "PATCH": h.apply(cpu); break;
             case "Mpc": {
                 const v = rb(fsy.LASCT);
                 if (v) cpu.ramRomOs[fsy.LASCT] = v - 1;

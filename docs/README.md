@@ -57,11 +57,15 @@ default commander's checksum.
 | Part 3: the four-colour screen, still drawing wireframes | 13.70 | 1.156 | 146,023 |
 | Part 3: the wireframe drawing moved to the cold bank, for room | 11.58 | 0.977 | 172,638 |
 | Part 3: the filled renderer | 6.21 | 0.524 | 322,228 |
-| End of part 3 ([renderer.md](renderer.md)) | 6.48 | 0.547 | 308,463 |
+| Part 3: one disc row in one call, the clipper's first part home | 6.48 | 0.547 | 308,463 |
+| End of part 3 ([renderer.md](renderer.md)) | 7.86 | 0.663 | 254,590 |
 
 These are the gate's run: the pilot's mix of launches, fights, approaches to
 the station and hyperspace jumps, over 10,000 iterations. Saved commander
-files are byte for byte the original's. From the four-colour screen on, the
+files are byte for byte the original's. Since the renderer's record mode
+stopped working out the original's lines, the reference is run with one
+small patch (`Q` = 0 at the altitude check, as the port's source has it;
+[renderer.md](renderer.md)). From the four-colour screen on, the
 gate compares the game state without the drawing's temporaries and line
 heaps (`--loose`), and no longer the screen.
 
@@ -70,10 +74,10 @@ the original's state; [renderer.md](renderer.md), "Speed"):
 
 | Scene | Iterations | The original, it/s | The port, it/s | Against the original |
 |---|---:|---:|---:|---:|
-| Open space (planet far, no ships, no station near) | 270 | 19.39 | 12.06 | 0.62 |
-| Planet close (nearer than 128 x 256) | 1,032 | 13.70 | 9.63 | 0.70 |
-| Station close (nearer than 16 x 256, ahead) | 706 | 10.67 | 5.51 | 0.52 |
-| Ships about | 2,662 | 11.77 | 7.50 | 0.64 |
+| Open space (planet far, no ships, no station near) | 270 | 19.39 | 13.66 | 0.70 |
+| Planet close (nearer than 128 x 256) | 1,032 | 13.70 | 10.95 | 0.80 |
+| Station close (nearer than 16 x 256, ahead) | 706 | 10.67 | 5.93 | 0.56 |
+| Ships about | 2,662 | 11.77 | 8.98 | 0.76 |
 
 The filled renderer is slower than the original's wireframe: every frame
 is drawn in full, filled, into the buffer not on show, on the same 2 MHz
