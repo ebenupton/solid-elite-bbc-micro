@@ -331,7 +331,8 @@ def text(m, s, x, y):
 
 
 def scene(m, k):
-    """record scene k (0: A, 1: B, 2: C); returns what to look for"""
+    """record scene k (0: A, 1: B, 2: C, 3: D, 4: E: the planet alone moving, for
+    the incremental disc); returns what to look for"""
     S = m.S
     look = {}
     m['QQ11'] = 0
@@ -343,7 +344,7 @@ def scene(m, k):
         m.call('F_PLANET')
         look['sun'] = (210, 40)
     m['TYPE'] = 128                              # the planet
-    px, py, pr = (60, 140, 50) if k != 1 else (70, 130, 46)
+    px, py, pr = {1: (70, 130, 46), 3: (64, 136, 54), 4: (74, 126, 47)}.get(k, (60, 140, 50))
     m.put16('K3', px)
     m.put16('K4', py)
     m['K'] = pr
@@ -488,8 +489,31 @@ def main():
             bad[a] = 0xF0
         png(bytes(bad), os.path.join(png_dir, 'frame-3-diff.png'))
 
+    print('frames 4 and 5: scenes D and E (the planet moving, alone) on buffers 1 and 0')
+    scene(m, 3)
+    frame(m, png_dir, 'frame-4.png')
+    scene(m, 4)
+    b, cyc5 = frame(m, png_dir, 'frame-5.png')
+    got = m.buffer(0)
+    m3 = Machine()
+    m3.call('F_INIT')
+    border(m3)
+    m3.call('F_DIRECT')
+    m3.mem.main[S['FRIN'] + 1] = 0
+    scene(m3, 4)
+    frame(m3)
+    want = m3.buffer(0)
+    diff = [a for a in range(0x3000) if got[a] != want[a]]
+    check(b == 0 and not diff, 'the incremental disc: buffer 0 after scenes A, C and E is buffer 0 after E alone%s' % (
+        '' if not diff else ' (%d bytes differ, first at offset &%04X)' % (len(diff), diff[0])))
+    if diff:
+        bad = bytearray(want)
+        for a in diff:
+            bad[a] = 0xF0
+        png(bytes(bad), os.path.join(png_dir, 'frame-5-diff.png'))
+
     print('cycles: F_FRAME %s (frame 1 includes blanking both buffers); F_SHIP %s; F_CHAR %d' % (
-        ', '.join(str(c) for c in (cyc1, cyc2, cyc3)),
+        ', '.join(str(c) for c in (cyc1, cyc2, cyc3, cyc5)),
         '..'.join(str(f(m.cycles['F_SHIP'])) for f in (min, max)), max(m.cycles['F_CHAR'])))
     print('PNGs in %s: frame-1.png, frame-2.png, frame-3.png' % png_dir)
     if FAILS:
