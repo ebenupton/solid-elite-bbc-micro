@@ -39,3 +39,6 @@ run.bat
 __pycache__/
 3-assembled-output/nmos/
 3-assembled-output/bankr-symbols.txt
+3-assembled-output/bankf-game.asm
+3-assembled-output/GLUE.bin
+3-assembled-output/frame-*.png
