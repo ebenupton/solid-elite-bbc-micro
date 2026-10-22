@@ -75,6 +75,9 @@ Part 3, the renderer:
 | `76f97e4` | documentation of part 3 | (docs only) |
 | `d1d23c1` | the assembled output and the disc refreshed | PASS, 308,463 |
 | `4c6b936` | record mode's line bookkeeping dropped, with `Q` = 0 at the altitude in both the port and the (patched) reference | PASS, 254,590 |
+| `828b473` | a run page checked once per buffer, and patched without clearing the carry | PASS, 247,931 |
+| `48c5bfa` | the lens flare, in bank F | PASS, 247,951 |
+| `edad30d` | the docked code's title, hangar and briefings as filled frames | PASS, 247,961 |
 
 ## Gate results by part
 
@@ -105,18 +108,24 @@ regressions.
 | End of part 1 | 11.87 | 1.001 | 168,533 |
 | End of part 2 | 14.51 | 1.224 | 137,864 |
 | End of part 3, first | 6.48 | 0.547 | 308,463 |
-| Now (`4c6b936`) | 7.86 | 0.663 | 254,590 |
+| After the bookkeeping went (`4c6b936`) | 7.86 | 0.663 | 254,590 |
+| Now (`48c5bfa`) | 8.07 | 0.681 | 247,951 |
 
 By scene, over the gate's run (front-view flight iterations classified by
 the game state; `6-harness/bscenes.mjs` and `scenes.py`), against the
 original (patched as below):
 
-| Scene | Iterations | Original | Port at `270e60a` | Port now | Ratio now |
-|---|---:|---:|---:|---:|---:|
-| Open space (planet far, no ships, no station near) | 270 | 19.39 it/s | 12.06 it/s | 13.66 it/s | 0.70 |
-| Planet close (ahead, z below 128 x 256) | 1,032 | 13.70 it/s | 9.63 it/s | 10.95 it/s | 0.80 |
-| Station close (ahead, z below 16 x 256) | 706 | 10.67 it/s | 5.51 it/s | 5.93 it/s | 0.56 |
-| Ships about | 2,662 | 11.77 it/s | 7.50 it/s | 8.98 it/s | 0.76 |
+| Scene | Iterations | Original | `270e60a` | `4c6b936` | `48c5bfa` (now) | Ratio now |
+|---|---:|---:|---:|---:|---:|---:|
+| Open space (planet far, no ships, no station near) | 270 | 19.39 it/s | 12.06 | 13.66 | 13.94 | 0.72 |
+| Planet close (ahead, z below 128 x 256) | 1,032 | 13.70 it/s | 9.63 | 10.95 | 11.10 | 0.81 |
+| Station close (ahead, z below 16 x 256) | 706 | 10.67 it/s | 5.51 | 5.93 | 6.02 | 0.56 |
+| Ships about | 2,662 | 11.77 it/s | 7.50 | 8.98 | 9.18 | 0.78 |
+
+(The "planet close" scene, the planet ahead nearer than 128 x 256, turns
+out to draw few disc rows, 7.6 a frame on average: so close, the planet is
+mostly off the screen or not drawn. The big discs are in the remaining
+iterations, 128 disc rows a frame.)
 
 The filled port is about two thirds as fast as the original wireframe
 game. The speed-ups of part 2 are kept, but each frame is drawn in full on
@@ -187,12 +196,49 @@ next) for about 130 of the 1,155 cycles a page. A second full-length copy
 of only the most used rows' runs, if bank R has room after its cold parts
 move out, would take a share of the rest.
 
+## Bank R, the disc layer, the flare and the docked screens
+
+Work queued after the two evaluations above, in the order asked:
+
+1. **Moving bank R's cold parts out, to free it for hot code.** Not done:
+   with the alternate-column fill slower, nothing on the hot path wanted
+   the room, and what is cold in bank R mostly cannot leave it. `R_INIT`
+   and `R_RESETBUF` work on bank R's own state, so they must run with bank
+   R paged; `R_LINE`'s cold part is reached from `R_LINE`. Bank R's free
+   space instead took the patching speed-up (`828b473`, which filled the
+   high region) and two small entries (`R_SPANM` earlier, `R_MARKBOX` for
+   the flare).
+2. **The disc layer** (the Master port's `R_DISCROWS`, two-colour shaded
+   discs updated row by row, with boundary arrays for both buffers): does
+   not fit. Its window is about 4K of code, its arrays about 3K (the
+   boundaries and the disc spans, per buffer), and on the Master it takes
+   its per-row inputs from the frame layer through shared memory; bank R
+   has under 400 bytes free and the Model B has no main RAM to share
+   between banks F and R. A lighter version was built and measured instead:
+   one plain disc kept on the screen from frame to frame (`R_DISCROW` in
+   bank R, 293 bytes after `R_LINE`'s cold part; the frame layer keeping
+   each buffer's spans, 1K in bank F), filling only what changed and what
+   the repair blacked. It passed bank F's test (a new one: the planet
+   moving alone over five frames, buffer 0 byte for byte the planet drawn
+   alone) and the gate's state comparison, but it was slower: 259,111
+   cycles per flight iteration against 247,931, and slower in every scene
+   (`other`, with the biggest discs, 295,885 against 280,380). The planet's
+   meridians and craters are lines over the disc, which dirty most of its
+   rows each frame, so most of the disc is repaired and repainted anyway,
+   and a call per row costs more than the old whole-row fill. It was
+   reverted; the test stayed (`382af78`).
+3. **The lens flare**: back (`48c5bfa`), in bank F, pixel for pixel the
+   Master model's.
+4. **Filled docked screens**: the title, the hangar and the briefings are
+   frames (`edad30d`). The title and the hangar were looked at; the
+   briefings were not (no mission was run).
+
 ## Compromises
 
-* **The disc layer is cut** (the rasteriser only fits bank R without it;
-  the lens flare, cut at first too, is now in bank F). The sun and the planet are plain dithered discs
-  filled whole every frame, with the planet's meridians, equator and
-  craters as cyan lines over it, not two-colour bands.
+* **The disc layer is cut** (it does not fit; above). The sun and the
+  planet are plain dithered discs filled whole every frame, with the
+  planet's meridians, equator and craters as cyan lines over it, not
+  two-colour bands.
 * **The altitude's leftover `Q` is defined.** The original's altitude takes
   a square root of `R` and of whatever its drawing left in `Q`; the port
   sets `Q` = 0 there, and the gate's reference is patched the same way
@@ -202,8 +248,6 @@ move out, would take a share of the rest.
 * **Palette effects are not reproduced**: the hyperspace rings' mode change
   (`HFX`) and the colour flashes; the palette is fixed (black, cyan,
   magenta, yellow).
-* **The docked code is unchanged in kind**: the title screen and the hangar
-  are coloured wireframes drawn directly, not filled.
 * **Text and sights are redrawn every frame** from the frame layer's text
   map, not tracked per buffer.
 * **The disc is 80 tracks** (520 sectors: the renderer's two banks add 128).
@@ -225,10 +269,12 @@ move out, would take a share of the rest.
   found from screenshots and fixed by amending that commit. The renderer's
   output was checked by eye only on a sample of screenshots (the launch,
   the planet, the station in the rear view, the side view, the charts, the
-  hyperspace rings, the docked screens of the savetest), and by bank R's
-  and bank F's py65 tests.
+  hyperspace rings, the docked screens of the savetest, the title and
+  the hangar), and by bank R's and bank F's py65 tests (and the flare
+  against the Master's model).
 * **Not looked at on screen**: the energy bomb, the escape pod's flight, the
-  death screen, witchspace and Thargoids, the missions, the joystick. The
+  death screen, witchspace and Thargoids, the missions and their
+  briefings (now frames), the joystick. The
   escape pod and the death sequence run in the gate's state comparison
   (an escape is in the pilot's run), not visually.
 * **The frame layer's five commits** (`244047e` to `4db0266`) leave the

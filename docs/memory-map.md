@@ -208,14 +208,16 @@ see the history of this file).
 | The missile's blueprint | `&7F00-&7FFF` | as in the original (with `VEC` at `&7FFE`) |
 | Home bank | `&8000-&BFFF`, ROMSEL `BANKH` | the flight or docked code's home image: `S%` and the home code from `&8000`; in the flight code, the quarter squares at `&B200-&B5FF` (`QSL`, `QSH`); the blueprint set at `&B600` |
 | Cold bank | `&8000-&BFFF`, ROMSEL `BANKC` | the flight or docked code's cold image: the cold code from `&8000`, then `QQ18`; `DFSSAVE%` at `&BF00` |
-| Bank R | ROMSEL `BANKR` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)) |
-| Bank F | ROMSEL `BANKF` | the frame layer, from `F.BANK` |
+| Bank R | ROMSEL `BANKR` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), the jump table `RJT` |
+| Bank F | ROMSEL `BANKF` | the frame layer, from `F.BANK`: its code with the lens flare and the hangar's background (`&8000-&9B0E`), the faces' and lighting tables, its state (`&AA00-&B8FF`), the dispatcher `FJT` |
 
-Free space at the end of part 3: 171 bytes in the flight code's home bank,
-7,642 in its cold bank, 4,594 in the docked code's home bank (below its
-blueprints) and 5,945 in its cold bank, 25 in resident block A and 3 in the
-glue, 15 in the high resident block, 3,008 in bank F, and 26, 36 and 342 in
-bank R's three regions.
+Free space now: 275 bytes in the flight code's home bank, 7,558 in its
+cold bank, 4,484 in the docked code's home bank (below its blueprints) and
+5,756 in its cold bank, 13 in resident block A and 11 in the glue, 15 in the
+high resident block, 1,728 in bank F, and in bank R 6 in its low region
+(&8000-&8FFF), none in its high region (&9000-&BFBF) and 342 after R_LINE's
+cold part (&982A-&997F). The flight code's banks are what the frames can
+use; the docked code's are free only while docked.
 
 ## What is not in the original's order
 

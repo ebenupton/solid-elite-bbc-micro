@@ -230,7 +230,6 @@ the Master model's: drawn with five suns on both buffers and compared with
 * **The disc layer**: the planet's meridians, equator and craters are lines
   over a plain disc, not two-colour bands, and both discs are drawn whole
   every frame.
-* **The hangar, LL9B and the briefings** (docked-only drawing).
 * **Text and sights tracked per buffer**: the Master port drew each cell
   once per buffer and erased it when it changed; here both are redrawn
   every frame (a full text row costs 32 glyphs), which needs no per-buffer
@@ -326,6 +325,31 @@ To make room in the flight code's home bank for these, `CLYNS` and `LYN`,
 and the rarely run parts 1, 3 and 4 of the main game loop and 9 and 10 of
 the main flight loop, moved to the cold bank (`MA61`'s `BNE MA26`, always
 taken, became a `JMP`, as `MA26` stays in the home bank).
+
+### The docked code
+
+The docked code records its ships too, under the same test (`RECM`:
+`QQ11` OR `GFORCE` = 0), with its own copies of the hooks: `EE31` (and
+`HEE31` in its cold bank), `LL155`, `TTX66` (direct mode), and its text
+(`CHPR`'s `RR3` and `RRD`, `CLYNS`: the text map in every mode, the screen
+only outside record mode and space mode, `DRAWQ`). Three screens are
+frames:
+
+* **The title** (`TITLE`, which sets `QQ11` = 0): a frame after each `LL9`.
+* **The hangar** (`HALL`): `F_HANG0` (`FG_HANG0`) empties the frame's lists
+  and sets the hangar's light before `HAS1` places and records the ships;
+  then, in place of `HANGER`'s lines, `F_HANGAR` (`FG_HANGAR`) draws one
+  frame whose background (`gfx-hangar.asm`, the Master port's: a magenta
+  wall and a yellow and magenta floor, each a 2x2 dither, with `HANGER`'s
+  lines in black) goes in between the discs and the ships, through
+  `F_FRAME`'s `ff_lin`, so the ships hide it where `HANGER`'s lines stopped
+  at them.
+* **The briefings** (`BRIEF`'s loops, `PAS1`): `LL9B` sets `QQ11` = 0 for
+  `LL9` and a frame, and puts it back.
+
+As these draw into buffer 0, over DFS's workspace page, the docked code's
+own disc calls (the commander file's `OSFILE`, and `CATD`) keep the page as
+`PCLI` does (`dfsin`, `dfsout`).
 
 ### The buffers and the flip
 
