@@ -321,3 +321,55 @@ so that the drawing paths are compared with the original's, pixel for
 pixel; the gate's run (record mode, in flight) compares the game's state
 with the original's at every iteration, which checks that the record mode
 leaves everything as the original's drawing does.
+
+## Speed
+
+The gate's run, 10,000 iterations: 308,463 cycles per flight iteration,
+6.48 flight iterations per second, against the original's 168,749 and
+11.85 (0.547 times). By scene (`6-harness/bscenes.mjs` records each
+iteration's time and the planet's, the station's and the ships' positions
+in a build's run; `6-harness/scenes.py` compares two such runs, counting a
+flight iteration in the front view that both put in the same scene):
+
+| Scene | Iterations | The original | The port | Against the original |
+|---|---:|---:|---:|---:|
+| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 270 | 103,168 cycles, 19.39 it/s | 165,801 cycles, 12.06 it/s | 0.62 |
+| Planet close: the planet ahead, nearer than 128 x 256 | 1,032 | 146,033, 13.70 | 207,603, 9.63 | 0.70 |
+| Station close: the station ahead, nearer than 16 x 256 | 706 | 187,529, 10.67 | 362,689, 5.51 | 0.52 |
+| Ships about | 2,662 | 169,996, 11.77 | 266,673, 7.50 | 0.64 |
+
+### Where the time goes
+
+A profile of the first 3,000 iterations (`bprofile.mjs`; mostly fighting
+near the planet, then a hyperspace jump and an approach), per flight
+iteration, at the renderer's first commit (345,647 cycles): bank R
+155,899 (the rasteriser), bank F 33,125 (the frame layer), main RAM 43,264
+(of which the trampolines into bank R about 25,600 and the far calls about
+8,000), the flight code's home bank 91,419, its cold bank 8,613, and the
+MOS (the interrupts) 13,327. In bank R: the row runs 37,217 (the stores of
+spans, polygons and the repair), `r_pgfix` 28,055, the repair's row code
+22,569, polygons about 34,000, lines about 20,000.
+
+* **`r_pgfix`.** The row runs are unrolled stores assembled for buffer 1;
+  each time a run page is used for the other buffer, its 63 stores'
+  addresses are patched. With a flip every frame, every page in use is
+  patched every frame. Two sets of runs would end this, but bank R has no
+  room for a second set (4.5K).
+* **Everything is drawn every frame.** The Master port's disc layer (which
+  drew only the rows of the planet that changed) did not fit in bank R, so
+  the sun and the planet are filled whole every frame, and the repair
+  blacks last frame's whole disc first. A trim of the repair inside a
+  square that the new disc covers (`R_REPAIR` repairing only the parts of a
+  row's dirty extent outside it) was tried: two repairs of a row cost more
+  than they saved for discs of the sizes the frames draw, and it was
+  dropped.
+* **Record mode is faithful.** The game still builds the ship line heap,
+  clips its lines and works out every line's `LOIN` division (`VLOIN`),
+  about 10,000 cycles an iteration, so that its state stays the original's.
+
+### Speed-ups made
+
+| Commit | Cycles per flight iteration | Saved |
+|---|---:|---:|
+| Draw the space view through the filled renderer | 322,228 | |
+| Fill and mark a disc's row in one call, and clip in the home bank first | 308,463 | 13,765 |

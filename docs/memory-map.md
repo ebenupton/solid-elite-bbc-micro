@@ -61,7 +61,7 @@ program's source.
    program's home bank in itself. Disc commands and file names must be in
    main RAM, as DFS reads them with its own ROM paged in at `&8000`. Files
    cannot be loaded straight into sideways RAM for the same reason: each is
-   loaded into main RAM at `STAGE%` (`&1200`) and copied into its bank.
+   loaded into main RAM at `STAGE%` (`&1600`) and copied into its bank.
 6. **Page `&0D`** holds only what the original puts there: DFS's NMI routine
    and the loader's `CATD` at `&0D7A`.
 
@@ -156,14 +156,18 @@ The original's loader, `ELITE4` (`elite-loader3.asm`), is the port's
 loader, and the disc's `!Boot` runs it directly (the copy protection's first
 two loaders are gone, and the port does the two things they did for the
 game: closing `*SPOOL` and `*EXEC` files, and reading the keyboard
-translation table's address into `TRTB%`). As in the original, it sets up
-the screen and the interrupt handler, installs the resident block at
-`&1100`, `CATD` at `&0D7A` and the dashboard image at `&7800`. In place of
-the text tokens it installs the port's resident block A at `&0400`
-(`elite-resident.asm`), then finds the four banks. Its last part runs at
-`&0B00`, as the original's did: it loads the docked code with "L.T.CODE"
-through `PCLI`, points WRCHV and BRKV at `WRCHR` and `BRKR`, and starts the
-game at `S%+3` in the docked code's home bank.
+translation table's address into `TRTB%`). As in the original, it shows
+the loading screen with its own interrupt handler (block B, at `&1100`),
+and installs `CATD` at `&0D7A`. In place of the text tokens it installs the
+port's resident block A at `&0400` (`elite-resident.asm`), then finds the
+four banks. Its last part, `LOAD`, runs at `&0B00`, as the original's did
+(two pages now): it copies the high resident block to `RESH%`, loads the
+renderer's banks (`R.BANK`, `F.BANK`, through `STAGE%`) and starts the frame
+layer (`F_INIT`), loads the docked code with "L.T.CODE" through `PCLI` and
+the dashboard's image `P.PANEL` to `PANEL%`, switches to the game's
+four-colour screen and starts the rupture (`IRQG`), points WRCHV and BRKV at
+`WRCHR` and `BRKR`, and starts the game at `S%+3` in the docked code's home
+bank. The disc is an 80-track one: it holds 520 sectors.
 
 `PCLI` interprets the original's commands:
 
@@ -182,27 +186,36 @@ game at `S%+3` in the docked code's home bank.
 
 ## The map
 
+The map at the end of part 3 (the parts before it differed below `&8000`:
+see the history of this file).
+
 | Region | Addresses | What |
 |---|---|---|
-| Zero page, stack | `&0000-&00E1`, `&0100-&01FF` | as in the original |
+| Zero page, stack | `&0000-&00E1`, `&0100-&01FF` | as in the original; the rasteriser uses `&06-&27` and the frame layer `&D2-&E1` during a frame, and put the game's bytes back |
 | `UP` | `&0300-&03CF` | as in the original |
-| Resident block A | `&0400-&07BF` | the port's: `BANKS`, the far calls, `PCLI`, `WRCHR`, `BRKR` (`elite-resident.asm`, `elite-far.asm`); the original's text tokens are in the cold banks |
+| Resident block A | `&0400-&07BF` | the port's (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin` and `dfsout`, `WRCHR`, `BRKR`, the last saved commander and the break handler (`S1%`, `NA%`, `CHK2`, `CHK`, `BRBR1`, block B's in the original), the interrupt handler `IRQG` (the rupture and the flip), and at `GLUE%` = `&0730` the renderer's glue (`GCALL` and the trampolines into bank R); the dashboard's workspace at `&07BD-&07BF` |
 | `SNE`, `ACT` | `&07C0-&07FF` | as in the original |
-| `QQ16` | `&0880-&08BF` | as in the original (the docked code copies it there for the flight code) |
-| `K%` and the line heaps | `&0900-&0CFF` | as in the original |
+| `QQ16` | `&0880-&08BF` | as in the original |
+| `K%` and the line heaps | `&0900-&0CFF` | as in the original (the loader's `LOAD` runs at `&0B00-&0CFF` before the game starts) |
 | `CATD` | `&0D7A-&0D9D` | as in the original |
 | `WP` | `&0E00-&0FD2` | as in the original |
-| Resident block B | `&1100-&11E2` | as in the original: `TVT1`, `LINSCN`, `IRQ1`, `NA%`, `BRBR1` |
-| Staging | `&1200-&51FF` | where `PCLI` loads each file before copying it into its bank; otherwise free in parts 1 and 2, and the screen buffers in part 3 |
-| Screen | `&6000-&7EFF` | as in the original in parts 1 and 2 |
+| Buffer 0 | `&1000-&3FFF` | the renderer's second screen buffer (`BUF0`); also DFS's workspace page (`&1000-&10FF`, which `PCLI` puts back for each disc command and keeps in `DFSSAVE%` between them) and, during a load, the staging area `STAGE%` (`&1600`, up to 16K, into buffer 1) |
+| Buffer 1 | `&4000-&6FFF` | the screen (`SCREEN%`): the space view's first buffer, and the only one outside a space view |
+| The dashboard | `&7000-&7DFF` | `PANEL%`: the dashboard's seven character rows, shown by the rupture's frame B |
+| The mailbox | `&7E00-&7E9D` | the rasteriser's inputs (`MBOX`, `gfx-rws.asm`); `PCLI`'s command and OSFILE block (`PCBUF`, `PBLK`) share its polygon vertices |
+| The shared variables | `&7EA0-&7EAF` | `GVARS`: the renderer's state that the game's hooks, the interrupt and the frame layer share |
+| The high resident block | `&7EB0-&7EF0` | `RESH%` (`elite-resident-high.asm`): the palette and the rupture's register routine and tables |
 | The missile's blueprint | `&7F00-&7FFF` | as in the original (with `VEC` at `&7FFE`) |
-| Home bank | `&8000-&BFFF`, ROMSEL `BANKH` | the flight or docked code's home image: `S%` and the home code from `&8000`, the blueprint set at `&B600` |
-| Cold bank | `&8000-&BFFF`, ROMSEL `BANKC` | the flight or docked code's cold image: the cold code from `&8000`, then `QQ18` |
-| Renderer banks | ROMSEL `BANKR`, `BANKF` | free in parts 1 and 2 |
+| Home bank | `&8000-&BFFF`, ROMSEL `BANKH` | the flight or docked code's home image: `S%` and the home code from `&8000`; in the flight code, the quarter squares at `&B200-&B5FF` (`QSL`, `QSH`); the blueprint set at `&B600` |
+| Cold bank | `&8000-&BFFF`, ROMSEL `BANKC` | the flight or docked code's cold image: the cold code from `&8000`, then `QQ18`; `DFSSAVE%` at `&BF00` |
+| Bank R | ROMSEL `BANKR` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)) |
+| Bank F | ROMSEL `BANKF` | the frame layer, from `F.BANK` |
 
-Free space at the end of part 1: 324 bytes in the flight code's home bank,
-11,112 in its cold bank, 5,474 in the docked code's home bank (below its
-blueprints) and 6,025 in its cold bank, and 473 in resident block A.
+Free space at the end of part 3: 171 bytes in the flight code's home bank,
+7,642 in its cold bank, 4,594 in the docked code's home bank (below its
+blueprints) and 5,945 in its cold bank, 25 in resident block A and 3 in the
+glue, 15 in the high resident block, 3,008 in bank F, and 26, 36 and 342 in
+bank R's three regions.
 
 ## What is not in the original's order
 
