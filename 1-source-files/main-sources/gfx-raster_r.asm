@@ -172,3 +172,14 @@
 .none
   RTS
 }
+
+\ ============================================================================
+\ R_SPANM: R_SPAN, then R_MARKDIRTY for the same row and ends (RJT's span
+\ entry, so the frame layer fills and marks a disc's row in one call; R_XL
+\ must be <= R_XR, as the frame layer's discs always are).
+\ ============================================================================
+.R_SPANM
+  JSR R_SPAN
+  LDY RZ_Y
+  JMP R_MARKDIRTY
+

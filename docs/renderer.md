@@ -55,7 +55,7 @@ bank back. A, X and Y are passed through; nothing is returned in them.
 | 3 | `R_SETBUF`: the buffer the next calls use (patches the code for it) | A = 0 or 1 |
 | 6 | `R_RESETBUF`: forget the current buffer's state (its window must be black) | |
 | 9 | `R_REPAIR`: start a frame on the current buffer: black each dirty row's extent (widened to whole bytes), set `R_WL`/`R_WR` to what it wrote, empty the dirty extents | |
-| 12 | `R_SPAN`: fill pixels `R_XL`..`R_XR` of a row with the colour pair (no state updated) | Y = row; `R_XL`, `R_XR`, `R_COLE`, `R_COLO` (zero page) |
+| 12 | `R_SPANM`: fill pixels `R_XL`..`R_XR` of a row with the colour pair (`R_SPAN`), and extend the row's dirty extent by them (`R_MARKDIRTY`), in one call; `R_XL` <= `R_XR` | Y = row; `R_XL`, `R_XR`, `R_COLE`, `R_COLO` (zero page) |
 | 15 | `R_MARKDIRTY`: extend the row's dirty extent by `R_XL`..`R_XR` | Y = row; `R_XL`, `R_XR` |
 | 18 | `R_DOT`: a dot of size 1 (1x1), 2 (2x1) or 3 (2x2) | X = x, Y = y, A = size; the colour pair |
 | 21 | `R_POLY`: a filled convex polygon, either winding, in a 4-row colour | mailbox `R_PN` (1..16), `R_PXL`, `R_PXH`, `R_PYL`, `R_PYH` (16 each, signed 16-bit), `R_COL2`, `R_COL3`; zero page `R_COLE`, `R_COLO` |
@@ -201,8 +201,8 @@ direct mode (or with `GSTASH` set) blank both buffers' windows, keeping
 buffer 1's border and copying it to buffer 0, `T_RESETBUF` both, and draw
 first into the buffer not on show; `T_SETBUF`; wait for the last flip;
 `T_STARERASE`, `T_REPAIR`; then, in order, the sun and the planet (each a
-filled disc, a span per row from its half-width table, `T_SPAN` then
-`T_MARKDIRTY`), the planet's curves (`T_LINE`), the lines, the ships far to
+filled disc, a span per row from its half-width table, `T_SPAN`, which
+marks it dirty too), the planet's curves (`T_LINE`), the lines, the ships far to
 near (insertion sort by z; faces flat-shaded and lit, fins and details, a
 ship behind the planet skipped, as on the Master), the dots, our beams, the
 text (every non-empty cell of the text map, ORed in yellow from the MOS's

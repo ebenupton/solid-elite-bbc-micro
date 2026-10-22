@@ -49,7 +49,7 @@ _RBANK = 2              \ (the Tube host's bank P's layout, which this extends)
  JMP R_SETBUF           \ RJT + 3
  JMP R_RESETBUF         \ RJT + 6
  JMP R_REPAIR           \ RJT + 9
- JMP R_SPAN             \ RJT + 12
+ JMP R_SPANM            \ RJT + 12 (R_SPAN, then R_MARKDIRTY)
  JMP R_MARKDIRTY        \ RJT + 15
  JMP R_DOT              \ RJT + 18
  JMP R_POLY             \ RJT + 21

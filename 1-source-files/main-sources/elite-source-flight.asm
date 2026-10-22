@@ -32281,7 +32281,6 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Clip line: Work out which end-points are on-screen, if any
-\       Area: cold
 \  Deep dive: Line-clipping
 \             Extended screen coordinates
 \
@@ -32442,6 +32441,10 @@ ENDMACRO
  LSR XX13               \ If we get here then (x2, y2) is off-screen and XX13 is
                         \ 191, so shift XX13 right to halve it to 95
 
+ JMP LL83               \ Port: on to part 2, in the cold bank (this part is in
+                        \ the home bank, so that a line that needs no clipping,
+                        \ the common case, costs no far call)
+
 \ ******************************************************************************
 \
 \       Name: LL145 (Part 2 of 4)
@@ -32471,6 +32474,11 @@ ENDMACRO
 \
 \ ******************************************************************************
 
+.ll109c
+
+ SEC                    \ Port: a copy of LL109 (in part 1, in the home bank):
+ RTS                    \ return with C set, the line not visible
+
 .LL83
 
  LDA XX13               \ If XX13 < 128 then only one of the points is on-screen
@@ -32482,11 +32490,11 @@ ENDMACRO
 
  LDA XX15+1             \ If both x1_hi and x2_hi have bit 7 set, jump to LL109
  AND XX15+5             \ to return from the subroutine with the C flag set, as
- BMI LL109              \ the entire line is above the top of the screen
+ BMI ll109c              \ the entire line is above the top of the screen
 
  LDA XX15+3             \ If both y1_hi and y2_hi have bit 7 set, jump to LL109
  AND XX12+1             \ to return from the subroutine with the C flag set, as
- BMI LL109              \ the entire line is to the left of the screen
+ BMI ll109c              \ the entire line is to the left of the screen
 
  LDX XX15+1             \ Set A = X = x1_hi - 1
  DEX
@@ -32497,7 +32505,7 @@ ENDMACRO
  STX XX12+2
 
  ORA XX12+2             \ If neither (x1_hi - 1) or (x2_hi - 1) have bit 7 set,
- BPL LL109              \ jump to LL109 to return from the subroutine with the C
+ BPL ll109c              \ jump to LL109 to return from the subroutine with the C
                         \ flag set, as the line doesn't fit on-screen
 
  LDA XX15+2             \ If y1_lo < y-coordinate of screen bottom, clear the C
@@ -32527,7 +32535,7 @@ ENDMACRO
                         \ the screen, i.e. if y1_lo is on-screen
 
  ORA XX12+2             \ If neither XX12+1 or XX12+2 have bit 7 set, jump to
- BPL LL109              \ LL109 to return from the subroutine with the C flag
+ BPL ll109c              \ LL109 to return from the subroutine with the C flag
                         \ set, as the line doesn't fit on-screen
 
 \ ******************************************************************************
@@ -32781,9 +32789,16 @@ ENDMACRO
  PLA                    \ Restore Y from the stack so it gets preserved through
  TAY                    \ the call to this subroutine
 
- JMP LL146              \ Jump up to LL146 to move the low bytes of (x1, y1) and
-                        \ (x2, y2) into (X1, Y1) and (X2, Y2), and return from
-                        \ the subroutine with a successfully clipped line
+.ll146c                 \ Port: LL146 (in part 1, in the home bank), copied
+                        \ here: move the low bytes of (x1, y1) and (x2, y2)
+ LDA XX15+2             \ into (X1, Y1) and (X2, Y2), and return from the
+ STA XX15+1             \ subroutine with a successfully clipped line
+ LDA XX15+4
+ STA XX15+2
+ LDA XX12
+ STA XX15+3
+ CLC
+ RTS
 
 .LL137
 

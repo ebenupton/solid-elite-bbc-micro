@@ -24,7 +24,7 @@
 \ What the Master port did and this does not:
 \
 \   * no disc layer: the sun and the planet are filled discs, drawn row by
-\     row every frame (T_SPAN, then T_MARKDIRTY) from half-width tables
+\     row every frame (T_SPAN, which marks it dirty) from half-width tables
 \     (F_HW, F_HW2), and the planet's meridians, equator and craters are
 \     lines over it (FC_PLINE), not colour bands;
 \   * no lens flare, no hangar, no docked-only drawing (LL9B, briefings);
@@ -864,9 +864,7 @@ F_CPO = F_CPE
  STA R_XL
 .fdi_l2
  LDY fz_i
- JSR T_SPAN
- LDY fz_i
- JSR T_MARKDIRTY
+ JSR T_SPAN             \ (which marks the span dirty too)
 .fdi_nx
  LDY fz_i
  CPY fz_q

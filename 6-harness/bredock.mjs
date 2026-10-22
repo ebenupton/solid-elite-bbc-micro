@@ -1,13 +1,16 @@
 // Regression test: dock, launch, dock again (the docking computer), from a
 // fresh boot, with real key presses. node 6-harness/bredock.mjs [--build b]
 // [--out dir]. Exit status 0 if both dockings happen (the docked program's
-// DOENTRY reached twice) within 120 emulated seconds each; screenshots of
-// each stage.
+// DOENTRY reached twice) within --limit emulated seconds each (300 by
+// default: the filled renderer flies at about half the original's speed, and
+// where the docking computer starts from depends on it); screenshots of each
+// stage.
 import { BBC } from "./jsbeeb.mjs";
 import { loadBuild, bootModelB, progHooks, CAND_BUILD, WORK } from "./blib.mjs";
 import { writeFileSync, mkdirSync } from "fs";
 import { parseArgs } from "./args.mjs";
-const a = parseArgs({ build: "value", out: "value" });
+const a = parseArgs({ build: "value", out: "value", limit: "value" });
+const LIMIT = +(a.limit || 300);
 const b = loadBuild(a.build || CAND_BUILD);
 const sy = b.progs.flight.sy;
 const OUT = a.out || `${WORK}redock`; mkdirSync(OUT, { recursive: true });
@@ -25,9 +28,9 @@ cpu.ramRomOs[sy.DKCMP] = 0xff;
 let ok = true;
 for (let n = 1; n <= 2; n++) {
     await key("F0", 0.2, 15); await snap(`${n}-launched`);
-    await key("C", 0.2, 1);
-    let t = 0; while (docks < n && t < 120) { await secs(1); t++; if (t === 10) await snap(`${n}-docking`); }
-    console.log(`docking ${n}: ${docks >= n ? `docked after ${t} s` : "NOT DOCKED after 120 s"}`);
+    await key("C", 1, 1);           // (held for a second: at a few frames a second, a shorter press can fall between two scans)
+    let t = 0; while (docks < n && t < LIMIT) { await secs(1); t++; if (t === 10) await snap(`${n}-docking`); }
+    console.log(`docking ${n}: ${docks >= n ? `docked after ${t} s` : `NOT DOCKED after ${LIMIT} s`}`);
     if (docks < n) { ok = false; await snap(`${n}-failed`); break; }
     await secs(10); await key("SPACE", 0.2, 3); await snap(`${n}-docked`);
 }
