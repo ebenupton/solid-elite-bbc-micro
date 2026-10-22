@@ -469,6 +469,8 @@ ELSE
   STA r_sbcur
   STA r_buf
   TAX
+  LDA #&FF                \ (Model B: no run page checked for this buffer yet)
+  STA r_pglast
   LDA r_sbh_dl,X          \ group r_dl
   STA r_pt01+2
   STA r_pt02+2
@@ -1683,6 +1685,10 @@ IF _HOSTB
 \ buffer 0's screen is &3000 lower). Keeps A, X, Y.
 .r_pgfix
 {
+  CMP r_pglast            \ the last page checked for this buffer: nothing to do
+  BNE chk
+  RTS
+.chk
   STA pfa
   STX pfx
   SEC
@@ -1692,6 +1698,7 @@ IF _HOSTB
   CMP r_pgtag,X
   BNE fix
   LDA pfa
+  STA r_pglast
   LDX pfx
   RTS
 .fix
@@ -1709,35 +1716,33 @@ IF _HOSTB
   STA s2+2
   STA l3+2
   STA s3+2
-  LDY #180                \ the stores' high bytes: offsets 2, 5, .. 188
+  LDA r_pgcy,X            \ the carry the additions keep: to buffer 0, &CF with
+  LSR A                   \ C = 1 (each carries out); to buffer 1, &30 with C =
+  LDX #20                 \ 0 (none does)
 .lp
-.l1
+  LDY r_pgy,X             \ the stores' high bytes: offsets 2, 5, .. 188, three
+.l1                       \ at a time
   LDA &FF02,Y
-  CLC
 .a1
   ADC #&30
 .s1
   STA &FF02,Y
 .l2
   LDA &FF05,Y
-  CLC
 .a2
   ADC #&30
 .s2
   STA &FF05,Y
 .l3
   LDA &FF08,Y
-  CLC
 .a3
   ADC #&30
 .s3
   STA &FF08,Y
-  TYA
-  SEC
-  SBC #9
-  TAY
-  BCS lp
+  DEX
+  BPL lp
   LDA pfa
+  STA r_pglast
   LDX pfx
   LDY pfy
   RTS
@@ -1745,11 +1750,17 @@ IF _HOSTB
 .pfx EQUB 0
 .pfy EQUB 0
 }
+.r_pglast EQUB &FF        \ the run page last checked for buffer r_buf (&FF: none)
 .r_pgtag                  \ per run page: the buffer it is for (as assembled: 1)
 FOR i, 0, 23
   EQUB 1
 NEXT
-.r_pgadd EQUB &D0, &30    \ to buffer 0: -&30; to buffer 1: +&30
+.r_pgadd EQUB &CF, &30    \ to buffer 0: -&30 (with C = 1); to buffer 1: +&30
+.r_pgcy EQUB 1, 0         \ (the carry, into C)
+.r_pgy                    \ Y for the patch loop's passes, X = 0..20
+FOR i, 0, 20
+  EQUB 9 * i
+NEXT
 ENDIF
 IF _HOSTB
  INCLUDE "3-assembled-output/nmos/gfx-raster_pset.asm"
