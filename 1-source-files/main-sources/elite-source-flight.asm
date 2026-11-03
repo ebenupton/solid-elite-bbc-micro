@@ -35749,22 +35749,7 @@ LIGHT_SUN = TRUE
                         \ view), jump to LO2 to return from the subroutine (as
                         \ LO2 contains an RTS)
 
- TAX                    \ Port: in record mode the renderer draws the sights in
- LDA QQ11               \ each frame while GSIGHT is non-zero (TTX66 clears
- ORA GFORCE             \ it): set it to the laser power, and return with
- BNE sgd                \ QQ19 as TT15 leaves it after the second crosshairs
- STX GSIGHT
- LDA #128
- STA QQ19
- LDA #Y-24
- STA QQ19+1
- LDA #10
- STA QQ19+2
- LDA #24
- STA QQ19+5
- RTS
-
-.sgd
+ TAX                    \ Copy the laser power into X
 
  LDA #128               \ Set QQ19 to the x-coordinate of the centre of the
  STA QQ19               \ screen
@@ -35772,6 +35757,18 @@ LIGHT_SUN = TRUE
  LDA #Y-24              \ Set QQ19+1 to the y-coordinate of the centre of the
  STA QQ19+1             \ screen, minus 24 (because TT15 will add 24 to the
                         \ coordinate when it draws the crosshairs)
+
+ LDA QQ11               \ Port: in record mode the renderer draws the sights in
+ ORA GFORCE             \ each frame while GSIGHT is non-zero (TTX66 clears
+ BNE sgd                \ it): set it to the laser power, and return with
+ STX GSIGHT             \ QQ19 as TT15 leaves it after the second crosshairs
+ LDA #10
+ STA QQ19+2
+ LDA #24
+ STA QQ19+5
+ RTS
+
+.sgd
 
  LDA #20                \ Set QQ19+2 to size 20 for the crosshairs size
  STA QQ19+2
