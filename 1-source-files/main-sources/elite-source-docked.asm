@@ -5324,18 +5324,18 @@ ENDIF
 
  STA Y1                 \ Set Y1 = A
 
- LDA #&FF               \ Port: draw the line in yellow
- STA LCOL
+ LDX #&FF               \ Port: draw the line in yellow
+ STX LCOL
+
+ DEX                    \ Set X2 = 254, so (X2, Y2) = (254, A)
+ STX X2
 
  LDX #2                 \ Set X1 = 2, so (X1, Y1) = (2, A)
  STX X1
 
- LDX #254               \ Set X2 = 254, so (X2, Y2) = (254, A)
- STX X2
-
  BNE HLOIN              \ Call HLOIN to draw a horizontal line from (2, A) to
                         \ (254, A) and return from the subroutine (this BNE is
-                        \ effectively a JMP as A will never be zero)
+                        \ effectively a JMP as X will never be zero)
 
 \ ******************************************************************************
 \
