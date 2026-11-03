@@ -31302,15 +31302,13 @@ LIGHT_SUN = TRUE
 
  LDA XX18+7             \ Set A = z_hi
 
+ BEQ LL91               \ If z_hi = 0 then jump to LL91 (the LDA above set the
+                        \ flags)
+
 .LL90
 
- TAY                    \ Set Y = z_hi
-
- BEQ LL91               \ If z_hi = 0 then jump to LL91
-
-                        \ The following is a loop that jumps back to LL90+3,
-                        \ i.e. here. LL90 is only used for this loop, so it's a
-                        \ bit of a strange use of the label here
+                        \ The following is a loop that jumps back to LL90,
+                        \ i.e. here
 
  INX                    \ Increment the scale factor in X
 
@@ -31325,7 +31323,7 @@ LIGHT_SUN = TRUE
 
  TAY                    \ Set Y = z_hi
 
- BNE LL90+3             \ If Y is non-zero, loop back to LL90+3 to divide the
+ BNE LL90               \ If Y is non-zero, loop back to LL90 to divide the
                         \ three coordinates until z_hi is 0
 
 .LL91
