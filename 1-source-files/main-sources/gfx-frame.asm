@@ -326,9 +326,9 @@ RPN = 4
 .f_rpk  SKIP RPN
 .f_eok  EQUB 0
 
-.f_tmclr                \ the cell (not empty) cleared: it remembers its
- JSR f_tmget            \ character, which each buffer shows or not as before
- TXA
+.f_tmclr                \ the cell (not empty, X from f_tmget) cleared: it
+ TXA                    \ remembers its character, which each buffer shows
+                        \ or not as before
  ORA #&80
 .f_tmst
  STA F_TM               \ patched
