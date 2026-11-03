@@ -23319,10 +23319,8 @@ ENDMACRO
  JSR BLINE              \ Call BLINE to draw this segment, which also increases
                         \ CNT by STP, the step size
 
- CMP #65                \ If CNT >= 65 then skip the next instruction
- BCS P%+5
-
- JMP PLL3               \ Jump back for the next segment
+ CMP #65                \ If CNT < 65 then jump back to PLL3 for the next
+ BCC PLL3               \ segment
 
  CLC                    \ Clear the C flag to indicate success
 
