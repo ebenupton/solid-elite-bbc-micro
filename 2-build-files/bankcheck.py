@@ -45,6 +45,7 @@ SRC = "1-source-files/main-sources/"
 PROGS = ("flight", "docked")
 FAR = ("farH", "farHj", "farC", "farCj")
 HOTCOPIES = ("config", "low", "hot", "hotm", "blueprints")   # (the hot side's copies: streams.py)
+WINDOW7 = {"flight": ("gfx-dlayer.asm",)}   # (bank 7's renderer window: elite-layout-flight.asm)
 MNEM = set(("ADC AND ASL BCC BCS BEQ BIT BMI BNE BPL BRK BVC BVS CLC CLD CLI CLV CMP CPX CPY "
             "DEC DEX DEY EOR INC INX INY JMP JSR LDA LDX LDY LSR NOP ORA PHA PHP PLA PLP "
             "ROL ROR RTI RTS SBC SEC SED SEI STA STX STY TAX TAY TSX TXA TXS TYA").split())
@@ -97,6 +98,7 @@ def idents(op):
 
 def check(prog, errors):
     files = {OUT + "elite-%s-%s.asm" % (prog, c): "home" for c in HOTCOPIES}
+    files.update({SRC + f: "cold" for f in WINDOW7.get(prog, ())})   # (bank 7's renderer window)
     files.update({OUT + "elite-%s-cold.asm" % prog: "cold", OUT + "elite-tokens-cold.asm": "cold",
                   SRC + "elite-layout-%s.asm" % prog: "home", OUT + "resident.asm": "main"})
     show = {OUT + "elite-%s-%s.asm" % (prog, a): "elite-source-%s.asm" % prog for a in HOTCOPIES + ("cold",)}

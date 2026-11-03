@@ -41,6 +41,7 @@
 
  INCLUDE "3-assembled-output/elite-flight-cold.asm"
  INCLUDE "3-assembled-output/elite-tokens-cold.asm"
+ INCLUDE "1-source-files/main-sources/gfx-dlayer.asm"
 
                         \ The containers' bounds, as labels for the symbols
                         \ (bank 4 also holds the main RAM part's image)

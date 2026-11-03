@@ -29844,7 +29844,8 @@ ENDMACRO
  RTS
 
                         \ Port: the far calls to the disc layer's records, in
-                        \ the cold bank (gfx-dlayer.asm, DLAYER below)
+                        \ bank 7's renderer window (gfx-dlayer.asm,
+                        \ elite-layout-flight.asm)
 
 .dlplan JSR farC : EQUW DL_PLAN
 .dlcurve JSR farC : EQUW DL_CURVE
@@ -29983,27 +29984,6 @@ ENDMACRO
 
  PLA
  RTS
-
-\ ******************************************************************************
-\
-\       Name: DLAYER
-\       Type: Subroutine
-\   Category: Drawing planets
-\    Summary: Port: the disc layer (the sun or the planet, kept on each screen
-\             buffer and redrawn where it changed)
-\       Area: cold
-\
-\ ------------------------------------------------------------------------------
-\
-\ Port: gfx-dlayer.asm (docs/renderer.md, "The disc layer"). The frame layer
-\ calls DL_FRAME by a far call; the hooks call DL_PLAN, DL_CURVE and DL_POINT
-\ through dlplan, dlcurve and dlpoint (by RECM).
-\
-\ ******************************************************************************
-
-.DLAYER
-
- INCLUDE "1-source-files/main-sources/gfx-dlayer.asm"
 
 \ ******************************************************************************
 \

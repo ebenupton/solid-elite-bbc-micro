@@ -28,7 +28,9 @@
 \     it at &5600;
 \
 \   * bank 7 (saved as D.CODEC): the cold pass from &8000, then the recursive
-\     text tokens (QQ18, elite-text-tokens.asm's blocks tagged cold).
+\     text tokens (QQ18, elite-text-tokens.asm's blocks tagged cold), then
+\     the renderer's window (WIN7%: the flight code's own parts of the
+\     renderer).
 \
 \ ******************************************************************************
 
@@ -103,7 +105,18 @@
 
 .COLD_END%
 
- PRINT "Flight bank 7: &8000-", ~COLD_END%-1, " (the cold pass), free ", DFSSAVE%-COLD_END%
- ASSERT COLD_END% <= DFSSAVE%      \ (Port: PCLI keeps DFS's workspace in the last page)
+                        \ Port: the renderer's window in bank 7, after the cold
+                        \ pass: the parts of the renderer that only the flight
+                        \ code uses and that banks 5 and 6 have no room for,
+                        \ loaded with the flight code (docs/renderer.md)
 
- SAVE "3-assembled-output/D.CODEC.bin", &8000, COLD_END%, &8000
+.WIN7%
+
+ INCLUDE "1-source-files/main-sources/gfx-dlayer.asm"
+
+.WIN7_END%
+
+ PRINT "Flight bank 7: &8000-", ~COLD_END%-1, " (the cold pass), the renderer's window ", ~WIN7%, "-", ~WIN7_END%-1, ", free ", DFSSAVE%-WIN7_END%
+ ASSERT WIN7_END% <= DFSSAVE%      \ (Port: PCLI keeps DFS's workspace in the last page)
+
+ SAVE "3-assembled-output/D.CODEC.bin", &8000, WIN7_END%, &8000

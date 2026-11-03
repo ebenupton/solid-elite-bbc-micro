@@ -32,6 +32,7 @@
 import re
 
 OUT = "3-assembled-output/"
+WINDOW7 = {"flight": ("gfx-dlayer.asm",)}   # (bank 7's renderer window: elite-layout-flight.asm)
 NAMES = ("farC", "farCj", "farH", "farHj", "BANK4", "BANK7", "BANK5", "BANK6", "PCLI", "PROGM%", "PROGM_END%",
          "IRQG", "NA%", "CHK2", "CHK", "BRBR1", "PANR", "GCALL", "dfsin", "dfsout",
          "T_GETW", "T_DRAINQ")
@@ -70,7 +71,8 @@ def labels(path):
 
 for prog in ("flight", "docked"):
     with open(OUT + "%s-banks.txt" % prog, "w") as f:
-        for name in labels(OUT + "elite-%s-cold.asm" % prog) + labels(OUT + "elite-tokens-cold.asm"):
+        for name in labels(OUT + "elite-%s-cold.asm" % prog) + labels(OUT + "elite-tokens-cold.asm") + \
+                sum((labels("1-source-files/main-sources/" + w) for w in WINDOW7.get(prog, ())), []):
             f.write("%s C\n" % name)
         for name in sum((labels(OUT + "elite-%s-%s.asm" % (prog, c)) for c in ("low", "hot", "hotm", "blueprints")), []):
             f.write("%s H\n" % name)
