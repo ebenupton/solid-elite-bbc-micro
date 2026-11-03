@@ -79,10 +79,10 @@ HTOP = 16               \ the wall's top row: text row 1, the view's name, is on
  STA fch+2
  LDA #255
  STA fz_u
- LDX #0                 \ the wall: from row HTOP (rows 1 to HTOP-1 stay black,
- JSR fch                \ a band behind the view's name: its yellow is the
- LDA #HTOP              \ wall's own) to the floor's furthest line
- LDY HFY
+ INX                    \ the wall (X = 0: the loop left &FF): from row HTOP
+ JSR fch                \ (rows 1 to HTOP-1 stay black, a band behind the
+ LDA #HTOP              \ view's name: its yellow is the wall's own) to the
+ LDY HFY                \ floor's furthest line
  JSR fh_rect
  LDX #1                 \ the floor: from there to the bottom
  JSR fch
