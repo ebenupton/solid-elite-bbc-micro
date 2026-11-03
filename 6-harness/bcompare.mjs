@@ -6,6 +6,7 @@
 //
 // node 6-harness/bcompare.mjs [--iters 5000] [--ref build.json] [--cand build.json]
 //                             [--seed boot|none] [--loose] [--screen] [--window 200]
+//                             [--screenlo &1000 --screenhi &7E00]
 //                             [--out dir] [--shots N] [--maxsecs S] [--nopatch]
 //                             [--norefcache] [--views] [--screens]
 //                             [--trace FROM,TO,LABEL+LABEL,VAR+VAR~OFFSET]
@@ -37,7 +38,8 @@
 // the game, and a changed loader or disc changes them. The bytes seeded are
 // reported. --seed none seeds nothing.
 //
-// --screen compares a hash of the original's screen memory (&6000-&7EFF) at
+// --screen compares a hash of the original's screen memory (&6000-&7EFF, or
+// --screenlo .. --screenhi, e.g. 0x1000 0x7e00 for two builds of the port) at
 // every iteration, for a candidate that draws exactly as the original does.
 //
 // Speed: flight-loop iterations (TT100 to TT100 in the flight program, only
@@ -56,7 +58,7 @@ import { parseArgs } from "./args.mjs";
 
 const args = parseArgs({ iters: "value", ref: "value", cand: "value", seed: "value", loose: "flag", window: "value",
     out: "value", shots: "value", maxsecs: "value", nopatch: "flag", norefcache: "flag", views: "flag", screens: "flag", trace: "value", screen: "flag",
-    dump: "value" });
+    dump: "value", screenlo: "value", screenhi: "value" });
 const ITERS = +(args.iters || 5000);
 const REF = args.ref || REF_BUILD;
 const CAND = args.cand || CAND_BUILD;
@@ -79,6 +81,7 @@ async function run(label, build, seedBoot) {
     const r = await runElite({
         build, pilot, iters: ITERS, maxSecs: +(args.maxsecs || 4 * ITERS),
         patch: args.nopatch ? null : patchCommander, seedBoot, screen: !!args.screen,
+        screenLo: args.screenlo ? parseInt(args.screenlo) : undefined, screenHi: args.screenhi ? parseInt(args.screenhi) : undefined,
         onIter: (i, s, res) => { phases.push(pilot.P.phase); if (tracer) tracer(i, s, res); },
         shots: SHOTS, onShot: async (s, i) => writeFileSync(`${OUT}/${label}-${String(i).padStart(6, "0")}.png`, await s.screenshotActive({ scale: 1 })),
     });
@@ -99,7 +102,7 @@ async function cachedRef() {
     const h = createHash("sha1");
     for (const f of [REF, rb.disc, new URL("blib.mjs", import.meta.url), new URL("bpilot.mjs", import.meta.url)]) h.update(readFileSync(f));
     for (const p of Object.values(rb.progs)) { h.update(JSON.stringify(p.sy)); for (const im of p.images) h.update(im.data); }
-    h.update(JSON.stringify([ITERS, args.maxsecs || 0, !!args.nopatch, !!args.views, !!args.screen].concat(args.screens ? ["screens"] : [])));
+    h.update(JSON.stringify([ITERS, args.maxsecs || 0, !!args.nopatch, !!args.views, !!args.screen].concat(args.screens ? ["screens"] : []).concat(args.screenlo || args.screenhi ? [args.screenlo || "", args.screenhi || ""] : [])));
     const dir = `${WORK}refcache`, file = `${dir}/${h.digest("hex")}.json.gz`;
     if (!args.norefcache && !args.trace && existsSync(file)) {
         const o = JSON.parse(gunzipSync(readFileSync(file)).toString());
