@@ -21119,7 +21119,7 @@ ENDMACRO
 
 .NW8
 
- LDY T                  \ Restore the ship type we stored above
+ TAY                    \ Restore the ship type (A still holds it from NW2)
 
  LDA E%-1,Y             \ Fetch the E% byte for this ship to get the default
                         \ settings for the ship's NEWB flags
