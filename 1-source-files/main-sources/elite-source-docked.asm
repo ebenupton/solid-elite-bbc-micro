@@ -3570,20 +3570,9 @@ ENDIF
 
 .MV5
 
- LDA INWK+31            \ Fetch the ship's exploding/killed state from byte #31
-
- AND #%00100000         \ If we are exploding then jump to MVD1 to remove it
- BNE MVD1               \ from the scanner permanently
-
- LDA INWK+31            \ Set bit 4 to keep the ship visible on the scanner
- ORA #%00010000
- STA INWK+31
-
-.MVD1
-
- LDA INWK+31            \ Clear bit 4 to hide the ship on the scanner
- AND #%11101111
- STA INWK+31
+ LDA INWK+31            \ Clear bit 4 of byte #31 to hide the ship on the
+ AND #%11101111         \ scanner (setting it first for a live ship and then
+ STA INWK+31            \ clearing it again has no net effect)
 
  RTS                    \ Return from the subroutine
 
