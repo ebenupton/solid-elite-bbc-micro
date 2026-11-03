@@ -24604,9 +24604,8 @@ ENDMACRO
  SBC T
  STA P
 
- LDA P+1                \ And then we do the high bytes, for which we subtract
- SBC #0                 \ 0 to include any carry, so this is effectively doing
- STA P+1                \ P(1 0) = P(1 0) - (0 T)
+ BCS P%+4               \ And then we do the high bytes, decrementing P+1 if
+ DEC P+1                \ the subtraction borrowed, so P(1 0) = P(1 0) - (0 T)
 
                         \ Next, we want to set SC(1 0) to point to the source
                         \ ship's data block

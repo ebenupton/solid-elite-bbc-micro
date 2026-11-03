@@ -1,4 +1,4 @@
-hot &8000-&B2FF: 94 units, 12134 bytes, 922 free
+hot &8000-&B2FF: 94 units, 12132 bytes, 924 free
   &8000    22 S%
   &8016    16 INBAY..LTLI
   &8026     3 DEEOR
@@ -51,46 +51,46 @@ hot &8000-&B2FF: 94 units, 12134 bytes, 922 free
   &98D0    49 EDGES
   &9901    98 CHKON..PLS6
   &9963    78 TT17
-  &99B1   329 KS3..SFX
-  &9AFA   167 ZINF..Main game loop (Part 2 of 6)
-  &9BA1    38 Main game loop (Part 5 of 6)..Main game loop (Part 6 of 6)
-  &9BC7   165 TT102
-  &9C6C    13 FAROF..FAROF2
-  &9C79     7 MAS4
-  &9C80    14 DPLT
-  &9C8E    76 SPS1..TAS2
-  &9CDA   101 RDKEY
-  &9D3F   123 ECMOF..KYTB
-  &9DBA    51 DKS1..DKS2
-  &9DED    23 DKS3
-  &9E04   332 DKJ1..DK4
-  &9F50    73 SHPPT
-  &9F99    62 LL5
-  &9FD7   142 LL28
-  &A065    32 LL38
-  &A085    87 LL51
-  &A0DC     4 SHCOL
-  &A0E0     6 RECM
-  &A0E6    97 H_CIRC
-  &A147    29 MFRAME
-  &A164     6 LL9F
-  &A16A    20 HLS
-  &A17E    14 H_PTCLS
-  &A18C    14 H_PTCLSE
-  &A19A    17 H_DOT
-  &A1AB    11 LL42F
-  &A1B6    68 H_LL42..H_EE31
-  &A1FA    89 S_SHIP
-  &A253   961 L_REC
-  &A614  1208 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
-  &AACC   128 None..LL9 (Part 10 of 12)
-  &AB4C     1 LL9 (Part 11 of 12)
-  &AB4D     2 LL9 (Part 12 of 12)
-  &AB4F     1 LL9 (Part 12 of 12), drawing
-  &AB50   307 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
-  &AC83   119 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
-  &ACFA    87 MVT1
-  &AD51   103 MVS4
-  &ADB8    53 MVT6
-  &ADED   377 MV40..SCAN
+  &99B1   327 KS3..SFX
+  &9AF8   167 ZINF..Main game loop (Part 2 of 6)
+  &9B9F    38 Main game loop (Part 5 of 6)..Main game loop (Part 6 of 6)
+  &9BC5   165 TT102
+  &9C6A    13 FAROF..FAROF2
+  &9C77     7 MAS4
+  &9C7E    14 DPLT
+  &9C8C    76 SPS1..TAS2
+  &9CD8   101 RDKEY
+  &9D3D   123 ECMOF..KYTB
+  &9DB8    51 DKS1..DKS2
+  &9DEB    23 DKS3
+  &9E02   332 DKJ1..DK4
+  &9F4E    73 SHPPT
+  &9F97    62 LL5
+  &9FD5   142 LL28
+  &A063    32 LL38
+  &A083    87 LL51
+  &A0DA     4 SHCOL
+  &A0DE     6 RECM
+  &A0E4    97 H_CIRC
+  &A145    29 MFRAME
+  &A162     6 LL9F
+  &A168    20 HLS
+  &A17C    14 H_PTCLS
+  &A18A    14 H_PTCLSE
+  &A198    17 H_DOT
+  &A1A9    11 LL42F
+  &A1B4    68 H_LL42..H_EE31
+  &A1F8    89 S_SHIP
+  &A251   961 L_REC
+  &A612  1208 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
+  &AACA   128 None..LL9 (Part 10 of 12)
+  &AB4A     1 LL9 (Part 11 of 12)
+  &AB4B     2 LL9 (Part 12 of 12)
+  &AB4D     1 LL9 (Part 12 of 12), drawing
+  &AB4E   307 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
+  &AC81   119 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
+  &ACF8    87 MVT1
+  &AD4F   103 MVS4
+  &ADB6    53 MVT6
+  &ADEB   377 MV40..SCAN
 hotm &7FE2-&7FFD: 0 units, 0 bytes, 28 free
