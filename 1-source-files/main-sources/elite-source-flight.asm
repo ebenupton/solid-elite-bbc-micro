@@ -15592,24 +15592,24 @@ ENDMACRO
 
 .TT77
 
- LDA QQ3                \ Now to work out the tech level, which we do like this:
- EOR #%00000111         \
- CLC                    \   flipped_economy + (s1_hi AND %11) + (government / 2)
- STA QQ5                \
+ LDA QQ15+3             \ Now to work out the tech level, which we do like this:
+ AND #%00000011         \
+ STA P                  \   flipped_economy + (s1_hi AND %11) + (government / 2)
+                        \
                         \ or, in terms of memory locations:
                         \
                         \   QQ5 = (QQ3 EOR %111) + (QQ15+3 AND %11) + (QQ4 / 2)
                         \
-                        \ We start by setting QQ5 = QQ3 EOR %111
+                        \ We start by setting P = QQ15+3 AND %11, the first 2
+                        \ bits of s1_hi
 
- LDA QQ15+3             \ We then take the first 2 bits of s1_hi (QQ15+3) and
- AND #%00000011         \ add it into QQ5
- ADC QQ5
- STA QQ5
+ LDA QQ4                \ We then add QQ4 / 2, using LSR then ADC to divide by
+ LSR A                  \ 2, which rounds up the result for odd-numbered
+ ADC P                  \ government types (the sum is small, so C is clear)
 
- LDA QQ4                \ And finally we add QQ4 / 2 and store the result in
- LSR A                  \ QQ5, using LSR then ADC to divide by 2, which rounds
- ADC QQ5                \ up the result for odd-numbered government types
+ ADC #7                 \ And finally we add QQ3 EOR %111, which is 7 - QQ3 as
+ SEC                    \ QQ3 is in the range 0 to 7, and store the result in
+ SBC QQ3                \ QQ5
  STA QQ5
 
  ASL A                  \ Now to work out the population, like so:
