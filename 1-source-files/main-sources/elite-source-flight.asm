@@ -14613,10 +14613,8 @@ ENDMACRO
                         \ the calculation described in the documentation for the
                         \ ACT table, i.e. 128 - A
 
- STA T                  \ Set A = 128 - A
- LDA #128               \
- SBC T                  \ The subtraction will work because we did a SEC before
-                        \ calling AR3
+ EOR #&FF               \ Set A = 128 - A, using -A = (A EOR &FF) + 1; this
+ ADC #128               \ works because we did a SEC before calling AR3
 
  RTS                    \ Return from the subroutine
 
