@@ -1,4 +1,4 @@
-hot &8000-&B2FF: 93 units, 12073 bytes, 983 free
+hot &8000-&B2FF: 93 units, 12072 bytes, 984 free
   &8000    22 S%
   &8016    16 INBAY..LTLI
   &8026     3 DEEOR
@@ -80,16 +80,16 @@ hot &8000-&B2FF: 93 units, 12073 bytes, 983 free
   &A182    11 LL42F
   &A18D    68 H_LL42..H_EE31
   &A1D1    89 S_SHIP
-  &A22A   961 L_REC
-  &A5EB  1196 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
-  &AA97   128 None..LL9 (Part 10 of 12)
-  &AB17     1 LL9 (Part 11 of 12)
-  &AB18     2 LL9 (Part 12 of 12)
-  &AB1A     1 LL9 (Part 12 of 12), drawing
-  &AB1B   305 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
-  &AC4C   115 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
-  &ACBF    87 MVT1
-  &AD16   103 MVS4
-  &AD7D    53 MVT6
-  &ADB2   375 MV40..SCAN
+  &A22A   960 L_REC
+  &A5EA  1196 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
+  &AA96   128 None..LL9 (Part 10 of 12)
+  &AB16     1 LL9 (Part 11 of 12)
+  &AB17     2 LL9 (Part 12 of 12)
+  &AB19     1 LL9 (Part 12 of 12), drawing
+  &AB1A   305 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
+  &AC4B   115 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
+  &ACBE    87 MVT1
+  &AD15   103 MVS4
+  &AD7C    53 MVT6
+  &ADB1   375 MV40..SCAN
 hotm &7FE2-&7FFD: 0 units, 0 bytes, 28 free

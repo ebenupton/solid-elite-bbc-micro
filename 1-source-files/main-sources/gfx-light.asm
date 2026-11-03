@@ -91,8 +91,7 @@ IF LIGHT_SUN            \ (the flight code only: the docked code's light is fixe
  LDA #&80
  STA lv_ok
 .ls_r1
- JSR lv_rot
- JMP lv_ll
+ JMP lv_rot             \ (lv_rot ends by jumping to lv_ll)
 .ls_fix
  STA lv_ok              \ (NMOS: A = 0, FRIN+1)
  LDA #24
@@ -259,6 +258,7 @@ IF LIGHT_SUN            \ (the flight code only: the docked code's light is fixe
 \ lv_rot: rotate LV by our roll and pitch, as MV40 rotates the planet:
 \   K2 = y - alpha x / 256, z = z + beta K2 / 256,
 \   y = K2 - beta z / 256, x = x + alpha y / 256
+\ then continue into lv_ll to set LLT
 
 .lv_rot
  LDA ALPHA
@@ -304,7 +304,7 @@ IF LIGHT_SUN            \ (the flight code only: the docked code's light is fixe
  ADC LVH
  STA LVH
 .lvr9
- RTS
+ JMP lv_ll              \ (the only caller, L_SUN, needs LLT updated)
 
 \ lv_mul: (X A) = v * a / 256 (16-bit signed; v = LV component X, or K2 if
 \ X = &FF; A = a, sign-magnitude), truncated towards zero
