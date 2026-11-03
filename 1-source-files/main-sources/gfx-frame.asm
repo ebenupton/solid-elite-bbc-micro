@@ -2868,8 +2868,7 @@ SGOUT = 20
  BEQ fsg9
  LDA GSIGHT
  BNE fsg9
- LDA #0
- STA F_SGS,X
+ STA F_SGS,X            \ (A = 0 as GSIGHT = 0)
  LDA #SGX-SGOUT         \ the horizontal arms
  STA R_XL
  LDA #SGX+SGOUT
