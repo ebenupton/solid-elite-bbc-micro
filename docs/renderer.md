@@ -563,29 +563,26 @@ and the frame's runs of game code leave everything as the original does.
 
 The gate's run, 10,000 iterations: 151,897 cycles per flight iteration,
 13.17 flight iterations per second, against the original's 168,749 and
-11.85 (1.111 times; with the old disc layer, 201,618 cycles and 9.92, and
-with the old frame layer too, 226,316 and 8.98). The planets are plain
-discs in this build (no `_CIRCLES`); the sun near the planet is drawn
-(`S_SUN`).
+11.85 (1.111 times). The planets are plain discs in this build (no
+`_CIRCLES`); the sun near the planet is drawn (`S_SUN`).
 By scene (`6-harness/bscenes.mjs` records each iteration's time and the
 planet's, the station's and the ships' positions in a build's run;
 `6-harness/scenes.py` compares two such runs, counting a flight iteration
 in the front view that both put in the same scene, the first of these that
 fits):
 
-| Scene | Iterations | The original | The port | Against the original | The old port |
-|---|---:|---:|---:|---:|---:|
-| Station close: the station ahead, nearer than 16 x 256 | 706 | 187,528 cycles, 10.67 it/s | 301,201 cycles, 6.64 it/s | 0.62 | 0.56 |
-| Sun close: the sun ahead, nearer than 1,024 x 256 | 402 | 169,142, 11.82 | 201,061, 9.95 | 0.84 | 0.76 |
-| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen) | 1,032 | 146,033, 13.70 | 141,948, 14.09 | 1.03 | 0.82 |
-| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 6,681 | 181,260, 11.03 | 149,500, 13.38 | 1.21 | 0.76 |
-| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 270 | 103,168, 19.39 | 95,102, 21.03 | 1.09 | 0.70 |
-| Ships about (the rest, with other ships in the bubble) | 745 | 137,912, 14.50 | 110,274, 18.14 | 1.25 | 0.81 |
+| Scene | Iterations | The original | The port | Against the original |
+|---|---:|---:|---:|---:|
+| Station close: the station ahead, nearer than 16 x 256 | 706 | 187,528 cycles, 10.67 it/s | 301,201 cycles, 6.64 it/s | 0.62 |
+| Sun close: the sun ahead, nearer than 1,024 x 256 | 402 | 169,142, 11.82 | 201,061, 9.95 | 0.84 |
+| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen) | 1,032 | 146,033, 13.70 | 141,948, 14.09 | 1.03 |
+| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 6,681 | 181,260, 11.03 | 149,500, 13.38 | 1.21 |
+| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 270 | 103,168, 19.39 | 95,102, 21.03 | 1.09 |
+| Ships about (the rest, with other ships in the bubble) | 745 | 137,912, 14.50 | 110,274, 18.14 | 1.25 |
 
-The disc layer keeps both discs on each buffer and writes only what changed
-(the Master port's), where the old one kept the bigger alone and drew a
-small disc whole. Its batches cost, over the gate's run (`bprofile.mjs`),
-about 90 disc rows a flight iteration in 6 batches, 18,300 cycles a flight
+The disc layer keeps both discs on each buffer and writes only what
+changed. Its batches cost, over the gate's run (`bprofile.mjs`), about 90
+disc rows a flight iteration in 6 batches, 18,300 cycles a flight
 iteration, about 200 cycles a row: filling the slots in bank 6 (52 a row),
 `R_GETW` in bank 5 (the dirty extents taken and emptied, the writes put
 back: about 70 a row), a changed row's data taken and put back in the
@@ -603,58 +600,16 @@ flip), `R_MARKDIRTY` 6,896 and `R_LINE` 5,542; the game's home bank 80,347
 products and `L_REC`), bank 6 22,711, bank 7 15,452 (the cold code and the
 painter), main RAM 11,353 (the far calls, the trampolines and the
 interrupt) and the MOS 8,828. Each frame fills nearly the whole window and
-repairs it on the next, the cost that the Master port's kept solid rows
-take away (7.6% to 10.6% over a docking there), which bank 5 has no room
-for.
-
-The frames' gain is the Master port's: no ship line heap, clipping or
-projection in the game's iteration (the frame projects only the ships it
-draws), and the text drawn only where it changed or was drawn over (the
-old layer drew every text row and the sights every frame). The cold bank's share grows a little
-with the routines moved there for room (`PU1` in a side or rear view, once
-an object; `TIDY`, one ship an iteration): a far call each, about 60 cycles.
-
-### Where the time goes
-
-A profile of the first 3,000 iterations (`bprofile.mjs`; mostly fighting
-near the planet, then a hyperspace jump and an approach), per flight
-iteration, at the renderer's first commit (345,647 cycles): bank 5
-155,899 (the rasteriser), bank 6 33,125 (the frame layer), main RAM 43,264
-(of which the trampolines into bank 5 about 25,600 and the far calls about
-8,000), the flight code's home bank 91,419, its cold bank 8,613, and the
-MOS (the interrupts) 13,327. In bank 5: the row runs 37,217 (the stores of
-spans, polygons and the repair), `r_pgfix` 28,055, the repair's row code
-22,569, polygons about 34,000, lines about 20,000.
+repairs it on the next: the Master port's kept solid rows take that cost
+away (7.6% to 10.6% over a docking there), and bank 5 has no room for them.
 
 * **`r_pgfix`.** The row runs are unrolled stores assembled for buffer 1;
   each time a run page is used for the other buffer, its 63 stores'
-  addresses are patched. With a flip every frame, every page in use is
-  patched every frame. Two sets of runs would end this, but bank 5 has no
-  room for a second set (4.5K).
-* **An alternate-column fill was tried instead** (a half-length run per
-  buffer storing every other byte column, called twice per span, so that
-  nothing is patched at a flip): it was slower, 257,536 cycles an
-  iteration against 254,590, as the second call and its look-ups cost more
-  per span than the patching saved (MODELB-REPORT.md has the numbers).
-* **Most of it is drawn every frame.** Only the disc layer's disc (the
-  bigger of the sun and the planet, with a radius of 40 or more) is kept
-  from frame to frame. Before it, a trim of the repair inside a square that
-  the new disc covers was tried and dropped (two repairs of a row cost more
-  than they saved), and so was a plain kept disc in bank 5 (`R_DISCROW`, a
-  call per row), slower than the whole fill (MODELB-REPORT.md).
-* **Record mode was faithful at first.** The renderer's first commits
-  still built the ship line heap, clipped its lines and worked out every
-  line's `LOIN` division (`VLOIN`), so that the state stayed the
-  original's; with the altitude's `Q` defined in both (above), that went.
-
-### Speed-ups made
-
-| Commit | Cycles per flight iteration | Saved |
-|---|---:|---:|
-| Draw the space view through the filled renderer | 322,228 | |
-| Fill and mark a disc's row in one call, and clip in the home bank first | 308,463 | 13,765 |
-| Drop record mode's line bookkeeping, with Q = 0 at the altitude in both | 254,590 | 53,873 |
-| Check a run page once per buffer, and patch it without clearing the carry (`828b473`) | 247,931 | 6,659 |
-| Keep the bigger disc on each buffer: the disc layer, in the flight code's cold bank (from `9bfefc3`'s 247,961) | 226,316 | 21,645 |
-| The Master port's frame layer in bank 6: ships projected by the frame, clouds drawn by it, the text map | 201,735 | 24,581 |
-| The Master port's disc layer, both discs incremental, its row code in the flight code's bank 7 | 150,274 | 51,461 |
+  addresses are patched. Two sets of runs would end this, but bank 5 has
+  no room for a second set (4.5K).
+* **The frames' gain** is the Master port's: no ship line heap, clipping or
+  projection in the game's iteration (the frame projects only the ships it
+  draws), and text drawn only where it changed or was drawn over. The cold
+  bank's share grows a little with the routines moved there for room
+  (`PU1` in a side or rear view, once an object; `TIDY`, one ship an
+  iteration): a far call each, about 60 cycles.
