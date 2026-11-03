@@ -5742,18 +5742,19 @@ ENDIF
  EOR #3                 \ the C flag, which PIXEL returns as the original does)
  BNE pxd1
 
- LDA SC
- ORA #8
- STA SC
+ TYA                    \ Y is 0 to 7, so flipping bit 3 adds 8 to it, which
+ EOR #8                 \ addresses the next character block along without
+ TAY                    \ changing SC (the same address as SC OR 8 + Y, as
+                        \ SC's bit 3 is clear, so the same page-cross timing)
 
  LDA #%10001000
  AND LCOL
  EOR (SC),Y
  STA (SC),Y
 
- LDA SC
- AND #%11110111
- STA SC
+ TYA                    \ Restore Y to its row within the block
+ EOR #8
+ TAY
 
 .pxd1
 
