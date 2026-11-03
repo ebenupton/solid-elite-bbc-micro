@@ -332,10 +332,10 @@ IF LIGHT_SUN            \ (the flight code only: the docked code's light is fixe
  TYA
  BPL lvm3
  SEC                    \ |v|
- LDA #0
+ TXA                    \ (X = 0)
  SBC lv_u
  STA lv_u
- LDA #0
+ TXA
  SBC lv_u+1
  STA lv_u+1
 .lvm3
