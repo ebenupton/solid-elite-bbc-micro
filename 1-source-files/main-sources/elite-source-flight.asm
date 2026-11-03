@@ -23051,9 +23051,10 @@ ENDMACRO
 
 .PLF10
 
- LDX V                  \ Increment V, the height of the sun that we use to work
- INX                    \ out the width, so this makes the line get narrower, as
- STX V                  \ we move up and away from the sun's centre
+ INC V                  \ Increment V, the height of the sun that we use to work
+ LDX V                  \ out the width, so this makes the line get narrower, as
+                        \ we move up and away from the sun's centre, and set
+                        \ X = V
 
  CPX K                  \ If V <= the radius of the sun, we still have lines to
  BCC PLFLS              \ draw, so jump up to PLFL (via PLFLS) to do the next
