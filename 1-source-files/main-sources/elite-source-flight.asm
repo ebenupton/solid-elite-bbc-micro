@@ -9359,8 +9359,9 @@ ENDIF
                         \ vertical bar (i.e. A is acting as a mask on the
                         \ four-pixel colour byte)
 
- JMP DLL12              \ Jump to DLL12 to skip the code for drawing a blank,
-                        \ and move on to drawing the indicator
+ BNE DLL12              \ Jump to DLL12 to skip the code for drawing a blank,
+                        \ and move on to drawing the indicator (this BNE is
+                        \ always taken, as CTWOD,X AND &F0 is never zero)
 
 .DLL11
 
