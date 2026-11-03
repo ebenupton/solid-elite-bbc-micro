@@ -6696,17 +6696,18 @@ ENDIF
 
 .TT30
 
- LDA #11                \ Set A to 11, the maximum number of digits allowed
+ STX XX17               \ Store the maximum number of digits allowed (11, still
+                        \ in X from above) in XX17
+
+ INX                    \ Set A = 12, i.e. the maximum number of digits plus 1
+ TXA
 
  SEC                    \ Set the C flag so we can do subtraction without the
                         \ C flag affecting the result
 
- STA XX17               \ Store the maximum number of digits allowed (11) in
-                        \ XX17
-
- SBC U                  \ Set U = 11 - U + 1, so U now contains the maximum
+ SBC U                  \ Set U = 12 - U, so U now contains the maximum
  STA U                  \ number of digits minus the number of digits we want
- INC U                  \ to display, plus 1 (so this is the number of digits
+                        \ to display, plus 1 (so this is the number of digits
                         \ we should skip before starting to print the number
                         \ itself, and the plus 1 is there to ensure we print at
                         \ least one digit)
