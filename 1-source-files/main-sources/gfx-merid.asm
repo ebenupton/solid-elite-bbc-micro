@@ -1518,13 +1518,12 @@ ASSERT prk1 = prk0 + 6 AND prk3 = prk0 + 18 AND pra3 = pra0 + 18
  LDX #0
  JSR pr_side
  STA pr_fd
- LDA pr_bu
- LDX #4
+ LDA pr_bu                \ (pr_side leaves X = X + 4: 4 here)
  JSR pr_side
  STA pr_fu
  LDA #255
  STA pr_ke
- LDX #7
+ DEX                    \ (X = 8 from pr_side)
 .pre2
  LDA pr_tk,X
  CMP ZK
