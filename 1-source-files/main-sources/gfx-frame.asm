@@ -1900,8 +1900,7 @@ fsd_zl = &20 : fsd_zh = &21 : fsd_rl = &22 : fsd_q = &24 : fsd_x = &25
  JSR fsd_div
  LDY F_RP+5*MAXSH,X     \ y_sign
  BMI fsq3
- EOR #&FF               \ 96 - q, q <= 96
- SEC
+ EOR #&FF               \ 96 - q, q <= 96 (C set from fsd_div)
  ADC #96
  BCC fsq9
  BCS fsq4
