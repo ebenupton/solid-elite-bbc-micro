@@ -14,7 +14,8 @@
  INCLUDE "1-source-files/main-sources/elite-map.asm"
  INCLUDE "3-assembled-output/resident.asm"
 
- HOT_END% = QSL
+ PROGI% = QSL - PROGIS%
+ HOT_END% = PROGI%
 
  INCLUDE "3-assembled-output/elite-docked-config.asm"
 
@@ -56,3 +57,7 @@
 .M_HOTM
  ORG HOTM_END%
 .M_HOTM_END
+ ORG PROGX%
+.M_HOTX
+ ORG PROGX_END%
+.M_HOTX_END

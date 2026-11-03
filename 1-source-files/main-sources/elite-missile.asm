@@ -339,7 +339,8 @@ ENDIF
 
                         \ Port: without its edges the blueprint ends here, so
  ASSERT P% <= &7FA0     \ the room up to VEC, at &7FFE as in the original, is
- SKIP &7FFE - P%        \ the programs' main RAM part, PROGM% (elite-map.asm)
+ SKIP &7FFE - P%        \ part of the programs' main RAM part, PROGX%
+                        \ (elite-map.asm)
 
 \ ******************************************************************************
 \

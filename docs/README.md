@@ -65,6 +65,8 @@ default commander's checksum.
 | Part 3: the Master port's disc layer, its row code in bank 7 ([renderer.md](renderer.md)) | 13.31 | 1.123 | 150,274 |
 | Part 3: the sun near the planet (`S_SUN`) | 13.17 | 1.111 | 151,897 |
 | Part 3: the original's dashboard in mode 5, at the 1 MHz clock ([video-timing.md](video-timing.md)) | 13.07 | 1.103 | 153,010 |
+| Part 3: the main RAM part in the room the dashboard leaves | 13.06 | 1.102 | 153,097 |
+| The same with the planets' surfaces (`make circles=on`: the beach ball and the craters) | 7.38 | 0.623 | 271,014 |
 
 These are the gate's run: the pilot's mix of launches, fights, approaches to
 the station and hyperspace jumps, over 10,000 iterations. Saved commander

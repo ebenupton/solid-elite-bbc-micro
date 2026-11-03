@@ -15,9 +15,16 @@
  INCLUDE "1-source-files/main-sources/gfx-rws.asm"
  INCLUDE "3-assembled-output/resident.asm"
 
- HOT_END% = QSL
+ PROGI% = BPSLOT%
 
  INCLUDE "3-assembled-output/elite-flight-config.asm"
+
+IF _CIRCLES
+ CIRCSZ = 2560
+ELSE
+ CIRCSZ = 0
+ENDIF
+ HOT_END% = QSL - CIRCSZ
 
  ORG PROGM%
 
@@ -43,6 +50,8 @@ IF _CIRCLES             \ (the planet's surface at the hot pass's end, as the
  INCLUDE "1-source-files/main-sources/gfx-planet7.asm"
  INCLUDE "1-source-files/main-sources/gfx-merid.asm"
 ENDIF
+
+.M_CIRC_END
 
 
  CLEAR &8000, &C000
@@ -70,3 +79,7 @@ ENDIF
 .M_HOTM
  ORG HOTM_END%
 .M_HOTM_END
+ ORG PROGX%
+.M_HOTX
+ ORG PROGX_END%
+.M_HOTX_END

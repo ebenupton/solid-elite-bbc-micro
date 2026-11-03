@@ -39,6 +39,16 @@ def map_constants():
     return out
 
 
+def main_part(home, mc):
+    """the program's main RAM part, PROGM% to PROGM_END% and PROGX% to
+    PROGX_END%, from its image in the home image (S%+14 gives its address
+    as PCLI stages it), as PCLI copies it: [(address, bytes)]"""
+    at = home[14] + 256 * home[15] - mc["STAGE%"]
+    n = mc["PROGM_END%"] - mc["PROGM%"]
+    return [(mc["PROGM%"], home[at:at + n]),
+            (mc["PROGX%"], home[at + n:at + n + mc["PROGX_END%"] - mc["PROGX%"]])]
+
+
 def flight_constants(path):
     """the flight source's constants that are needed here (by value)"""
     out = {}
@@ -194,7 +204,8 @@ def load():
     ld = syms(os.path.join(REPO, "3-assembled-output/loader-symbols.txt"))
     loader = open(os.path.join(REPO, "3-assembled-output/ELITE4.bin"), "rb").read()
     resa = loader[ld["RESAcode"] - 0x1900:ld["RESAcode"] - 0x1900 + 0x400]
-    cand = Machine("port", cand_sy, [(0x0400, resa)], extra)
+    home = open(os.path.join(REPO, "3-assembled-output/D.CODEH.bin"), "rb").read()
+    cand = Machine("port", cand_sy, [(0x0400, resa)] + main_part(home, mc), extra)
     cand.home_bank, cand.cold_bank = 4, 7
     mp = open(os.path.join(REPO, "1-source-files/main-sources/elite-map.asm"), encoding="latin-1").read()
     gvars = int(re.search(r"^ GVARS = &([0-9A-F]+)", mp, re.M).group(1), 16)

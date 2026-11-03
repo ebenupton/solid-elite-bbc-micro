@@ -18,11 +18,13 @@
 #   \       Area: cold
 #
 #   * no Area field (or "Area: hot"): the hot pass, the game code that runs
-#     with the program's home bank, bank 4, paged. It flows through its
-#     containers in order: main RAM (HOTM%, elite-map.asm), then bank 4 from
-#     S% at &8000 (HOME%) to the room that the layout keeps at the bank's end
-#     (the quarter squares and the blueprint slot, and in the flight code the
-#     renderer's routines that run in game context).
+#     with the program's home bank, bank 4, paged. Each unit (blocks that
+#     fall into each other) goes in the first of its containers with room for
+#     it: bank 4 from S% at &8000 (HOME%) to the room that the layout keeps
+#     at the bank's end (the quarter squares and the blueprint slot, and in
+#     the flight code the renderer's routines that run in game context), then
+#     main RAM (HOTM%, elite-layout-<program>.asm), then the room after the
+#     missile's blueprint (PROGX%, elite-map.asm).
 #   * "Area: low": the low pass, code that must be in main RAM, where it is
 #     seen whatever bank is paged (LOW%, elite-map.asm). The disc version's
 #     own code of that kind (the interrupt handler, the break handler, the
@@ -138,10 +140,11 @@ NOFALL = set("RTS RTI JMP BRK".split())
 BRANCH = set("BCC BCS BEQ BMI BNE BPL BVC BVS".split())
 HOTSIDE = ("low", "hot", "blueprints")
 
-# the hot pass's containers, in the flow's order, by the names the layout
-# files give their bounds (elite-map.asm and elite-layout-<program>.asm, as
-# the measure assembles them): (copy, start, end)
-CONTAINERS = (("hot", "M_HOT", "M_HOT_END"), ("hotm", "M_HOTM", "M_HOTM_END"))
+# the hot pass's containers, by the names the layout files give their bounds
+# (elite-map.asm and elite-layout-<program>.asm, as the measure assembles
+# them): (copy, start, end); each unit goes in the first with room for it,
+# the largest units first
+CONTAINERS = (("hot", "M_HOT", "M_HOT_END"), ("hotm", "M_HOTM", "M_HOTM_END"), ("hotx", "M_HOTX", "M_HOTX_END"))
 
 # NORETURN: the targets that never return to their caller, so that their
 # stubs jump (farCj, farHj) and leave no far-call frame on the stack: the
@@ -1059,20 +1062,33 @@ def program(prog, phase, errors):
                 return ""
             conts.append([c, sy[a], sy[z], []])
         used = {c[0]: 0 for c in conts}
-        cur = 0
+        # each unit goes in the first container with room for it, S%'s unit
+        # first and then the others largest first (a unit runs as well in any of them, and each
+        # container's copy assembles its units in the source's order, so S%,
+        # the first, stays at the start of bank 4: its entry table)
+        sized = []
         for u0, u1 in units:
             names = "%s..%s" % (bl[hot[u0]].name, bl[hot[u1]].name) if u1 > u0 else bl[hot[u0]].name
-            size = sum(bsize[n] for n in range(u0, u1 + 1))
-            if any(re.match(r"^\.S%", code_part(lines[i])) for n in (u0,) for i in range(bl[hot[n]].s, bl[hot[n]].e)):
-                cur = [c[0] for c in conts].index("hot")       # (S% starts bank 4: the
+            sized.append((sum(bsize[n] for n in range(u0, u1 + 1)), u0, u1, names))
+        where = {}
+        for size, u0, u1, names in [sized[0]] + sorted(sized[1:], key=lambda s: (-s[0], s[1])):
+            cur = 0
             while cur < len(conts) and conts[cur][1] + used[conts[cur][0]] + size > conts[cur][2]:
-                cur += 1                                      # entry table at &8000)
+                cur += 1
             if cur == len(conts):
                 errors.append("%s: the hot pass does not fit: %s (%d bytes) has no room" % (prog, names, size))
-                break
-            c = conts[cur]
-            c[3].append((used[c[0]], size, names))
-            used[c[0]] += size
+                continue
+            used[conts[cur][0]] += size
+            where[u0] = cur
+        if not errors and where.get(units[0][0]) != [c[0] for c in conts].index("hot"):
+            errors.append("%s: S%% is not at the start of bank 4 (its entry table)" % prog)
+        fill = {c[0]: 0 for c in conts}
+        for size, u0, u1, names in sized:
+            if u0 not in where:
+                continue
+            c = conts[where[u0]]
+            c[3].append((fill[c[0]], size, names))
+            fill[c[0]] += size
             for n in range(u0, u1 + 1):
                 copy_of[hot[n]] = c[0]
         for k in range(len(bl)):

@@ -263,7 +263,8 @@ export function progHooks(b, cpu) {
     };
     const sig = (img, a) => [0, 1, 2].map(i => img.data[a + i - img.base]);
     // (a routine that lives in the cold bank is hooked at its body, name_C:
-    // the home bank reaches it through a stub of the old name)
+    // the home bank reaches it through a stub of the old name; one in the
+    // program's main RAM part is in its "m" image whatever its role)
     const hookOf = (prog, name, off = 0) => {
         if (typeof prog === "string") prog = b.progs[prog];
         if (prog.sy[name + "_C"] !== undefined) name += "_C";
@@ -271,7 +272,7 @@ export function progHooks(b, cpu) {
         if (a0 === undefined) return null;
         const a = a0 + off;
         const role = prog.bank[name];
-        const img = prog.images.find(im => (role === undefined || im.map === role) && a >= im.base && a + 3 <= im.base + im.data.length);
+        const img = prog.images.find(im => (role === undefined || im.map === role || im.map === "m") && a >= im.base && a + 3 <= im.base + im.data.length);
         if (!img) throw new Error(`${prog.name} ${name}: not in any image`);
         return { prog, name, a, map: img.map, sig: sig(img, a) };
     };

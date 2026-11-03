@@ -31,24 +31,28 @@
                         \ game entry, +6: JMP to the WRCHV handler, +9: IRQ1's
                         \ address, +11: JMP to the BRKV handler)
 
- PROGM% = &7FA0         \ Each program's main RAM part (its low pass, then the
- PROGM_END% = &7FFE     \ hot pass's main RAM container), after the missile's
-                        \ blueprint (which ends there without its edges) and
-                        \ before VEC: the program's layout copies it into its
-                        \ bank 4 image at PROGI% (S%+14), and PCLI copies it
-                        \ here when it loads the program
+ PROGM% = &7970         \ Each program's main RAM part (its low pass, then the
+ PROGM_END% = &7E00     \ hot pass's main RAM container), after the rupture's
+                        \ code and before the mailbox, in the room that the
+                        \ original's mode 5 dashboard leaves: the program's
+                        \ layout copies it into its bank 4 image at PROGI%
+                        \ (S%+14 gives it, as staged), and PCLI copies it here
+                        \ when it loads the program
 
- PROGI% = &C000 - (PROGM_END% - PROGM%)   \ The main RAM part's image, at the
-                        \ end of bank 4's blueprint slot: needed only while
-                        \ PCLI loads the program, and the flight code's D.MOx
-                        \ files load over it afterwards
+ PROGX% = &7FA0         \ The rest of each program's main RAM part: the room
+ PROGX_END% = &7FFE     \ between the missile's blueprint (which ends there
+                        \ without its edges) and VEC, for the hot pass (its
+                        \ image follows PROGM%'s, and PCLI copies it too)
+
+ PROGIS% = PROGM_END% - PROGM% + PROGX_END% - PROGX%   \ The size of the main
+                        \ RAM part's image in bank 4 (PROGI%)
 
  BPSLOT% = &B700        \ The blueprint set in each home bank, to BPSLOT_END%
- BPSLOT_END% = PROGI%   \ without their edge lists (the EDGE macro), then its
+ BPSLOT_END% = &BFA2    \ without their edge lists (the EDGE macro), then its
                         \ ships' unit normals for the lighting, and their table
                         \ FC_NORMTAB at NORMTAB, at the slot's end (gfx-setdata.asm,
-                        \ elite-shipset.asm): the largest set fits below PROGI%
-                        \ (the ship files and the docked code's layout check it)
+                        \ elite-shipset.asm): the largest set fits (the ship
+                        \ files and the docked code's layout check it)
 
  NORMTAB = BPSLOT_END% - 2 * 33   \ FC_NORMTAB, by ship type 0 to 32
 

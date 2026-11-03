@@ -130,19 +130,25 @@ first. The text tokens' source, `elite-text-tokens.asm` (the original's
 program's cold pass, and its sine and arctan tables `SNE` and `ACT` are
 `Area: resident`, which stay at `&07C0` in the loader's resident block.
 
-**The containers.** Each pass goes into its containers in the source's
-order:
+**The containers.** The passes go into these containers:
 
-* the **main RAM part** of the program, `PROGM%` to `PROGM_END%`
-  (`&7FA0-&7FFD`, between the missile's blueprint, which ends there without
-  its edges, and `VEC`): the low pass, then the hot pass's main RAM
-  container (`hotm`). The program's layout file assembles it there and
-  copies its bytes into its bank 4 image at `PROGI%`; `S%+14` gives where
-  that image is while `PCLI` stages the bank 4 image, and `PCLI` copies it
-  to `PROGM%` each time it loads the program;
+* the **main RAM part** of the program, in two pieces: `PROGM%` to
+  `PROGM_END%` (`&7970-&7DFF`, after the rupture's code and before the
+  mailbox: room that the original's mode 5 dashboard leaves), with the low
+  pass and then the hot pass's main RAM container (`hotm`), and `PROGX%` to
+  `PROGX_END%` (`&7FA0-&7FFD`, between the missile's blueprint, which ends
+  there without its edges, and `VEC`), a second hot container (`hotx`).
+  The program's layout file assembles them there and copies their bytes
+  into its bank 4 image at `PROGI%` (the flight code's at the start of its
+  blueprint slot, which `LOMOD` then loads a set over; the docked code's
+  below its quarter squares); `S%+14` gives where that image is while
+  `PCLI` stages the bank 4 image, and `PCLI` copies both pieces to their
+  places each time it loads the program;
 * the hot pass's bank 4 container (`hot`), from `S%` at `&8000` (`HOME%`)
-  to the main RAM part's image, then the quarter squares (`QSL`, `QSH`, in
-  both programs: the lighting's `L_REC` reads them) and the blueprint slot;
+  to the room that the layout keeps at the bank's end: in the flight code
+  with `_CIRCLES`, the planet's surface (`CIRCSZ`, 2,560 bytes); then the
+  quarter squares (`QSL`, `QSH`, in both programs: the lighting's `L_REC`
+  reads them) and the blueprint slot;
 * the cold pass, bank 7 from `&8000`, then the text tokens `QQ18`, below
   `DFSSAVE%`.
 
@@ -150,36 +156,40 @@ order:
 together, because one falls through into the next (its last statement can
 continue, or is a BIT skip, `EQUB &2C` or `&24`), branches into another
 (the blocks from one to the other, or to the stub of a routine on the other
-side, which sits at that routine's place), or runs on into the next. In the
-source's order, each unit goes into the container the flow has reached if it
-fits, and otherwise into the next one. The sizes are measured, not
-estimated: the Makefile runs `2-build-files/streams.py` twice. `streams.py
-measure` writes each program's hot pass as one copy, with a label
-`FLOW_<n>` at each block, which `elite-measure-flight.asm` and
+side, which sits at that routine's place), or runs on into the next. `S%`'s
+unit goes first, at the start of bank 4 (the entry table), and then each
+other unit, the largest first, into the first container with room for it:
+`hot`, `hotm`, `hotx` (code runs as fast in main RAM as in bank 4). Each
+container's copy assembles its units in the source's order. The sizes are
+measured, not estimated: the Makefile runs `2-build-files/streams.py`
+twice. `streams.py measure` writes each program's hot pass as one copy,
+with a label `FLOW_<n>` at each block, which `elite-measure-flight.asm` and
 `elite-measure-docked.asm` assemble for each block's size
 (`3-assembled-output/measure-<program>-symbols.txt`); `streams.py place`
 then flows the units by those sizes. A block's size does not depend on
 where it goes. `3-assembled-output/flow-flight.txt` and `flow-docked.txt`
 list every container and its units.
 
-The main RAM part is small (94 bytes): main RAM is the screen's (both
-buffers and the dashboard, `&1000-&76FF`), the rupture's, the workspaces'
-and the resident block's, with `&7968-&7DFF` free after the rupture. The low pass holds `WSCAN` and `DELAY`, which the cold pass calls
-directly; bank 4 holds the whole of each hot pass, so the main RAM
-container is empty. A low block may not fall into a cold one (its stub
-would be in the low pass); a hot block that falls into a low one falls into
-a `JMP` to it at its place. The stubs for a cold block go in the copy of
-the nearest hot block before it, so that a branch to them stays in reach.
+The main RAM part is 1,262 bytes (1,168 and 94): the rest of main RAM is
+the screen's (both buffers, `&1000-&6FFF`, and the dashboard,
+`&7000-&76FF`), the rupture's, the workspaces' and the resident block's.
+The low pass holds `WSCAN` and `DELAY`, which the cold pass calls directly.
+Without `_CIRCLES` bank 4 holds the whole of each hot pass, so the main RAM
+containers are empty; with it, the flight code's hot pass fills `hotm` too.
+A low block may not fall into a cold one (its stub would be in the low
+pass); a hot block that falls into a low one falls into a `JMP` to it at
+its place. The stubs for a cold block go in the copy of the nearest hot
+block before it, so that a branch to them stays in reach.
 
 **The copies.** BeebAsm assembles with one location counter, and the banks
 share the addresses `&8000-&BFFF`. So `streams.py` writes one copy of each
 program's source per container into `3-assembled-output`
 (`elite-flight-config.asm`, `-low.asm`, `-hot.asm`, `-hotm.asm`,
-`-blueprints.asm`, `-cold.asm`, and the same for the docked code), with the
-other lines blanked, so that line numbers stay the source's.
-`elite-layout-flight.asm` and `elite-layout-docked.asm`, which the Makefile
-assembles, INCLUDE a program's copies in turn, each at its own address.
-Each label is defined once and each block is assembled once.
+`-hotx.asm`, `-blueprints.asm`, `-cold.asm`, and the same for the docked
+code), with the other lines blanked, so that line numbers stay the
+source's. `elite-layout-flight.asm` and `elite-layout-docked.asm`, which
+the Makefile assembles, INCLUDE a program's copies in turn, each at its own
+address. Each label is defined once and each block is assembled once.
 
 **Stubs at their routines' places.** Each pass is the original in its
 order, with a far-call stub wherever a routine lives on the other side. The
@@ -336,27 +346,29 @@ see the history of this file).
 | Buffer 0 | `&1000-&3FFF` | the renderer's second screen buffer (`BUF0`); also DFS's workspace page (`&1000-&10FF`, which `PCLI` puts back for each disc command and keeps in `DFSSAVE%` between them) and, during a load, the staging area `STAGE%` (`&1600`, up to 16K, into buffer 1) |
 | Buffer 1 | `&4000-&6FFF` | the screen (`SCREEN%`): the space view's first buffer, and the only one outside a space view |
 | The dashboard | `&7000-&76FF` | `PANEL%`: the original's mode 5 dashboard, seven character rows of 256 bytes (`P.DIALS`), shown at the 1 MHz clock by the rupture's frame B ([video-timing.md](video-timing.md)) |
-| The rupture | `&7700-&7967` | `RUPT%` (`elite-rupture.asm`, which the loader copies there): the two clock switches, the frames' vertical registers, the flip, the disc freeze (`rdin`, `rdout`) and their variables; free to `&7DFF` |
+| The rupture | `&7700-&7967` | `RUPT%` (`elite-rupture.asm`, which the loader copies there): the two clock switches, the frames' vertical registers, the flip, the disc freeze (`rdin`, `rdout`) and their variables |
+| The main RAM part | `&7970-&7DFF` | `PROGM%`: the program's low pass and its `hotm` container |
 | The mailbox | `&7E00-&7E9F` | the rasteriser's inputs (`MBOX`, `gfx-rws.asm`), the stars at its end (`&67-&9F`); `PCLI`'s command and OSFILE block (`PCBUF`, `PBLK`) share its polygon vertices, as do the planet's circle records from `PF_HOOK` to the frame (`PCB`, `PC_N`, `pc_inv`: `&00-&49`) and, during the frame, the disc layer's batches (`&00-&65`) |
 | The shared variables | `&7EA0-&7EAF` | `GVARS`: the renderer's state that the game's hooks, the interrupt and the frame layer share (the last, `PF_CLS`, the planet's class as `PF_HOOK` made it) |
 | The high resident block | `&7EB0-&7EBF` | `RESH%` (`elite-resident-high.asm`): the screen's palette (64 bytes free after it) |
-| The missile's blueprint | `&7F00-&7F9F` | as in the original, without its edges; then the programs' main RAM part, `PROGM%` (`&7FA0-&7FFD`); `VEC` at `&7FFE` |
+| The missile's blueprint | `&7F00-&7F9F` | as in the original, without its edges; then the rest of the programs' main RAM part, `PROGX%` (`&7FA0-&7FFD`, the `hotx` container); `VEC` at `&7FFE` |
 | Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`, with the lighting (`gfx-light.asm`: `L_REC`, and in the flight code `L_SUN`); in a build with `_CIRCLES`, the planet's surface after the hot pass (`PF_HOOK`, `gfx-planet7.asm`, and the circle engine's `pc_circ`, `gfx-merid.asm`); the quarter squares at `&B300-&B6FF` (`QSL`, `QSH`); the blueprint set at `&B700`, with its ships' normals and `FC_NORMTAB` (`NORMTAB`) |
 | Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000` (in the docked code, after its set's face lists), then `QQ18`; in the flight code, then the overlay region (`OVL%`) and the renderer's window (`WIN7%`, `gfx-window7.asm`: the disc layer's painter and the second disc, `&A387` on, and each buffer's disc state in the twelve pages `&B300-&BEFF`, not in the image); `DFSSAVE%` at `&BF00` |
 | Bank 5 | ROMSEL `BANK5` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), the jump table `RJT` |
 | Bank 6 | ROMSEL `BANK6` | the frame layer, from `F.BANK`: its code with the discs, the circle engine's rows (`PC_ROWS`), the lens flare, the screens drawn directly and the hangar's background (`&8000-&AB14`), the lighting's ramps and the faces' small tables, its state with the discs' rows, the face lists of the blueprint set loaded (`FCSLOT`, the 847 bytes below the dispatcher), the dispatcher `FJT` (`&BFC0`); and the sun near the planet (`S_SUN`, `gfx-ssun.asm`; `make ssun=off` leaves it out) |
 
-Free space now: 904 bytes in the flight code's home bank ([renderer.md](renderer.md),
-"The hooks"; the planet's surface, 2,543 bytes with `_CIRCLES`, does not
-fit yet, by 1,642), 27 in its cold bank (the renderer's window takes 3,927
-and its state 3,072: [renderer.md](renderer.md), "The discs"), 3,844 in the
-docked code's home bank (below `QSL`), 4,732 in its cold bank, 1 in
-resident block A and 7 in the glue, 17 in the high resident block, 78 in
-each program's main RAM part, 305 in bank 6 (with `S_SUN`, 1,154 bytes),
-and in bank 5 43 in its low region (`&8000-&8FFF`), 56 in its high region
-(`&9600-&BFBF`) and 260 after `R_LINE`'s cold part, `R_RESETBUF` and
-`r_wq`. The flight code's banks are what the frames can
-use; the docked code's are free only while docked.
+Free space now, without `_CIRCLES`: 1,402 bytes in the flight code's home
+bank and 1,102 and 94 in its main RAM part; with it (the planet's surface,
+2,543 bytes at the home bank's end), 17 in the home bank, 0 and 35 in the
+main RAM part. In both, 80 in the flight code's cold bank (the renderer's
+window takes 3,910 and its state 3,072: [renderer.md](renderer.md), "The
+discs"), 3,063 in the docked code's home bank (below its main RAM part's
+image), 4,737 in its cold bank, 1,152 and 94 in its main RAM part, 56 in
+resident block A and 11 in the glue, 64 in the high resident block, 305 in
+bank 6 (with `S_SUN`), and in bank 5 47 in its low region
+(`&8000-&8FFF`), 58 in its high region (`&9600-&BFBF`) and 265 after
+`R_LINE`'s cold part, `R_RESETBUF` and `r_wq`. The flight code's banks are
+what the frames can use; the docked code's are free only while docked.
 
 ## What is not in the original's order
 

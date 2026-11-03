@@ -22452,6 +22452,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing suns
 \    Summary: Draw the sun: Set up all the variables needed to draw the sun
+\       Area: cold
 \  Deep dive: Drawing the sun
 \
 \ ------------------------------------------------------------------------------
@@ -22656,6 +22657,7 @@ ENDMACRO
 \   Category: Drawing suns
 \    Summary: Draw the sun: Start from the bottom of the screen and erase the
 \             old sun line by line
+\       Area: cold
 \  Deep dive: Drawing the sun
 \
 \ ------------------------------------------------------------------------------
@@ -22706,6 +22708,7 @@ ENDMACRO
 \   Category: Drawing suns
 \    Summary: Draw the sun: Continue to move up the screen, drawing the new sun
 \             line by line
+\       Area: cold
 \  Deep dive: Drawing the sun
 \
 \ ------------------------------------------------------------------------------
@@ -22963,6 +22966,7 @@ ENDMACRO
 \   Category: Drawing suns
 \    Summary: Draw the sun: Continue to the top of the screen, erasing the old
 \             sun line by line
+\       Area: cold
 \  Deep dive: Drawing the sun
 \
 \ ------------------------------------------------------------------------------
@@ -23403,6 +23407,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a horizontal line given a centre and a half-width
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -30101,6 +30106,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing suns
 \    Summary: Port: HLOIN and HLOIN2 for the sun, outside record mode only
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \

@@ -132,6 +132,9 @@ class Mem:
         self.main[0xC000:0x10000] = open(os_rom, 'rb').read()[:0x4000]
         miss = open(os.path.join(OUT, 'MISSILE.bin'), 'rb').read()
         self.main[0x7F00:0x7F00 + len(miss)] = miss
+        from test_routines import map_constants, main_part
+        for a, d in main_part(self.banks[HOME], map_constants()):   # (the main RAM
+            self.main[a:a + len(d)] = d                             # part, as PCLI)
         self.sel = HOME
         ld = S['loader']                         # the resident block A (the far
         lb = open(os.path.join(OUT, 'ELITE4.bin'), 'rb').read()   # calls), as the loader
@@ -145,8 +148,10 @@ class Mem:
             ok[lo:hi] = b'\1' * (hi - lo)
         self.ok = ok
         game = bytearray(ok)                     # game code (LL9, and what the
-        for lo, hi in ((0, 0x100), (0x300, 0x400), (0x900, 0xD00)):   # frame runs) also writes
-            game[lo:hi] = b'\1' * (hi - lo)     # the game's zero page, UP and K%
+        mc = map_constants()                     # frame runs) also writes the
+        for lo, hi in ((0, 0x100), (0x300, 0x400), (0x900, 0xD00),   # game's zero
+                       (mc['PROGM%'], mc['PROGM_END%']), (mc['PROGX%'], mc['PROGX_END%'])):
+            game[lo:hi] = b'\1' * (hi - lo)     # page, UP, K% and the main RAM part
         self.okgame = game
         self.guard = ok
         self.bad = []

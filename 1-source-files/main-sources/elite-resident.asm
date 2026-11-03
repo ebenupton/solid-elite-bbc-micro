@@ -148,15 +148,50 @@
  LDA STAGE%+14          \ Copy the program's main RAM part, PROGM% to
  STA pcm1+1             \ PROGM_END%, from its image in the home image, which
  LDA STAGE%+15          \ S%+14 gives as staged (its address in bank 4, less
- STA pcm1+2             \ HOME%, plus STAGE%: the home image is still there)
- LDX #PROGM_END%-PROGM%-1
+ STA pcm1+2             \ HOME%, plus STAGE%: the home image is still there):
+ LDA #HI(PROGM%)        \ its whole pages, then the rest
+ STA pcm2+2
+ LDY #HI(PROGM_END% - PROGM%)
+ LDX #0
 
 .pcm1
 
+ LDA &FFFF,X            \ (the addresses are set above, and moved on a page at
+                        \ a time)
+.pcm2
+
+ STA LO(PROGM%) + &FF00,X
+ INX
+ BNE pcm3
+ INC pcm1+2             \ (a page done: the next one)
+ INC pcm2+2
+ DEY
+ JMP pcm1
+
+.pcm3
+
+ CPY #0                 \ On the part's last page (Y = 0), stop at its end
+ BNE pcm1
+ CPX #LO(PROGM_END% - PROGM%)
+ BNE pcm1
+
+ ASSERT LO(PROGM_END% - PROGM%) <> 0
+
+ TXA                    \ Then PROGX% to PROGX_END%, whose image follows (at the
+ CLC                    \ address in pcm1, plus X)
+ ADC pcm1+1
+ STA pcx1+1
+ LDA pcm1+2
+ ADC #0
+ STA pcx1+2
+ LDX #PROGX_END%-PROGX%-1
+
+.pcx1
+
  LDA &FFFF,X            \ (the address is set above)
- STA PROGM%,X
+ STA PROGX%,X
  DEX
- BPL pcm1
+ BPL pcx1
 
  LDA #'C'               \ Load x.CODEC, the program's cold image, to STAGE%
  STA pcbuf+8
@@ -783,7 +818,7 @@ pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
 \ ******************************************************************************
 
  PRINT "Resident block A: &0400-", ~P%-1, ", free ", GLUE%-P%, " (then the renderer's glue, the hangar's workspace, SNE and ACT)"
- ASSERT P% <= GLUE% AND PROGM_END% > PROGM% AND PROGM_END% - PROGM% <= 128
+ ASSERT P% <= GLUE% AND PROGM_END% > PROGM%
 
 \ ******************************************************************************
 \

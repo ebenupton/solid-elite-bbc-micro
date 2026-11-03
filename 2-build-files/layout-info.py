@@ -77,5 +77,5 @@ for prog in ("flight", "docked"):
                 sum((labels(OUT + "elite-%s-ovl%d.asm" % (prog, n)) for n in (1, 2, 3)), []) + \
                 sum((labels("1-source-files/main-sources/" + w) for w in WINDOW7.get(prog, ())), []):
             f.write("%s C\n" % name)
-        for name in sum((labels(OUT + "elite-%s-%s.asm" % (prog, c)) for c in ("low", "hot", "hotm", "blueprints")), []):
+        for name in sum((labels(OUT + "elite-%s-%s.asm" % (prog, c)) for c in ("low", "hot", "hotm", "hotx", "blueprints")), []):
             f.write("%s H\n" % name)

@@ -39,10 +39,23 @@
  INCLUDE "3-assembled-output/resident.asm"              \ The loader's resident
                                                         \ addresses
 
- HOT_END% = QSL         \ (bank 4: the hot pass and the main RAM part's image,
-                        \ then the quarter squares and the blueprint slot)
+
+ PROGI% = BPSLOT%       \ The main RAM part's image, at the start of the
+                        \ blueprint slot: needed only while PCLI loads the
+                        \ program (LOMOD loads a set over it before the game
+                        \ uses the slot)
 
  INCLUDE "3-assembled-output/elite-flight-config.asm"
+
+IF _CIRCLES
+ CIRCSZ = 2560          \ Room at bank 4's end for the planet's surface (the
+ELSE                    \ circle engine's game part) in a build with _CIRCLES
+ CIRCSZ = 0
+ENDIF
+
+ HOT_END% = QSL - CIRCSZ   \ (bank 4: the hot pass, the planet's surface in a
+                        \ build with _CIRCLES, then the quarter squares and the
+                        \ blueprint slot)
 
  ORG PROGM%
 
@@ -56,6 +69,14 @@
  INCLUDE "3-assembled-output/elite-flight-hotm.asm"
 
 .PROGM_USED%
+
+ ORG PROGX%             \ (the hot pass's last container: the room after the
+                        \ missile's blueprint)
+ INCLUDE "3-assembled-output/elite-flight-hotx.asm"
+
+.PROGX_USED%
+
+ ASSERT PROGX_USED% <= PROGX_END%
 
  ASSERT PROGM_USED% <= PROGM_END%
 
@@ -84,14 +105,14 @@ ENDIF
 .HOME_END%
 
 
- PRINT "Flight bank 4: &8000-", ~CIRC_START%-1, " (the hot pass), ", HOME_END%-CIRC_START%, " (the planet's surface), free ", HOT_END%-HOME_END%
- PRINT "Flight main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%
- ASSERT HOME_END% <= HOT_END%
+ PRINT "Flight bank 4: &8000-", ~CIRC_START%-1, " (the hot pass), ", HOME_END%-CIRC_START%, " (the planet's surface), free ", QSL-HOME_END%
+ PRINT "Flight main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%, ", then ", PROGX_END%-PROGX_USED%, " free of ", PROGX_END%-PROGX%
+ ASSERT HOME_END% <= QSL AND CIRC_START% <= HOT_END% AND HOME_END% - CIRC_START% <= CIRCSZ
 
                         \ Port: the quarter squares, QSL and QSH, in bank 4 just
                         \ below the blueprint slot (elite-map.asm)
 
-IF HOME_END% <= HOT_END%  \ (else the ASSERT above stops the build, having
+IF HOME_END% <= QSL    \ (else the ASSERT above stops the build, having
                           \ printed by how much bank 4 overflows)
  ORG QSL
 
@@ -106,11 +127,15 @@ IF HOME_END% <= HOT_END%  \ (else the ASSERT above stops the build, having
  ASSERT QSH = QSL + &200 AND P% = BPSLOT%
 ENDIF
 
- ORG PROGI%             \ the main RAM part's image, at the end of the blueprint
- COPYBLOCK PROGM%, PROGM_END%, PROGI%   \ slot (elite-map.asm): the D.MOx file
-                        \ loads over it afterwards
+ ORG PROGI%             \ the main RAM part's image, at the start of the
+ COPYBLOCK PROGM%, PROGM_END%, PROGI%
+ COPYBLOCK PROGX%, PROGX_END%, PROGI% + PROGM_END% - PROGM%   \ blueprint slot: the D.MOx file loads
+                        \ over it afterwards
 
  SAVE "3-assembled-output/D.CODEH.bin", HOME%, &C000, HOME%
+ SAVE "3-assembled-output/D.CODEM.bin", PROGM%, PROGM_END%, PROGM%   \ (the main
+ SAVE "3-assembled-output/D.CODEX.bin", PROGX%, PROGX_END%, PROGX%   \ RAM part,
+                        \ for the harness: it is on the disc in x.CODEH)
 
  CLEAR &8000, &C000
  ORG &8000
