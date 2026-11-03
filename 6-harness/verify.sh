@@ -17,7 +17,9 @@
 #     (bredock.mjs); save and load a commander through the game's disc menu,
 #     and check the file is byte for byte the original's (bsavetest.mjs); and
 #     changes of view in flight against the reference over 1500 iterations
-#     (bcompare.mjs --views).
+#     (bcompare.mjs --views); and the status, data, chart, market and
+#     inventory screens in flight, which load and swap the flight code's
+#     overlays, against the reference over 1500 iterations (--screens).
 #  4. speed: flight-loop iterations per emulated second over the whole run,
 #     reference and candidate, their ratio, and the candidate's cycles per
 #     flight iteration (reported, not gated; the per-window table is in the
@@ -109,7 +111,10 @@ grep -E "^SAVETEST" "$LOG/save.log"
 node 6-harness/bcompare.mjs --iters 1500 $OPTS --views --maxsecs 600 --cand "$CAND" \
     --out "$LOG/views" > "$LOG/views.log" 2>&1
 grep -q "^BCOMPARE PASS" "$LOG/views.log" || { grep -A8 "FIRST DIVERGENCE" "$LOG/views.log" | head -10; grep SCREEN "$LOG/views.log"; echo "views: FAIL"; fail views; }
-echo "regressions: PASS (redock, savetest, views)"
+node 6-harness/bcompare.mjs --iters 1500 $OPTS --screens --maxsecs 900 --cand "$CAND" \
+    --out "$LOG/screens" > "$LOG/screens.log" 2>&1
+grep -q "^BCOMPARE PASS" "$LOG/screens.log" || { grep -A8 "FIRST DIVERGENCE" "$LOG/screens.log" | head -10; echo "screens: FAIL"; fail screens; }
+echo "regressions: PASS (redock, savetest, views, screens)"
 
 # ---- 4. speed
 ALL=$(grep -E "^ +all " "$LOG/compare.log")

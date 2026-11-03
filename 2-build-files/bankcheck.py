@@ -38,12 +38,12 @@
 #    in the home bank, XX21 and E% in the flight code, are home data);
 #  * a line with the comment "bankcheck: ok" is exempt (reviewed by hand).
 # Exit status 1 if any rule is broken.
-import re, sys
+import os, re, sys
 
 OUT = "3-assembled-output/"
 SRC = "1-source-files/main-sources/"
 PROGS = ("flight", "docked")
-FAR = ("farH", "farHj", "farC", "farCj")
+FAR = ("farH", "farHj", "farC", "farCj", "ovf1", "ovf2", "ovf3")
 HOTCOPIES = ("config", "low", "hot", "hotm", "blueprints")   # (the hot side's copies: streams.py)
 WINDOW7 = {"flight": ("gfx-dlayer.asm",)}   # (bank 7's renderer window: elite-layout-flight.asm)
 MNEM = set(("ADC AND ASL BCC BCS BEQ BIT BMI BNE BPL BRK BVC BVS CLC CLD CLI CLV CMP CPX CPY "
@@ -99,6 +99,8 @@ def idents(op):
 def check(prog, errors):
     files = {OUT + "elite-%s-%s.asm" % (prog, c): "home" for c in HOTCOPIES}
     files.update({SRC + f: "cold" for f in WINDOW7.get(prog, ())})   # (bank 7's renderer window)
+    files.update({OUT + "elite-%s-ovl%d.asm" % (prog, n): "cold" for n in (1, 2, 3)   # (bank 7's overlays)
+                  if os.path.exists(OUT + "elite-%s-ovl%d.asm" % (prog, n))})
     files.update({OUT + "elite-%s-cold.asm" % prog: "cold", OUT + "elite-tokens-cold.asm": "cold",
                   SRC + "elite-layout-%s.asm" % prog: "home", OUT + "resident.asm": "main"})
     show = {OUT + "elite-%s-%s.asm" % (prog, a): "elite-source-%s.asm" % prog for a in HOTCOPIES + ("cold",)}

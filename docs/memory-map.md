@@ -97,6 +97,19 @@ Master port, each program is emitted in three passes, **low**, **hot** and
   directly, with no stub (`3-assembled-output/direct-flight.txt`,
   `direct-docked.txt`).
 * **`Area: cold`** is the cold pass, bank 7 from `&8000`.
+* **`Area: overlay N`** (flight code only) is cold code that only runs at
+  events: overlay 1 holds the charts, the hyperspace jump with the
+  mis-jump, the launch and the escape pod; overlay 2 the data, status,
+  market and inventory screens. Each overlay is assembled at the same
+  place in bank 7, `OVL%`, after the cold pass (`D.OV1`, `D.OV2`); the
+  region is as big as the bigger one, so the smaller one costs nothing.
+  Calls into an overlay go through stubs `JSR ovfN : EQUW routine_O` at the
+  routine's place in the other copies; `ovf1` (the low pass) loads overlay
+  N from disc with `ovload` if the other is in the region (`OVLCUR`), then
+  makes the call as `farC` does. An overlay's falls and branches into the
+  cold pass become jumps (`routine_ob JMP routine_C`). An overlay may
+  call any pass but not the other overlay, even through code in between:
+  `2-build-files/ovlcheck.py` checks every path at build time.
 * **`Area: blueprints`** (the docked code's own ship blueprints) is bank 4's
   blueprint slot at `&B900`.
 * **`Area: none`** is code the port no longer runs: each copy has only its
@@ -261,6 +274,16 @@ bank. The disc is an 80-track one: it holds 520 sectors.
 * "R.T.CODE" and "R.D.CODE" do the same, then run the program at `S%`, as
   `*RUN` did.
 * "L.D.MOx" loads a blueprint file into the home bank's blueprint slot.
+
+The flight code also loads its overlays itself, at any time in flight
+(`ovload`, cold pass): it keeps `WP` (`&0E00-&0FFF`) and zero page
+`&90-&E1` in buffer 0 at `OVSTASH` (`&3C00`), puts DFS's workspace back
+(`dfsin`), reloads the catalogue (`CATD`), loads `D.OVn` to `STAGE%` with
+`pload` and copies it to `OVL%`, keeps DFS's workspace (`dfsout`), puts the
+rest back and marks the screen buffers as used (`GSTASH`). The bank 7
+image in `D.CODEC` holds overlay 1, so a load of the flight code starts
+with it (`OVLCUR` = 1). In the gate's run the loads cost about 85 cycles
+an iteration on average (two loads a hyperspace jump at most).
 * Anything else (`*CAT`, `*DELETE`, `*DIR`) is copied into main RAM and
   passed to the MOS.
 

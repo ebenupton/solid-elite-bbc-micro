@@ -48,6 +48,10 @@
                         \ largest set fits below PROGI% (the ship files and the
                         \ docked code's layout check it)
 
+ OVSTASH = &3C00        \ Where the flight code's overlay loader keeps WP and
+                        \ the filing system's zero page during a load (ovload:
+                        \ in buffer 0, above what STAGE% holds of an overlay)
+
  STAGE% = &1600         \ Where files are loaded before they are copied into
                         \ their bank (main RAM &1600 to &55FF, over the top of
                         \ the screens, which the game clears after each load)

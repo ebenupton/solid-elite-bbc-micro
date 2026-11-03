@@ -207,6 +207,10 @@ def blocks(lines, tags, path, default):
                         out[-1].runson = True
                     else:
                         break
+                m2 = re.match(r"^overlay (\d)$", t)
+                if m2 and "cold" in tags:
+                    out[-1].area = "ovl" + m2.group(1)
+                    continue
                 if t not in tags:
                     sys.exit("%s:%d: unknown area %r" % (path, i + 1, t))
                 out[-1].area = tags[t]
@@ -531,9 +535,11 @@ def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies):
     for f, ls in hotfiles + [("cold", copies["cold"])]:
         alias.update(aliases(ls, macros))
     direct = direct_calls(lines, bl, eff, cold, hot)
-    # the cold copy: X -> X_C, JSR/JMP H -> xh_H / jh_H
+    # the cold copy: X -> X_C, JSR/JMP H -> xh_H / jh_H; overlay copies first
+    # (overlay_code), their calls to the hot side going through the same stubs
     outh = []                               # (stub name, target, place, kind) in order
     seenh = {}
+    ovlabs = overlay_code(src, copies, errors, cold, hot, direct, alias, noreturn, outh, seenh)
     cc = copies["cold"]
     act = active_lines(cc)
     for i, l in enumerate(cc):
@@ -553,6 +559,10 @@ def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies):
         pos = 0
         for off, st in statements(code):
             m = re.match(r"^(\s*)(JSR|JMP)(\s+)([A-Za-z_][A-Za-z0-9_]*%?)(.*)$", st, re.I)
+            if m and m.group(4) in ovlabs:
+                new += code[pos:off] + m.group(1) + m.group(2) + m.group(3) + "xo_" + m.group(4) + m.group(5)
+                pos = off + len(st)
+                continue
             if m and m.group(4) in hot and m.group(4) not in cold and m.group(4) not in direct:
                 h = m.group(4)
                 if m.group(5).strip():
@@ -695,6 +705,8 @@ def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies):
             groups.append(("farHj" if kind == "jh_" else "farH", []))
         groups[done[key]][1].append((stub, h))
     nh = place_stubs(groups, ("hot", "low", "blueprints"), "hot")
+    no = overlay_stubs(prog, src, copies, errors, lines, bl, eff, copy_of, hotcopies, cold, hot, direct,
+                       where, barea, host, macros, noreturn)
     # a cold block that falls into a low routine the cold pass calls directly
     # falls into a jump to it, at that routine's place in the cold copy
     for side, entry in falls:
@@ -704,7 +716,113 @@ def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies):
                 errors.append("%s:%d: the seam into %s: its line is not blank in the cold copy" % (src, i + 1, entry))
             else:
                 cc[i] = " JMP %s                \\ (the fall-through into %s, in the low pass)" % (entry, entry)
-    return nc, nh, direct
+    return nc, nh + no, direct
+
+
+# ---------------------------------------------------------------- overlays
+#
+# "Area: overlay N" (the flight code only): code that runs only at an event
+# (a chart, a hyperspace jump, a launch ...), which bank 7's overlay region
+# (OVL%) holds one overlay at a time, loaded from disc when one of its
+# routines is called and another overlay is there (elite-layout-flight.asm,
+# and the loader, ovload, in the cold pass). Its copy, elite-<program>-ovlN.asm,
+# is assembled at OVL% with its own labels named X_O, the cold pass's X_C
+# (the same bank: called directly) and its calls of the hot side through the
+# cold pass's xh_ stubs. Every call into an overlay from outside it goes
+# through a stub at the routine's place, in the caller's copy, which makes
+# sure the overlay is in and then calls it as a far call into bank 7 does:
+#
+#   .TT22    JSR ovf1 : EQUW TT22_O       (a hot copy)
+#   .xo_TT22 JSR ovf1 : EQUW TT22_O       (the cold copy: the cold pass's
+#                                          calls of TT22 are of xo_TT22)
+#
+# (ovfN, in the low pass: main RAM). An overlay may not call another overlay
+# (it would load over itself), nor fall or branch into another area.
+
+
+def overlay_code(src, copies, errors, cold, hot, direct, alias, noreturn, outh, seenh):
+    """rename the overlay copies' labels and calls; returns {label: overlay
+    copy} for every overlay label"""
+    ovl = {}
+    for c in [c for c in copies if c.startswith("ovl")]:
+        for n, i in defined(copies[c]):
+            ovl[n] = c
+    for c in [c for c in copies if c.startswith("ovl")]:
+        oc = copies[c]
+        for i, l in enumerate(oc):
+            code, comment = split_code(l)
+            if not code.strip():
+                continue
+            new, pos = "", 0
+            for off, st in statements(code):
+                m = re.match(r"^(\s*)(JSR|JMP)(\s+)([A-Za-z_][A-Za-z0-9_]*%?)(.*)$", st, re.I)
+                if m and m.group(4) in hot and m.group(4) not in cold and m.group(4) not in direct \
+                        and m.group(4) not in ovl:
+                    h = m.group(4)
+                    place = alias.get(h, h)
+                    kind = "jh_" if place in noreturn or h in noreturn else "xh_"
+                    if kind + h not in seenh:
+                        seenh[kind + h] = place
+                        outh.append((kind + h, h, place, kind))
+                    new += code[pos:off] + m.group(1) + m.group(2) + m.group(3) + kind + h + m.group(5)
+                    pos = off + len(st)
+                    continue
+                for a, b, name in tokens(st):
+                    if mnemonic(st, a):
+                        continue
+                    if name in ovl and ovl[name] == c:
+                        new += code[pos:off + a] + name + "_O"
+                        pos = off + b
+                    elif name in ovl:
+                        errors.append("%s:%d: %s refers to %s, in another overlay" % (src, i + 1, c, name))
+                    elif name in cold:
+                        new += code[pos:off + a] + name + "_C"
+                        pos = off + b
+                new += code[pos:off + len(st)]
+                pos = off + len(st)
+            oc[i] = new + code[pos:] + comment
+    return ovl
+
+
+def overlay_stubs(prog, src, copies, errors, lines, bl, eff, copy_of, hotcopies, cold, hot, direct,
+                  where, barea, host, macros, noreturn):
+    """the stubs into the overlays, at their routines' places in the copies
+    of the callers (the hot copies by host(), the cold copy); returns how many"""
+    ovl = {}
+    for c in [c for c in copies if c.startswith("ovl")]:
+        for n, i in defined(copies[c]):
+            if n.endswith("_O"):
+                ovl[n[:-2]] = c
+    if not ovl:
+        return 0
+    need = {}                               # label -> set of copies that need its stub
+    for c in hotcopies + ["config"]:
+        for i, l in enumerate(copies[c]):
+            for a, b, name in tokens(split_code(l)[0]):
+                if name in ovl:
+                    need.setdefault(name, set()).add("hot")
+    for i, l in enumerate(copies["cold"]):
+        for a, b, name in tokens(split_code(l)[0]):
+            if name.startswith("xo_") and name[3:] in ovl:
+                need.setdefault(name[3:], set()).add("cold")
+    n = 0
+    for name, sides in sorted(need.items()):
+        i = where.get(name)
+        if i is None:
+            errors.append("%s: no place for the overlay stub %s" % (src, name))
+            continue
+        if name in noreturn:
+            errors.append("%s: %s never returns: an overlay entry must be called" % (src, name))
+        k = ovl[name][3:]
+        for s in sorted(sides):
+            a = host(i) if s == "hot" else "cold"
+            text = ".%s%s JSR ovf%s : EQUW %s_O" % ("" if s == "hot" else "xo_", name, k, name)
+            if code_part(copies[a][i]):
+                copies[a][i] = copies[a][i] + " : " + text
+            else:
+                copies[a][i] = text
+            n += 1
+    return n
 
 
 ASM = []
@@ -791,7 +909,7 @@ def program(prog, phase, errors):
     eff = ["config" if k < first else b.area for k, b in enumerate(bl)]
     if any(eff[k] != "hot" for k in range(first, first + 1)):
         errors.append("%s: S%%'s block must be in the hot pass" % src)
-    side = lambda p: "cold" if p == "cold" else "hot"
+    side = lambda p: p if p == "cold" or p.startswith("ovl") else "hot"
     # the hot pass's blocks that assemble, in the source's order, and its units
     hot = [k for k in range(len(bl)) if eff[k] == "hot" and ASM[k]]
     pos = {k: n for n, k in enumerate(hot)}
@@ -815,6 +933,7 @@ def program(prog, phase, errors):
     # thing in the falling block's pass
     falls = []
     lowseams = []
+    ovlseams = []                          # (overlay copy, cold label, by a branch)
     for k, b in enumerate(bl):
         if eff[k] == "config" or not ASM[k]:
             continue
@@ -835,6 +954,18 @@ def program(prog, phase, errors):
                 errors.append("%s:%d: %s (%s) %s %s (%s): they must be in one pass"
                               % (src, b.e, b.name, eff[k], "runs on into" if b.runson else "skips into",
                                  b2.name, eff[k2]))
+            elif eff[k].startswith("ovl") and eff[k2] == "cold" and not bit_skip(st) and not b.runson:
+                # (an overlay falls into the cold pass, which is in the same
+                # bank: a JMP to it at its place in the overlay's copy)
+                entry = entry_label(lines, b2.s, b2.e, macros)
+                if entry:
+                    ovlseams.append((eff[k], entry, False))
+                else:
+                    errors.append("%s:%d: %s (%s) falls into %s, whose first statement is not its entry label"
+                                  % (src, b.e, b.name, eff[k], b2.name))
+            elif eff[k].startswith("ovl") or eff[k2].startswith("ovl"):
+                errors.append("%s:%d: %s (%s) can fall through its end (%s) into %s (%s): an overlay may not "
+                              "fall into another area" % (src, b.e, b.name, eff[k], st, b2.name, eff[k2]))
             elif eff[k] == "low" and eff[k2] == "cold":
                 errors.append("%s:%d: %s (low) can fall through its end (%s) into %s (cold): no stub is in "
                               "the low pass" % (src, b.e, b.name, st, b2.name))
@@ -883,6 +1014,12 @@ def program(prog, phase, errors):
                 if eff[k3] == eff[k]:
                     if k in pos:
                         join(pos[k], pos[k3])
+                elif eff[k].startswith("ovl") and eff[k3] == "cold":
+                    ovlseams.append((eff[k], m.group(2), True))   # (a JMP to it in reach: the
+                                                                  # overlay's copy, at its place)
+                elif eff[k3].startswith("ovl") or eff[k].startswith("ovl"):
+                    errors.append("%s:%d: %s branches to %s in another area (%s): overlays may not"
+                                  % (src, i + 1, b.name, m.group(2), eff[k3]))
                 elif side(eff[k3]) != side(eff[k]):
                     # (a branch to a routine of the other side reaches its
                     # stub, at its place in this side's copy: in the hot
@@ -950,7 +1087,9 @@ def program(prog, phase, errors):
             for off, size, names in us:
                 report.append("  &%04X %5d %s" % (a + off, size, names))
     copies = {}
-    allc = ["config", "low", "cold", "blueprints"] + (["measure"] if phase == "measure" else [c[0] for c in CONTAINERS])
+    ovls = sorted(set(e for e in eff if e.startswith("ovl")))
+    allc = ["config", "low", "cold", "blueprints"] + ovls + \
+        (["measure"] if phase == "measure" else [c[0] for c in CONTAINERS])
     for a in allc:
         copies[a] = []
         for k, b in enumerate(bl):
@@ -959,6 +1098,33 @@ def program(prog, phase, errors):
         for k in hot:
             copies["measure"][bl[k].s] = ".FLOW_%d" % k
     nstubs = glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies)
+    seams = {}
+    for c, entry, br in ovlseams:          # (a branch's JMP serves a fall too)
+        seams[(c, entry)] = seams.get((c, entry), False) or br
+    for (c, entry), br in sorted(seams.items()):
+        i = next((i for n, i in defined(lines) if n == entry and ACTIVE[i]), None)
+        if i is None:
+            errors.append("%s: no place for the overlay's seam into %s" % (src, entry))
+            continue
+        if code_part(copies[c][i]):
+            errors.append("%s:%d: the overlay's seam into %s: its line is not blank in %s" % (src, i + 1, entry, c))
+            continue
+        if br:                             # (the branches to it in this copy go to
+            offs = set()                   # the JMP instead, and a branch to it
+            for j, l in enumerate(copies[c]):   # plus or minus n to a JMP to that)
+                code, comment = split_code(l)
+                m = re.match(r"^(\s*(?:\.[A-Za-z_]\w*\s+)*(?:BCC|BCS|BEQ|BMI|BNE|BPL|BVC|BVS)\s+)%s_C\b(?:([+-])(\d+))?(.*)$"
+                             % re.escape(entry), code)
+                if m:
+                    n = int(m.group(3) or 0) * (-1 if m.group(2) == "-" else 1)
+                    offs.add(n)
+                    copies[c][j] = m.group(1) + entry + "_ob" + (("_%d" % n if n > 0 else "_m%d" % -n) if n else "") \
+                        + m.group(4) + comment
+            copies[c][i] = " : ".join((".%s_ob JMP %s_C" % (entry, entry)) if not n else
+                                      (".%s_ob_%s JMP %s_C%+d" % (entry, n if n > 0 else "m%d" % -n, entry, n))
+                                      for n in sorted(offs | {0}))
+        else:
+            copies[c][i] = " JMP %s_C              \\ (the overlay's fall-through into %s, in the cold pass)" % (entry, entry)
     for k, entry in lowseams:
         i = next(i for n, i in defined(lines) if n == entry and ACTIVE[i])
         a = copy_of[k]

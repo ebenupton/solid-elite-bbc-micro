@@ -7,7 +7,7 @@
 // node 6-harness/bcompare.mjs [--iters 5000] [--ref build.json] [--cand build.json]
 //                             [--seed boot|none] [--loose] [--screen] [--window 200]
 //                             [--out dir] [--shots N] [--maxsecs S] [--nopatch]
-//                             [--norefcache] [--views]
+//                             [--norefcache] [--views] [--screens]
 //                             [--trace FROM,TO,LABEL+LABEL,VAR+VAR~OFFSET]
 //
 // A build is a build.json (blib.mjs, loadBuild): the disc, and each program's
@@ -55,7 +55,7 @@ import { makeTracer } from "./btrace.mjs";
 import { parseArgs } from "./args.mjs";
 
 const args = parseArgs({ iters: "value", ref: "value", cand: "value", seed: "value", loose: "flag", window: "value",
-    out: "value", shots: "value", maxsecs: "value", nopatch: "flag", norefcache: "flag", views: "flag", trace: "value", screen: "flag",
+    out: "value", shots: "value", maxsecs: "value", nopatch: "flag", norefcache: "flag", views: "flag", screens: "flag", trace: "value", screen: "flag",
     dump: "value" });
 const ITERS = +(args.iters || 5000);
 const REF = args.ref || REF_BUILD;
@@ -70,7 +70,7 @@ const rb = loadBuild(REF), cb = loadBuild(CAND);
 const rsy = rb.progs.flight.sy;
 
 async function run(label, build, seedBoot) {
-    const pilot = makePilot({ views: !!args.views });   // --views: the pilot changes view in flight
+    const pilot = makePilot({ views: !!args.views, screens: !!args.screens });   // --views: the pilot changes view in flight
     const phases = [];
     // --trace FROM,TO,LABEL+LABEL,EXTRA+EXTRA (mtrace.mjs): <out>/trace-<label>.txt
     const traceOut = [];
@@ -99,7 +99,7 @@ async function cachedRef() {
     const h = createHash("sha1");
     for (const f of [REF, rb.disc, new URL("blib.mjs", import.meta.url), new URL("bpilot.mjs", import.meta.url)]) h.update(readFileSync(f));
     for (const p of Object.values(rb.progs)) { h.update(JSON.stringify(p.sy)); for (const im of p.images) h.update(im.data); }
-    h.update(JSON.stringify([ITERS, args.maxsecs || 0, !!args.nopatch, !!args.views, !!args.screen]));
+    h.update(JSON.stringify([ITERS, args.maxsecs || 0, !!args.nopatch, !!args.views, !!args.screen].concat(args.screens ? ["screens"] : [])));
     const dir = `${WORK}refcache`, file = `${dir}/${h.digest("hex")}.json.gz`;
     if (!args.norefcache && !args.trace && existsSync(file)) {
         const o = JSON.parse(gunzipSync(readFileSync(file)).toString());

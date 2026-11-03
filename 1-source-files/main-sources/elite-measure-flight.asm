@@ -40,6 +40,14 @@
 
  INCLUDE "3-assembled-output/elite-flight-cold.asm"
  INCLUDE "3-assembled-output/elite-tokens-cold.asm"
+.OVL%
+ INCLUDE "3-assembled-output/elite-flight-ovl2.asm"
+ CLEAR OVL%, &C000
+ ORG OVL%
+ INCLUDE "3-assembled-output/elite-flight-ovl1.asm"
+ OVL_END% = &BE00
+ CLEAR OVL%, &C000
+ ORG OVL%
  INCLUDE "1-source-files/main-sources/gfx-dlayer.asm"
 
                         \ The containers' bounds, as labels for the symbols

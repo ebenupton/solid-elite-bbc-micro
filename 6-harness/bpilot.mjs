@@ -149,6 +149,14 @@ export function makePilot(opts = {}) {
             const v = { 20: K.F1, 22: K.F2, 24: K.F3, 26: K.F0 }[P.flightIter % 50];
             if (v) { P.stats.views = (P.stats.views || 0) + 1; return [v]; }
         }
+        // opts.screens (bcompare --screens, the flight screens' regression):
+        // every 150 flight iterations show the status, data, short-range
+        // chart, market and inventory screens, then the front view again (the
+        // port's overlays load and swap: elite-source-flight.asm, ovf1)
+        if (opts.screens) {
+            const v = { 100: K.F8, 103: K.F6, 106: K.F5, 109: K.F7, 112: K.F9, 115: K.F0 }[P.flightIter % 150];
+            if (v) { P.stats.screens = (P.stats.screens || 0) + 1; return [v]; }
+        }
         if (c.rb(sy.auto)) return keys;              // docking computer flying
         // E.C.M. against a close missile we did not fire recently
         if (c.rb(sy.ECM) && !c.rb(sy.ECMA) && P.flightIter - P.lastMissile > 60) {

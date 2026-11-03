@@ -102,6 +102,33 @@
 
 .COLD_END%
 
+                        \ Port: the overlay region (ovf1, ovload in the flight
+                        \ source): each overlay is assembled at OVL% from its
+                        \ copy and saved as D.OVn; overlay 1 last, so that
+                        \ the bank 7 image holds it (OVLCUR starts as 1)
+
+.OVL%
+
+ INCLUDE "3-assembled-output/elite-flight-ovl2.asm"
+
+.OVL2_END%
+
+ SAVE "3-assembled-output/D.OV2.bin", OVL%, OVL2_END%, OVL%
+
+ CLEAR OVL%, &C000
+ ORG OVL%
+
+ INCLUDE "3-assembled-output/elite-flight-ovl1.asm"
+
+.OVL1_END%
+
+ SAVE "3-assembled-output/D.OV1.bin", OVL%, OVL1_END%, OVL%
+
+ OVL_END% = OVL% + (OVL1_END% - OVL% + OVL2_END% - OVL% + ABS(OVL1_END% - OVL2_END%)) DIV 2
+ SKIP OVL_END% - P%     \ (the region: the bigger of the overlays)
+
+ PRINT "Flight overlays: ", ~OVL%, "-", ~OVL_END%-1, " (1: ", OVL1_END%-OVL%, " bytes, 2: ", OVL2_END%-OVL%, ")"
+
                         \ Port: the renderer's window in bank 7, after the cold
                         \ pass: the parts of the renderer that only the flight
                         \ code uses and that banks 5 and 6 have no room for,
@@ -113,7 +140,7 @@
 
 .WIN7_END%
 
- PRINT "Flight bank 7: &8000-", ~COLD_END%-1, " (the cold pass), the renderer's window ", ~WIN7%, "-", ~WIN7_END%-1, ", free ", DFSSAVE%-WIN7_END%
+ PRINT "Flight bank 7: &8000-", ~COLD_END%-1, " (the cold pass), the overlays to ", ~OVL_END%-1, ", the renderer's window ", ~WIN7%, "-", ~WIN7_END%-1, ", free ", DFSSAVE%-WIN7_END%
  ASSERT WIN7_END% <= DFSSAVE%      \ (Port: PCLI keeps DFS's workspace in the last page)
 
  SAVE "3-assembled-output/D.CODEC.bin", &8000, WIN7_END%, &8000

@@ -1,2 +1,11 @@
 DELAY
+OVLCUR
 WSCAN
+ovA
+ovX
+ovY
+ovf
+ovf1
+ovf2
+ovf9
+ovfl

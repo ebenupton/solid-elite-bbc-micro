@@ -7235,7 +7235,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Status
 \    Summary: Show the Status Mode screen (red key f8)
-\       Area: cold
+\       Area: overlay 2
 \  Deep dive: Combat rank
 \
 \ ******************************************************************************
@@ -9490,7 +9490,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Launch our escape pod
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -12010,7 +12010,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing circles
 \    Summary: Make the hyperspace sound and draw the hyperspace tunnel
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -12046,7 +12046,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing circles
 \    Summary: Make the launch sound and draw the launch tunnel
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -12072,7 +12072,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing circles
 \    Summary: Draw the launch or hyperspace tunnel
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -15263,7 +15263,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Show the Data on System screen (red key f6)
-\       Area: cold
+\       Area: overlay 2
 \  Deep dive: Generating system data
 \             Galaxy and system seeds
 \
@@ -15680,7 +15680,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Charts
 \    Summary: Show the Long-range Chart (red key f4)
-\       Area: cold
+\       Area: overlay 1
 \  Deep dive: A sense of scale
 \
 \ ******************************************************************************
@@ -15924,7 +15924,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing circles
 \    Summary: Draw a circle with crosshairs on a chart
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -15999,7 +15999,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing circles
 \    Summary: Draw a circle on a chart
-\       Area: cold
+\       Area: overlay 1
 \  Deep dive: Drawing circles
 \
 \ ------------------------------------------------------------------------------
@@ -16050,7 +16050,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Show a list of current cargo in our hold, optionally to sell
-\       Area: cold
+\       Area: overlay 2
 \
 \ ------------------------------------------------------------------------------
 \
@@ -16135,7 +16135,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Show the Inventory screen (red key f9)
-\       Area: cold
+\       Area: overlay 2
 \
 \ ******************************************************************************
 
@@ -16175,7 +16175,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Charts
 \    Summary: Move the crosshairs on a chart
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -16246,7 +16246,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Charts
 \    Summary: Draw a small set of crosshairs on a chart
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -16281,7 +16281,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Charts
 \    Summary: Move galactic coordinates by a signed delta
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -16352,7 +16352,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Charts
 \    Summary: Draw crosshairs on the Short-range Chart, with clipping
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -16418,7 +16418,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Charts
 \    Summary: Show the Short-range Chart (red key f5)
-\       Area: cold
+\       Area: overlay 1
 \
 \ ******************************************************************************
 
@@ -16981,7 +16981,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Start the hyperspace process
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -17081,7 +17081,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Start a hyperspace countdown
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -17116,7 +17116,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Perform a galactic hyperspace jump
-\       Area: cold
+\       Area: overlay 1
 \  Deep dive: Twisting the system seeds
 \             Galaxy and system seeds
 \
@@ -17223,7 +17223,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Set the current system to the selected system
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -17354,7 +17354,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Print an error when a system is out of hyperspace range
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -17423,7 +17423,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Print the name, price and availability of a market item
-\       Area: cold
+\       Area: overlay 2
 \  Deep dive: Market item prices and availability
 \             Galaxy and system seeds
 \
@@ -17568,7 +17568,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Print the unit ("t", "kg" or "g") for a market item
-\       Area: cold
+\       Area: overlay 2
 \
 \ ------------------------------------------------------------------------------
 \
@@ -17623,7 +17623,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Print "t" (for tonne) and a space
-\       Area: cold
+\       Area: overlay 2
 \
 \ ******************************************************************************
 
@@ -17644,7 +17644,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Print "kg" (for kilograms)
-\       Area: cold
+\       Area: overlay 2
 \
 \ ******************************************************************************
 
@@ -17662,7 +17662,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Print "g" (for grams)
-\       Area: cold
+\       Area: overlay 2
 \
 \ ******************************************************************************
 
@@ -17680,7 +17680,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Print the headers for the table of market prices
-\       Area: cold
+\       Area: overlay 2
 \
 \ ------------------------------------------------------------------------------
 \
@@ -17706,7 +17706,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Show the Market Price screen (red key f7)
-\       Area: cold
+\       Area: overlay 2
 \
 \ ******************************************************************************
 
@@ -17824,7 +17824,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Process a jump to the system closest to (QQ9, QQ10)
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -18049,7 +18049,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Process a mis-jump into witchspace
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -18124,7 +18124,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Try to initiate a jump into hyperspace
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -18204,7 +18204,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Launch from a station or show the front space view
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -18280,7 +18280,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Charts
 \    Summary: Display either the Long-range or Short-range Chart
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -18413,7 +18413,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Charts
 \    Summary: Select the closest system and redraw the chart crosshairs
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -19822,7 +19822,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Update the missile indicators, set up the planet data block
-\       Area: cold
+\       Area: overlay 1
 \
 \ ------------------------------------------------------------------------------
 \
@@ -19855,7 +19855,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Set up various aspects of arriving in a new system
-\       Area: cold
+\       Area: overlay 1
 \  Deep dive: A sense of scale
 \
 \ ------------------------------------------------------------------------------
@@ -26623,6 +26623,199 @@ ENDIF
 .SHIPI
 
  EQUS "L.D.MO0"         \ This is short for "*LOAD D.MO0"
+ EQUB 13
+
+\ ******************************************************************************
+\
+\       Name: ovf1
+\       Type: Subroutine
+\   Category: Loader
+\    Summary: Port: call a routine in one of bank 7's overlays, loading the
+\             overlay first if another one is in bank 7's overlay region
+\       Area: low
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the flight code's event-only routines (the charts, the hyperspace jump,
+\ the launch, the escape pod: overlay 1; the data, status, market and
+\ inventory screens: overlay 2) are in overlays ("Area: overlay N"), which
+\ share bank 7's overlay region, OVL% (elite-layout-flight.asm). Each call
+\ into an overlay goes through a stub at the routine's place, "JSR ovfN :
+\ EQUW routine" (2-build-files/streams.py), which comes here: if overlay N
+\ is not the one in the region (OVLCUR), ovload loads it from its file,
+\ D.OVN; then the routine is called as a far call into bank 7 (farC). A, X,
+\ Y and the flags pass both ways, as with any far call. The flight code's
+\ image of bank 7 holds overlay 1, so OVLCUR starts as 1 when PCLI loads the
+\ program (its main RAM part, where this is).
+\
+\ ******************************************************************************
+
+.ovf1
+
+ PHP                    \ Overlay 1
+ STA ovA
+ LDA #1
+ BNE ovf                \ (this BNE is effectively a JMP)
+
+.ovf2
+
+ PHP                    \ Overlay 2
+ STA ovA
+ LDA #2
+
+.ovf
+
+ CMP OVLCUR             \ If overlay A is in the region, call the routine
+ BEQ ovf9
+
+ STX ovX                \ Otherwise load overlay A first (ovload, in the cold
+ STY ovY                \ pass, with A = the overlay)
+ JSR ovfl
+ LDX ovX
+ LDY ovY
+
+.ovf9
+
+ LDA ovA                \ Call the routine through farC, which reads its
+ PLP                    \ address after the stub's JSR
+ JMP farC
+
+.ovfl
+
+ JSR farC               \ The far call to ovload (a far call returns to its
+ EQUW ovload_C          \ stub's caller, so it is made from a stub)
+
+.OVLCUR
+
+ EQUB 1                 \ The overlay in bank 7's overlay region
+
+.ovA
+
+ EQUB 0                 \ A, X and Y across the load
+
+.ovX
+
+ EQUB 0
+
+.ovY
+
+ EQUB 0
+
+\ ******************************************************************************
+\
+\       Name: ovload
+\       Type: Subroutine
+\   Category: Loader
+\    Summary: Port: load overlay A into bank 7's overlay region
+\       Area: cold
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: called by ovf1 (through a far call, so bank 7 is paged). The disc
+\ access is made as LOMOD makes its own (DFS's workspace put back and kept,
+\ CATD reloading the catalogue over WP), but at any time in flight, so what
+\ the original relies on being dead at LOMOD's times is kept: WP and the
+\ zero page that the filing system uses are copied into screen buffer 0
+\ (OVSTASH) and put back afterwards, and the next frame redraws both screen
+\ buffers (GSTASH). The file is loaded to STAGE% and copied into the region.
+\
+\ ******************************************************************************
+
+.ovload
+
+ STA OVLCUR             \ This is the overlay in the region from now on
+
+ ORA #'0'               \ Put its file's name, "D.OVn", in PCLI's command buffer
+ STA ovname+4           \ for pload (which reads it from the third byte on)
+ LDX #5
+
+.ovl1
+
+ LDA ovname,X
+ STA PCBUF+2,X
+ DEX
+ BPL ovl1
+
+ LDX #0                 \ Keep WP (&0E00-&0FFF) and zero page &90-&E1 in
+                        \ OVSTASH
+.ovl2
+
+ LDA &0E00,X
+ STA OVSTASH,X
+ LDA &0F00,X
+ STA OVSTASH+&100,X
+ CPX #&90
+ BCC ovl3
+ CPX #&E2
+ BCS ovl3
+ LDA 0,X
+ STA OVSTASH+&200,X
+
+.ovl3
+
+ INX
+ BNE ovl2
+
+ LDA #&FF               \ The screen buffers have been used (STAGE% and
+ STA GSTASH             \ OVSTASH are in buffer 0)
+
+ JSR dfsin              \ Put DFS's workspace back, reload the catalogue and
+ JSR CATD               \ load the file to STAGE%
+ JSR pload
+
+ LDA #LO(STAGE%)        \ Copy it into the region, OVL% to OVL_END%
+ STA &90
+ LDA #HI(STAGE%)
+ STA &91
+ LDA #LO(OVL%)
+ STA &92
+ LDA #HI(OVL%)
+ STA &93
+ LDY #0
+
+.ovl4
+
+ LDA (&90),Y
+ STA (&92),Y
+ INC &90
+ BNE P%+4
+ INC &91
+ INC &92
+ BNE P%+4
+ INC &93
+ LDA &92
+ CMP #LO(OVL_END%)
+ LDA &93
+ SBC #HI(OVL_END%)
+ BCC ovl4
+
+ JSR dfsout             \ Keep DFS's workspace
+
+ LDX #0                 \ Put WP and the zero page back
+
+.ovl5
+
+ LDA OVSTASH,X
+ STA &0E00,X
+ LDA OVSTASH+&100,X
+ STA &0F00,X
+ CPX #&90
+ BCC ovl6
+ CPX #&E2
+ BCS ovl6
+ LDA OVSTASH+&200,X
+ STA 0,X
+
+.ovl6
+
+ INX
+ BNE ovl5
+
+ RTS
+
+.ovname
+
+ EQUS "D.OV0"
  EQUB 13
 
 \ ******************************************************************************

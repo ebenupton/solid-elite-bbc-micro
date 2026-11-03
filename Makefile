@@ -103,6 +103,7 @@ all:
 	$(BEEBASM) -i 1-source-files/main-sources/elite-layout-docked.asm -d | grep "^\[{" > 3-assembled-output/docked-symbols.txt
 	$(PYTHON) 2-build-files/bankf.py $(BEEBASM)
 	$(PYTHON) 2-build-files/bankcheck.py
+	$(PYTHON) 2-build-files/ovlcheck.py
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-a.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-b.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-c.asm -v >> 3-assembled-output/compile.txt
