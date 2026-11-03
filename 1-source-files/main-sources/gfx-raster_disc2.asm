@@ -69,11 +69,10 @@ d_mx = &1E
 {
   STA d_fl
   STX dp_n
-  LDA #0                  \ (its writes are never queued)
-  STA r_qok
   TYA
   TAX
   LDY #0
+  STY r_qok               \ (its writes are never queued)
 .lp                       \ unchanged and not written over: a few compares
   LDA DB_NL,Y
 .^r_p2l22 CMP R_S2L0,X
