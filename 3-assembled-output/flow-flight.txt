@@ -1,4 +1,4 @@
-hot &8000-&B2FF: 93 units, 12108 bytes, 948 free
+hot &8000-&B2FF: 93 units, 12104 bytes, 952 free
   &8000    22 S%
   &8016    16 INBAY..LTLI
   &8026     3 DEEOR
@@ -65,31 +65,31 @@ hot &8000-&B2FF: 93 units, 12108 bytes, 948 free
   &9DFD   332 DKJ1..DK4
   &9F49    73 SHPPT
   &9F92    62 LL5
-  &9FD0   126 LL28
-  &A04E    32 LL38
-  &A06E    87 LL51
-  &A0C5     4 SHCOL
-  &A0C9     6 RECM
-  &A0CF    97 H_CIRC
-  &A130    29 MFRAME
-  &A14D     6 LL9F
-  &A153    20 HLS
-  &A167    14 H_PTCLS
-  &A175    14 H_PTCLSE
-  &A183    17 H_DOT
-  &A194    11 LL42F
-  &A19F    68 H_LL42..H_EE31
-  &A1E3    89 S_SHIP
-  &A23C   961 L_REC
-  &A5FD  1207 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
-  &AAB4   128 None..LL9 (Part 10 of 12)
-  &AB34     1 LL9 (Part 11 of 12)
-  &AB35     2 LL9 (Part 12 of 12)
-  &AB37     1 LL9 (Part 12 of 12), drawing
-  &AB38   307 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
-  &AC6B   119 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
-  &ACE2    87 MVT1
-  &AD39   103 MVS4
-  &ADA0    53 MVT6
-  &ADD5   375 MV40..SCAN
+  &9FD0   122 LL28
+  &A04A    32 LL38
+  &A06A    87 LL51
+  &A0C1     4 SHCOL
+  &A0C5     6 RECM
+  &A0CB    97 H_CIRC
+  &A12C    29 MFRAME
+  &A149     6 LL9F
+  &A14F    20 HLS
+  &A163    14 H_PTCLS
+  &A171    14 H_PTCLSE
+  &A17F    17 H_DOT
+  &A190    11 LL42F
+  &A19B    68 H_LL42..H_EE31
+  &A1DF    89 S_SHIP
+  &A238   961 L_REC
+  &A5F9  1207 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
+  &AAB0   128 None..LL9 (Part 10 of 12)
+  &AB30     1 LL9 (Part 11 of 12)
+  &AB31     2 LL9 (Part 12 of 12)
+  &AB33     1 LL9 (Part 12 of 12), drawing
+  &AB34   307 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
+  &AC67   119 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
+  &ACDE    87 MVT1
+  &AD35   103 MVS4
+  &AD9C    53 MVT6
+  &ADD1   375 MV40..SCAN
 hotm &7FE2-&7FFD: 0 units, 0 bytes, 28 free
