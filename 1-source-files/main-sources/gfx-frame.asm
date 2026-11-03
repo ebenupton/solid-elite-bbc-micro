@@ -1887,8 +1887,8 @@ fsd_zl = &20 : fsd_zh = &21 : fsd_rl = &22 : fsd_q = &24 : fsd_x = &25
  LDY F_RP+2*MAXSH,X     \ x_sign
  BMI fsq1
  EOR #&80               \ 128 + q, q < 128
- BPL fsq9
- BMI fsq2
+ BMI fsq2               \ (on the screen: N is set; else q >= 128, no dot)
+ RTS
 .fsq1
  EOR #&FF               \ 128 - q, q <= 128 (C set from fsd_div)
  ADC #128
