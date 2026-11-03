@@ -1248,12 +1248,11 @@ ENDIF
  STA fsx_x              \ what follows the symmetric loop
  LDA fpr_ld+2           \ the symmetric loop reads n(k) at table + k (page
  STA fsy_ld+2           \ aligned: no page crossing)
+ ASSERT LO(R_NDISCR) = 0
  LDA f_cy               \ X = row cy - k, Y = k, from k = 0; rows cy + k are
- TAX                    \ written at (table + cy) + k
+ STA fsy_sr+1           \ written at (table + cy) + k (R_NDISCR is page
+ TAX                    \ aligned)
  CLC
- ADC #LO(R_NDISCR)      \ (cy <= R_CB = 191: no carry, see the ASSERT)
- STA fsy_sr+1
- TXA
  ADC #LO(R_NDISCL)
  STA fsy_sl+1
  LDA #HI(R_NDISCL)
