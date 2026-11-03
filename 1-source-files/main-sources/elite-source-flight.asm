@@ -7834,8 +7834,8 @@ ENDIF
  AND #%10000000
  STA T
 
- LDA INWK+1,X           \ Fetch roofv_x_hi into A and clear the sign bit, so
- AND #%01111111         \ A = |roofv_x_hi|
+ EOR INWK+1,X           \ Flipping the sign bit in roofv_x_hi clears it, so
+                        \ A = |roofv_x_hi|
 
  LSR A                  \ Set (A P) = (A P) / 16
  ROR P                  \           = |roofv_x_hi roofv_x_lo| / 16
