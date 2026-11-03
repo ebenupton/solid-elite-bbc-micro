@@ -3436,10 +3436,9 @@ FGZ = 4 + 1 + 1 + 9 + 1 + 2
  EOR CNT
  STA RAND+2
  LDA U                  \ X = 3 * (U + 1): DORND2's RAND and RAND+2
- ASL A
- SEC
+ ASL A                  \ (U <= 15, so the carry is clear)
  ADC U
- ADC #2
+ ADC #3
  TAX
 .fcd4
  LDA RAND
