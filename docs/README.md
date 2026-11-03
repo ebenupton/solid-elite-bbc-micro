@@ -63,6 +63,7 @@ default commander's checksum.
 | Part 3: the disc layer ([renderer.md](renderer.md)) | 8.84 | 0.746 | 226,316 |
 | Part 3: the Master port's frame layer in bank 6 | 9.92 | 0.837 | 201,618 |
 | Part 3: the Master port's disc layer, its row code in bank 7 ([renderer.md](renderer.md)) | 13.31 | 1.123 | 150,274 |
+| Part 3: the sun near the planet (`S_SUN`) | 13.17 | 1.111 | 151,897 |
 
 These are the gate's run: the pilot's mix of launches, fights, approaches to
 the station and hyperspace jumps, over 10,000 iterations. Saved commander

@@ -29,8 +29,7 @@ PYTHON?=python
 #                       part at the end of the flight code's bank 4, which it
 #                       does not yet fit: the build reports by how much)
 #
-#   ssun=on             Draw the sun near the planet (S_SUN, in bank 6, which
-#                       it does not yet fit: the build reports by how much)
+#   ssun=off            Leave out the sun near the planet (S_SUN, in bank 6)
 #
 # So, for example:
 #
@@ -88,10 +87,10 @@ else
   circles-on=FALSE
 endif
 
-ifeq ($(ssun), on)
-  ssun-on=TRUE
-else
+ifeq ($(ssun), off)
   ssun-on=FALSE
+else
+  ssun-on=TRUE
 endif
 
 variant-number=2

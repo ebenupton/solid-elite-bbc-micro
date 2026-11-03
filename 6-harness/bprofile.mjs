@@ -3,6 +3,7 @@
 // its commander patch, --iters MLOOP iterations (the gate's 10000).
 //
 // node 6-harness/bprofile.mjs [--build b] [--iters 10000] [--out work/profile.json]
+//                              [--scenes SCENES.json]
 //
 // Attribution: the cycles between two consecutive instruction hooks go to the
 // earlier PC (its own cycles, plus an interrupt entry that followed it),
@@ -15,20 +16,36 @@
 //   "phase:<p>" the same split by the pilot's phase
 //   "other"     every other cycle from the first MLOOP on (docked screens,
 //               title, launch, death)
+//   "scene:<s>" with --scenes (a bscenes.mjs run of the same build), the
+//               flight iterations by scenes.py's scene (station close, sun
+//               close, planet close, big planet, open space, ships about)
 // For each scenario and PC: the cycles, the number of times it ran
 // ("execs"), and the number of iterations in which it ran ("iters"), from
 // which 6-harness/hotset.py tells the hot code (run in most flight
 // iterations) from the cold, and the cost of a far call into a block.
-import { writeFileSync, mkdirSync } from "fs";
+import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { runElite, loadBuild, CAND_BUILD, WORK } from "./blib.mjs";
 import { makePilot, patchCommander } from "./bpilot.mjs";
 import { parseArgs } from "./args.mjs";
-const args = parseArgs({ build: "value", iters: "value", out: "value" });
+const args = parseArgs({ build: "value", iters: "value", out: "value", scenes: "value" });
 const B = loadBuild(resolve(args.build || CAND_BUILD));
 const OUT = resolve(args.out || `${WORK}profile.json`);
 const ITERS = +(args.iters || 10000);
 const t0 = Date.now();
+// scenes.py's scene of a front-view flight iteration, from a bscenes.mjs row
+const sceneOf = a => {
+    if (!a || a.qq11 !== 0 || a.view !== 0) return null;
+    const pz = a.p.z, st = a.f1 === 2, sz = st ? a.s1.z : 1 << 20, sun = a.f1 === 129;
+    if (st && sz < 16 && a.s1.zs === 0) return "station close";
+    if (sun && a.s1.z < 1024 && a.s1.zs === 0) return "sun close";
+    if (pz < 128 && a.p.zs === 0) return "planet close";
+    if (pz < 512 && a.p.zs === 0) return "big planet";
+    if (pz >= 512 && !(st && sz < 64) && a.ships === 0) return "open space";
+    if (a.ships > 0) return "ships about";
+    return "other";
+};
+const SCENES = args.scenes ? JSON.parse(readFileSync(resolve(args.scenes), "utf8")) : null;
 
 const NM = 18, SZ = NM * 65536;      // 0: main RAM, 1-16: banks 0-15, 17: ROM
 const key = k => (k >> 16) === 0 ? `m:${(k & 0xffff).toString(16)}` : (k >> 16) === 17 ? `rom:${(k & 0xffff).toString(16)}` : `b${(k >> 16) - 1}:${(k & 0xffff).toString(16)}`;
@@ -72,7 +89,10 @@ const r = await runElite({
             last = now;
             if (pc === ttHook.a && live(ttHook)) {
                 // a flight TT100: close the interval since the previous one
-                if (prevTT >= 0 && myIter === prevTT + 1) closeInto([scen.flight, (scen["phase:" + pilot.P.phase] ||= mk())]);
+                if (prevTT >= 0 && myIter === prevTT + 1) {
+                    const sc = SCENES && sceneOf(SCENES[myIter - 1]);
+                    closeInto([scen.flight, (scen["phase:" + pilot.P.phase] ||= mk())].concat(sc ? [(scen["scene:" + sc] ||= mk())] : []));
+                }
                 else closeInto([scen.other]);
                 prevTT = myIter;
             }

@@ -193,9 +193,12 @@ CPU 0                   \ (NMOS 6502: no 65C02 instruction in this file)
  INCLUDE "3-assembled-output/elite-flight-again.asm"
  RTS                    \ (SOLAR falls through into NWSTARS: here, back)
 
-.A_ZINF                 \ (ZINF, in bank 4)
- JSR farH
+.A_ZINF                 \ (ZINF, in bank 4: far-call stubs, called by JSR, as
+ JSR farH               \ farH returns to its stub's caller)
  EQUW ZINF
+.ss_mv40
+ JSR farH
+ EQUW MV40
 
 .A_NWSHP                \ SOLAR's sun: noted (NMOS: one loop for both,
  LDY #ss_su+8-ss_pl     \ for room; ss_su follows ss_pl)
@@ -275,8 +278,7 @@ ASSERT ss_su = ss_pl + 9
  BNE sst2
  LDA #129               \ the sun (MV45 returns), not moved (DELTA 0, and
  STA TYPE               \ K2 0, above)
- JSR farH               \ (MV40, in bank 4)
- EQUW MV40
+ JSR ss_mv40            \ (MV40, in bank 4)
  LDX ss_o               \ the vector = INWK's coordinates, two's complement
  LDY #0
 .sst4

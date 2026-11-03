@@ -153,8 +153,8 @@ What differs from the Master port's frame layer:
 * **The discs** are the Master port's, with the disc layer's row code (the
   painter) and each buffer's disc state in the flight code's bank 7, driven
   a batch of rows at a time through the mailbox (below: "The discs"). The
-  sun near the planet (`S_SUN`) is in this bank in a build with `_SSUN`,
-  which does not fit yet.
+  sun near the planet (`S_SUN`) is in this bank (`make ssun=off` leaves it
+  out), calling the game's `MV40` and `ZINF` through far-call stubs.
 * **The lighting** runs in the game's bank 4 (`L_SUN`, `L_REC`,
   `gfx-light.asm`, with the faces' normals, which the blueprint set
   carries), where the quarter squares are (the only copy): `F_SHIP` is
@@ -209,7 +209,7 @@ entry. Not from an interrupt.
 |---:|---|---|
 | 0 | `F_INIT`: once, first: `T_INIT`, empty lists, direct mode, buffer 0 marked as used (`GSTASH`) | |
 | 1 | `F_DIRECT`: the screen is about to be cleared and drawn on directly (`TTX66`): direct mode, buffer 1 on show, no sights, beams, text or stars; but for an in-system jump in space mode (`GWARP`), the frames go on and only the text goes | |
-| 2 | `F_FRAME`: draw this frame and empty the lists; not in a space view (`QQ11` non-zero), just empty them; with C set (the flight code's `hframe`), the sun near the planet first (`S_SUN`, in a build with `_SSUN`) | `QQ11`, C |
+| 2 | `F_FRAME`: draw this frame and empty the lists; not in a space view (`QQ11` non-zero), just empty them; with C set (the flight code's `hframe`), the sun near the planet first (`S_SUN`) | `QQ11`, C |
 | 3 | `F_SHIP`: record the ship LL9 is drawing, as its part 6 starts (`S_SHIP`) | `GTYPE`, `GNF`, `XX2` (the faces' levels, `L_REC`), `XX4`, `INWK` 0-8, `XX16`, `XX0` |
 | 4 | `F_LINE`: record an enemy laser beam | `X1`, `Y1`, `X2`, `Y2` |
 | 5 | `F_PDOT`: a particle of the frame's `PTCLS` (`H_DOT`) | A = x, `Y1` = y, `ZZ` |
@@ -561,12 +561,12 @@ and the frame's runs of game code leave everything as the original does.
 
 ## Speed
 
-The gate's run, 10,000 iterations: 150,274 cycles per flight iteration,
-13.31 flight iterations per second, against the original's 168,749 and
-11.85 (1.123 times; with the old disc layer, 201,618 cycles and 9.92, and
+The gate's run, 10,000 iterations: 151,897 cycles per flight iteration,
+13.17 flight iterations per second, against the original's 168,749 and
+11.85 (1.111 times; with the old disc layer, 201,618 cycles and 9.92, and
 with the old frame layer too, 226,316 and 8.98). The planets are plain
-discs in this build (no `_CIRCLES`), and there is no sun near the planet
-(no `_SSUN`).
+discs in this build (no `_CIRCLES`); the sun near the planet is drawn
+(`S_SUN`).
 By scene (`6-harness/bscenes.mjs` records each iteration's time and the
 planet's, the station's and the ships' positions in a build's run;
 `6-harness/scenes.py` compares two such runs, counting a flight iteration
@@ -575,12 +575,12 @@ fits):
 
 | Scene | Iterations | The original | The port | Against the original | The old port |
 |---|---:|---:|---:|---:|---:|
-| Station close: the station ahead, nearer than 16 x 256 | 706 | 187,528 cycles, 10.67 it/s | 292,616 cycles, 6.83 it/s | 0.64 | 0.56 |
-| Sun close: the sun ahead, nearer than 1,024 x 256 | 402 | 169,142, 11.82 | 199,739, 10.01 | 0.85 | 0.76 |
-| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen) | 1,032 | 146,033, 13.70 | 140,461, 14.24 | 1.04 | 0.82 |
-| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 6,681 | 181,260, 11.03 | 148,122, 13.50 | 1.22 | 0.76 |
-| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 270 | 103,168, 19.39 | 94,913, 21.07 | 1.09 | 0.70 |
-| Ships about (the rest, with other ships in the bubble) | 745 | 137,912, 14.50 | 110,203, 18.15 | 1.25 | 0.81 |
+| Station close: the station ahead, nearer than 16 x 256 | 706 | 187,528 cycles, 10.67 it/s | 301,201 cycles, 6.64 it/s | 0.62 | 0.56 |
+| Sun close: the sun ahead, nearer than 1,024 x 256 | 402 | 169,142, 11.82 | 201,061, 9.95 | 0.84 | 0.76 |
+| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen) | 1,032 | 146,033, 13.70 | 141,948, 14.09 | 1.03 | 0.82 |
+| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 6,681 | 181,260, 11.03 | 149,500, 13.38 | 1.21 | 0.76 |
+| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 270 | 103,168, 19.39 | 95,102, 21.03 | 1.09 | 0.70 |
+| Ships about (the rest, with other ships in the bubble) | 745 | 137,912, 14.50 | 110,274, 18.14 | 1.25 | 0.81 |
 
 The disc layer keeps both discs on each buffer and writes only what changed
 (the Master port's), where the old one kept the bigger alone and drew a
@@ -591,6 +591,21 @@ iteration, about 200 cycles a row: filling the slots in bank 6 (52 a row),
 back: about 70 a row), a changed row's data taken and put back in the
 painter (`dp_ld`, `dp_st`: 84 a changed row, about half the rows), and a
 trampoline and a far call a batch (about 220 cycles).
+
+The station close is the slowest scene. A profile of its iterations
+(`bprofile.mjs --scenes`, each flight iteration put in the scene of the
+iteration it ends; 272,546 cycles an iteration that way) has bank 5 at
+133,853: `R_POLY` about 55,000 (mostly phase B, the station's faces filling
+most of the window), the row runs' stores 19,302, the repair 17,365,
+`r_pgfix` 11,600 (the run pages patched for the other buffer at each
+flip), `R_MARKDIRTY` 6,896 and `R_LINE` 5,542; the game's home bank 80,347
+(the docking computer's arithmetic, the stardust, the station's dot
+products and `L_REC`), bank 6 22,711, bank 7 15,452 (the cold code and the
+painter), main RAM 11,353 (the far calls, the trampolines and the
+interrupt) and the MOS 8,828. Each frame fills nearly the whole window and
+repairs it on the next, the cost that the Master port's kept solid rows
+take away (7.6% to 10.6% over a docking there), which bank 5 has no room
+for.
 
 The frames' gain is the Master port's: no ship line heap, clipping or
 projection in the game's iteration (the frame projects only the ships it
