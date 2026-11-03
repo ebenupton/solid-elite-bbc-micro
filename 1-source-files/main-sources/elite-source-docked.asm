@@ -2717,7 +2717,13 @@ ENDIF
                         \ call the corresponding address in the jump table at
                         \ JMTB
 
- TAX                    \ Copy the token number from A into X
+ ASL A                  \ Set A = A * 2, so it can be used as a pointer into the
+                        \ jump table at JMTB, though because the original range
+                        \ of values is 1-32, so the doubled range is 2-64, we
+                        \ need to take the offset into the jump table from
+                        \ JMTB-2 rather than JMTB
+
+ TAX                    \ Copy the doubled token number from A into X
 
  TYA                    \ Store Y on the stack
  PHA
@@ -2726,16 +2732,6 @@ ENDIF
  PHA
  LDA V+1
  PHA
-
- TXA                    \ Copy the token number from X back into A
-
- ASL A                  \ Set A = A * 2, so it can be used as a pointer into the
-                        \ jump table at JMTB, though because the original range
-                        \ of values is 1-32, so the doubled range is 2-64, we
-                        \ need to take the offset into the jump table from
-                        \ JMTB-2 rather than JMTB
-
- TAX                    \ Copy the doubled token number from A into X
 
  LDA JMTB-2,X           \ Set DTM(2 1) to the X-th address from the table at
  STA DTM+1              \ JTM-2, which modifies the JSR DASC instruction at
