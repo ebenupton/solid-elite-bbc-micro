@@ -29694,11 +29694,9 @@ ENDMACRO
  BCS l28s1              \ value is at least 256, so subtract Q at l28s1
  CMP Q                  \ If A < Q, the result bit is 0 (C clear)
  BCC l28n1
- SBC Q                  \ Otherwise subtract Q (C stays set: the result bit is
- BCS l28n1              \ 1); this BCS is effectively a JMP
 .l28s1
- SBC Q                  \ Subtract Q and set C, for a result bit of 1
- SEC
+ SBC Q                  \ Subtract Q (C is set, by the CMP or the ASL)
+ SEC                    \ Set C, for a result bit of 1
 .l28n1
  ROL R                  \ Catch the result bit in R
 
@@ -29706,11 +29704,9 @@ ENDMACRO
  BCS l28s2              \ value is at least 256, so subtract Q at l28s2
  CMP Q                  \ If A < Q, the result bit is 0 (C clear)
  BCC l28n2
- SBC Q                  \ Otherwise subtract Q (C stays set: the result bit is
- BCS l28n2              \ 1); this BCS is effectively a JMP
 .l28s2
- SBC Q                  \ Subtract Q and set C, for a result bit of 1
- SEC
+ SBC Q                  \ Subtract Q (C is set, by the CMP or the ASL)
+ SEC                    \ Set C, for a result bit of 1
 .l28n2
  ROL R                  \ Catch the result bit in R
 
