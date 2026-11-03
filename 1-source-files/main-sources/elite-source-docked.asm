@@ -1981,6 +1981,12 @@
                         \ updates BRKV will update this instruction instead of
                         \ the actual vector
 
+ EQUW PROGI%            \ Port: the address in this bank of the image of the
+                        \ program's main RAM part (its low pass, then any of
+                        \ its hot pass that the flow put in main RAM), which
+                        \ PCLI copies to PROGM% when it loads the program
+                        \ (elite-layout-*.asm)
+
  PRINT "S% workspace (docked) from ", ~S%, "to ", ~P%-1, "inclusive"
 
 \ ******************************************************************************

@@ -6,8 +6,8 @@
 \ RAM at &0400, so that it is visible whatever is paged at &8000-&BFFF.
 \
 \ Each of the game's two programs (the flight code and the docked code) runs
-\ with its home bank (ROMSEL = BANKH) paged in at &8000-&BFFF. Its cold code
-\ lives in its cold bank (ROMSEL = BANKC), which is paged in only for a far
+\ with its home bank (ROMSEL = BANK4) paged in at &8000-&BFFF. Its cold code
+\ lives in its cold bank (ROMSEL = BANK7), which is paged in only for a far
 \ call. The bank numbers are the loader's (BANKS, below), as sideways RAM
 \ boards differ. The source calls everything by the original's names, and
 \ each side's emission of it (2-build-files/streams.py) holds, at the place
@@ -51,10 +51,11 @@
 
 .BANKS                  \ The sideways RAM banks, as the loader found them:
 
-.BANKH  EQUB 0          \ the programs' home bank
-.BANKC  EQUB 0          \ the programs' cold bank
-.BANKR  EQUB 0          \ the rasteriser's bank (the filled renderer)
-.BANKF  EQUB 0          \ the frame layer's bank (the filled renderer)
+.BANK7  EQUB 0          \ bank 7: the programs' cold passes, and the renderer's
+                        \ window at its top
+.BANK6  EQUB 0          \ bank 6: the frame layer (the filled renderer)
+.BANK5  EQUB 0          \ bank 5: the rasteriser (the filled renderer)
+.BANK4  EQUB 0          \ bank 4: the programs' hot passes (their home bank)
 
 .fA     EQUB 0          \ A, X, the bank to page in (and flags on the way back)
 .fX     EQUB 0
@@ -64,13 +65,13 @@
 .farC
  PHP
  STA fA
- LDA BANKC
+ LDA BANK7
  JMP farc
 
 .farH
  PHP
  STA fA
- LDA BANKH
+ LDA BANK4
 
 .farc
  STA fB
@@ -119,13 +120,13 @@
 .farCj
  PHP
  STA fA
- LDA BANKC
+ LDA BANK7
  JMP farj
 
 .farHj
  PHP
  STA fA
- LDA BANKH
+ LDA BANK4
 
 .farj
  STA fB

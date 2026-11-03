@@ -3,15 +3,32 @@
 \ elite-layout-docked.asm - the docked code's layout (docs/memory-map.md)
 \
 \ Port: the file that the Makefile assembles for the docked code (the
-\ original's T.CODE), as elite-layout-flight.asm does for the flight code:
+\ original's T.CODE). elite-source-docked.asm is the original's source in the
+\ original's order, and the header of each routine or table names the pass it
+\ is emitted in (no Area field: the hot pass; "Area: low", "Area: cold",
+\ "Area: none"). The banks share the addresses &8000-&BFFF and BeebAsm
+\ assembles a file with one location counter, so 2-build-files/streams.py
+\ writes a copy of the source for each container, with every other line
+\ blanked (3-assembled-output/elite-docked-<copy>.asm; the line numbers are
+\ the source's), and this file assembles them one after the other, each at
+\ its own address. Every label is defined once, in its own copy, and every
+\ block is assembled once; where a routine lives on the other side, each copy
+\ holds the far-call stub that reaches it, at the routine's place:
 \
-\   * the home bank (saved as T.CODEH): the configuration and the workspaces,
-\     then the code from S% at &8000 (HOME%), and the docked code's own
-\     blueprints (its blocks tagged "Area: blueprints", which followed the code
-\     at &5600 in the original) in the blueprint slot at BPSLOT%;
+\   * the configuration and the workspaces (config);
 \
-\   * the cold bank (saved as T.CODEC): the cold blocks from &8000, then the
-\     recursive text tokens (QQ18, elite-text-tokens.asm's blocks tagged cold).
+\   * the main RAM part, at PROGM% in the resident block: the low pass, then
+\     the hot pass's container in main RAM (hotm), which the flow fills once
+\     bank 4 is full; its bytes are copied into the bank 4 image at PROGI%,
+\     and PCLI copies them to PROGM% when it loads the program;
+\
+\   * bank 4 (saved as T.CODEH): the hot pass from S% at &8000 (HOME%), then
+\     the main RAM part's image, and the docked code's own blueprints (its
+\     blocks tagged "Area: blueprints", which followed the code at &5600 in
+\     the original) in the blueprint slot at BPSLOT%;
+\
+\   * bank 7 (saved as T.CODEC): the cold pass from &8000, then the recursive
+\     text tokens (QQ18, elite-text-tokens.asm's blocks tagged cold).
 \
 \ ******************************************************************************
 
@@ -19,12 +36,44 @@
  INCLUDE "3-assembled-output/resident.asm"              \ The loader's resident
                                                         \ addresses
 
- INCLUDE "3-assembled-output/elite-docked-home.asm"
+ HOT_END% = BPSLOT%     \ (bank 4: the hot pass and the main RAM part's image,
+                        \ then the blueprint slot)
+
+ INCLUDE "3-assembled-output/elite-docked-config.asm"
+
+ ORG PROGM%
+
+ INCLUDE "3-assembled-output/elite-docked-low.asm"
+
+.LOW_END%
+
+ HOTM% = LOW_END%       \ (the hot pass's container in main RAM: the rest of
+ HOTM_END% = PROGM_END% \ the main RAM part)
+
+ INCLUDE "3-assembled-output/elite-docked-hotm.asm"
+
+.PROGM_USED%
+
+ ASSERT PROGM_USED% <= PROGM_END%
+
+ CLEAR &8000, &C000
+ ORG HOME%
+
+ INCLUDE "3-assembled-output/elite-docked-hot.asm"
 
 .HOME_END%
 
- PRINT "Docked home bank: &8000-", ~HOME_END%-1, ", free ", BPSLOT%-HOME_END%
- ASSERT HOME_END% <= BPSLOT%
+.PROGI%                 \ The main RAM part's image, which PCLI copies to PROGM%
+
+ COPYBLOCK PROGM%, PROGM_END%, PROGI%
+
+ SKIP PROGM_END% - PROGM%
+
+.PROGI_END%
+
+ PRINT "Docked bank 4: &8000-", ~HOME_END%-1, " (the hot pass), the main RAM part's image to ", ~PROGI_END%-1, ", free ", HOT_END%-HOME_END%
+ PRINT "Docked main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%
+ ASSERT HOME_END% <= HOT_END%
 
  ORG BPSLOT%
 
@@ -48,7 +97,7 @@
 
 .COLD_END%
 
- PRINT "Docked cold bank: &8000-", ~COLD_END%-1, ", free ", &C000-COLD_END%
+ PRINT "Docked bank 7: &8000-", ~COLD_END%-1, " (the cold pass), free ", DFSSAVE%-COLD_END%
  ASSERT COLD_END% <= DFSSAVE%      \ (Port: PCLI keeps DFS's workspace in the last page)
 
  SAVE "3-assembled-output/T.CODEC.bin", &8000, COLD_END%, &8000

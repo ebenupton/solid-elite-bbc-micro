@@ -3,16 +3,18 @@
 # Run by the Makefile from the repository's root, after the programs are
 # assembled.
 #
-# For each program (flight, docked), the areas are: "home" (the program's
-# home bank: 3-assembled-output/elite-<program>-home.asm and its blueprint
-# slot, elite-<program>-blueprints.asm, with the layout file's own lines),
-# "cold" (its cold bank: elite-<program>-cold.asm, and the text tokens'
+# For each program (flight, docked), the areas are: "home" (the hot side:
+# the copies of its configuration, low pass, hot pass and blueprint slot,
+# 3-assembled-output/elite-<program>-config.asm, -low.asm, -hot.asm,
+# -hotm.asm and -blueprints.asm, with the layout file's own lines), "cold"
+# (its cold pass in bank 7: elite-<program>-cold.asm, and the text tokens'
 # elite-tokens-cold.asm) and "main" (main RAM: every label whose address is
-# below &8000, whichever copy defines it: the workspaces, and the loader's
-# resident blocks, 3-assembled-output/resident.asm). Each side's far-call
-# stubs are in its own copy, at their targets' places (2-build-files/streams.py).
-# The home bank is paged whenever the program's code runs; the cold bank only
-# during far calls; main RAM is always there.
+# below &8000, whichever copy defines it: the workspaces, the low pass and
+# the hot pass's main RAM container, and the loader's resident blocks,
+# 3-assembled-output/resident.asm). Each side's far-call stubs are in its own
+# copy, at their targets' places (2-build-files/streams.py). Bank 4 is paged
+# whenever the program's code runs; bank 7 only during far calls; main RAM is
+# always there (so the cold pass may call the low pass directly).
 #
 # Rules, for every reference from code or data in one area to a label in
 # another:
@@ -42,6 +44,7 @@ OUT = "3-assembled-output/"
 SRC = "1-source-files/main-sources/"
 PROGS = ("flight", "docked")
 FAR = ("farH", "farHj", "farC", "farCj")
+HOTCOPIES = ("config", "low", "hot", "hotm", "blueprints")   # (the hot side's copies: streams.py)
 MNEM = set(("ADC AND ASL BCC BCS BEQ BIT BMI BNE BPL BRK BVC BVS CLC CLD CLI CLV CMP CPX CPY "
             "DEC DEX DEY EOR INC INX INY JMP JSR LDA LDX LDY LSR NOP ORA PHA PHP PLA PLP "
             "ROL ROR RTI RTS SBC SEC SED SEI STA STX STY TAX TAY TSX TXA TXS TYA").split())
@@ -93,10 +96,10 @@ def idents(op):
 
 
 def check(prog, errors):
-    files = {OUT + "elite-%s-home.asm" % prog: "home", OUT + "elite-%s-blueprints.asm" % prog: "home",
-             OUT + "elite-%s-cold.asm" % prog: "cold", OUT + "elite-tokens-cold.asm": "cold",
-             SRC + "elite-layout-%s.asm" % prog: "home", OUT + "resident.asm": "main"}
-    show = {OUT + "elite-%s-%s.asm" % (prog, a): "elite-source-%s.asm" % prog for a in ("home", "blueprints", "cold")}
+    files = {OUT + "elite-%s-%s.asm" % (prog, c): "home" for c in HOTCOPIES}
+    files.update({OUT + "elite-%s-cold.asm" % prog: "cold", OUT + "elite-tokens-cold.asm": "cold",
+                  SRC + "elite-layout-%s.asm" % prog: "home", OUT + "resident.asm": "main"})
+    show = {OUT + "elite-%s-%s.asm" % (prog, a): "elite-source-%s.asm" % prog for a in HOTCOPIES + ("cold",)}
     show[OUT + "elite-tokens-cold.asm"] = "elite-text-tokens.asm"
     addr = {}
     try:

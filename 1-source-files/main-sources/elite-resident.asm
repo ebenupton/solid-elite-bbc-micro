@@ -121,7 +121,7 @@
 
  JSR pload              \ Load the blueprint file to STAGE%
 
- LDA BANKH              \ Copy its ten pages to the home bank's blueprint slot
+ LDA BANK4              \ Copy its ten pages to the home bank's blueprint slot
  LDX #10
  LDY #HI(BPSLOT%)
  JSR bcopy
@@ -140,16 +140,34 @@
  STA pcbuf+9
  JSR pload
 
- LDA BANKH              \ Copy it into the home bank (64 pages: the whole bank,
+ LDA BANK4              \ Copy it into the home bank (64 pages: the whole bank,
  LDX #64                \ as STAGE% has room for it)
  LDY #HI(HOME%)
  JSR bcopy
+
+ LDA STAGE%+14          \ Copy the program's main RAM part, PROGM% to
+ STA pcm1+1             \ PROGM_END%, from its image in the home image, at the
+ LDA STAGE%+15          \ address in S%+14, which is STAGE% + (that address -
+ SEC                    \ HOME%) as the home image is still at STAGE%
+ SBC #HI(HOME%-STAGE%)
+ STA pcm1+2
+ LDX #PROGM_END%-PROGM%-1   \ (none if the part is empty: X = &FF)
+ BMI pcm2
+
+.pcm1
+
+ LDA &FFFF,X            \ (the address is set above)
+ STA PROGM%,X
+ DEX
+ BPL pcm1
+
+.pcm2
 
  LDA #'C'               \ Load x.CODEC, the program's cold image, to STAGE%
  STA pcbuf+8
  JSR pload
 
- LDA BANKC              \ Copy it into the cold bank
+ LDA BANK7              \ Copy it into the cold bank
  LDX #64
  LDY #&80
  JSR bcopy
@@ -159,7 +177,7 @@
  BNE prest
 
  JSR dfsout             \ Otherwise keep DFS's workspace and run the program at
- LDA BANKH              \ S% in its home bank
+ LDA BANK4              \ S% in its home bank
  STA &F4
  STA VIA+&30
  JMP HOME%
@@ -218,7 +236,7 @@
 
  LDA &F4                \ Page the cold bank in, keeping the paged bank on the
  PHA                    \ stack
- LDA BANKC
+ LDA BANK7
  STA &F4
  STA VIA+&30
 
@@ -349,7 +367,7 @@
  LDA &F4                \ Store the caller's ROM on the stack
  PHA
 
- LDA BANKH              \ Page the program's home bank in
+ LDA BANK4              \ Page the program's home bank in
  STA &F4
  STA VIA+&30
 
@@ -383,7 +401,7 @@
 
 .BRKR
 
- LDA BANKH              \ Page the program's home bank in
+ LDA BANK4              \ Page the program's home bank in
  STA &F4
  STA VIA+&30
 
@@ -778,14 +796,10 @@ ENDIF
  LDX #(rregA - rreg)    \ R4, R6, R7 for frame A (24 rows, all shown, no vsync)
  JSR rregs
 
- LDA #12                \ R12/R13 = the dashboard, latched when frame A ends
- STA VIA+&00
- LDA #HI(PANEL% DIV 8)
- STA VIA+&01
- LDA #13
- STA VIA+&00
- LDA #LO(PANEL% DIV 8)
- STA VIA+&01
+ LDA #12                \ R12 = the dashboard, latched when frame A ends (R13
+ STA VIA+&00            \ is 0 for every start address, the screens and the
+ LDA #HI(PANEL% DIV 8)  \ dashboard each starting on a multiple of &800, so it
+ STA VIA+&01            \ is written once, by the loader)
 
  LDA #LO(RPB)           \ Point 1 next, RPB microseconds on
  STA VIA+&46
@@ -811,14 +825,10 @@ ENDIF
 
 .irq3
 
- LDA #12                \ R12/R13 = the buffer on show, GFRONT (0 for BUF0, 1
- STA VIA+&00            \ for SCREEN%), latched when frame B ends
+ LDA #12                \ R12 = the buffer on show, GFRONT (0 for BUF0, 1 for
+ STA VIA+&00            \ SCREEN%), latched when frame B ends (R13 is 0)
  LDX GFRONT
  LDA rsah,X
- STA VIA+&01
- LDA #13
- STA VIA+&00
- LDA rsal,X
  STA VIA+&01
 
  LDA #LO(RPA)           \ Point 2 next, RPA microseconds on
@@ -865,8 +875,34 @@ pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
 \
 \ ******************************************************************************
 
- PRINT "Resident block A: &0400-", ~P%-1, ", free ", GLUE%-P%, " (then the renderer's glue, the dashboard's workspace, SNE and ACT)"
- ASSERT P% <= GLUE%
+\ ******************************************************************************
+\
+\       Name: PROGM%
+\       Type: Workspace
+\   Category: Loader
+\    Summary: The main RAM part of the program in its banks: its low pass,
+\             then any of its hot pass that the flow put in main RAM
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: each program's source is emitted in three passes, low, hot and cold
+\ (docs/memory-map.md). Its low pass, and the hot pass's container in main
+\ RAM (after the hot pass's container in bank 4), are here, from PROGM% to
+\ PROGM_END%, between the resident code and the renderer's glue. The
+\ program's layout file (elite-layout-*.asm) assembles them here and copies
+\ their bytes into its bank 4 image at PROGI% (whose address is at S%+14),
+\ and PCLI copies them from there to PROGM% each time it loads the program.
+\
+\ ******************************************************************************
+
+.PROGM%
+
+ SKIP GLUE% - P%
+
+.PROGM_END%
+
+ PRINT "Resident block A: &0400-", ~PROGM%-1, ", then the programs' main RAM part to ", ~PROGM_END%-1, " (", PROGM_END%-PROGM%, " bytes; then the renderer's glue, the dashboard's workspace, SNE and ACT)"
+ ASSERT P% = GLUE% AND PROGM_END% - PROGM% <= 128
 
 \ ******************************************************************************
 \

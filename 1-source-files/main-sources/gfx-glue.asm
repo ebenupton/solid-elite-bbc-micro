@@ -11,7 +11,7 @@
 \ the game starts calling the renderer (nothing does yet).
 \
 \ GCALL: X = an entry's number (FG_*, below), A and Y its inputs: pages bank
-\ F in (BANKF), enters it through its dispatcher at FJT (the top of bank F),
+\ F in (BANK6), enters it through its dispatcher at FJT (the top of bank F),
 \ and pages the caller's bank (whatever was in &F4) back in, returning A
 \ and Y as the entry left them (every entry keeps Y). The flags and X are
 \ not kept. Not re-entrant: interrupt handlers must not call it.
@@ -28,7 +28,7 @@ FJT = &BFC0             \ bank F's dispatcher (gfx-bankf.asm)
  STA GA                 \ keep A while the bank is paged
  LDA &F4                \ the caller's bank, to page back after
  PHA
- LDA BANKF              \ page bank F in (&F4 first, as elite-far.asm)
+ LDA BANK6              \ page bank F in (&F4 first, as elite-far.asm)
  STA &F4
  STA &FE30
  JSR FJT                \ the entry X, with A = GA, and Y as it was

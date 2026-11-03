@@ -798,7 +798,7 @@ ENDIF
  BPL lbk1
 
  JSR pload              \ Load R.BANK to STAGE% and copy it into bank R
- LDA BANKR
+ LDA BANK5
  LDX #64
  LDY #&80
  JSR bcopy
@@ -806,7 +806,7 @@ ENDIF
  LDA #'F'               \ Load F.BANK to STAGE% and copy it into bank F
  STA pcbuf+2
  JSR pload
- LDA BANKF
+ LDA BANK6
  LDX #64
  LDY #&80
  JSR bcopy
@@ -920,7 +920,7 @@ ENDIF
                         \ Port: the original's checksum of the docked code is
                         \ gone, with the copy protection
 
- LDA BANKH              \ Port: page in the docked code's home bank
+ LDA BANK4              \ Port: page in the docked code's home bank
  STA &F4
  STA VIA+&30
 

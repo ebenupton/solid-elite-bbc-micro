@@ -4,23 +4,31 @@
 \
 \ Port: the file that the Makefile assembles for the flight code (the
 \ original's D.CODE). elite-source-flight.asm is the original's source in the
-\ original's order, and the header of each routine or table names the area it
-\ lives in (no Area field: the home bank; "Area: cold": the cold bank). The
-\ two banks share the addresses &8000-&BFFF and BeebAsm assembles a file with
-\ one location counter, so 2-build-files/streams.py writes a copy of the
-\ source for each area, with the other areas' lines blanked
-\ (3-assembled-output/elite-flight-home.asm and -cold.asm; the line numbers
-\ are the source's), and this file assembles them one after the other, each
-\ at its own address. Every label is defined once, in its own area's copy,
-\ and every block is assembled once; where a routine lives on the other side,
-\ each copy holds the far-call stub that reaches it, at the routine's place:
+\ original's order, and the header of each routine or table names the pass it
+\ is emitted in (no Area field: the hot pass; "Area: low", "Area: cold",
+\ "Area: none"). The banks share the addresses &8000-&BFFF and BeebAsm
+\ assembles a file with one location counter, so 2-build-files/streams.py
+\ writes a copy of the source for each container, with every other line
+\ blanked (3-assembled-output/elite-flight-<copy>.asm; the line numbers are
+\ the source's), and this file assembles them one after the other, each at
+\ its own address. Every label is defined once, in its own copy, and every
+\ block is assembled once; where a routine lives on the other side, each copy
+\ holds the far-call stub that reaches it, at the routine's place:
 \
-\   * the home bank (saved as D.CODEH): the configuration and the workspaces,
-\     then the code from S% at &8000 (HOME%); the blueprint slot at BPSLOT% is
-\     loaded from a D.MOx file by LOMOD, as the original loaded it at &5600;
+\   * the configuration and the workspaces (config);
 \
-\   * the cold bank (saved as D.CODEC): the cold blocks from &8000, then the
-\     recursive text tokens (QQ18, elite-text-tokens.asm's blocks tagged cold).
+\   * the main RAM part, at PROGM% in the resident block: the low pass, then
+\     the hot pass's container in main RAM (hotm), which the flow fills once
+\     bank 4 is full; its bytes are copied into the bank 4 image at PROGI%,
+\     and PCLI copies them to PROGM% when it loads the program;
+\
+\   * bank 4 (saved as D.CODEH): the hot pass from S% at &8000 (HOME%), then
+\     the main RAM part's image, the quarter squares and the blueprint slot
+\     at BPSLOT%, which LOMOD loads from a D.MOx file, as the original loaded
+\     it at &5600;
+\
+\   * bank 7 (saved as D.CODEC): the cold pass from &8000, then the recursive
+\     text tokens (QQ18, elite-text-tokens.asm's blocks tagged cold).
 \
 \ ******************************************************************************
 
@@ -28,15 +36,47 @@
  INCLUDE "3-assembled-output/resident.asm"              \ The loader's resident
                                                         \ addresses
 
- INCLUDE "3-assembled-output/elite-flight-home.asm"
+ HOT_END% = QSL         \ (bank 4: the hot pass and the main RAM part's image,
+                        \ then the quarter squares and the blueprint slot)
+
+ INCLUDE "3-assembled-output/elite-flight-config.asm"
+
+ ORG PROGM%
+
+ INCLUDE "3-assembled-output/elite-flight-low.asm"
+
+.LOW_END%
+
+ HOTM% = LOW_END%       \ (the hot pass's container in main RAM: the rest of
+ HOTM_END% = PROGM_END% \ the main RAM part)
+
+ INCLUDE "3-assembled-output/elite-flight-hotm.asm"
+
+.PROGM_USED%
+
+ ASSERT PROGM_USED% <= PROGM_END%
+
+ CLEAR &8000, &C000
+ ORG HOME%
+
+ INCLUDE "3-assembled-output/elite-flight-hot.asm"
 
 .HOME_END%
 
- PRINT "Flight home bank: &8000-", ~HOME_END%-1, ", free ", QSL-HOME_END%
- ASSERT HOME_END% <= QSL
+.PROGI%                 \ The main RAM part's image, which PCLI copies to PROGM%
 
-                        \ Port: the quarter squares, QSL and QSH, in the home
-                        \ bank just below the blueprint slot (elite-map.asm)
+ COPYBLOCK PROGM%, PROGM_END%, PROGI%
+
+ SKIP PROGM_END% - PROGM%
+
+.PROGI_END%
+
+ PRINT "Flight bank 4: &8000-", ~HOME_END%-1, " (the hot pass), the main RAM part's image to ", ~PROGI_END%-1, ", free ", HOT_END%-HOME_END%
+ PRINT "Flight main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%
+ ASSERT HOME_END% <= HOT_END%
+
+                        \ Port: the quarter squares, QSL and QSH, in bank 4 just
+                        \ below the blueprint slot (elite-map.asm)
 
  ORG QSL
 
@@ -63,7 +103,7 @@
 
 .COLD_END%
 
- PRINT "Flight cold bank: &8000-", ~COLD_END%-1, ", free ", &C000-COLD_END%
+ PRINT "Flight bank 7: &8000-", ~COLD_END%-1, " (the cold pass), free ", DFSSAVE%-COLD_END%
  ASSERT COLD_END% <= DFSSAVE%      \ (Port: PCLI keeps DFS's workspace in the last page)
 
  SAVE "3-assembled-output/D.CODEC.bin", &8000, COLD_END%, &8000

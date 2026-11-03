@@ -46,7 +46,7 @@ the Tube's host kept at `&E5-&E7`, are in bank R (`R_NTMP`, `R_NTMPY`,
 Bank R's entry points are in its jump table, `RJT` (`gfx-rws.asm`), in this
 order; the frame layer calls them through the trampolines `T_INIT` to
 `T_DRAINQ` (`gfx-rtramp.asm`, 116 bytes, in the resident block A: each `T_n` is four bytes, a `JSR` to a shared body and the low byte of `RJT`'s entry), each
-of which pages bank R in (`BANKR`), calls the entry and pages the caller's
+of which pages bank R in (`BANK5`), calls the entry and pages the caller's
 bank back. A, X and Y are passed through; nothing is returned in them.
 
 | RJT + | Routine | Inputs |
@@ -119,8 +119,8 @@ buffer not on show and asks the vertical sync interrupt to show it.
 `2-build-files/bankf.py` (a `make` step after the programs are assembled)
 writes the game's addresses and constants that bank F reads into
 `3-assembled-output/bankf-game.asm` (from `flight-symbols.txt`, checking
-that `docked-symbols.txt` agrees, `loader-symbols.txt` for `BANKR` and
-`BANKF`, and `elite-source-flight.asm` for `NOST`, `NI%`, `SST`, `PLT`),
+that `docked-symbols.txt` agrees, `loader-symbols.txt` for `BANK5` and
+`BANK6`, and `elite-source-flight.asm` for `NOST`, `NI%`, `SST`, `PLT`),
 assembles `gfx-bankf.asm`, and writes `F.bin` (the 16K bank), `GLUE.bin`
 (the glue, below) and `bankf-symbols.txt`. The loader's `LOAD` routine
 loads it from the disc's `F.BANK` into bank F and calls `F_INIT`.

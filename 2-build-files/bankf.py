@@ -7,7 +7,7 @@ Port (Model B): run after the flight program is assembled. The frame layer
 reads the game's variables where the flight program has them (its zero page
 and main RAM workspace, the same in the docked program, which this checks)
 and calls bank R through the trampolines in main RAM, which page the bank
-whose number the loader keeps in BANKR (likewise GCALL and BANKF): so this
+whose number the loader keeps in BANK5 (likewise GCALL and BANK6): so this
 writes those addresses, and the game's constants it uses, into
 3-assembled-output/bankf-game.asm, from flight-symbols.txt,
 docked-symbols.txt, loader-symbols.txt and elite-source-flight.asm, then
@@ -44,7 +44,7 @@ for v in VARS:
     L.append('%-8s = &%04X' % (v, a))
 for c in ('DL_FRAME',):   # the disc layer, in the flight code's cold bank
     L.append('%-8s = &%04X' % (c, flight[c]))
-for b in ('BANKR', 'BANKF', 'farC'):
+for b in ('BANK5', 'BANK6', 'farC'):
     L.append('%-8s = &%04X' % (b, loader[b]))
 src = open(os.path.join(MS, 'elite-source-flight.asm'), encoding='latin-1').read()
 for c in CONSTS:

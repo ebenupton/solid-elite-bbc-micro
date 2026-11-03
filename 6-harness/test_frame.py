@@ -8,7 +8,7 @@ the game must have been built, for the symbols they read) and runs them on
 py65's NMOS 6502 (the Model B's) with:
 
   * main RAM: the glue (GLUE.bin at GLUE%: the trampolines and GCALL), the
-    loader's bank numbers (BANKR, BANKF) and the game's variables that the
+    loader's bank numbers (BANK5, BANK6) and the game's variables that the
     records read (at the flight program's addresses);
   * &8000-&BFFF paged by writes to ROMSEL (&FE30): the game's home bank
     (empty), bank R or bank F; the MOS ROM (its font) at &C000;
@@ -47,8 +47,8 @@ BEEBASM = os.environ.get('BEEBASM', 'beebasm')
 sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.join(REPO, '2-build-files'))
 
-HOME = 6                                         # the banks (the loader finds
-RBANK, FBANK, COLD = 4, 5, 7                     # them; any distinct numbers)
+HOME = 4                                         # the banks (the loader finds
+RBANK, FBANK, COLD = 5, 6, 7                     # them; any distinct numbers)
 STUB = 0x7FC0                                    # where the test's caller runs
 FG = ['F_INIT', 'F_DIRECT', 'F_FRAME', 'F_SHIP', 'F_LINE', 'F_DOT', 'F_PLANET', 'F_SHPPT',
       'F_PCURVE', 'F_PPOINT', 'F_CHAR', 'F_DELCHAR', 'F_CLRTEXT', 'F_BOMB']
@@ -150,8 +150,8 @@ class Machine:
         self.F = syms_of('flight')
         self.mem = Mem(self.S)
         S, m = self.S, self.mem.main
-        m[S['BANKR']], m[S['BANKF']] = RBANK, FBANK
-        m[S['loader']['BANKC']] = COLD
+        m[S['BANK5']], m[S['BANK6']] = RBANK, FBANK
+        m[S['loader']['BANK7']] = COLD
         m[0xF4] = HOME
         self.mpu = MPU(memory=self.mem)
         self.cycles = {}

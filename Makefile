@@ -86,12 +86,16 @@ all:
 	echo _MATCH_ORIGINAL_BINARIES=$(match-original-binaries) >> 1-source-files/main-sources/elite-build-options.asm
 	echo _MAX_COMMANDER=$(max-commander) >> 1-source-files/main-sources/elite-build-options.asm
 	echo _INTERLACE_FIX=$(interlace-fix) >> 1-source-files/main-sources/elite-build-options.asm
-	$(PYTHON) 2-build-files/streams.py > 3-assembled-output/compile.txt
+	$(PYTHON) 2-build-files/streams.py measure > 3-assembled-output/compile.txt
 	$(PYTHON) 2-build-files/panel.py >> 3-assembled-output/compile.txt
 	$(PYTHON) 2-build-files/bankr.py $(BEEBASM)
 	$(BEEBASM) -i 1-source-files/main-sources/elite-missile.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-loader3.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-loader3.asm -d | grep "^\[{" > 3-assembled-output/loader-symbols.txt
+	$(PYTHON) 2-build-files/layout-info.py
+	$(BEEBASM) -i 1-source-files/main-sources/elite-measure-flight.asm -d | grep "^\[{" > 3-assembled-output/measure-flight-symbols.txt
+	$(BEEBASM) -i 1-source-files/main-sources/elite-measure-docked.asm -d | grep "^\[{" > 3-assembled-output/measure-docked-symbols.txt
+	$(PYTHON) 2-build-files/streams.py place >> 3-assembled-output/compile.txt
 	$(PYTHON) 2-build-files/layout-info.py
 	$(BEEBASM) -i 1-source-files/main-sources/elite-layout-flight.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-layout-flight.asm -d | grep "^\[{" > 3-assembled-output/flight-symbols.txt

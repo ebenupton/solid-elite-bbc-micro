@@ -13,8 +13,8 @@
 # elite-layout-docked.asm) INCLUDE:
 #
 #   * the far calls between a program's home and cold banks (farC, farCj,
-#     farH, farHj) and the bank numbers the loader found (BANKH, BANKC,
-#     BANKR, BANKF);
+#     farH, farHj) and the bank numbers the loader found (BANK4, BANK7,
+#     BANK5, BANK6);
 #
 #   * PCLI, the game's OSCLI (OSCLI = PCLI in the programs' sources)
 #
@@ -32,7 +32,7 @@
 import re
 
 OUT = "3-assembled-output/"
-NAMES = ("farC", "farCj", "farH", "farHj", "BANKH", "BANKC", "BANKR", "BANKF", "PCLI",
+NAMES = ("farC", "farCj", "farH", "farHj", "BANK4", "BANK7", "BANK5", "BANK6", "PCLI", "PROGM%", "PROGM_END%",
          "IRQG", "NA%", "CHK2", "CHK", "BRBR1", "PANR", "GCALL", "dfsin", "dfsout",
          "T_GETW", "T_DRAINQ")
 
@@ -49,16 +49,19 @@ with open(OUT + "resident.asm", "w") as f:
 
 # The banks of the programs' labels, for the harness (6-harness/blib.mjs):
 # 3-assembled-output/<program>-banks.txt, "label C" for each label assembled
-# in the program's cold bank (its cold copy and the text tokens), "label H"
-# for each label of its home bank's copies (whose addresses are at
-# &8000-&BFFF once assembled; the workspaces' labels in those copies are in
-# main RAM, which the harness tells by address)
+# in the program's cold pass, bank 7 (its cold copy and the text tokens),
+# "label H" for each label of its hot side's copies (the low pass, the hot
+# pass and the blueprints: those in bank 4 have addresses &8000-&BFFF, and
+# those in main RAM, which the harness tells by address, are below)
 
 
 def labels(path):
     """the labels a copy defines, with those of the files it INCLUDEs from
     1-source-files/main-sources (the cold bank's disc layer, gfx-dlayer.asm)"""
-    t = open(path, encoding="latin-1").read()
+    try:
+        t = open(path, encoding="latin-1").read()
+    except FileNotFoundError:          # (before streams.py's place: run again after it)
+        return []
     out = re.findall(r"^\s*\.([A-Za-z_][\w%]*)", t, re.M)
     for inc in re.findall(r'^\s*INCLUDE\s+"(1-source-files/main-sources/[^"]+)"', t, re.M):
         out += labels(inc)
@@ -69,5 +72,5 @@ for prog in ("flight", "docked"):
     with open(OUT + "%s-banks.txt" % prog, "w") as f:
         for name in labels(OUT + "elite-%s-cold.asm" % prog) + labels(OUT + "elite-tokens-cold.asm"):
             f.write("%s C\n" % name)
-        for name in labels(OUT + "elite-%s-home.asm" % prog) + labels(OUT + "elite-%s-blueprints.asm" % prog):
+        for name in sum((labels(OUT + "elite-%s-%s.asm" % (prog, c)) for c in ("low", "hot", "hotm", "blueprints")), []):
             f.write("%s H\n" % name)

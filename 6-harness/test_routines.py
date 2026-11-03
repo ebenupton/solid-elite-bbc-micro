@@ -195,21 +195,21 @@ def load():
     loader = open(os.path.join(REPO, "3-assembled-output/ELITE4.bin"), "rb").read()
     resa = loader[ld["RESAcode"] - 0x1900:ld["RESAcode"] - 0x1900 + 0x400]
     cand = Machine("port", cand_sy, [(0x0400, resa)], extra)
-    cand.home_bank, cand.cold_bank = 7, 6
+    cand.home_bank, cand.cold_bank = 4, 7
     mp = open(os.path.join(REPO, "1-source-files/main-sources/elite-map.asm"), encoding="latin-1").read()
     gvars = int(re.search(r"^ GVARS = &([0-9A-F]+)", mp, re.M).group(1), 16)
     gforce = gvars + int(re.search(r"^ GFORCE = GVARS \+ (\d+)", mp, re.M).group(1))
     cand.base[gforce] = 0xFF                      # (GFORCE: the renderer's direct mode, so the drawing is compared)
     ref.base[0x07C0:0x0800] = list(resa[0x3C0:0x400])   # (SNE and ACT, as the original's loader puts them)
-    for k, v in (("BANKH", 7), ("BANKC", 6), ("BANKR", 5), ("BANKF", 4)):
+    for k, v in (("BANK4", 4), ("BANK7", 7), ("BANK5", 5), ("BANK6", 6)):
         cand.base[ld[k]] = v
     def bank(path):
         d = list(open(os.path.join(REPO, path), "rb").read())
         return d + [0] * (16384 - len(d))
-    cand.banks = {7: bank("3-assembled-output/D.CODEH.bin"), 6: bank("3-assembled-output/D.CODEC.bin")}
+    cand.banks = {4: bank("3-assembled-output/D.CODEH.bin"), 7: bank("3-assembled-output/D.CODEC.bin")}
     for (a, data) in extra:                       # (the quarter squares, in the home bank)
         if 0x8000 <= a < 0xC000:
-            cand.banks[7][a - 0x8000:a - 0x8000 + len(data)] = list(data)
+            cand.banks[4][a - 0x8000:a - 0x8000 + len(data)] = list(data)
     cand.cold_labels = set()
     for l in open(os.path.join(REPO, "3-assembled-output/flight-banks.txt")):
         f = l.split()

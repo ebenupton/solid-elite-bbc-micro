@@ -1,0 +1,92 @@
+hot &8000-&B1F9: 90 units, 12572 bytes, 222 free
+  &8000    16 S%
+  &8010    16 INBAY..LTLI
+  &8020     3 DEEOR
+  &8023    20 DOENTRY..DEATH2
+  &8037   519 Main flight loop (Part 1 of 16)..Main flight loop (Part 8 of 16)
+  &823E   204 Main flight loop (Part 11 of 16)..Main flight loop (Part 12 of 16)
+  &830A   346 Main flight loop (Part 13 of 16)..SPIN
+  &8464    26 UNIV
+  &847E    15 CTWOS
+  &848D    15 HLOIN2
+  &849C   122 PIX1..PIXEL2
+  &8516   177 BLINE
+  &85C7   473 STARS..STARS1
+  &87A0   289 STARS6..MAS1
+  &88C1    14 MAS2
+  &88CF    38 MAS3
+  &88F5    92 MVT3
+  &8951   160 MVS5
+  &89F1   580 TACTICS (Part 1 of 7)..TACTICS (Part 7 of 7)
+  &8C35   189 DOCKIT
+  &8CF2    61 VCSU1..TAS1
+  &8D2F    24 TAS6
+  &8D47    90 HITCH
+  &8DA1   255 STARS2..QSMUL
+  &8EA0   267 MU5..MULT3
+  &8FAB    76 MLS2..MLS1
+  &8FF7   100 SQUA..MU11
+  &905B     5 MU6
+  &9060    86 FMLTU2..FMLTU
+  &90B6   162 MLTU2
+  &9158    81 MUT2..MULT1
+  &91A9    10 MULT12
+  &91B3   133 TAS3..ADD
+  &9238    33 TIS1
+  &9259    43 DV42..DVID4
+  &9284   184 DVID3B2
+  &933C    23 cntr
+  &9353   108 BUMP2..ARCTAN
+  &93BF   469 LASLI..DOEXP
+  &9594    10 DET1
+  &959E    16 SHD..DENGY
+  &95AE   134 DOT..CPIX2
+  &9634    19 SPS3
+  &9647    19 GINF
+  &965A   178 NWSHP
+  &970C   522 PROJ..PLS22
+  &9916   457 SUN (Part 1 of 4)..CIRCLE2
+  &9ADF    76 WPLS2..WP1
+  &9B2B    46 WPLS
+  &9B59    49 EDGES
+  &9B8A   159 CHKON..PLS6
+  &9C29    78 TT17
+  &9C77   329 KS3..SFX
+  &9DC0   172 ZINF..Main game loop (Part 2 of 6)
+  &9E6C    38 Main game loop (Part 5 of 6)..Main game loop (Part 6 of 6)
+  &9E92   165 TT102
+  &9F37    13 FAROF..FAROF2
+  &9F44     7 MAS4
+  &9F4B   131 DEATH
+  &9FCE   145 SPS1..NORM
+  &A05F   101 RDKEY
+  &A0C4   123 ECMOF..KYTB
+  &A13F    51 DKS1..DKS2
+  &A172    23 DKS3
+  &A189   327 DKJ1..DK4
+  &A2D0   162 TIDY
+  &A372    86 TIS2
+  &A3C8    70 TIS3..DVIDT
+  &A40E    80 SHPPT
+  &A45E    62 LL5
+  &A49C   142 LL28
+  &A52A    32 LL38
+  &A54A    87 LL51
+  &A5A1     4 SHCOL
+  &A5A5    21 RECM
+  &A5BA    17 MFRAME
+  &A5CB    20 HLS
+  &A5DF    14 PTCLSE
+  &A5ED    35 HDOT
+  &A610  1462 LL9 (Part 1 of 12)..LL9 (Part 10 of 12)
+  &ABC6    62 LL145 (Part 1 of 4)
+  &AC04   104 LL9 (Part 11 of 12)..LL9 (Part 12 of 12)
+  &AC6C   307 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
+  &AD9F   119 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
+  &AE16    87 MVT1
+  &AE6D   103 MVS4
+  &AED4    53 MVT6
+  &AF09   199 MV40
+  &AFD0   323 PU1..SCAN
+  &B113     9 WSCAN
+hotm &071E-&0723: 0 units, 0 bytes, 6 free

@@ -91,9 +91,9 @@
 
  EQUB HI(BUF0 DIV 8), HI(SCREEN% DIV 8)
 
-.rsal
-
- EQUB LO(BUF0 DIV 8), LO(SCREEN% DIV 8)
+ ASSERT LO(BUF0 DIV 8) = 0 AND LO(SCREEN% DIV 8) = 0 AND LO(PANEL% DIV 8) = 0
+                        \ (R13, the start address's low byte, is 0 for all
+                        \ three: IRQG writes R12 only)
 
  PRINT "High resident block: ", ~RESH%, "-", ~P%-1, ", free ", &7F00-P%
  ASSERT P% <= &7F00

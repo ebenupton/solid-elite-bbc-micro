@@ -23,13 +23,15 @@ program's source.
 
 ## The rules the layout follows
 
-1. **Four sideways RAM banks.** The loader finds four banks of sideways RAM
+1. **Four sideways RAM banks**, named as the BBC Master port's: bank 4,
+   the programs' home bank (their hot passes); bank 7, their cold bank
+   (their cold passes); and banks 5 and 6, the renderer's. The loader finds four banks of sideways RAM
    (`PROBE`: the first four slots from 15 down that the MOS has no ROM in
    and that hold what is written to them) and keeps their numbers in
-   `BANKS`, as boards differ: the programs' home bank `BANKH`, their cold
-   bank `BANKC`, and the renderer's `BANKR` and `BANKF`. All code that pages
-   a bank reads its number from there. `&F4` always matches ROMSEL, and is
-   written first.
+   `BANKS` (`BANK7`, `BANK6`, `BANK5`, `BANK4`, in the order found), as
+   boards differ: on a machine with sideways RAM in slots 4 to 7, each bank
+   is the slot of its name. All code that pages a bank reads its number from
+   there. `&F4` always matches ROMSEL, and is written first.
 2. **One bank at a time.** A program's home bank is paged whenever its code
    runs, so its home code calls itself and reads its own data directly, and
    main RAM is visible to everything. Its cold bank is reached only through
@@ -65,11 +67,12 @@ program's source.
 6. **Page `&0D`** holds only what the original puts there: DFS's NMI routine
    and the loader's `CATD` at `&0D7A`.
 
-## The sources and their emissions
+## The sources and their passes
 
 `elite-source-flight.asm` and `elite-source-docked.asm` are Mark Moxon's
-sources for the two programs, in the original's order. Each routine or
-table's header names the area it lives in:
+sources for the two programs, in the original's order. As in the BBC
+Master port, each program is emitted in three passes, **low**, **hot** and
+**cold**, and each routine or table's header names its pass:
 
     \       Name: TT219
     \       Type: Subroutine
@@ -77,53 +80,119 @@ table's header names the area it lives in:
     \    Summary: Show the Buy Cargo screen (red key f1)
     \       Area: cold
 
-* **No Area field** means the program's home bank, from `S%` at `&8000` on.
-* **`Area: cold`** is the program's cold bank, from `&8000` on.
-* **`Area: blueprints`** (the docked code's own ship blueprints) is the home
-  bank's blueprint slot at `&B600`.
+* **No Area field** (or `Area: hot`) is the hot pass: the code that runs
+  with the program's home bank, bank 4, paged. It flows through its
+  containers: bank 4 from `S%` at `&8000` to the room the layout keeps at
+  the bank's end, then main RAM (below).
+* **`Area: low`** is the low pass: code that must be in main RAM, seen
+  whatever bank is paged. The disc version's own code of that kind (the
+  interrupt handler, the break handler, the last saved commander) is in the
+  loader, and the port keeps it in its resident block A
+  (`elite-resident.asm`), so a program's low pass holds only what both
+  sides call and that needs nothing of either: the cold pass calls it
+  directly, with no stub (`3-assembled-output/direct-flight.txt`,
+  `direct-docked.txt`).
+* **`Area: cold`** is the cold pass, bank 7 from `&8000`.
+* **`Area: blueprints`** (the docked code's own ship blueprints) is bank 4's
+  blueprint slot at `&B600`.
+* **`Area: none`** is code the port no longer runs: each copy has only its
+  labels and one `RTS`, at its place, so a reference still assembles and
+  returns at once.
+* **`, again`** after any of these: the block is also emitted a second time
+  (`3-assembled-output/elite-<program>-again.asm`), with no stubs, its own
+  labels and the targets of its `JSR`s and `JMP`s named `A_<name>`, for the
+  renderer to run the original's code with stand-ins of its own.
+* **`, runs on`** after any of these marks a table that code reads past its
+  end, so that the next block must follow it, as a fall-through would.
 
-The text tokens' source, `elite-text-tokens.asm` (the original's `WORDS`
-file at `&0400`), is tagged the same way: its recursive token table `QQ18`
-and the macros that build it are `Area: cold`, assembled into each
-program's cold bank, and its sine and arctan tables `SNE` and `ACT` are
+The blocks before `S%`'s are the configuration (the workspaces), assembled
+first. The text tokens' source, `elite-text-tokens.asm` (the original's
+`WORDS` file at `&0400`), is tagged the same way: its recursive token table
+`QQ18` and the macros that build it are `Area: cold`, assembled into each
+program's cold pass, and its sine and arctan tables `SNE` and `ACT` are
 `Area: resident`, which stay at `&07C0` in the loader's resident block.
 
-The two banks share the addresses `&8000-&BFFF`, and BeebAsm assembles with
-one location counter. So `2-build-files/streams.py` writes one copy of each
-source per area into `3-assembled-output` (`elite-flight-home.asm`,
-`elite-flight-cold.asm`, `elite-docked-home.asm` and so on), with the other
-areas' lines blanked, so that line numbers stay the source's.
+**The containers.** Each pass goes into its containers in the source's
+order:
+
+* the **main RAM part** of the program, `PROGM%` to `PROGM_END%` in the
+  resident block A: the low pass, then the hot pass's main RAM container
+  (`hotm`). The program's layout file assembles it there, copies its bytes
+  into its bank 4 image at `PROGI%`, whose address is at `S%+14`, and `PCLI`
+  copies them back to `PROGM%` each time it loads the program;
+* the hot pass's bank 4 container (`hot`), from `S%` at `&8000` (`HOME%`)
+  to the main RAM part's image, then the quarter squares (in the flight
+  code) and the blueprint slot;
+* the cold pass, bank 7 from `&8000`, then the text tokens `QQ18`, below
+  `DFSSAVE%`.
+
+**The flow.** The hot pass is cut into units: runs of blocks that must stay
+together, because one falls through into the next (its last statement can
+continue, or is a BIT skip, `EQUB &2C` or `&24`), branches into another
+(the blocks from one to the other, or to the stub of a routine on the other
+side, which sits at that routine's place), or runs on into the next. In the
+source's order, each unit goes into the container the flow has reached if it
+fits, and otherwise into the next one. The sizes are measured, not
+estimated: the Makefile runs `2-build-files/streams.py` twice. `streams.py
+measure` writes each program's hot pass as one copy, with a label
+`FLOW_<n>` at each block, which `elite-measure-flight.asm` and
+`elite-measure-docked.asm` assemble for each block's size
+(`3-assembled-output/measure-<program>-symbols.txt`); `streams.py place`
+then flows the units by those sizes. A block's size does not depend on
+where it goes. `3-assembled-output/flow-flight.txt` and `flow-docked.txt`
+list every container and its units.
+
+The main RAM part is small: main RAM is the screen's (both buffers and the
+dashboard, `&1000-&7DFF`), the workspaces' and the resident block's. Bank 4
+holds the whole of each hot pass, so the main RAM container is empty.
+
+**The copies.** BeebAsm assembles with one location counter, and the banks
+share the addresses `&8000-&BFFF`. So `streams.py` writes one copy of each
+program's source per container into `3-assembled-output`
+(`elite-flight-config.asm`, `-low.asm`, `-hot.asm`, `-hotm.asm`,
+`-blueprints.asm`, `-cold.asm`, and the same for the docked code), with the
+other lines blanked, so that line numbers stay the source's.
 `elite-layout-flight.asm` and `elite-layout-docked.asm`, which the Makefile
 assembles, INCLUDE a program's copies in turn, each at its own address.
 Each label is defined once and each block is assembled once.
 
-**Stubs at their routines' places.** Each emission is the original in its
+**Stubs at their routines' places.** Each pass is the original in its
 order, with a far-call stub wherever a routine lives on the other side. The
-source calls everything by the original's names. In the cold copy
+low and hot passes are one side, the hot side (main RAM and bank 4, which
+is paged whenever the program's code runs), and the cold pass the other.
+The source calls everything by the original's names. In the cold copy
 `streams.py` renames each cold label `X` to `X_C`, and turns each call from
-cold code to home code `H` into a call of `xh_H`. It then writes the stubs
-into the copies, on the line that defines each routine:
+cold code to hot code `H` into a call of `xh_H` (but for the low routines it
+calls directly). It then writes the stubs into the copies, on the line that
+defines each routine:
 
-    .TT22    JSR farC : EQUW TT22_C     (home copy: the cold routine's place)
-    .xh_TT26 JSR farH : EQUW TT26       (cold copy: the home routine's place)
+    .TT22    JSR farC : EQUW TT22_C     (hot copy: the cold routine's place)
+    .xh_TT26 JSR farH : EQUW TT26       (cold copy: the hot routine's place)
 
-A routine that never returns (`DEATH`, `RSHIPS` in the flight code; `TT170`,
-`BR1`, `BAY` and the others in the docked code) gets a jump stub (`farCj`,
-`farHj`). A routine that falls through into a routine on the other side
-falls into the stub at the next routine's place; the stub calls the routine,
+A cold block's stubs go in the copy of the nearest hot block before it, so
+that a routine that falls through into a routine on the other side falls
+into the stub at the next routine's place; the stub calls the routine,
 which returns to the falling routine's caller with the caller's bank back,
-just as the fall-through did. The docked code's token jump table `JMTB`,
-which `DETOK2` calls in the cold bank, names the stubs of its home entries
-itself (`xh_NLIN4`, `xh_MT26`).
+just as the fall-through did. A branch to a routine on the other side
+reaches its stub the same way. A routine that never returns (`DEATH`,
+`RSHIPS` in the flight code; `TT170`, `BR1`, `BAY` and the others in the
+docked code) gets a jump stub (`farCj`, `farHj`). The docked code's token
+jump table `JMTB`, which `DETOK2` calls in the cold pass, names the stubs of
+its hot entries itself (`xh_NLIN4`, `xh_MT26`). The stubs are 5 bytes each,
+as the far calls they use (`elite-far.asm`) are in main RAM; the BBC Master
+port's stubs are themselves in main RAM, 9 bytes each, which the Model B has
+no main RAM for.
 
 **Checks at every build.** `streams.py` checks that each block's IF ...
 ENDIF nesting is balanced; that a block that can fall through its end is
-followed by a block of its own area, or by a block of the other side whose
-first statement is its entry label; that a block ending in the original's
-skip trick (`EQUB &2C`, which makes the next instruction the operand of a
-`BIT`) is followed by a block of its own area; and that every stub has its
-own line. Then `2-build-files/bankcheck.py` checks every reference in the
-per-area copies:
+followed by a block of its own pass (in the hot pass, its unit), or by a
+block of the other side whose first statement is its entry label; that a
+block ending in the original's skip trick (`EQUB &2C`, which makes the next
+instruction the operand of a `BIT`), or that runs on, is followed by a
+block of its own pass; that no block branches into another pass of its
+side; that every stub has its own line; and that every unit fits a
+container. Then `2-build-files/bankcheck.py` checks every reference in the
+copies:
 
 * branches never cross areas;
 * each side reaches the other only through stubs, and never reads the other
@@ -206,10 +275,10 @@ see the history of this file).
 | The shared variables | `&7EA0-&7EAF` | `GVARS`: the renderer's state that the game's hooks, the interrupt and the frame layer share (the last, `GDL`, the disc layer's: which buffers have its disc) |
 | The high resident block | `&7EB0-&7EF0` | `RESH%` (`elite-resident-high.asm`): the palette and the rupture's register routine and tables |
 | The missile's blueprint | `&7F00-&7FFF` | as in the original (with `VEC` at `&7FFE`) |
-| Home bank | `&8000-&BFFF`, ROMSEL `BANKH` | the flight or docked code's home image: `S%` and the home code from `&8000`; in the flight code, the quarter squares at `&B200-&B5FF` (`QSL`, `QSH`); the blueprint set at `&B600` |
-| Cold bank | `&8000-&BFFF`, ROMSEL `BANKC` | the flight or docked code's cold image: the cold code from `&8000` (in the flight code, the disc layer, `DLAYER`, at `&9B0E-&B2BF` with its tables), then `QQ18`; `DFSSAVE%` at `&BF00` |
-| Bank R | ROMSEL `BANKR` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), the jump table `RJT` |
-| Bank F | ROMSEL `BANKF` | the frame layer, from `F.BANK`: its code with the lens flare and the hangar's background (`&8000-&9B0E`), the faces' and lighting tables, its state (`&AA00-&B8FF`), the dispatcher `FJT` |
+| Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`; in the flight code, the quarter squares at `&B200-&B5FF` (`QSL`, `QSH`); the blueprint set at `&B600` |
+| Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000` (in the flight code, the disc layer, `DLAYER`, at `&9B0E-&B2BF` with its tables), then `QQ18`; `DFSSAVE%` at `&BF00` |
+| Bank R | ROMSEL `BANK5` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), the jump table `RJT` |
+| Bank F | ROMSEL `BANK6` | the frame layer, from `F.BANK`: its code with the lens flare and the hangar's background (`&8000-&9B0E`), the faces' and lighting tables, its state (`&AA00-&B8FF`), the dispatcher `FJT` |
 
 Free space now: 230 bytes in the flight code's home bank, 1,492 in its
 cold bank (the disc layer took 6,066: [renderer.md](renderer.md), "The disc

@@ -5,5 +5,5 @@
   "docked": { "syms": "docked-symbols.txt", "banks": "docked-banks.txt",
               "images": [["T.CODEH.bin", "H", "8000"], ["T.CODEC.bin", "C", "8000"]] },
   "loader": "loader-symbols.txt",
-  "banks": { "H": "BANKH", "C": "BANKC" }
+  "banks": { "H": "BANK4", "C": "BANK7" }
 }

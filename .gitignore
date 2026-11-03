@@ -42,3 +42,7 @@ __pycache__/
 3-assembled-output/bankf-game.asm
 3-assembled-output/GLUE.bin
 3-assembled-output/frame-*.png
+3-assembled-output/elite-flight-*.asm
+3-assembled-output/elite-docked-*.asm
+3-assembled-output/measure-*-symbols.txt
+6-harness/node_modules

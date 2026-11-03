@@ -4,7 +4,7 @@
 \
 \ Port (Model B): to be INCLUDEd in the resident block A (elite-resident.asm),
 \ after gfx-rws.asm's constants. The frame layer, in bank F, calls T_INIT,
-\ T_POLY and so on: each pages bank R in (BANKR, elite-far.asm), calls the
+\ T_POLY and so on: each pages bank R in (BANK5, elite-far.asm), calls the
 \ routine through bank R's jump table, RJT, and pages the caller's bank back
 \ (whatever was in &F4: so any bank may call them). Port: each T_n is four
 \ bytes, a JSR to the shared body, rtgo, and the low byte of RJT's entry. A, X and Y are passed
@@ -34,7 +34,7 @@
                         \ is: RJT is in one page)
  LDA &F4                \ keep the caller's bank on the stack and page bank R
  PHA                    \ in
- LDA BANKR
+ LDA BANK5
  STA &F4
  STA &FE30
  LDA rtA                \ put A, X and Y back for the routine
