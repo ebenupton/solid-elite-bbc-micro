@@ -942,7 +942,7 @@ ENDIF
 .fds9
  LDA #1                 \ no disc: no rows (R_NDF: f_nobounds)
  STA R_NDT
- LDA #0
+ LSR A                  \ (A = 0)
  STA R_NDB
  JMP f_nobounds
 
