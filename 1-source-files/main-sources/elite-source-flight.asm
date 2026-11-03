@@ -19441,9 +19441,9 @@ ENDMACRO
 
 .DOEXP
 
- LDA INWK+31            \ If bit 6 of the ship's byte #31 is clear, then the
- AND #%01000000         \ ship is not already exploding so there is no existing
- BEQ P%+5               \ explosion cloud to remove, so skip the following
+ BIT INWK+31            \ If bit 6 of the ship's byte #31 is clear, then the
+ BVC P%+5               \ ship is not already exploding so there is no existing
+                        \ explosion cloud to remove, so skip the following
                         \ instruction
 
  JSR H_PTCLSE           \ Call PTCLS to remove the existing cloud by drawing it
