@@ -2526,11 +2526,10 @@ F_TCOL = &FF            \ text ink: yellow (logical colour 3)
  ASL A
  ASL A
  TAY
+ BNE P%+3              \ (Z from the TAY: row 0 starts at 1)
+ INY
  ORA #7
  STA R_BY1
- TYA
- BNE P%+3
- INY
  JSR T_MARKBOX          \ (R_MARKDIRTY for rows Y to R_BY1)
 .ft16
  LDY fz_u
