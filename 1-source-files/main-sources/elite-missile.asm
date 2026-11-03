@@ -337,6 +337,10 @@ ELIF _SRAM_DISC
 
 ENDIF
 
+                        \ Port: without its edges the blueprint ends here, so
+ ASSERT P% <= &7FA0     \ the room up to VEC, at &7FFE as in the original, is
+ SKIP &7FFE - P%        \ the programs' main RAM part, PROGM% (elite-map.asm)
+
 \ ******************************************************************************
 \
 \       Name: VEC

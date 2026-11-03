@@ -628,11 +628,11 @@ def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies):
 
     def host(i):
         """the hot copy that holds the stubs at line i of a cold block: that
-        of the nearest block before it, in the source, that is not cold and
-        holds code, so that a block that falls through into the cold block
-        falls into its stubs"""
+        of the nearest hot block before it, in the source, that holds code,
+        so that a block that falls through into the cold block falls into its
+        stubs (a low block may not fall into a cold one: program())"""
         for k in range(barea[i] - 1, -1, -1):
-            if eff[k] == "cold" or not ASM[k] or copy_of[k] not in hotcopies:
+            if eff[k] in ("cold", "low") or not ASM[k] or copy_of[k] not in hotcopies:
                 continue
             return copy_of[k]
         return hotcopies[-1]
@@ -814,6 +814,7 @@ def program(prog, phase, errors):
     # statement is its entry label, as that label's stub is then the next
     # thing in the falling block's pass
     falls = []
+    lowseams = []
     for k, b in enumerate(bl):
         if eff[k] == "config" or not ASM[k]:
             continue
@@ -834,6 +835,18 @@ def program(prog, phase, errors):
                 errors.append("%s:%d: %s (%s) %s %s (%s): they must be in one pass"
                               % (src, b.e, b.name, eff[k], "runs on into" if b.runson else "skips into",
                                  b2.name, eff[k2]))
+            elif eff[k] == "low" and eff[k2] == "cold":
+                errors.append("%s:%d: %s (low) can fall through its end (%s) into %s (cold): no stub is in "
+                              "the low pass" % (src, b.e, b.name, st, b2.name))
+            elif eff[k] == "hot" and eff[k2] == "low":
+                # (a hot block falls into a low routine: a jump to it, at the
+                # routine's place in the falling block's copy)
+                entry = entry_label(lines, b2.s, b2.e, macros)
+                if entry:
+                    lowseams.append((k, entry))
+                else:
+                    errors.append("%s:%d: %s (hot) can fall through its end (%s) into %s (low), whose first "
+                                  "statement is not its entry label" % (src, b.e, b.name, st, b2.name))
             elif side(eff[k2]) != side(eff[k]):
                 entry = entry_label(lines, b2.s, b2.e, macros)
                 if entry:
@@ -946,6 +959,13 @@ def program(prog, phase, errors):
         for k in hot:
             copies["measure"][bl[k].s] = ".FLOW_%d" % k
     nstubs = glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies)
+    for k, entry in lowseams:
+        i = next(i for n, i in defined(lines) if n == entry and ACTIVE[i])
+        a = copy_of[k]
+        if code_part(copies[a][i]):
+            errors.append("%s:%d: the seam into %s: its line is not blank in the %s copy" % (src, i + 1, entry, a))
+        else:
+            copies[a][i] = " JMP %s                \\ (the fall-through into %s, in the low pass)" % (entry, entry)
     with open(OUTDIR + "direct-%s.txt" % prog, "w") as f:   # (for bankcheck.py)
         f.write("".join("%s\n" % n for n in sorted(nstubs[2])))
     for a in allc:

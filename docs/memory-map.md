@@ -119,11 +119,13 @@ program's cold pass, and its sine and arctan tables `SNE` and `ACT` are
 **The containers.** Each pass goes into its containers in the source's
 order:
 
-* the **main RAM part** of the program, `PROGM%` to `PROGM_END%` in the
-  resident block A: the low pass, then the hot pass's main RAM container
-  (`hotm`). The program's layout file assembles it there, copies its bytes
-  into its bank 4 image at `PROGI%`, whose address is at `S%+14`, and `PCLI`
-  copies them back to `PROGM%` each time it loads the program;
+* the **main RAM part** of the program, `PROGM%` to `PROGM_END%`
+  (`&7FA0-&7FFD`, between the missile's blueprint, which ends there without
+  its edges, and `VEC`): the low pass, then the hot pass's main RAM
+  container (`hotm`). The program's layout file assembles it there and
+  copies its bytes into its bank 4 image at `PROGI%`; `S%+14` gives where
+  that image is while `PCLI` stages the bank 4 image, and `PCLI` copies it
+  to `PROGM%` each time it loads the program;
 * the hot pass's bank 4 container (`hot`), from `S%` at `&8000` (`HOME%`)
   to the main RAM part's image, then the quarter squares (in the flight
   code) and the blueprint slot;
@@ -146,9 +148,14 @@ then flows the units by those sizes. A block's size does not depend on
 where it goes. `3-assembled-output/flow-flight.txt` and `flow-docked.txt`
 list every container and its units.
 
-The main RAM part is small: main RAM is the screen's (both buffers and the
-dashboard, `&1000-&7DFF`), the workspaces' and the resident block's. Bank 4
-holds the whole of each hot pass, so the main RAM container is empty.
+The main RAM part is small (94 bytes): main RAM is the screen's (both
+buffers and the dashboard, `&1000-&7DFF`), the workspaces' and the resident
+block's. The low pass holds `WSCAN` and `DELAY`, which the cold pass calls
+directly; bank 4 holds the whole of each hot pass, so the main RAM
+container is empty. A low block may not fall into a cold one (its stub
+would be in the low pass); a hot block that falls into a low one falls into
+a `JMP` to it at its place. The stubs for a cold block go in the copy of
+the nearest hot block before it, so that a branch to them stays in reach.
 
 **The copies.** BeebAsm assembles with one location counter, and the banks
 share the addresses `&8000-&BFFF`. So `streams.py` writes one copy of each
@@ -278,7 +285,7 @@ see the history of this file).
 | The mailbox | `&7E00-&7E9D` | the rasteriser's inputs (`MBOX`, `gfx-rws.asm`); `PCLI`'s command and OSFILE block (`PCBUF`, `PBLK`) share its polygon vertices, and the disc layer its first `&4C` bytes (the repair's extents at `&00`, its span queue at `&28`) |
 | The shared variables | `&7EA0-&7EAF` | `GVARS`: the renderer's state that the game's hooks, the interrupt and the frame layer share (the last, `GDL`, the disc layer's: which buffers have its disc) |
 | The high resident block | `&7EB0-&7EF0` | `RESH%` (`elite-resident-high.asm`): the palette and the rupture's register routine and tables |
-| The missile's blueprint | `&7F00-&7F9F` | as in the original, without its edges; `&7FA0-&7FFD` free; `VEC` at `&7FFE` |
+| The missile's blueprint | `&7F00-&7F9F` | as in the original, without its edges; then the programs' main RAM part, `PROGM%` (`&7FA0-&7FFD`); `VEC` at `&7FFE` |
 | Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`; in the flight code, the quarter squares at `&B500-&B8FF` (`QSL`, `QSH`); the blueprint set at `&B900` |
 | Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000`, then `QQ18`; in the flight code, then the renderer's window (`WIN7%`: the disc layer, `gfx-dlayer.asm`); `DFSSAVE%` at `&BF00` |
 | Bank R | ROMSEL `BANK5` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), the jump table `RJT` |

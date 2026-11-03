@@ -65,11 +65,12 @@
 
 .PROGI%                 \ The main RAM part's image, which PCLI copies to PROGM%
 
- COPYBLOCK PROGM%, PROGM_END%, PROGI%
-
  SKIP PROGM_END% - PROGM%
 
 .PROGI_END%
+
+ CLEAR PROGI%, PROGI_END%
+ COPYBLOCK PROGM%, PROGM_END%, PROGI%
 
  PRINT "Docked bank 4: &8000-", ~HOME_END%-1, " (the hot pass), the main RAM part's image to ", ~PROGI_END%-1, ", free ", HOT_END%-HOME_END%
  PRINT "Docked main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%

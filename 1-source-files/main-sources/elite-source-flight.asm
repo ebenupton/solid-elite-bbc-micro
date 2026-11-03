@@ -1975,10 +1975,11 @@
  JMP BRBR1              \ BRKV is set to point here by elite-loader3.asm, so
                         \ BRBR1 is set as the break handler
 
- EQUW PROGI%            \ Port: the address in this bank of the image of the
+ EQUW PROGI% - HOME% + STAGE%   \ Port: the image in this bank of the
                         \ program's main RAM part (its low pass, then any of
-                        \ its hot pass that the flow put in main RAM), which
-                        \ PCLI copies to PROGM% when it loads the program
+                        \ its hot pass that the flow put in main RAM), as PCLI
+                        \ stages the bank's image at STAGE% when it loads the
+                        \ program, and copies the part from there to PROGM%
                         \ (elite-layout-*.asm)
 
  PRINT "S% workspace (flight) from ", ~S%, "to ", ~P%-1, "inclusive"
@@ -35272,7 +35273,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Utility routines
 \    Summary: Wait for a specified time, in 1/50s of a second
-\       Area: cold
+\       Area: low
 \
 \ ------------------------------------------------------------------------------
 \
@@ -35799,6 +35800,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing the screen
 \    Summary: Wait for the vertical sync
+\       Area: low
 \
 \ ------------------------------------------------------------------------------
 \

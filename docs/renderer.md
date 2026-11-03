@@ -417,7 +417,11 @@ own disc calls (the commander file's `OSFILE`, and `CATD`) keep the page as
 The rupture's interrupt (`IRQG`, `elite-resident.asm`) shows buffer
 `GFRONT` (0: `BUF0`, 1: `SCREEN%`) in each frame A, and at its point 1 (the
 start of frame B, the dashboard) carries out a pending flip: `GFRONT` =
-`GPEND`, `GFLIP` = 0. `PCLI` sets `GSTASH` at every disc command (the staging
+`GPEND`, `GFLIP` = 0. As in the BBC Master port, the frame rate is capped at
+25 frames a second: a flip pending at the field straight after a flip is
+held for one field (`rflip`), so each frame is on show for two fields at
+least, and a frame quicker than that waits at its flip while the next
+iteration's game code runs. `PCLI` sets `GSTASH` at every disc command (the staging
 area and DFS's workspace page are in buffer 0), so the next frame blanks
 both buffers. The dashboard, in its own memory at `PANEL%`, is drawn
 directly in every mode.

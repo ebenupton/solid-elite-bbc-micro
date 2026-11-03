@@ -61,6 +61,13 @@
                         \ the last page of each program's cold bank, which no
                         \ cold image reaches (elite-layout-*.asm)
 
+ PROGM% = &7FA0         \ Each program's main RAM part (its low pass, then the
+ PROGM_END% = &7FFE     \ hot pass's main RAM container), after the missile's
+                        \ blueprint (which ends there without its edges) and
+                        \ before VEC: the program's layout copies it into its
+                        \ bank 4 image at PROGI% (S%+14), and PCLI copies it
+                        \ here when it loads the program
+
  PANELROWS = 7          \ The dashboard's character rows
 
  RLINEUS = 64           \ The screen's line, in microseconds

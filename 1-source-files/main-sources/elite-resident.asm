@@ -146,13 +146,10 @@
  JSR bcopy
 
  LDA STAGE%+14          \ Copy the program's main RAM part, PROGM% to
- STA pcm1+1             \ PROGM_END%, from its image in the home image, at the
- LDA STAGE%+15          \ address in S%+14, which is STAGE% + (that address -
- SEC                    \ HOME%) as the home image is still at STAGE%
- SBC #HI(HOME%-STAGE%)
- STA pcm1+2
- LDX #PROGM_END%-PROGM%-1   \ (none if the part is empty: X = &FF)
- BMI pcm2
+ STA pcm1+1             \ PROGM_END%, from its image in the home image, which
+ LDA STAGE%+15          \ S%+14 gives as staged (its address in bank 4, less
+ STA pcm1+2             \ HOME%, plus STAGE%: the home image is still there)
+ LDX #PROGM_END%-PROGM%-1
 
 .pcm1
 
@@ -160,8 +157,6 @@
  STA PROGM%,X
  DEX
  BPL pcm1
-
-.pcm2
 
  LDA #'C'               \ Load x.CODEC, the program's cold image, to STAGE%
  STA pcbuf+8
@@ -816,14 +811,19 @@ ENDIF
  LDX #(rregB - rreg)    \ R4, R6, R7 for frame B (15 rows, PANR shown, vsync at
  JSR rregs              \ row 10)
 
- LDA GFLIP              \ If the frame layer has asked for a flip (GFLIP), show
- BEQ irq3               \ buffer GPEND from the next frame A on, and note that
- LDA GPEND              \ it is done: the buffer that was on show is no longer
- STA GFRONT             \ read from here on, as frame B shows the dashboard
- LDA #0                 \ (docs/renderer.md, "The frame layer's bank F")
- STA GFLIP
+ LDX #0                 \ If the frame layer has asked for a flip (GFLIP), show
+ LDA GFLIP              \ buffer GPEND from the next frame A on, and note that
+ BEQ irq3               \ it is done: the buffer that was on show is no longer
+ LDA rflip              \ read from here on, as frame B shows the dashboard
+ BNE irq3               \ (docs/renderer.md, "The frame layer's bank F"); but
+ LDA GPEND              \ not in the field after a flip (rflip), so that a
+ STA GFRONT             \ frame is on show for two fields at least: 25 frames a
+ STX GFLIP              \ second at most, as the BBC Master port's
+ INX
 
 .irq3
+
+ STX rflip              \ (rflip: 1 if this field flipped)
 
  LDA #12                \ R12 = the buffer on show, GFRONT (0 for BUF0, 1 for
  STA VIA+&00            \ SCREEN%), latched when frame B ends (R13 is 0)
@@ -848,6 +848,10 @@ ENDIF
 .rphase
 
  EQUB 0                 \ The rupture's phase
+
+.rflip
+
+ EQUB 0                 \ 1 if the last field's point 1 flipped the buffers
 
 .PANR
 
@@ -875,34 +879,8 @@ pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
 \
 \ ******************************************************************************
 
-\ ******************************************************************************
-\
-\       Name: PROGM%
-\       Type: Workspace
-\   Category: Loader
-\    Summary: The main RAM part of the program in its banks: its low pass,
-\             then any of its hot pass that the flow put in main RAM
-\
-\ ------------------------------------------------------------------------------
-\
-\ Port: each program's source is emitted in three passes, low, hot and cold
-\ (docs/memory-map.md). Its low pass, and the hot pass's container in main
-\ RAM (after the hot pass's container in bank 4), are here, from PROGM% to
-\ PROGM_END%, between the resident code and the renderer's glue. The
-\ program's layout file (elite-layout-*.asm) assembles them here and copies
-\ their bytes into its bank 4 image at PROGI% (whose address is at S%+14),
-\ and PCLI copies them from there to PROGM% each time it loads the program.
-\
-\ ******************************************************************************
-
-.PROGM%
-
- SKIP GLUE% - P%
-
-.PROGM_END%
-
- PRINT "Resident block A: &0400-", ~PROGM%-1, ", then the programs' main RAM part to ", ~PROGM_END%-1, " (", PROGM_END%-PROGM%, " bytes; then the renderer's glue, the dashboard's workspace, SNE and ACT)"
- ASSERT P% = GLUE% AND PROGM_END% - PROGM% <= 128
+ PRINT "Resident block A: &0400-", ~P%-1, ", free ", GLUE%-P%, " (then the renderer's glue, the dashboard's workspace, SNE and ACT)"
+ ASSERT P% <= GLUE% AND PROGM_END% > PROGM% AND PROGM_END% - PROGM% <= 128
 
 \ ******************************************************************************
 \

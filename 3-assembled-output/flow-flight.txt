@@ -1,4 +1,4 @@
-hot &8000-&B4F9: 90 units, 12572 bytes, 990 free
+hot &8000-&B4A1: 89 units, 12558 bytes, 916 free
   &8000    16 S%
   &8010    16 INBAY..LTLI
   &8020     3 DEEOR
@@ -87,6 +87,5 @@ hot &8000-&B4F9: 90 units, 12572 bytes, 990 free
   &AE6D   103 MVS4
   &AED4    53 MVT6
   &AF09   199 MV40
-  &AFD0   323 PU1..SCAN
-  &B113     9 WSCAN
-hotm &071E-&0723: 0 units, 0 bytes, 6 free
+  &AFD0   318 PU1..SCAN
+hotm &7FB0-&7FFD: 0 units, 0 bytes, 78 free

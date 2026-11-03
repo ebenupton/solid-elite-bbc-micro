@@ -33,7 +33,7 @@ import re
 
 OUT = "3-assembled-output/"
 WINDOW7 = {"flight": ("gfx-dlayer.asm",)}   # (bank 7's renderer window: elite-layout-flight.asm)
-NAMES = ("farC", "farCj", "farH", "farHj", "BANK4", "BANK7", "BANK5", "BANK6", "PCLI", "PROGM%", "PROGM_END%",
+NAMES = ("farC", "farCj", "farH", "farHj", "BANK4", "BANK7", "BANK5", "BANK6", "PCLI",
          "IRQG", "NA%", "CHK2", "CHK", "BRBR1", "PANR", "GCALL", "dfsin", "dfsout",
          "T_GETW", "T_DRAINQ")
 
