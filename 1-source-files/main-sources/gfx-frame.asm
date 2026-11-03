@@ -1529,9 +1529,8 @@ FC_PLLE = &5F : FC_PLLO = &AF
 .fdb1
  LDA f_dhi              \ n = min(f_dhi - f_dy + 1, f_dN)
  SEC
- SBC f_dy
- CLC
- ADC #1
+ SBC f_dy               \ (f_dy <= f_dhi, so the carry is set)
+ ADC #0                 \ + 1 by the carry
  CMP f_dN
  BCC fdb2
  LDA f_dN
