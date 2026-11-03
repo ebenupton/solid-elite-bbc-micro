@@ -69,13 +69,13 @@ HTOP = 16               \ the wall's top row: text row 1, the view's name, is on
  STA R_PYH,X
  DEX
  BPL fhb0
+ ASSERT HI(HPWL) = HI(HPWH)
  LDA #LO(HPWL)          \ f_col's packed colours: the wall's and the floor's
  STA fcl+1
- LDA #HI(HPWL)
- STA fcl+2
  LDA #LO(HPWH)
  STA fch+1
- LDA #HI(HPWH)
+ LDA #HI(HPWL)          \ (the two tables share a page)
+ STA fcl+2
  STA fch+2
  LDA #255
  STA fz_u
