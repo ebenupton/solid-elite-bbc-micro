@@ -347,8 +347,8 @@ ENDIF
 \ that state, for f_enter to carry on from (it then copies the border across)
 
 .f_b0new
- LDA #HI(BUF0)
- STA fbn1+2
+ LDY #HI(BUF0)
+ STY fbn1+2
  LDA #0
  STA GSTASH
  TAX
@@ -356,15 +356,14 @@ ENDIF
  STA BUF0,X             \ (patched) clear &1000-&3FFF
  INX
  BNE fbn1
- INC fbn1+2
- LDY fbn1+2
+ INY                    \ (Y: the page, as patched)
+ STY fbn1+2
  CPY #HI(BUF0) + &30
  BNE fbn1
  STA F_SGS              \ no sights drawn in it (NMOS: A = 0)
  STA f_mkn              \ and no cells to erase: its text shows nothing,
                         \ right for any F_TCH (the text map)
- TAX                    \ no disc (f_dforget, X = 0)
- JSR f_dforget
+ JSR f_dforget          \ no disc (f_dforget, X = 0 from the loop)
  LDA PF_CLS             \ nor the planet's circles of this iteration, if the
  AND #&7F               \ disc command came after PF_HOOK made them (they are
  STA PF_CLS             \ in the mailbox, which PCLI uses)
