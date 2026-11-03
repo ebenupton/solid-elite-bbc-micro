@@ -15620,12 +15620,12 @@ ENDMACRO
  STA QQ6                \
                         \   QQ6 = (QQ5 * 4) + QQ3 + QQ4 + 1
 
- LDA QQ3                \ Finally, we work out productivity, like this:
- EOR #%00000111         \
- ADC #3                 \  (flipped_economy + 3) * (government + 4)
+ LDA #10                \ Finally, we work out productivity, like this:
+ SEC                    \
+ SBC QQ3                \  (flipped_economy + 3) * (government + 4)
  STA P                  \                        * population
  LDA QQ4                \                        * 8
- ADC #4                 \
+ ADC #3                 \ (10 - QQ3 = QQ3 EOR %111 + 3; C is set, so this adds 4)
  STA Q                  \ or, in terms of memory locations:
  JSR MULTU              \
                         \   QQ7 = (QQ3 EOR %111 + 3) * (QQ4 + 4) * QQ6 * 8
