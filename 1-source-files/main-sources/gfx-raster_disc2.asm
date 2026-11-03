@@ -250,13 +250,11 @@ d_mx = &1E
   RTS
 .gn
   STX d_c                 \ else the ends that shrank, black, through d2put
-  LDA d_a1                \ (X = 0: d2set)
-  CMP d_a0
-  BEQ b2
-  BCC b2
-  TAX                     \ a0 .. a1-1
+  LDA d_a0                \ (X = 0: d2set)
+  CMP d_a1
+  BCS b2                  \ a0 >= a1: nothing
+  LDX d_a1                \ a0 .. a1-1
   DEX
-  LDA d_a0
   JSR d2put
 .b2
   LDA d_b0
