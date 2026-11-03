@@ -3318,13 +3318,11 @@ FGZ = 4 + 1 + 1 + 9 + 1 + 2
  LSR A
  CLC
  ADC CNT
- PHA
- CLC
+ PHA                    \ (C clear: 6 * the number is a byte, as Y)
  ADC #6
  STA XX20
  LDA XX0
- CLC
- ADC #20
+ ADC #20                \ (C still clear: XX20 is a byte)
  STA V
  LDA XX0+1
  ADC #0
