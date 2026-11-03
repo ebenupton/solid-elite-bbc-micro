@@ -8966,7 +8966,7 @@ TVT1code = &2AA5
 TVT1 = &1100 
 NA% = &616 
 CHK2 = &668 
-streams (place): flight: 436 blocks (low 3, hot 200, cold 168, blueprints 0, none 10), 93 hot units, stubs 56 into the cold pass, 63 out of it, 11 direct; hot &8000-&B2FF: 93 units, 12125 bytes, 931 free; hotm &7FE2-&7FFD: 0 units, 0 bytes, 28 free; docked: 434 blocks (low 2, hot 213, cold 175, blueprints 12, none 6), 118 hot units, stubs 39 into the cold pass, 43 out of it, 2 direct; hot &8000-&B2FF: 118 units, 9212 bytes, 3844 free; hotm &7FB0-&7FFD: 0 units, 0 bytes, 78 free; tokens: cold 5, resident 2
+streams (place): flight: 436 blocks (low 3, hot 200, cold 168, blueprints 0, none 10), 93 hot units, stubs 56 into the cold pass, 63 out of it, 11 direct; hot &8000-&B2FF: 93 units, 12124 bytes, 932 free; hotm &7FE2-&7FFD: 0 units, 0 bytes, 28 free; docked: 434 blocks (low 2, hot 213, cold 175, blueprints 12, none 6), 118 hot units, stubs 39 into the cold pass, 43 out of it, 2 direct; hot &8000-&B2FF: 118 units, 9212 bytes, 3844 free; hotm &7FB0-&7FFD: 0 units, 0 bytes, 78 free; tokens: cold 5, resident 2
 .ZP
      0000
 .RAND
@@ -9713,12 +9713,12 @@ S% workspace (flight) from &8000 to &8015 inclusive
 .MA26
      8244   A5 6A      LDA &6A
      8246   10 03      BPL &824B
-     8248   20 BA AE   JSR &AEBA
+     8248   20 B9 AE   JSR &AEB9
      824B   A5 87      LDA &87
      824D   D0 72      BNE &82C1
      824F   AE 45 03   LDX &0345
      8252   F0 03      BEQ &8257
-     8254   20 AB AE   JSR &AEAB
+     8254   20 AA AE   JSR &AEAA
      8257   20 06 8D   JSR &8D06
      825A   90 62      BCC &82BE
      825C   AD 44 03   LDA &0344
@@ -13431,7 +13431,7 @@ S.ELTE &A333  &9AC9  &8000  &A333
      9BFA   B0 06      BCS &9C02
      9BFC   29 03      AND #&03
      9BFE   AA         TAX
-     9BFF   4C B0 AE   JMP &AEB0
+     9BFF   4C AF AE   JMP &AEAF
 .LABEL_3
      9C02   C9 54      CMP #&54
      9C04   D0 03      BNE &9C09
@@ -15664,7 +15664,7 @@ S.ELTE &A333  &9AC9  &8000  &A333
 .MV26
      AB70   20 29 8A   JSR &8A29
 .MV30
-     AB73   20 BA AE   JSR &AEBA
+     AB73   20 B9 AE   JSR &AEB9
      AB76   A5 61      LDA &61
      AB78   0A         ASL A
      AB79   0A         ASL A
@@ -15845,7 +15845,7 @@ S.ELTE &A333  &9AC9  &8000  &A333
      ACE2   A5 65      LDA &65
      ACE4   09 10      ORA #&10
      ACE6   85 65      STA &65
-     ACE8   4C BA AE   JMP &AEBA
+     ACE8   4C B9 AE   JMP &AEB9
 .MVD1
      ACEB   A5 65      LDA &65
      ACED   29 EF      AND #&EF
@@ -16036,168 +16036,167 @@ S.ELTE &A333  &9AC9  &8000  &A333
      AE46   85 4A      STA &4A
      AE48   A5 43      LDA &43
      AE4A   65 9E      ADC &9E
-     AE4C   4C 82 AE   JMP &AE82
+     AE4C   4C 81 AE   JMP &AE81
 .MV1
      AE4F   A5 40      LDA &40
-     AE51   38         SEC
-     AE52   E5 9B      SBC &9B
-     AE54   A5 41      LDA &41
-     AE56   E5 9C      SBC &9C
-     AE58   85 49      STA &49
-     AE5A   A5 42      LDA &42
-     AE5C   E5 9D      SBC &9D
-     AE5E   85 4A      STA &4A
-     AE60   A5 9E      LDA &9E
-     AE62   29 7F      AND #&7F
-     AE64   85 1B      STA &1B
-     AE66   A5 43      LDA &43
-     AE68   29 7F      AND #&7F
-     AE6A   E5 1B      SBC &1B
-     AE6C   85 1B      STA &1B
-     AE6E   B0 12      BCS &AE82
-     AE70   A9 01      LDA #&01
-     AE72   E5 49      SBC &49
-     AE74   85 49      STA &49
-     AE76   A9 00      LDA #&00
-     AE78   E5 4A      SBC &4A
-     AE7A   85 4A      STA &4A
-     AE7C   A9 00      LDA #&00
-     AE7E   E5 1B      SBC &1B
-     AE80   09 80      ORA #&80
+     AE51   C5 9B      CMP &9B
+     AE53   A5 41      LDA &41
+     AE55   E5 9C      SBC &9C
+     AE57   85 49      STA &49
+     AE59   A5 42      LDA &42
+     AE5B   E5 9D      SBC &9D
+     AE5D   85 4A      STA &4A
+     AE5F   A5 9E      LDA &9E
+     AE61   29 7F      AND #&7F
+     AE63   85 1B      STA &1B
+     AE65   A5 43      LDA &43
+     AE67   29 7F      AND #&7F
+     AE69   E5 1B      SBC &1B
+     AE6B   85 1B      STA &1B
+     AE6D   B0 12      BCS &AE81
+     AE6F   A9 01      LDA #&01
+     AE71   E5 49      SBC &49
+     AE73   85 49      STA &49
+     AE75   A9 00      LDA #&00
+     AE77   E5 4A      SBC &4A
+     AE79   85 4A      STA &4A
+     AE7B   A9 00      LDA #&00
+     AE7D   E5 1B      SBC &1B
+     AE7F   09 80      ORA #&80
 .MV2
-     AE82   45 D1      EOR &D1
-     AE84   85 4B      STA &4B
-     AE86   A5 8D      LDA &8D
-     AE88   85 81      STA &81
-     AE8A   A5 49      LDA &49
-     AE8C   85 1B      STA &1B
-     AE8E   A5 4A      LDA &4A
-     AE90   85 1C      STA &1C
-     AE92   A5 4B      LDA &4B
-     AE94   20 64 8E   JSR &8E64
-     AE97   A2 00      LDX #&00
-     AE99   20 B9 88   JSR &88B9
-     AE9C   A5 41      LDA &41
-     AE9E   85 46      STA &46
-     AEA0   A5 42      LDA &42
-     AEA2   85 47      STA &47
-     AEA4   A5 43      LDA &43
-     AEA6   85 48      STA &48
-     AEA8   4C 67 AC   JMP &AC67
+     AE81   45 D1      EOR &D1
+     AE83   85 4B      STA &4B
+     AE85   A5 8D      LDA &8D
+     AE87   85 81      STA &81
+     AE89   A5 49      LDA &49
+     AE8B   85 1B      STA &1B
+     AE8D   A5 4A      LDA &4A
+     AE8F   85 1C      STA &1C
+     AE91   A5 4B      LDA &4B
+     AE93   20 64 8E   JSR &8E64
+     AE96   A2 00      LDX #&00
+     AE98   20 B9 88   JSR &88B9
+     AE9B   A5 41      LDA &41
+     AE9D   85 46      STA &46
+     AE9F   A5 42      LDA &42
+     AEA1   85 47      STA &47
+     AEA3   A5 43      LDA &43
+     AEA5   85 48      STA &48
+     AEA7   4C 67 AC   JMP &AC67
 .PU1
-     AEAB   20 09 04   JSR &0409
-     AEAE   CC 99
+     AEAA   20 09 04   JSR &0409
+     AEAD   CC 99
 .LOOK1
-     AEB0   20 09 04   JSR &0409
-     AEB3   5B 9A
+     AEAF   20 09 04   JSR &0409
+     AEB2   5B 9A
 .SC5
-     AEB5   20 09 04   JSR &0409
-     AEB8   68 9B
+     AEB4   20 09 04   JSR &0409
+     AEB7   68 9B
 .SCAN
-     AEBA   A5 65      LDA &65
-     AEBC   29 10      AND #&10
-     AEBE   F0 F5      BEQ &AEB5
-     AEC0   A5 8C      LDA &8C
-     AEC2   30 F1      BMI &AEB5
-     AEC4   A2 FF      LDX #&FF
-     AEC6   C9 01      CMP #&01
-     AEC8   D0 02      BNE &AECC
-     AECA   A2 F0      LDX #&F0
-     AECC   86 91      STX &91
-     AECE   A5 47      LDA &47
-     AED0   05 4A      ORA &4A
-     AED2   05 4D      ORA &4D
-     AED4   29 C0      AND #&C0
-     AED6   D0 DD      BNE &AEB5
-     AED8   A5 47      LDA &47
-     AEDA   18         CLC
-     AEDB   A6 48      LDX &48
-     AEDD   10 04      BPL &AEE3
-     AEDF   49 FF      EOR #&FF
-     AEE1   69 01      ADC #&01
+     AEB9   A5 65      LDA &65
+     AEBB   29 10      AND #&10
+     AEBD   F0 F5      BEQ &AEB4
+     AEBF   A5 8C      LDA &8C
+     AEC1   30 F1      BMI &AEB4
+     AEC3   A2 FF      LDX #&FF
+     AEC5   C9 01      CMP #&01
+     AEC7   D0 02      BNE &AECB
+     AEC9   A2 F0      LDX #&F0
+     AECB   86 91      STX &91
+     AECD   A5 47      LDA &47
+     AECF   05 4A      ORA &4A
+     AED1   05 4D      ORA &4D
+     AED3   29 C0      AND #&C0
+     AED5   D0 DD      BNE &AEB4
+     AED7   A5 47      LDA &47
+     AED9   18         CLC
+     AEDA   A6 48      LDX &48
+     AEDC   10 04      BPL &AEE2
+     AEDE   49 FF      EOR #&FF
+     AEE0   69 01      ADC #&01
 .SC2
-     AEE3   69 7B      ADC #&7B
-     AEE5   85 34      STA &34
-     AEE7   A5 4D      LDA &4D
+     AEE2   69 7B      ADC #&7B
+     AEE4   85 34      STA &34
+     AEE6   A5 4D      LDA &4D
+     AEE8   4A         LSR A
      AEE9   4A         LSR A
-     AEEA   4A         LSR A
-     AEEB   18         CLC
-     AEEC   A6 4E      LDX &4E
-     AEEE   10 03      BPL &AEF3
-     AEF0   49 FF      EOR #&FF
-     AEF2   38         SEC
+     AEEA   18         CLC
+     AEEB   A6 4E      LDX &4E
+     AEED   10 03      BPL &AEF2
+     AEEF   49 FF      EOR #&FF
+     AEF1   38         SEC
 .SC3
-     AEF3   69 23      ADC #&23
-     AEF5   49 FF      EOR #&FF
-     AEF7   85 07      STA &07
-     AEF9   A5 4A      LDA &4A
-     AEFB   4A         LSR A
-     AEFC   18         CLC
-     AEFD   A6 4B      LDX &4B
-     AEFF   30 03      BMI &AF04
-     AF01   49 FF      EOR #&FF
-     AF03   38         SEC
+     AEF2   69 23      ADC #&23
+     AEF4   49 FF      EOR #&FF
+     AEF6   85 07      STA &07
+     AEF8   A5 4A      LDA &4A
+     AEFA   4A         LSR A
+     AEFB   18         CLC
+     AEFC   A6 4B      LDX &4B
+     AEFE   30 03      BMI &AF03
+     AF00   49 FF      EOR #&FF
+     AF02   38         SEC
 .SCD6
-     AF04   65 07      ADC &07
-     AF06   10 0A      BPL &AF12
-     AF08   C9 C2      CMP #&C2
-     AF0A   B0 02      BCS &AF0E
-     AF0C   A9 C2      LDA #&C2
-     AF0E   C9 F7      CMP #&F7
-     AF10   90 02      BCC &AF14
+     AF03   65 07      ADC &07
+     AF05   10 0A      BPL &AF11
+     AF07   C9 C2      CMP #&C2
+     AF09   B0 02      BCS &AF0D
+     AF0B   A9 C2      LDA #&C2
+     AF0D   C9 F7      CMP #&F7
+     AF0F   90 02      BCC &AF13
 .ld246
-     AF12   A9 F6      LDA #&F6
-     AF14   85 35      STA &35
-     AF16   38         SEC
-     AF17   E5 07      SBC &07
-     AF19   08         PHP
+     AF11   A9 F6      LDA #&F6
+     AF13   85 35      STA &35
+     AF15   38         SEC
+     AF16   E5 07      SBC &07
+     AF18   08         PHP
 .SC48
-     AF1A   48         PHA
-     AF1B   20 B0 94   JSR &94B0
-     AF1E   AD BF 07   LDA &07BF
-     AF21   85 34      STA &34
-     AF23   68         PLA
-     AF24   28         PLP
-     AF25   AA         TAX
-     AF26   F0 14      BEQ &AF3C
-     AF28   90 13      BCC &AF3D
+     AF19   48         PHA
+     AF1A   20 B0 94   JSR &94B0
+     AF1D   AD BF 07   LDA &07BF
+     AF20   85 34      STA &34
+     AF22   68         PLA
+     AF23   28         PLP
+     AF24   AA         TAX
+     AF25   F0 14      BEQ &AF3B
+     AF27   90 13      BCC &AF3C
 .VLL1
-     AF2A   88         DEY
-     AF2B   10 06      BPL &AF33
-     AF2D   A0 07      LDY #&07
-     AF2F   C6 08      DEC &08
-     AF31   C6 08      DEC &08
+     AF29   88         DEY
+     AF2A   10 06      BPL &AF32
+     AF2C   A0 07      LDY #&07
+     AF2E   C6 08      DEC &08
+     AF30   C6 08      DEC &08
 .VL1
-     AF33   A5 34      LDA &34
-     AF35   51 07      EOR (&07),Y
-     AF37   91 07      STA (&07),Y
-     AF39   CA         DEX
-     AF3A   D0 EE      BNE &AF2A
+     AF32   A5 34      LDA &34
+     AF34   51 07      EOR (&07),Y
+     AF36   91 07      STA (&07),Y
+     AF38   CA         DEX
+     AF39   D0 EE      BNE &AF29
 .RTS
-     AF3C   60         RTS
-     AF3D   C8         INY
-     AF3E   C0 08      CPY #&08
-     AF40   D0 04      BNE &AF46
-     AF42   A0 00      LDY #&00
-     AF44   E6 08      INC &08
-     AF46   E6 08      INC &08
+     AF3B   60         RTS
+     AF3C   C8         INY
+     AF3D   C0 08      CPY #&08
+     AF3F   D0 04      BNE &AF45
+     AF41   A0 00      LDY #&00
+     AF43   E6 08      INC &08
+     AF45   E6 08      INC &08
 .VLL2
-     AF48   C8         INY
-     AF49   C0 08      CPY #&08
-     AF4B   D0 06      BNE &AF53
-     AF4D   A0 00      LDY #&00
-     AF4F   E6 08      INC &08
-     AF51   E6 08      INC &08
+     AF47   C8         INY
+     AF48   C0 08      CPY #&08
+     AF4A   D0 06      BNE &AF52
+     AF4C   A0 00      LDY #&00
+     AF4E   E6 08      INC &08
+     AF50   E6 08      INC &08
 .VL2
-     AF53   A5 34      LDA &34
-     AF55   51 07      EOR (&07),Y
-     AF57   91 07      STA (&07),Y
-     AF59   E8         INX
-     AF5A   D0 EC      BNE &AF48
-     AF5C   60         RTS
+     AF52   A5 34      LDA &34
+     AF54   51 07      EOR (&07),Y
+     AF56   91 07      STA (&07),Y
+     AF58   E8         INX
+     AF59   D0 EC      BNE &AF47
+     AF5B   60         RTS
 .CIRC_START%
 .HOME_END%
-Flight bank 4: &8000-&AF5C  (the hot pass), 0  (the planet's surface), free 931 
+Flight bank 4: &8000-&AF5B  (the hot pass), 0  (the planet's surface), free 932 
 Flight main RAM part: low pass &7FA0 -&7FE1 , hot pass to &7FE1 , free 28 
      B300   00
      B301   00
@@ -21441,7 +21440,7 @@ S.ELTG &9690  &99C2  &8000  &9690
      9B68   60         RTS
 .xh_SCAN
      9B69   20 13 04   JSR &0413
-     9B6C   BA AE
+     9B6C   B9 AE
 .QQ18
 Macro RTOK:
      9B6E   4C

@@ -35454,8 +35454,9 @@ LIGHT_SUN = TRUE
 .MV1
 
  LDA K                  \ If we get here then K2 and K have different signs, so
- SEC                    \ instead of adding, we need to subtract to get the
- SBC K2                 \ result we want, like this:
+ CMP K2                 \ instead of adding, we need to subtract to get the
+                        \ result we want (the CMP sets the C flag for the low
+                        \ bytes as SEC and SBC would), like this:
                         \
                         \   (A y_hi y_lo -) = K(3 2 1 0) - K2(3 2 1 0)
                         \
