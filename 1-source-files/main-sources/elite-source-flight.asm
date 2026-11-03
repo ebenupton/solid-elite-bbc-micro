@@ -9441,23 +9441,21 @@ ENDIF
  AND #%10000000         \ does
  STA T
 
- EOR T1                 \ Set A = |A|
+ BMI dadn               \ If A was negative, jump to dadn
 
- BIT T                  \ If A was negative, jump to dadn
- BMI dadn
-
- CLC                    \ Set A = S + |A| (C is clear after this, as the result
- ADC S                  \ is at most 15)
+ LDA T1                 \ Set A = S + |A| (C is clear after this, as the result
+ CLC                    \ is at most 15)
+ ADC S
 
  RTS                    \ Return from the subroutine
 
 .dadn
 
- EOR #%11111111         \ Set A = S - |A| (with no borrow, as |A| < S)
- SEC
- ADC S
+ LDA S                  \ Set A = S - T1 = S - 128 - |A|, which borrows as
+ SEC                    \ S < 128, so C is clear, as MU8 leaves it
+ SBC T1
 
- CLC                    \ Clear the C flag, as MU8 does in this case
+ EOR #%10000000         \ Flip bit 7 to give A = S - |A| (never below 1)
 
  RTS                    \ Return from the subroutine
 
