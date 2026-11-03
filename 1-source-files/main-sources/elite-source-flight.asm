@@ -34805,8 +34805,8 @@ LIGHT_SUN = TRUE
  AND #%10000000         \ into RAT2
  STA RAT2
 
- LDA INWK+29            \ Fetch the ship's roll counter and extract the value
- AND #%01111111         \ without the sign bit into A
+ EOR INWK+29            \ Flipping the sign bit back out of the counter leaves
+                        \ the value without the sign bit in A
 
  BEQ MV5                \ If the roll counter is 0, then jump to MV5 to skip the
                         \ following, as the ship is not rolling
