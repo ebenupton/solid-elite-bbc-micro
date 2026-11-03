@@ -14588,9 +14588,8 @@ ENDMACRO
                         \     = arctan(|Q / P|)
                         \     = arctan(1 / |P / Q|)
 
- STA T                  \ Set T = 64 - T
- LDA #64
- SBC T
+ EOR #&FF               \ Set A = 64 - A, using -A = (A EOR &FF) + 1 (this
+ ADC #64                \ gives the same result and flags as LDA #64: SBC A)
 
  BCS AR4                \ Jump to AR4 to continue the calculation (this BCS is
                         \ effectively a JMP as the subtraction will never
