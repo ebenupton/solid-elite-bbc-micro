@@ -10542,8 +10542,8 @@ ENDIF
                         \ vectors are facing in a similar direction, if it's
                         \ negative they are facing in opposite directions
 
- CMP #&98               \ If A is positive or A <= -24, jump to ttt
- BCC ttt
+ CMP #&98               \ If A is positive or A <= -24, jump to TA152 to store
+ BCC TA152              \ A in CNT and move the ship in the direction of XX15
 
  LDX #0                 \ A > -24, which means the vectors are facing in
  STX RAT2               \ opposite directions but are quite aligned, so set
@@ -10551,10 +10551,8 @@ ENDIF
                         \ always apply roll and pitch when we turn the ship
                         \ all the way around towards the planet
 
-.ttt
-
- JMP TA152              \ Jump to TA152 to store A in CNT and move the ship in
-                        \ the direction of XX15
+ BEQ TA152              \ LDX #0 set the Z flag, so jump to TA152 to store A in
+                        \ CNT and move the ship in the direction of XX15
 
 .nroll
 
