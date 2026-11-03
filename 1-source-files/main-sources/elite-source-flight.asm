@@ -35922,9 +35922,6 @@ LIGHT_SUN = TRUE
 
 .tt66
 
- LDA #&FF               \ Port: draw the box in yellow
- STA LCOL
-
  LDX #0                 \ Set (X1, Y1) to (0, 0)
  STX X1
  STX Y1
@@ -35933,6 +35930,8 @@ LIGHT_SUN = TRUE
 
  DEX                    \ Set X2 = 255
  STX X2
+
+ STX LCOL               \ Port: draw the box in yellow (LCOL = &FF)
 
  BIT GMODE              \ Port: the frames kept going (an in-system jump): the
  BPL P%+3               \ border is there, so return
