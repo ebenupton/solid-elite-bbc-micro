@@ -33,11 +33,11 @@ FJT = &BFC0             \ bank 6's dispatcher (gfx-bank6.asm)
  STA &F4
  STA &FE30
  JSR FJT                \ the entry X, with A = GA, and Y as it was
- STA GA
+ TAX                    \ keep A while the bank is paged (X is not kept)
  PLA                    \ page the caller's bank back in
  STA &F4
  STA &FE30
- LDA GA
+ TXA                    \ A as the entry left it
  RTS
 
 .GLUE_END

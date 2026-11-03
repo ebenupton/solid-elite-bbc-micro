@@ -8538,14 +8538,14 @@ End macro RTRAMP
      07A1   85 F4      STA &F4
      07A3   8D 30 FE   STA &FE30
      07A6   20 C0 BF   JSR &BFC0
-     07A9   8D AE 7E   STA &7EAE
-     07AC   68         PLA
-     07AD   85 F4      STA &F4
-     07AF   8D 30 FE   STA &FE30
-     07B2   AD AE 7E   LDA &7EAE
-     07B5   60         RTS
+     07A9   AA         TAX
+     07AA   68         PLA
+     07AB   85 F4      STA &F4
+     07AD   8D 30 FE   STA &FE30
+     07B0   8A         TXA
+     07B1   60         RTS
 .GLUE_END
-The renderer's glue: &724 -&7B5 , free 7 
+The renderer's glue: &724 -&7B1 , free 11 
 .SNE
      07C0   00
      07C1   19
@@ -53487,12 +53487,12 @@ End macro RTRAMP
      07A1   85 F4      STA &F4
      07A3   8D 30 FE   STA &FE30
      07A6   20 C0 BF   JSR &BFC0
-     07A9   8D AE 7E   STA &7EAE
-     07AC   68         PLA
-     07AD   85 F4      STA &F4
-     07AF   8D 30 FE   STA &FE30
-     07B2   AD AE 7E   LDA &7EAE
-     07B5   60         RTS
+     07A9   AA         TAX
+     07AA   68         PLA
+     07AB   85 F4      STA &F4
+     07AD   8D 30 FE   STA &FE30
+     07B0   8A         TXA
+     07B1   60         RTS
 .GLUE_END
 Saving file '3-assembled-output/GLUE.bin'
 .F_BACK
@@ -60103,7 +60103,7 @@ End macro FLHW
      BFEB   AA
 .FJT_END
 Bank 6 (frame layer): code &8000-&AADC  (10973  bytes), tables &AADD -&ADFA  (798 ), state &ADFB -&BB3F , free 305 , the face lists' slot &BC71 -&BFBF , the dispatcher &BFC0 -&BFEB 
-Glue (main RAM): &724 -&7B5  (146  bytes: trampolines 116 , GCALL 30 )
+Glue (main RAM): &724 -&7B1  (142  bytes: trampolines 116 , GCALL 26 )
 Saving file '3-assembled-output/BANK6.bin'
 Including file 1-source-files/main-sources/elite-build-options.asm
 Processed file '1-source-files/main-sources/elite-build-options.asm' ok
@@ -133765,12 +133765,12 @@ End macro RTRAMP
      07A1   85 F4      STA &F4
      07A3   8D 30 FE   STA &FE30
      07A6   20 C0 BF   JSR &BFC0
-     07A9   8D AE 7E   STA &7EAE
-     07AC   68         PLA
-     07AD   85 F4      STA &F4
-     07AF   8D 30 FE   STA &FE30
-     07B2   AD AE 7E   LDA &7EAE
-     07B5   60         RTS
+     07A9   AA         TAX
+     07AA   68         PLA
+     07AB   85 F4      STA &F4
+     07AD   8D 30 FE   STA &FE30
+     07B0   8A         TXA
+     07B1   60         RTS
 .GLUE_END
 Saving file '3-assembled-output/GLUE.bin'
 .F_BACK
@@ -140381,7 +140381,7 @@ End macro FLHW
      BFEB   AA
 .FJT_END
 Bank 6 (frame layer): code &8000-&AADC  (10973  bytes), tables &AADD -&ADFA  (798 ), state &ADFB -&BB3F , free 305 , the face lists' slot &BC71 -&BFBF , the dispatcher &BFC0 -&BFEB 
-Glue (main RAM): &724 -&7B5  (146  bytes: trampolines 116 , GCALL 30 )
+Glue (main RAM): &724 -&7B1  (142  bytes: trampolines 116 , GCALL 26 )
 Saving file '3-assembled-output/BANK6.bin'
 Including file 1-source-files/main-sources/elite-build-options.asm
 Processed file '1-source-files/main-sources/elite-build-options.asm' ok
