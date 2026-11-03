@@ -3153,22 +3153,16 @@ SGOUT = 20
  ROR fw_t2
  DEX
  BNE fsm1
- TAX                    \ A = high byte of the unsigned product
- LDA fw_a               \ if fw_a < 0, high -= original b; if b < 0, high -= a
- BPL fsm3
- TXA
+ LDX fw_a               \ A = high byte of the unsigned product; if fw_a < 0,
+ BPL fsm3               \ high -= original b; if b < 0, high -= a
  SEC
  SBC fw_bo
- TAX
 .fsm3
- LDA fw_bo
+ LDX fw_bo
  BPL fsm4
- TXA
  SEC
  SBC fw_a
- TAX
 .fsm4
- TXA
  LDX fw_t2
  RTS
 
