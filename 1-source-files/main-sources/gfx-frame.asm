@@ -3427,7 +3427,7 @@ FGZ = 4 + 1 + 1 + 9 + 1 + 2
  BCC fcd2
 .fcd3
  STA CNT
- LDY #3                 \ its seeds RAND and RAND+2 (the bytes after them
+ INY                    \ its seeds RAND and RAND+2 (the bytes after them
  LDA (XX19),Y           \ feed DORND2's RAND+1 and RAND+3, which PTCLS
  EOR CNT                \ puts back as it found them, and as K%+6)
  STA RAND
