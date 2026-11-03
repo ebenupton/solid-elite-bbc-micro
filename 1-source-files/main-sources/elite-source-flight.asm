@@ -11261,9 +11261,9 @@ ENDIF
 
  STA R                  \ Set R = |A * 2|
 
- LDA #0                 \ Rotate the sign bit of A from the C flag into the sign
- ROR A                  \ bit of A, so A is now just the sign bit from the
-                        \ original value of A. This also clears the C flag
+ ROR A                  \ Rotate the sign bit from the C flag into bit 7 of A
+                        \ (A is |A * 2| so bit 0 is clear, so this also clears
+                        \ the C flag; only bit 7 of A matters below)
 
  EOR #%10000000         \ Flip the sign bit of A, so it has the sign of -A
 
