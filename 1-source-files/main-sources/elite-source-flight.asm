@@ -15856,19 +15856,21 @@ ENDMACRO
                         \ crosshairs
 
  LDA QQ19+1             \ Set A = crosshairs y-coordinate - crosshairs size
- SEC                    \ to get the y-coordinate of the top edge of the
- SBC QQ19+2             \ crosshairs
+ CLC                    \ - 1 (C is clear, so SBC subtracts an extra 1, which
+ SBC QQ19+2             \ the ADC below adds back if C is set), to get the
+                        \ y-coordinate of the top edge of the crosshairs
 
  BCS TT86               \ If the above subtraction didn't underflow, then A is
                         \ correct, so skip the next instruction
 
- LDA #0                 \ The subtraction underflowed, so set A to 0 so the
-                        \ crosshairs don't spill out of the top of the screen
+ LDA #0                 \ The subtraction underflowed (or gave 0), so set A to
+                        \ 0 so the crosshairs don't spill out of the top of
+                        \ the screen (C is clear here)
 
 .TT86
 
- CLC                    \ Set XX15+1 (Y1) = A + indent to get the y-coordinate
- ADC QQ19+5             \ of the top edge of the indented crosshairs
+ ADC QQ19+5             \ Set XX15+1 (Y1) = A + indent to get the y-coordinate
+                        \ of the top edge of the indented crosshairs
  STA XX15+1
 
  LDA QQ19+1             \ Set A = crosshairs y-coordinate + crosshairs size
