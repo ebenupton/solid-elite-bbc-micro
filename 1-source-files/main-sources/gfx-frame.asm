@@ -1902,8 +1902,8 @@ fsd_zl = &20 : fsd_zh = &21 : fsd_rl = &22 : fsd_q = &24 : fsd_x = &25
  BMI fsq3
  EOR #&FF               \ 96 - q, q <= 96 (C set from fsd_div)
  ADC #96
- BCC fsq9
- BCS fsq4
+ BCS fsq4               \ (no borrow: on the screen; else no dot)
+ RTS
 .fsq3
  ADC #95                \ 96 + q < 190 (C set from fsd_div)
  BCS fsq9
