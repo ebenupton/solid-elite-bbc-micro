@@ -93,6 +93,12 @@
 \ then skips its screen clear and border (GMODE bit 7 still set). Keeps Y
 
 .F_DIRECT
+IF _SSUN
+ LDA QQ12               \ docked: S_SUN forgets where the sun is (after a
+ BEQ P%+7               \ launch it takes it from the system's seeds)
+ LDA #0
+ STA SS_OK
+ENDIF
  ASL GWARP              \ an in-system jump's TTX66 in space mode?
  BCC fdr1
  BIT GMODE
@@ -357,12 +363,12 @@
  BNE fbn1
  STA F_SGS              \ no sights drawn in it (NMOS: A = 0)
  STA f_mkn              \ and no cells to erase: its text shows nothing,
- STA f_dlb              \ right for any F_TCH (the text map); no disc rows
- LDA #&FF
- STA f_dlt
- LDA GDL                \ (nor the disc layer's disc)
- AND #%11111110
- STA GDL
+                        \ right for any F_TCH (the text map)
+ TAX                    \ no disc (f_dforget, X = 0)
+ JSR f_dforget
+ LDA PF_CLS             \ nor the planet's circles of this iteration, if the
+ AND #&7F               \ disc command came after PF_HOOK made them (they are
+ STA PF_CLS             \ in the mailbox, which PCLI uses)
  LDA #0                 \ its rasteriser state: empty
  JSR T_SETBUF
  JMP T_RESETBUF

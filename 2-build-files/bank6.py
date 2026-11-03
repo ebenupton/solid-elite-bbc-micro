@@ -28,7 +28,12 @@ OUT = '3-assembled-output'
 # the game's variables the frame layer reads (all in main RAM)
 VARS = ['INWK', 'XX2', 'XX3', 'XX4', 'XX16', 'XX0', 'XX19', 'XX20', 'INF', 'XSAV', 'RAND', 'Q', 'U',
         'TGT', 'CNT', 'V', 'K', 'K3', 'K4', 'K5', 'K6', 'TYPE', 'X1', 'Y1', 'X2', 'Y2', 'ZZ', 'QQ11',
-        'FRIN', 'K%', 'LASX', 'LASY', 'XC', 'YC', 'VIEW']
+        'FRIN', 'K%', 'LASX', 'LASY', 'XC', 'YC', 'VIEW', 'QQ12']
+# what only the flight code's frame reaches: the sun near the planet (S_SUN,
+# gfx-ssun.asm, run only when the flight code's hframe calls F_FRAME) and the
+# disc layer's painter in its bank 7 (gfx-raster_disc.asm)
+FLIGHT = ['MJ', 'MCNT', 'ALPHA', 'BETA', 'DELTA', 'P', 'R', 'S', 'T', 'K2', 'FIST', 'QQ15',
+          'MV40', 'ZINF', 'DP_BEGIN', 'DP_ROWS', 'DP_DISC2']
 # and its constants
 CONSTS = ['NOST', 'NOSH', 'NI%', 'SST', 'PLT', 'X', 'Y']
 
@@ -45,8 +50,9 @@ for v in VARS:
     assert docked.get(v) == a, '%s is at &%04X in the flight program, %r in the docked' % (v, a, docked.get(v))
     assert a < 0x1000 or 0x7F00 <= a < 0x8000, '%s (&%04X) is not in main RAM below the screen buffers' % (v, a)
     L.append('%-8s = &%04X' % (v, a))
-for c in ('DL_FRAME',):   # the disc layer, in the flight code's cold bank
-    L.append('%-8s = &%04X' % (c, flight[c]))
+for c in FLIGHT:   # S_SUN's (flight code only) and the disc layer's painter, in the
+    a = flight[c]  # flight code's cold bank
+    L.append('%-8s = &%04X' % (c, a))
 for b in ('BANK5', 'BANK6', 'farC', 'farH'):
     L.append('%-8s = &%04X' % (b, loader[b]))
 src = open(os.path.join(MS, 'elite-source-flight.asm'), encoding='latin-1').read()
@@ -59,7 +65,7 @@ open(os.path.join(OUT, 'bank6-game.asm'), 'w').write('\n'.join(L) + '\n')
 r = subprocess.run([BEEBASM, '-i', os.path.join(MS, 'gfx-bank6.asm'), '-v'], capture_output=True, text=True)
 out = r.stdout + r.stderr
 if r.returncode or re.search(r'error|assert', out, re.I):
-    print('\n'.join(l for l in out.splitlines() if re.search(r'error|assert', l, re.I))[-3000:])
+    print('\n'.join(l for l in out.splitlines() if l.startswith('Bank 6') or re.search(r'error|assert', l, re.I))[-3000:])
     sys.exit('bank6: assembly failed')
 open(os.path.join(OUT, 'compile.txt'), 'a').write(out)
 print('\n'.join(l for l in out.splitlines() if l.startswith('Bank 6') or l.startswith('Glue')))

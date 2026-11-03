@@ -12,7 +12,8 @@ code's images) and runs them on py65's NMOS 6502 (the Model B's) with:
     loader's bank numbers and the game's variables;
   * &8000-&BFFF paged by writes to ROMSEL (&FE30): the flight code's home
     bank (D.CODEH, with a blueprint set, D.MOx, in its slot), bank 5,
-    bank 6, or the flight code's cold bank (D.CODEC, with the disc layer);
+    bank 6, or the flight code's cold bank (D.CODEC, with the disc layer's
+    painter in its window);
     the MOS ROM (its font) at &C000;
   * the ships recorded by the game's own LL9 (H_LL42, S_SHIP, L_REC:
     F_SHIP), and every other entry called as the game calls it, LDX #n :
@@ -20,7 +21,7 @@ code's images) and runs them on py65's NMOS 6502 (the Model B's) with:
     part 6 on (LL42F) and PTCLS (PTCLR) in the home bank through farH.
 
 It records synthetic frames (ships placed and turned, one firing at us and
-one exploding; the sun and the planet as discs, a meridian, a distant ship,
+one exploding; the sun and the planet as discs, a distant ship,
 stars, text, the sights and our laser beams) and checks that:
 
   * every bank 6 entry writes nothing but the renderer's zero page (&06-&27,
@@ -40,7 +41,13 @@ stars, text, the sights and our laser beams) and checks that:
   * a buffer's next frame repairs it exactly: buffer 0 after scene A, then
     scene C is byte for byte buffer 0 after scene C alone (on a fresh
     machine), the text included (the text map, incremental per buffer);
-  * the disc layer (gfx-dlayer.asm) against a model of it.
+  * the disc layer (gfx-frame.asm's f_ddraw, with its painter in the flight
+    code's bank 7, gfx-raster_disc.asm and gfx-raster_disc2.asm) against a
+    model of it: the bigger disc in front, the smaller behind it, the planet's
+    surface (circle records as gfx-merid.asm's pc_circ makes them, from
+    6-harness/planet_caps.py) as PC_ROWS has its rows (that model's rows,
+    pixel for pixel); and over sequences of frames, each buffer's frame byte
+    for byte the same as the scene drawn on a fresh machine.
 
 Writes frame PNGs (4x, CMYK) to --png DIR (default 3-assembled-output) to be
 looked at. Exit status 0 only if every check passes.
@@ -59,8 +66,7 @@ RBANK, FBANK, COLD = 5, 6, 7                     # them; any distinct numbers)
 BPSLOT = 0xB700                                  # (elite-map.asm)
 STUB = 0x7FC0                                    # where the test's caller runs
 FG = ['F_INIT', 'F_DIRECT', 'F_FRAME', 'F_SHIP', 'F_LINE', 'F_PDOT', 'F_PLANET', 'F_SHPPT',
-      'F_PCURVE', 'F_PPOINT', 'F_CHAR', 'F_DELCHAR', 'F_CLRTEXT', 'F_GUN', 'F_HANG0', 'F_HANGAR',
-      'F_CLOUD', 'F_SETLD']
+      'F_CHAR', 'F_DELCHAR', 'F_CLRTEXT', 'F_GUN', 'F_HANG0', 'F_HANGAR', 'F_CLOUD', 'F_SETLD']
 # the drawing's temporaries, which game code the frame runs may leave changed
 # (blib.mjs's DRAW_EXCLUDE): name, length
 DRAWTMP = [('SC', 2), ('T1', 1), ('P', 3), ('Q', 1), ('R', 1), ('S', 1), ('T', 1), ('U', 1), ('XX15', 6),
@@ -83,12 +89,12 @@ def syms_of(name):
 
 
 def consts():
-    """elite-map.asm's constants, bank6-game.asm's (the game's) and
-    gfx-faces.asm's (BeebAsm's symbol dump has labels only)"""
+    """elite-map.asm's constants, bank6-game.asm's (the game's),
+    gfx-faces.asm's and gfx-rws.asm's (BeebAsm's symbol dump has labels only)"""
     out = {}
     ms = os.path.join(REPO, '1-source-files', 'main-sources')
     for f in (os.path.join(ms, 'elite-map.asm'), os.path.join(OUT, 'bank6-game.asm'),
-              os.path.join(ms, 'gfx-faces.asm')):
+              os.path.join(ms, 'gfx-faces.asm'), os.path.join(ms, 'gfx-rws.asm')):
         for l in open(f, encoding='latin-1'):
             for st in l.split('\\')[0].split(':'):
                 m = re.match(r'^\s*([A-Za-z_][\w%]*)\s*=\s*(.+)$', st)
@@ -264,42 +270,9 @@ class Machine:
             print('  FAIL', FAILS[-1])
         return mpu.processorCycles - c0
 
-    def dcall(self, entry):
-        """JSR farC : EQUW entry (the disc layer's records, in the flight
-        code's cold bank) from main RAM, the home bank paged, as the hooks'
-        stubs (dlplan and so on) call them; A, X and Y must be kept"""
-        mpu, mem = self.mpu, self.mem
-        f, t = self.S['loader']['farC'], self.F[entry]
-        s8 = STUB + 8                            # JSR stub ; stub: JSR farC : EQUW entry
-        mem.main[STUB:STUB + 3] = bytes([0x20, s8 & 255, s8 >> 8])
-        mem.main[s8:s8 + 5] = bytes([0x20, f & 255, f >> 8, t & 255, t >> 8])
-        mem.bad = []
-        mem.guard = mem.ok
-        mpu.a, mpu.x, mpu.y, mpu.p, mpu.sp = 0x12, 0x34, 0x56, 0x24, 0xFF
-        mpu.pc = STUB
-        c0 = mpu.processorCycles
-        while mpu.pc != STUB + 3:
-            mpu.step()
-            if mpu.processorCycles - c0 > 100000:
-                raise RuntimeError('runaway in %s at &%04X' % (entry, mpu.pc))
-        if mem.bad:
-            FAILS.append('%s wrote outside its areas: %s' % (entry, ' '.join('&%04X' % b for b in sorted(set(mem.bad))[:12])))
-            print('  FAIL', FAILS[-1])
-        if (mpu.a, mpu.x, mpu.y) != (0x12, 0x34, 0x56) or mem.sel != HOME:
-            FAILS.append('%s did not keep A, X, Y or the bank' % entry)
-            print('  FAIL', FAILS[-1])
-
     def planet(self):
-        """the hooks' record of the sun or the planet (CIRCLE, SUN)"""
+        """the hooks' record of the sun or the planet (CIRCLE's H_CIRC, SUN)"""
         self.call('F_PLANET')
-        self.dcall('DL_PLAN')
-
-    def curve(self):
-        """PLS22's: a crater's to the disc layer, else bank F's"""
-        self.call('F_PCURVE') if self['TYPE'] == 128 else self.dcall('DL_CURVE')
-
-    def point(self):
-        self.call('F_PPOINT') if self['TYPE'] == 128 else self.dcall('DL_POINT')
 
     def vsync(self):
         """the vertical sync interrupt's part: show the pending buffer"""
@@ -462,12 +435,6 @@ def scene(m, k):
     m.poke(S['INWK'] + 7, 0x40)
     m.planet()
     look['planet'] = (px - pr // 2, py + pr // 3)
-    m.curve()                           # a meridian: a half ellipse
-    for i in range(17):
-        t = math.pi * (i / 16.0 - 0.5)
-        m.put16('K6', int(round(px + pr * 0.4 * math.cos(t))))
-        m.put16('K5', int(round(py + pr * math.sin(t))), 2)
-        m.point()
     look['ships'] = []
     if k == 0:
         m.mem.blueprints('C')
@@ -494,11 +461,11 @@ def scene(m, k):
     m.put16('K4', 170)
     m.call('F_SHPPT')
     for i in range(1, S['NOST'] + 1):            # the stardust (the hooks' job)
-        m.poke(S['MBOX'] + 0x50 + i, (37 * i + 11 * k) % 250 + 3)
-        m.poke(S['MBOX'] + 0x68 + i, (53 * i + 5 * k) % 186 + 3)
-        m.poke(S['MBOX'] + 0x80 + i, 1 + i % 3)
-    m.poke(S['MBOX'] + 0x50, 0)
-    m.poke(S['MBOX'] + 0x80, 0)
+        m.poke(S['MB_SX'] + i, (37 * i + 11 * k) % 250 + 3)
+        m.poke(S['MB_SY'] + i, (53 * i + 5 * k) % 186 + 3)
+        m.poke(S['MB_SS'] + i, 1 + i % 3)
+    m.poke(S['MB_SX'], 0)
+    m.poke(S['MB_SS'], 0)
     m.call('F_CLRTEXT', a=0, y=23)
     if k == 1:
         text(m, 'LEFT VIEW', 11, 0)
@@ -530,7 +497,19 @@ def frame(m, png_dir=None, name=None):
 
 
 # ---------------------------------------------------------------------------
-# The disc layer (gfx-dlayer.asm): a model of what it draws, and scenes
+# The disc layer (gfx-frame.asm's f_dprep, f_ddraw and f_disc2, the painter in
+# the flight code's bank 7): a model of what it draws, and scenes
+
+sys.path.insert(0, HERE)
+import planet_caps as PCM                        # (the circle engine's model)
+
+
+def fc_planet():
+    """gfx-frame.asm's colour B of the planet's surface (FC_PLLE, FC_PLLO)"""
+    t = open(os.path.join(REPO, '1-source-files', 'main-sources', 'gfx-frame.asm'), encoding='latin-1').read()
+    m = re.search(r'FC_PLLE\s*=\s*&([0-9A-Fa-f]+)\s*:\s*FC_PLLO\s*=\s*&([0-9A-Fa-f]+)', t)
+    return int(m.group(1), 16), int(m.group(2), 16)
+
 
 def isqrt_hw(r):
     """the half-width table: floor(sqrt(r * r - d * d)) for d = 0 to r"""
@@ -538,8 +517,8 @@ def isqrt_hw(r):
 
 
 def disc_spans(cx, cy, r):
-    """{row: (left, right)} of a disc as f_disc and the layer clip it (rows 1
-    to 191, columns 2 to 253)"""
+    """{row: (left, right)} of a disc as f_discspans clips it (rows 1 to 191,
+    columns 2 to 253; a row with nothing left of it is not there)"""
     hw, out = isqrt_hw(r), {}
     for y in range(max(cy - r, 1), min(cy + r, 191) + 1):
         n = hw[abs(y - cy)]
@@ -549,50 +528,43 @@ def disc_spans(cx, cy, r):
     return out
 
 
-def s16(v):
-    return v - 65536 if v >= 32768 else v
+def le(v, n):
+    return [(v >> (8 * i)) & 255 for i in range(n)]
 
 
-def crater_extents(pts):
-    """the layer's crater (dl_crater): each edge of the closed polygon (split
-    while |dx| or |dy| > 255) stepped row by row from its top end, x = x0 +
-    0.5 + k * step (8.8 step |dx| * 256 // dy, added or taken away, 16.8
-    arithmetic), widening the row's extent [l, r) (clamped to 0..255)"""
-    crl, crr = {}, {}
-    def edge(a, b):
-        (ax, ay), (bx, by) = a, b
-        if by < ay:
-            (ax, ay), (bx, by) = (bx, by), (ax, ay)
-        if by < 0 or ay > 191:
-            return
-        dy, dx = by - ay, bx - ax
-        stp = (abs(dx) * 256 // dy) & 0xFFFF if dy else 0
-        x = (ax << 8) + 0x80                    # 16.8 (24-bit two's complement)
-        y = ay
-        while True:
-            if 0 <= y <= 255:
-                if y >= 192:
-                    return
-                xi = s16((x >> 8) & 0xFFFF)
-                xc = 0 if xi < 0 else 255 if xi > 255 else xi
-                crl[y] = min(crl.get(y, 255), xc)
-                crr[y] = max(crr.get(y, 0), min(xc + 1, 255))
-            if y == by:
-                return
-            y += 1
-            x = (x - stp if dx < 0 else x + stp) & 0xFFFFFF
-    def seg(a, b):
-        (ax, ay), (bx, by) = a, b
-        if abs(bx - ax) > 255 or abs(by - ay) > 255 or bx - ax == -256 or by - ay == -256:
-            mid = ((ax + bx) >> 1, (ay + by) >> 1)
-            seg(a, mid)
-            seg(mid, b)
-        else:
-            edge(a, b)
-    if len(pts) >= 3:
-        for i in range(len(pts)):
-            seg(pts[i], pts[(i + 1) % len(pts)])
-    return crl, crr
+def surface(cx, cy, r, vecs, typ, qq2):
+    """the planet's circles as PF_HOOK makes them (planet_caps.py's model of
+    gfx-planet7.asm and gfx-merid.asm's pc_circ): (PF_CLS, the records'
+    bytes for PCB, PC_N, pc_inv, and the model's base and records)"""
+    inwk = [0] * 36
+    for k, v in enumerate(vecs[0] + vecs[1] + vecs[2]):
+        q = min(abs(v), 32767)
+        inwk[9 + 2 * k], inwk[10 + 2 * k] = q & 255, (q >> 8) | (0x80 if v < 0 else 0)
+    base, circs = PCM.pf_records(inwk, qq2, typ)
+    recs = [PCM.circ_consts(cx, cy, r, v, c8, cn, kn) for v, c8, cn, kn in circs]
+    for c in recs:
+        if c is not None:
+            base ^= PCM.rec_parity(c)
+    kept = [c for c in recs if c is not None and not c['none']]
+    pcb = []
+    for c in kept:
+        pcb += le(c['a'], 4) + le(c['K2'], 4) + le(c['K0'], 4) + [c['s0'] & 255] + le(c['L0'], 2) + \
+            le(c['C0'] >> 16, 2) + le(c['Yc'], 2) + [c['F'], c['T1'], c['T2'], c['M1'], c['M2']]
+    cls = 0 if typ == 128 else 1
+    return (cls | (0x80 if kept or base else 0)), pcb, len(kept), base, recs
+
+
+def surface_rows(cx, cy, r, surf):
+    """the model's rows of the planet's surface: {y: (colour at the left end,
+    [boundaries])}, as PC_ROWS makes them for the clipped spans"""
+    spans = disc_spans(cx, cy, r)
+    if not spans:
+        return {}
+    ndt, ndb = min(spans), max(spans)
+    ndl, ndr = [255] * 192, [0] * 192
+    for y, (l, rr) in spans.items():
+        ndl[y], ndr[y] = l, rr
+    return PCM.body_rows(surf[3], surf[4], ndt, ndb, ndl, ndr)
 
 
 def put_pixel(buf, x, y, byte):
@@ -602,63 +574,72 @@ def put_pixel(buf, x, y, byte):
 
 
 def model_discs(S, discs):
-    """the window (rows 1..191, columns 2..253) as the layer and f_disc draw
-    discs = [(kind, cx, cy, r, crater points or None)] with nothing else: the
-    bigger (the sun if not smaller) by the layer, the other over it"""
+    """the window (rows 1..191, columns 2..253) as the frame draws discs =
+    [(kind, cx, cy, r, surf)] (surf: surface()'s, a planet's circles, or
+    None) with nothing else: the bigger (the sun if not smaller) as the
+    layer, with its surface (a planet's, in its colours A and B), the other
+    behind it, plain"""
     buf = bytearray(0x3000)
     sun = [d for d in discs if d[0] == 'sun']
     pl = [d for d in discs if d[0] == 'planet']
-    lay = None
-    if pl and (not sun or sun[0][3] < pl[0][3]):
-        lay = pl[0]
-    elif sun:
-        lay = sun[0]
-    order = [lay] + [d for d in discs if d is not lay]
-    for d in order:
-        kind, cx, cy, r, pts = d
+    lay = pl[0] if pl and (not sun or sun[0][3] < pl[0][3]) else sun[0] if sun else None
+    if lay is None:
+        return buf
+    lspans = disc_spans(*lay[1:4])
+    cb = fc_planet()
+    for d in discs:
+        kind, cx, cy, r, surf = d
         ce, co = (S['FC_SUNE'], S['FC_SUNO']) if kind == 'sun' else (S['FC_PLANE'], S['FC_PLANO'])
-        crl = crr = {}
-        if d is lay and kind == 'planet' and pts:
-            crl, crr = crater_extents(pts)
+        rows = surface_rows(cx, cy, r, surf) if d is lay and kind == 'planet' and surf and surf[0] & 0x80 else {}
         for y, (xl, xr) in disc_spans(cx, cy, r).items():
-            n0, n1 = max(crl.get(y, 255), xl), min(crr.get(y, 0), xr + 1)
+            p, xs = rows.get(y, (0, []))
             for x in range(xl, xr + 1):
-                inb = crl.get(y, 255) < crr.get(y, 0) and n0 <= x < n1
-                b = (0x50 if y % 2 == 0 else 0xA0) if inb else (ce if y % 2 == 0 else co)
-                put_pixel(buf, x, y, b)
+                if d is not lay and y in lspans and lspans[y][0] <= x <= lspans[y][1]:
+                    continue                     # (behind the layer)
+                b = (p + sum(1 for v in xs if v <= x)) & 1
+                c = (cb[0], cb[1]) if b else (ce, co)
+                put_pixel(buf, x, y, c[y & 1])
     return buf
 
 
-def ellipse(cx, cy, a, b, rot, n=32):
-    pts = []
-    for i in range(n + 1):
-        t = 2 * math.pi * i / n
-        x, y = a * math.cos(t), b * math.sin(t)
-        pts.append((int(round(cx + x * math.cos(rot) - y * math.sin(rot))),
-                    int(round(cy + x * math.sin(rot) + y * math.cos(rot)))))
-    return pts
+def rand_frame(rnd):
+    """a random orientation, scaled to &6000 with a few % noise, as Elite's"""
+    q = [rnd.gauss(0, 1) for _ in range(4)]
+    n = math.sqrt(sum(x * x for x in q))
+    w, x, y, z = [v / n for v in q]
+    R = [[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+         [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+         [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]]
+    return [[int(round(R[j][i] * 24576 * (1 + rnd.uniform(-0.04, 0.04)))) for j in range(3)] for i in range(3)]
+
+
+def spin(vecs, ang):
+    """the frame turned about its own y axis (as the planet spins)"""
+    c, s_ = math.cos(ang), math.sin(ang)
+    return [[int(round(c * v[0] - s_ * v[2])), v[1], int(round(s_ * v[0] + c * v[2]))] for v in vecs]
 
 
 def disc_scene(m, discs, ships_rec=(), lines=()):
-    """record discs (as model_discs), then ships and lines over them; no
-    stars, text or sights"""
+    """record discs (as model_discs), their surface's circles in the mailbox
+    as PF_HOOK leaves them, then ships and lines over them; no stars, text or
+    sights"""
     S = m.S
     m['QQ11'] = 0
     m['VIEW'] = 1                                # (no lens flare)
-    for kind, cx, cy, r, pts in discs:
-        m['TYPE'] = 129 if kind == 'sun' else (130 if pts else 128)
+    m['PF_CLS'] = 0
+    for kind, cx, cy, r, surf in discs:
+        m['TYPE'] = 129 if kind == 'sun' else 128
         m.put16('K3', cx & 0xFFFF)
         m.put16('K4', cy & 0xFFFF)
         m['K'] = r
         m.poke(S['INWK'] + 6, 0)                 # (its z, far: the ships are in front)
         m.poke(S['INWK'] + 7, 0x40)
         m.planet()
-        if pts:
-            m.curve()
-            for x, y in pts:
-                m.put16('K6', x & 0xFFFF)
-                m.put16('K5', y & 0xFFFF, 2)
-                m.point()
+        if surf:
+            m['PF_CLS'], pcb, n, base = surf[0], surf[1], surf[2], surf[3]
+            for i, v in enumerate(pcb):
+                m.poke(S['PCB'] + i, v)
+            m['PC_N'], m['pc_inv'] = n, base
     if ships_rec:
         m.mem.blueprints('C')
     for i, (t, pos, ang) in enumerate(ships_rec):
@@ -667,57 +648,72 @@ def disc_scene(m, discs, ships_rec=(), lines=()):
         m['X1'], m['Y1'], m['X2'], m['Y2'] = x1, y1, x2, y2
         m.call('F_LINE')
     for i in range(1, S['NOST'] + 1):
-        m.poke(S['MBOX'] + 0x80 + i, 0)
+        m.poke(S['MB_SS'] + i, 0)
     m.call('F_CLRTEXT', a=0, y=23)
     m['GSIGHT'] = 0
     m['GLASV'] = 0
 
 
 def fresh(discs, ships_rec=(), lines=(), buf=0):
-    """a fresh machine's frame of the scene into buffer buf (buf 1: a first
-    frame on buffer 0 that is empty)"""
+    """a fresh machine's frame of the scene into buffer buf, after empty
+    frames (the first frame starts buffer 0 afresh, F_INIT having marked it
+    as a disc command's, which drops the planet's circles of that iteration:
+    f_b0new); returns the machine and the buffer"""
     m = Machine()
     m.call('F_INIT')
     border(m)
     m.call('F_DIRECT')
     m.mem.main[m.S['FRIN'] + 1] = 0
-    if buf:
+    for _ in range(2 - buf):
         disc_scene(m, [])
         frame(m)
     disc_scene(m, discs, ships_rec, lines)
     b, _ = frame(m)
-    return m.buffer(b)
+    return m, m.buffer(b)
 
 
-def window(buf):
-    return bytes(buf[addr(x, y)] & (0xCC if x == 0 else 0x33 if x == 252 else 0xFF) if x in (0, 252) else buf[addr(x, y)]
-                 for y in range(1, 192) for x in range(0, 256, 4))
+def b6(m, name, off=0):
+    return m.mem.banks[FBANK][m.S[name] + off - 0x8000]
 
 
 def disc_tests(png_dir):
     import random
     rnd = random.Random(11)
+    qq2s = ([0x4A, 0x5A, 0x48, 0x02, 0x53, 0xB7], [0x12, 0x34, 0x56, 0x78, 0x3E, 0xC5])
     print('the disc layer: single frames against the model')
+    v1, v2, v3 = rand_frame(rnd), rand_frame(rnd), rand_frame(rnd)
+    bb = lambda cx, cy, r, v: surface(cx, cy, r, v, 128, qq2s[0])
+    cr = lambda cx, cy, r, v: surface(cx, cy, r, v, 130, qq2s[1])
     singles = [
         [('planet', 128, 96, 60, None)],
         [('sun', 40, 170, 90, None)],
         [('planet', 300, 50, 200, None)],                                  # off the right
-        [('planet', -60, 100, 120, None), ('sun', 200, 30, 20, None)],     # the sun over it
+        [('planet', -60, 100, 120, None), ('sun', 200, 30, 20, None)],     # the sun behind it
         [('sun', 128, 96, 70, None), ('planet', 60, 60, 30, None)],        # the sun the layer
-        [('planet', 128, 96, 80, ellipse(140, 90, 40, 20, 0.4))],          # a crater
-        [('planet', 20, 180, 150, ellipse(-30, 200, 120, 60, 1.1))],       # partly off the screen
-        [('planet', 128, 96, 100, ellipse(128, -300, 600, 340, 0.0))],     # huge points (halved)
+        [('planet', 128, 96, 80, bb(128, 96, 80, v1))],                    # the beach ball
+        [('planet', 20, 180, 150, cr(20, 180, 150, v2))],                  # craters, partly off
+        [('planet', 110, 100, 90, bb(110, 100, 90, v3)), ('sun', 180, 50, 40, None)],   # and the sun
+        [('planet', 128, 96, 250, bb(128, 96, 250, v2))],                  # filling the window
     ]
     for i, d in enumerate(singles):
-        m = Machine()
-        S = m.S
-        got = fresh(d)
-        want = model_discs(S, d)
+        m, got = fresh(d)
+        want = model_discs(m.S, d)
         bad = [(x, y) for y in range(1, 192) for x in range(2, 254) if pixel(got, x, y) != pixel(want, x, y)]
         check(not bad, 'disc scene %d: the window is the model%s' % (i, '' if not bad else ' (%d pixels differ, first %r)' % (len(bad), bad[0])))
         if bad:
             png(got, os.path.join(png_dir, 'disc-%d-got.png' % i))
             png(bytes(want), os.path.join(png_dir, 'disc-%d-want.png' % i))
+        lay = [x for x in d if x[0] == 'planet' and x[4]]
+        if lay and lay[0][4][0] & 0x80:                       # PC_ROWS' rows, as the model's
+            _, cx, cy, r, surf = lay[0]
+            rows = surface_rows(cx, cy, r, surf)
+            rb = []
+            for y, (p, xs) in rows.items():
+                n = b6(m, 'R_NDN', y)
+                gx = [b6(m, 'R_NDX%d' % k, y) for k in range(n & 0x7F)]
+                if (n >> 7, gx) != (p & 1, xs):
+                    rb.append((y, (n >> 7, gx), (p, xs)))
+            check(not rb, 'disc scene %d: PC_ROWS\' rows are planet_caps.py\'s%s' % (i, '' if not rb else ' (row %d: %r, the model %r)' % rb[0]))
     print('the disc layer: a moving sequence (each frame against a fresh machine)')
     m = Machine()
     m.call('F_INIT')
@@ -725,29 +721,30 @@ def disc_tests(png_dir):
     m.call('F_DIRECT')
     m.mem.main[m.S['FRIN'] + 1] = 0
     cx, cy, r = 100, 120, 50
-    for f in range(23):
-        if f < 12:                               # (from 12, the disc stays put: the
-            cx += rnd.randint(-12, 12)           # layer only fills what the repair
-            cy += rnd.randint(-10, 10)           # blacked)
-            r = max(4, min(250, r + rnd.randint(-6, 14)))
+    vecs = rand_frame(rnd)
+    sx, sy, sr = 200, 40, 20
+    for f in range(30):
+        if f < 12 or 20 <= f < 26:               # (from 12 to 19, the disc stays put:
+            cx += rnd.randint(-12, 12)           # only what the repair blacked is
+            cy += rnd.randint(-10, 10)           # drawn again)
+            r = max(6, min(250, r + rnd.randint(-6, 14)))
+        vecs = spin(vecs, 0.25)
         kind = 'sun' if f in (6, 7) else 'planet'
-        pts = ellipse(cx + rnd.randint(-20, 20), cy + rnd.randint(-20, 20), r // 2, r // 4, f * 0.3) if f % 3 and f < 12 else None
-        discs = [] if f == 10 else [(kind, cx, cy, r, pts if kind == 'planet' else None)]
-        if f == 4:
-            discs.append(('sun', 220, 40, 20, None))
+        surf = None
+        if kind == 'planet' and (f % 3 or f >= 20):
+            surf = surface(cx, cy, r, vecs, 128 if f % 2 else 130, qq2s[f % 2])
+        discs = [] if f == 10 else [(kind, cx, cy, r, surf)]
+        if f in (4, 5, 13, 14, 21, 22, 23, 27):  # the second disc, moving
+            sx, sy = sx - 7, sy + 5
+            discs.append(('sun', sx, sy, sr + f % 3, None))
+        if f in (24, 25):                        # the sun bigger: the planet behind it
+            discs = [('sun', 128, 96, r + 10, None), ('planet', cx, cy, r, surf)]
         shp = [(11, (rnd.randint(-80, 80), rnd.randint(-40, 40), rnd.randint(300, 900)), (0.4 * f, 0.7, 0.2))] if f % 2 else []
         lns = [(rnd.randint(2, 253), rnd.randint(1, 191), rnd.randint(2, 253), rnd.randint(1, 191))] if f % 4 == 1 else []
-        if f >= 17:                              # (small discs, drawn whole and marked,
-            cx, cy, r = [(90, 100, 30), (96, 104, 32), (100, 100, 60), (80, 90, 25),
-                         (120, 100, 70), (60, 60, 20)][f - 17]      # and back to the layer)
-            pts = ellipse(cx, cy, r // 2, r // 3, 0.5) if f % 2 else None
-            discs = [('planet', cx, cy, r, pts)]
-            shp = [(11, (rnd.randint(-80, 80), rnd.randint(-40, 40), rnd.randint(300, 900)), (0.4 * f, 0.7, 0.2))] if f % 2 else []
-            lns = []
         disc_scene(m, discs, shp, lns)
         b, _ = frame(m)
         got = m.buffer(b)
-        want = fresh(discs, shp, lns, b)
+        _, want = fresh(discs, shp, lns, b)
         diff = [a for a in range(0x3000) if got[a] != want[a]]
         check(not diff, 'sequence frame %d (buffer %d): as a fresh frame%s' % (f, b, '' if not diff else ' (%d bytes differ, first at offset &%04X)' % (len(diff), diff[0])))
         if diff:

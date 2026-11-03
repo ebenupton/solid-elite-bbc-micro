@@ -49,7 +49,7 @@
  LDA rtA
  RTS
 
- ASSERT HI(RJT) = HI(RJT + 3 * 13)
+ ASSERT HI(RJT) = HI(RJT + 3 * 12)
 
 MACRO RTRAMP n
  JSR rtgo
@@ -68,6 +68,5 @@ ENDMACRO
 .T_STARERASE  RTRAMP 9
 .T_STARPLOT   RTRAMP 10
 .T_MARKBOX    RTRAMP 11
-.T_GETW       RTRAMP 12 \ (the disc layer's, gfx-dlayer.asm)
-.T_DRAINQ     RTRAMP 13
+.T_GETW       RTRAMP 12 \ (the disc layer's and the text's, gfx-raster_dq.asm)
 .rtramp_end

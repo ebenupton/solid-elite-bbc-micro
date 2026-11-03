@@ -25561,7 +25561,8 @@ ENDMACRO
  PHA                    \ no L_SUN), keeping A, X, Y and the flags
  TXA
  PHA
- LDX #FG_FRAME          \ (GCALL keeps Y)
+ LDX #FG_FRAME          \ (GCALL keeps Y; C clear: not the flight code's
+ CLC                    \ frame, so no S_SUN)
  JSR GCALL
  PLA
  TAX

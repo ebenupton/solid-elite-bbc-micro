@@ -5,8 +5,9 @@
 \ Model B: the BBC Master port repairs a buffer's dirty rows in R_DISCROWS
 \ (its disc window: r7_crep for the rows that are no disc rows, then the
 \ disc rows in the row loop).  Here the disc layer is not in bank 5, and
-\ R_REPAIR repairs every dirty row of the buffer, as r7_crep repairs a row
-\ that is no disc row: each row's extent, widened to whole bytes, blacked
+\ R_REPAIR repairs the dirty rows outside the band it is given (the disc
+\ layer's rows, which its painter in bank 7 repairs), as r7_crep repairs a
+\ row that is no disc row: each row's extent, widened to whole bytes, blacked
 \ by one run through the row runs (the border bytes in columns 0 and 63
 \ masked), its R_WL/R_WR set to that and its DIRTY emptied.  Afterwards
 \ R_WL/R_WR hold, per row, what the repair wrote (shapes drawn later are in
@@ -22,34 +23,78 @@ c_CO  = &22
 
 \ ============================================================================
 \ R_REPAIR: the start of a frame on the current buffer, after R_STARERASE:
-\ clear last frame's R_WL/R_WR, then repair the buffer's dirty rows
+\ clear last frame's R_WL/R_WR, then repair the buffer's dirty rows outside
+\ the band A .. Y (none if A > Y: the disc layer's rows, its old disc's and
+\ its new one's on this buffer, whose dirty extents the disc layer takes
+\ with R_GETW and repairs itself, as the Master port's R_DISCROWS does with
+\ the rows of its band; the rest, as its r7_crep, here). The buffer then has
+\ no dirty rows left to repair but the band's.
 \ ============================================================================
+c_BT  = &24                 \ the band
+c_BB  = &25
+c_DA  = &26                 \ the dirty rows
+c_DZ  = &27
 .R_REPAIR
 {
+  STA c_BT
+  STY c_BB
   JSR r_wclear            \ clear last frame's WL/WR rows
-  LDA #&FF
+  LDA #&FF                \ (the repair's rows go into R_PRWT .. R_PRWB)
   STA R_PRWT
+  LDA #0
+  STA R_PRWB
   LDX R_PRBUF
   LDA R_PRDYB,X           \ the dirty rows R_PRDYT .. R_PRDYB, if any
   CMP R_PRDYT,X
   BCC none
-  STA R_PRWB              \ they become WL/WR's rows
-  ADC #0                  \ (C = 1 from the CMP: + 1)
-  STA c_YE
+  STA c_DZ
   LDA R_PRDYT,X
-  STA R_PRWT
-  TAY
-  JSR r7_rowrep
-  LDX R_PRBUF             \ no dirty rows left
-  LDA #&FF
+  STA c_DA
+  LDA #&FF                \ none left once these are done
   STA R_PRDYT,X
   LDA #0
   STA R_PRDYB,X
-  RTS
+  LDY c_DA
+  LDA c_BB                \ no band: all of them
+  CMP c_BT
+  BCS band
+  LDA c_DZ
+  JMP rep
+.band
+  CPY c_BT                \ DA .. min(DZ, BT - 1)
+  BCS p2
+  LDA c_BT
+  SBC #0                  \ (C clear: - 1)
+  CMP c_DZ
+  BCC p1
+  LDA c_DZ
+.p1
+  JSR rep
+.p2
+  LDY c_BB                \ max(DA, BB + 1) .. DZ
+  INY
+  CPY c_DA
+  BCS p3
+  LDY c_DA
+.p3
+  STY c_BT                \ (c_BT is free now)
+  LDA c_DZ
+  CMP c_BT
+  BCS rep
 .none
-  LDA #0
-  STA R_PRWB
   RTS
+.rep                      \ rows Y .. A (Y <= A)
+  STA c_YE
+  CPY R_PRWT
+  BCS r1
+  STY R_PRWT
+.r1
+  CMP R_PRWB
+  BCC r2
+  STA R_PRWB
+.r2
+  INC c_YE                \ (r7_rowrep's end: the row after the last)
+  JMP r7_rowrep
 }
 
 \ ============================================================================

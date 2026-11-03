@@ -35,7 +35,7 @@
  STA GLASV
  STA GFORCE
  STA GWARP
- STA GDL
+ STA PF_CLS             \ (no planet's circles)
  LDX #NDSTAR-1          \ no stars recorded
 .fin1
  STA R_SS,X

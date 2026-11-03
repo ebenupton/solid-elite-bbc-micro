@@ -178,8 +178,8 @@ class Machine(tr.Machine):
         self.base = (b0, b1)
 
     def call(self, name, a=0, x=0, y=0, maxcyc=20_000_000):
-        if name == 'R_DISCROWS':                 # (no disc layer: its repair)
-            name = 'R_REPAIR'
+        if name == 'R_DISCROWS':                 # (no disc layer: its repair, with no
+            name, a, y = 'R_REPAIR', 0xFF, 0     # band of disc rows)
         if name == 'R_SETBUF':
             self.buf = a & 1
         mpu, mem = self.mpu, self.mem

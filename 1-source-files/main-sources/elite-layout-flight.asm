@@ -35,6 +35,7 @@
 \ ******************************************************************************
 
  INCLUDE "1-source-files/main-sources/elite-map.asm"    \ The memory map
+ INCLUDE "1-source-files/main-sources/gfx-rws.asm"      \ The renderer's mailbox
  INCLUDE "3-assembled-output/resident.asm"              \ The loader's resident
                                                         \ addresses
 
@@ -63,16 +64,35 @@
 
  INCLUDE "3-assembled-output/elite-flight-hot.asm"
 
+.CIRC_START%
+
+                        \ Port: in a build with _CIRCLES (make circles=on), the
+                        \ planet's surface in game context at the hot pass's end:
+                        \ PF_HOOK (gfx-planet7.asm), which H_CIRC calls, and the
+                        \ circle engine's pc_circ (gfx-merid.asm's first part),
+                        \ which reads the quarter squares (docs/renderer.md)
+
+IF _CIRCLES
+ _PLANET_MOON = FALSE
+ _PLANET_RINGS = FALSE
+ _PLANET_BANDS = FALSE
+ MERID_PART = 1
+ INCLUDE "1-source-files/main-sources/gfx-planet7.asm"
+ INCLUDE "1-source-files/main-sources/gfx-merid.asm"
+ENDIF
+
 .HOME_END%
 
 
- PRINT "Flight bank 4: &8000-", ~HOME_END%-1, " (the hot pass), free ", HOT_END%-HOME_END%
+ PRINT "Flight bank 4: &8000-", ~CIRC_START%-1, " (the hot pass), ", HOME_END%-CIRC_START%, " (the planet's surface), free ", HOT_END%-HOME_END%
  PRINT "Flight main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%
  ASSERT HOME_END% <= HOT_END%
 
                         \ Port: the quarter squares, QSL and QSH, in bank 4 just
                         \ below the blueprint slot (elite-map.asm)
 
+IF HOME_END% <= HOT_END%  \ (else the ASSERT above stops the build, having
+                          \ printed by how much bank 4 overflows)
  ORG QSL
 
  FOR I%, 0, 511
@@ -84,6 +104,7 @@
  NEXT
 
  ASSERT QSH = QSL + &200 AND P% = BPSLOT%
+ENDIF
 
  ORG PROGI%             \ the main RAM part's image, at the end of the blueprint
  COPYBLOCK PROGM%, PROGM_END%, PROGI%   \ slot (elite-map.asm): the D.MOx file
@@ -136,11 +157,12 @@
 
 .WIN7%
 
- INCLUDE "1-source-files/main-sources/gfx-dlayer.asm"
+ INCLUDE "1-source-files/main-sources/gfx-window7.asm"
 
 .WIN7_END%
 
- PRINT "Flight bank 7: &8000-", ~COLD_END%-1, " (the cold pass), the overlays to ", ~OVL_END%-1, ", the renderer's window ", ~WIN7%, "-", ~WIN7_END%-1, ", free ", DFSSAVE%-WIN7_END%
- ASSERT WIN7_END% <= DFSSAVE%      \ (Port: PCLI keeps DFS's workspace in the last page)
+ PRINT "Flight bank 7: &8000-", ~COLD_END%-1, " (the cold pass), the overlays to ", ~OVL_END%-1, ", the renderer's window ", ~WIN7%, "-", ~WIN7_END%-1, " and its state ", ~DPST%, "-", ~DFSSAVE%-1, ", free ", DPST%-WIN7_END%
+ ASSERT WIN7_END% <= DPST%         \ (the disc state, to DFSSAVE%: Port: PCLI keeps
+                                   \ DFS's workspace in the last page)
 
  SAVE "3-assembled-output/D.CODEC.bin", &8000, WIN7_END%, &8000

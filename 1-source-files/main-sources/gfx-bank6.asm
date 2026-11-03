@@ -27,7 +27,8 @@
 \
 \ ******************************************************************************
 
- INCLUDE "1-source-files/main-sources/elite-map.asm"
+ INCLUDE "1-source-files/main-sources/elite-build-options.asm"   \ (_SSUN: the
+ INCLUDE "1-source-files/main-sources/elite-map.asm"   \ sun near the planet)
  INCLUDE "3-assembled-output/bank6-game.asm"
  INCLUDE "1-source-files/main-sources/gfx-rws.asm"
 
@@ -43,6 +44,14 @@
  ORG &8000
 
  INCLUDE "1-source-files/main-sources/gfx-frame.asm"
+_PLANET_MOON = FALSE    \ (the Master port's moons, rings and bands are not in
+_PLANET_RINGS = FALSE   \ this port)
+_PLANET_BANDS = FALSE
+MERID_PART = 2          \ the circle engine's rows (PC_ROWS, from f_bounds)
+ INCLUDE "1-source-files/main-sources/gfx-merid.asm"
+IF _SSUN
+ INCLUDE "1-source-files/main-sources/gfx-ssun.asm"
+ENDIF
  INCLUDE "1-source-files/main-sources/gfx-flare.asm"
  INCLUDE "1-source-files/main-sources/gfx-flare6.asm"
  INCLUDE "1-source-files/main-sources/gfx-frame_cold.asm"
@@ -70,11 +79,19 @@ F_SRN = MAXSH * 15      \ (the most faces is 15)
 .F_HW   SKIP 256        \ the planet's half-widths (f_hwbuild)
 .F_HW2  SKIP 256        \ the sun's
 .F_TM   SKIP 768        \ the text map: desired characters, 24 rows of 32
+.R_NDISCR SKIP 192      \ the discs' rows this frame (f_discspans: the layer's,
+.R_NDISCL SKIP 192      \ then the second disc's), spans (L = 255, R = 0 for
+.R_NDN   SKIP 192       \ none), and the layer's boundaries (PC_ROWS): the
+.R_NDX0  SKIP 192       \ count (bits 0-6) and the colour at the span's left
+.R_NDX1  SKIP 192       \ end (bit 7: colour B), and their x, ascending
+.R_NDX2  SKIP 192
+.R_NDX3  SKIP 192
 .F_END
  ASSERT F_END <= FCSLOT \ the face lists of the blueprint set loaded, to FJT
                         \ (FCSLOT and its size: gfx-faces.asm; F_SETLD)
 
- ORG FJT                \ the dispatcher: X = the entry (FG_*), A = GA
+ CLEAR FJT, &C000       \ (so that an overflow is reported below, with the
+ ORG FJT                \ sizes) the dispatcher: X = the entry (FG_*), A = GA
  LDA fjt_hi,X
  PHA
  LDA fjt_lo,X
@@ -84,19 +101,19 @@ F_SRN = MAXSH * 15      \ (the most faces is 15)
 .fjt_lo
  EQUB LO(F_INIT-1), LO(F_DIRECT-1), LO(F_FRAME-1), LO(F_SHIP-1)
  EQUB LO(F_LINE-1), LO(F_PDOT-1), LO(F_PLANET-1), LO(F_SHPPT-1)
- EQUB LO(F_PCURVE-1), LO(F_PPOINT-1), LO(F_CHAR-1), LO(F_DELCHAR-1)
- EQUB LO(F_CLRTEXT-1), LO(F_GUN-1), LO(F_HANG0-1), LO(F_HANGAR-1)
- EQUB LO(F_CLOUD-1), LO(F_SETLD-1)
+ EQUB LO(F_CHAR-1), LO(F_DELCHAR-1), LO(F_CLRTEXT-1), LO(F_GUN-1)
+ EQUB LO(F_HANG0-1), LO(F_HANGAR-1), LO(F_CLOUD-1), LO(F_SETLD-1)
 .fjt_hi
  EQUB HI(F_INIT-1), HI(F_DIRECT-1), HI(F_FRAME-1), HI(F_SHIP-1)
  EQUB HI(F_LINE-1), HI(F_PDOT-1), HI(F_PLANET-1), HI(F_SHPPT-1)
- EQUB HI(F_PCURVE-1), HI(F_PPOINT-1), HI(F_CHAR-1), HI(F_DELCHAR-1)
- EQUB HI(F_CLRTEXT-1), HI(F_GUN-1), HI(F_HANG0-1), HI(F_HANGAR-1)
- EQUB HI(F_CLOUD-1), HI(F_SETLD-1)
+ EQUB HI(F_CHAR-1), HI(F_DELCHAR-1), HI(F_CLRTEXT-1), HI(F_GUN-1)
+ EQUB HI(F_HANG0-1), HI(F_HANGAR-1), HI(F_CLOUD-1), HI(F_SETLD-1)
 .FJT_END
  ASSERT fjt_hi - fjt_lo = FG_N AND FJT_END <= &C000
 
+
 PRINT "Bank 6 (frame layer): code &8000-", ~F_CODEEND-1, " (", F_CODEEND-&8000, " bytes), tables ", ~F_CODEEND, "-", ~F_TABEND-1, " (", F_TABEND-F_CODEEND, "), state ", ~F_TABEND, "-", ~F_END-1, ", free ", FCSLOT-F_END, ", the face lists' slot ", ~FCSLOT, "-", ~FJT-1, ", the dispatcher ", ~FJT, "-", ~FJT_END-1
 PRINT "Glue (main RAM): ", ~GLUE%, "-", ~GLUE_END-1, " (", GLUE_END-GLUE%, " bytes: trampolines ", rtramp_end-GLUE%, ", GCALL ", GLUE_END-GCALL, ")"
+ ASSERT F_END <= FCSLOT
 
  SAVE "3-assembled-output/BANK6.bin", &8000, &C000, &8000

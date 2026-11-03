@@ -5855,23 +5855,6 @@ ENDIF
  STA K5+1
  STA XX15+5
 
- JSR RECM               \ Port: in record mode, record the point for the
- BNE bld                \ renderer (K6, K5+2), which joins it to the curve's
- LDA TYPE               \ last (a crater's for the disc layer, DL_POINT, the
- CMP #128               \ meridians' and equator's for bank 6), and return
- BEQ bld1               \ as BLINE does, with FLAG = 0 and CNT stepped on
- JSR dlpoint            \ (the clipping and the ball line heap are only ever
- JMP bld2               \ the drawing's)
-.bld1
- LDX #FG_PPOINT
- JSR GCALL
-.bld2
- LDA #0
- STA FLAG
- CLC
- BCC BL7
-
-.bld
 
  LDA XX15+5             \ Restore A = x_hi
 
@@ -19873,7 +19856,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Set up various aspects of arriving in a new system
-\       Area: overlay 1
+\       Area: overlay 1, again
 \  Deep dive: A sense of scale
 \
 \ ------------------------------------------------------------------------------
@@ -21899,6 +21882,7 @@ ENDMACRO
 \   Category: Drawing planets
 \    Summary: Draw the planet's equator and meridian
 \  Deep dive: Drawing meridians and equators
+\       Area: none
 \
 \ ------------------------------------------------------------------------------
 \
@@ -21993,6 +21977,7 @@ ENDMACRO
 \   Category: Drawing planets
 \    Summary: Draw the planet's crater
 \  Deep dive: Drawing craters
+\       Area: none
 \
 \ ------------------------------------------------------------------------------
 \
@@ -22208,6 +22193,7 @@ ENDMACRO
 \    Summary: Draw a half-ellipse
 \  Deep dive: Drawing ellipses
 \             Drawing meridians and equators
+\       Area: none
 \
 \ ------------------------------------------------------------------------------
 \
@@ -22231,6 +22217,7 @@ ENDMACRO
 \  Deep dive: Drawing ellipses
 \             Drawing meridians and equators
 \             Drawing craters
+\       Area: none
 \
 \ ------------------------------------------------------------------------------
 \
@@ -22295,19 +22282,6 @@ ENDMACRO
 \ ******************************************************************************
 
 .PLS22
-
- JSR RECM               \ Port: in record mode, start a new curve for the
- BNE pls22c             \ renderer (BLINE records its points): a crater's
- LDA TYPE               \ for the disc layer (DL_CURVE), the meridians' and
- CMP #128               \ equator's for bank 6
- BEQ pls22b
- JSR dlcurve
- JMP pls22c
-.pls22b
- LDX #FG_PCURVE
- JSR GCALL
-.pls22c
-
  LDX #0                 \ Set CNT = 0
  STX CNT
 
@@ -22668,10 +22642,9 @@ ENDMACRO
                         \ call
 
  JSR RECM               \ Port: in record mode, record the sun for the renderer
- BNE P%+10              \ (a filled disc, centre K3 K4 and radius K, TYPE odd)
- LDX #FG_PLANET         \ and the disc layer; the rows below are worked out as
- JSR GCALL              \ before, for the random numbers and the heap, but HLS
- JSR dlplan             \ and HL2S draw
+ BNE P%+7               \ (a filled disc, centre K3 K4 and radius K, TYPE odd);
+ LDX #FG_PLANET         \ the rows below are worked out as before, for the
+ JSR GCALL              \ random numbers and the heap, but HLS and HL2S draw
                         \ them only outside record mode
 
  LDA #0                 \ Set A = 0
@@ -23190,6 +23163,9 @@ ENDMACRO
 
 .CIRCLE
 
+ JSR H_CIRC             \ Port: in record mode, record the planet's disc and its
+                        \ surface for the renderer and return from PL9 (H_CIRC)
+
  JSR CHKON              \ Call CHKON to check whether the circle fits on-screen
 
  BCS RTS2               \ If CHKON set the C flag then the circle does not fit
@@ -23198,17 +23174,6 @@ ENDMACRO
 
  LDA #0                 \ Set LSX2 = 0 to indicate that the ball line heap is
  STA LSX2               \ not empty, as we are about to fill it
-
- JSR RECM               \ Port: in record mode, record the planet for the
- BNE circd              \ renderer (a filled disc, centre K3 K4 and radius K,
- STA FLAG               \ TYPE even) and return as CIRCLE2 would, with the
- LDX #FG_PLANET         \ circle drawn: FLAG = 0 (A is 0) and C clear (the
- JSR GCALL              \ ball line heap is only ever the drawing's); and for
- JSR dlplan             \ the disc layer
- CLC
- RTS
-
-.circd
 
  LDX K                  \ Set X = K = radius
 
@@ -23836,6 +23801,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing planets
 \    Summary: Calculate (Y A P) = 222 * roofv_x / z
+\       Area: none
 \
 \ ------------------------------------------------------------------------------
 \
@@ -23919,6 +23885,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing planets
 \    Summary: Calculate CNT2 = arctan(P / A) / 4
+\       Area: none
 \
 \ ------------------------------------------------------------------------------
 \
@@ -23987,6 +23954,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing planets
 \    Summary: Calculate roofv_x / z and roofv_y / z
+\       Area: none
 \
 \ ------------------------------------------------------------------------------
 \
@@ -30101,13 +30069,103 @@ ENDMACRO
  ORA GFORCE
  RTS
 
-                        \ Port: the far calls to the disc layer's records, in
-                        \ bank 7's renderer window (gfx-dlayer.asm,
-                        \ elite-layout-flight.asm)
+\ ******************************************************************************
+\
+\       Name: H_CIRC
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Port: in record mode, record the planet and its surface, and
+\             return from PL9 as its parts 2 and 3 would
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: CIRCLE in record mode records the planet's disc (F_PLANET) and its
+\ surface (PF_HOOK, gfx-planet7.asm, with the circle engine at the end of this
+\ bank: a build with _CIRCLES) for the renderer, which draws the surface as
+\ the circle engine has it, and returns from PL9 itself, whose meridians and
+\ crater the renderer draws (PL9 parts 2 and 3, PLS2, PLS22, PLS3, PLS4 and
+\ PLS5 are "Area: none"), leaving what the game reads of them, as the BBC
+\ Master port's H_CIRC does: K2 (MV40 adds it into the next object's y
+\ without setting it first) as PLS1 leaves it for nosev_x (a meridian planet
+\ of radius 6 or more; halved, a crater planet whose crater faces us), TGT
+\ (31 or 64) and FLAG (0); and LSX2 = 0, STP and CNT as CIRCLE2 would. If the
+\ circle isn't on screen (CHKON), it returns from CIRCLE with C set, as
+\ CIRCLE does. Outside record mode it returns to CIRCLE.
+\
+\ ******************************************************************************
 
-.dlplan JSR farC : EQUW DL_PLAN
-.dlcurve JSR farC : EQUW DL_CURVE
-.dlpoint JSR farC : EQUW DL_POINT
+.H_CIRC
+
+ JSR RECM               \ Not record mode: back to CIRCLE
+ BEQ P%+3
+ RTS
+
+ PLA                    \ (CIRCLE's return from here)
+ PLA
+
+ JSR CHKON              \ Off the screen: return from CIRCLE with C set
+ BCC P%+3
+ RTS
+
+ LDX #FG_PLANET         \ The planet's disc, centre K3 K4 and radius K, TYPE
+ JSR GCALL              \ even
+
+IF _CIRCLES
+ JSR PF_HOOK            \ Its class and surface (gfx-planet7.asm)
+ENDIF
+
+ LDA #0
+ STA LSX2
+ STA FLAG
+ LDX K
+ LDA #8
+ LDY #72
+ CPX #8
+ BCC hci1
+ LDA #4
+ LDY #68
+ CPX #60
+ BCC hci1
+ LDA #2
+ LDY #66
+
+.hci1
+
+ STA STP
+ STY CNT
+ PLA                    \ (PL9's return from CIRCLE: return from PL9)
+ PLA
+ LDA K+1                \ (PL9: only below a radius of 256)
+ BNE hci9
+ LDA TYPE
+ CMP #128
+ BNE hci2
+ LDA K                  \ A meridian planet (part 2): radius 6 up
+ CMP #6
+ BCC hci9
+ LDA #31
+ BNE hci3
+
+.hci2
+
+ LDA INWK+20            \ A crater planet (part 3): its crater facing us
+ BMI hci9
+ LDA #64
+
+.hci3
+
+ STA TGT
+ LDX #9
+ JSR PLS1
+ LDY TYPE               \ (halved for a crater planet)
+ CPY #128
+ BEQ P%+3
+ LSR A
+ STA K2
+
+.hci9
+
+ RTS
 
 \ ******************************************************************************
 \
@@ -30149,7 +30207,8 @@ ENDMACRO
  BNE P%+5               \ ships first
  JSR L_SUN
  LDX #FG_FRAME
- JSR GCALL
+ SEC                    \ (C set: the flight code's frame, with the sun near
+ JSR GCALL              \ the planet first, S_SUN in bank 6)
  PLA
  TAY
  PLA

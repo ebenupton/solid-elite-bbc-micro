@@ -1,4 +1,4 @@
-hot &8000-&B2FF: 118 units, 9211 bytes, 3845 free
+hot &8000-&B2FF: 118 units, 9212 bytes, 3844 free
   &8000    22 S%
   &8016    15 INBAY
   &8025    20 DEEOR
@@ -100,21 +100,21 @@ hot &8000-&B2FF: 118 units, 9211 bytes, 3845 free
   &9A79     6 RECM
   &9A7F    13 DRAWQ
   &9A8C    14 LL9B
-  &9A9A    17 LL9F
-  &9AAB    11 LL42F
-  &9AB6    68 H_LL42..H_EE31
-  &9AFA    79 S_SHIP
-  &9B49    18 SPLV
-  &9B5B   136 SHAND
-  &9BE3   316 L_REC
-  &9D1F  1199 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
-  &A1CE     1 LL9 (Part 9 of 12), drawing
-  &A1CF     1 LL9 (Part 10 of 12)
-  &A1D0   294 LL145 (Part 1 of 4)..LL145 (Part 4 of 4)
-  &A2F6     1 LL9 (Part 11 of 12)
-  &A2F7     2 LL9 (Part 12 of 12)
-  &A2F9     1 LL9 (Part 12 of 12), drawing
-  &A2FA   122 LL118
-  &A374   107 LL120..LL123
-  &A3DF    28 LL129
+  &9A9A    18 LL9F
+  &9AAC    11 LL42F
+  &9AB7    68 H_LL42..H_EE31
+  &9AFB    79 S_SHIP
+  &9B4A    18 SPLV
+  &9B5C   136 SHAND
+  &9BE4   316 L_REC
+  &9D20  1199 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
+  &A1CF     1 LL9 (Part 9 of 12), drawing
+  &A1D0     1 LL9 (Part 10 of 12)
+  &A1D1   294 LL145 (Part 1 of 4)..LL145 (Part 4 of 4)
+  &A2F7     1 LL9 (Part 11 of 12)
+  &A2F8     2 LL9 (Part 12 of 12)
+  &A2FA     1 LL9 (Part 12 of 12), drawing
+  &A2FB   122 LL118
+  &A375   107 LL120..LL123
+  &A3E0    28 LL129
 hotm &7FB0-&7FFD: 0 units, 0 bytes, 78 free

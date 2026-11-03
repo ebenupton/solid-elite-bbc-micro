@@ -32,10 +32,11 @@
 import re
 
 OUT = "3-assembled-output/"
-WINDOW7 = {"flight": ("gfx-dlayer.asm",)}   # (bank 7's renderer window: elite-layout-flight.asm)
+WINDOW7 = {"flight": ("gfx-window7.asm", "gfx-raster_disc.asm", "gfx-raster_strips.asm",
+                      "gfx-raster_disc2.asm", "gfx-raster_dpatch.asm")}   # (bank 7's renderer window: elite-layout-flight.asm)
 NAMES = ("farC", "farCj", "farH", "farHj", "BANK4", "BANK7", "BANK5", "BANK6", "PCLI",
          "IRQG", "NA%", "CHK2", "CHK", "BRBR1", "PANR", "GCALL", "dfsin", "dfsout", "pload",
-         "T_GETW", "T_DRAINQ")
+         "T_GETW")
 
 sy = {}
 for m in re.finditer(r"'([^']+)':(\d+)", open(OUT + "loader-symbols.txt").read()):
@@ -58,7 +59,8 @@ with open(OUT + "resident.asm", "w") as f:
 
 def labels(path):
     """the labels a copy defines, with those of the files it INCLUDEs from
-    1-source-files/main-sources (the cold bank's disc layer, gfx-dlayer.asm)"""
+    1-source-files/main-sources (the cold bank's renderer window, gfx-window7.asm and
+    the files it INCLUDEs)"""
     try:
         t = open(path, encoding="latin-1").read()
     except FileNotFoundError:          # (before streams.py's place: run again after it)

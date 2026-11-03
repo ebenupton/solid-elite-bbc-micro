@@ -25,6 +25,13 @@ PYTHON?=python
 #
 #   verify=no           Do not compare the game binaries with the originals
 #
+#   circles=on          Draw the planet's surface (the circle engine's game
+#                       part at the end of the flight code's bank 4, which it
+#                       does not yet fit: the build reports by how much)
+#
+#   ssun=on             Draw the sun near the planet (S_SUN, in bank 6, which
+#                       it does not yet fit: the build reports by how much)
+#
 # So, for example:
 #
 #   make commander=max match=no verify=no
@@ -75,6 +82,18 @@ else
   interlace-fix=FALSE
 endif
 
+ifeq ($(circles), on)
+  circles-on=TRUE
+else
+  circles-on=FALSE
+endif
+
+ifeq ($(ssun), on)
+  ssun-on=TRUE
+else
+  ssun-on=FALSE
+endif
+
 variant-number=2
 folder=sth
 
@@ -86,6 +105,8 @@ all:
 	echo _MATCH_ORIGINAL_BINARIES=$(match-original-binaries) >> 1-source-files/main-sources/elite-build-options.asm
 	echo _MAX_COMMANDER=$(max-commander) >> 1-source-files/main-sources/elite-build-options.asm
 	echo _INTERLACE_FIX=$(interlace-fix) >> 1-source-files/main-sources/elite-build-options.asm
+	echo _CIRCLES=$(circles-on) >> 1-source-files/main-sources/elite-build-options.asm
+	echo _SSUN=$(ssun-on) >> 1-source-files/main-sources/elite-build-options.asm
 	$(PYTHON) 2-build-files/streams.py measure > 3-assembled-output/compile.txt
 	$(PYTHON) 2-build-files/panel.py >> 3-assembled-output/compile.txt
 	$(PYTHON) 2-build-files/bank5.py $(BEEBASM)

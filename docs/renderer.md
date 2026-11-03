@@ -25,9 +25,9 @@ program).
 | main `&4000-&6FFF` | buffer 1 (`SCREEN%`, the direct-mode screen) |
 | main `&7E00-&7E9F` | the mailbox, `MBOX`: each call's inputs (below) |
 | zero page `&06-&27` | the colour pair, span ends and clip window (`&06-&0F`), and the rasteriser's scratch (`&10-&27`); the caller saves and restores the game's bytes there around a frame |
-| bank 5 `&8000-&8FFF` | `R_POLY` (both phases) and `R_LINE`, the repair (`R_REPAIR`, `r7_rowrep`) and the disc layer's requests (`gfx-raster_dq.asm`) (43 bytes free) |
+| bank 5 `&8000-&8FFF` | `R_POLY` (both phases) and `R_LINE` (43 bytes free) |
 | bank 5 `&9000-&95FF` | the state: both buffers' dirty extents (`R_DIRTYL0`, `R_DIRTYR0`, `R_DIRTYL1` = `R_DIRTYL0` + `&300`, `R_DIRTYR1`), this frame's written extents (`R_WL`, `R_WR`), `R_POLY`'s edge tables |
-| bank 5 `&9600-&BFBF` | the shared region (`gfx-raster.asm`): `R_SETBUF` and `r_pgfix`, the spans, `R_DOT`, `R_MARKDIRTY`, the per-x tables at `&9C00`, the 24 row runs at `&A000` (with the stars' records and variables in their tails), the stars, the row pages, `R_INIT` (180 bytes free); below the per-x tables, `R_LINE`'s cold part, `R_RESETBUF` and the frame layer's query, `r_wq` (`gfx-raster_wq.asm`) (272 bytes free) |
+| bank 5 `&9600-&BFBF` | the shared region (`gfx-raster.asm`): `R_SETBUF` and `r_pgfix`, the spans, `R_DOT`, `R_MARKDIRTY`, the per-x tables at `&9C00`, the 24 row runs at `&A000` (with the stars' records and variables in their tails), the stars, the row pages, `R_INIT`, the repair (`R_REPAIR`, `r7_rowrep`) and the disc layer's transfer (`R_GETW`, `R_DRAINQ`: `gfx-raster_dq.asm`) (56 bytes free); below the per-x tables, `R_LINE`'s cold part, `R_RESETBUF` and the frame layer's query, `r_wq` (`gfx-raster_wq.asm`) (260 bytes free) |
 | bank 5 `&BFC0-&BFE9` | `RJT`, the jump table |
 
 Nothing of the rasteriser's state is in main RAM but the mailbox. Bank 5
@@ -38,7 +38,7 @@ in bank 5 (`R_NTMP`, `R_NTMPY`, `R_NTMPX`).
 
 Bank 5's entry points are in its jump table, `RJT` (`gfx-rws.asm`), in this
 order; the frame layer calls them through the trampolines `T_INIT` to
-`T_DRAINQ` (`gfx-rtramp.asm`, 116 bytes, in the resident block A: each `T_n` is four bytes, a `JSR` to a shared body and the low byte of `RJT`'s entry), each
+`T_GETW` (`gfx-rtramp.asm`, 112 bytes, in the resident block A: each `T_n` is four bytes, a `JSR` to a shared body and the low byte of `RJT`'s entry), each
 of which pages bank 5 in (`BANK5`), calls the entry and pages the caller's
 bank back. A, X and Y are passed through; nothing is returned in them.
 
@@ -47,23 +47,25 @@ bank back. A, X and Y are passed through; nothing is returned in them.
 | 0 | `R_INIT`: once; clip window 1..254 x 1..191, `R_SCOL` = `&FF`, both buffers' state empty, `R_SETBUF` 0 | |
 | 3 | `R_SETBUF`: the buffer the next calls use (patches the code for it) | A = 0 or 1 |
 | 6 | `R_RESETBUF`: forget the current buffer's state (its window must be black) | |
-| 9 | `R_REPAIR`: start a frame on the current buffer: black each dirty row's extent (widened to whole bytes), set `R_WL`/`R_WR` to what it wrote, empty the dirty extents | |
+| 9 | `R_REPAIR`: start a frame on the current buffer: clear the last frame's `R_WL`/`R_WR`; black each dirty row's extent (widened to whole bytes) outside the band of rows A to Y (the disc layer's, which it repairs itself), set `R_WL`/`R_WR` to what it wrote; no dirty rows are left to repair but the band's | A = the band's first row, Y = its last (none if A > Y) |
 | 12 | `R_SPANM`: fill pixels `R_XL`..`R_XR` of a row with the colour pair (`R_SPAN`), and extend the row's dirty extent by them (`R_MARKDIRTY`), in one call; `R_XL` <= `R_XR` | Y = row; `R_XL`, `R_XR`, `R_COLE`, `R_COLO` (zero page) |
 | 15 | `R_MARKDIRTY`: extend the row's dirty extent by `R_XL`..`R_XR` | Y = row; `R_XL`, `R_XR` |
 | 18 | `R_DOT`: a dot of size 1 (1x1), 2 (2x1) or 3 (2x2) | X = x, Y = y, A = size; the colour pair |
 | 21 | `R_POLY`: a filled convex polygon, either winding, in a 4-row colour | mailbox `R_PN` (1..16), `R_PXL`, `R_PXH`, `R_PYL`, `R_PYH` (16 each, signed 16-bit), `R_COL2`, `R_COL3`; zero page `R_COLE`, `R_COLO` |
 | 24 | `R_LINE`: a one-pixel line, clipped exactly | mailbox `R_X0`, `R_Y0`, `R_X1`, `R_Y1` (signed 16-bit words); the colour pair |
 | 27 | `R_STARERASE`: black what the last `R_STARPLOT` on this buffer set | |
-| 30 | `R_STARPLOT`: the stars (last in a frame) | mailbox `R_SN` (0..24), `R_SX`, `R_SY`, `R_SS` (24 each), `R_SCOL` |
+| 30 | `R_STARPLOT`: the stars (last in a frame) | mailbox `R_SN` (0..19), `R_SX`, `R_SY`, `R_SS` (19 each), `R_SCOL` |
 | 33 | `R_MARKBOX`: mark rows Y to `R_BY1` dirty from `R_XL` to `R_XR` (the lens flare's boxes) | Y; `R_BY1`, `R_XL`, `R_XR` |
-| 36 | `R_GETW`: rows Y to Y + A - 1's repair extents (`R_WL`, `R_WR`) into the mailbox (pairs from `MBOX`); with A = `&80` + n, mark the n spans queued at `MBOX + &28` dirty (`R_MARKDIRTY` each); with A = `&40`, the frame layer's query (`r_wq`): for each text row whose bit is set in the mask at `MBOX + &30` to `+&32`, the union over its eight lines of this frame's written extents and the next buffer's dirty extents into `MBOX + 2r`, and whether anything covers the sights (`MBOX + &33` asks, bit 7 of `MBOX + &34` answers) | A, Y; the mailbox |
-| 39 | `R_DRAINQ`: draw the A spans queued at `MBOX + &28` (row, left, right, colour byte each) through the row runs, not marked | A; the mailbox |
+| 36 | `R_GETW`: the disc layer's batch transfer (below, "The discs"): first the `DB_QN` bytes of spans queued at `DB_Q` (row, left, right, colour byte each) drawn through the row runs, not marked (`R_DRAINQ`); then X rows from row `DB_PY`: the slots' `DB_WL`, `DB_WR` into `R_WL`, `R_WR` (and `R_PRWT`..`R_PRWB`); then A AND `&1F` rows from row Y: their dirty extents into `DB_WL`, `DB_WR`, emptied (A bit 7 clear), or their written extents (A bit 7 set). With A = `&40`, the frame layer's query (`r_wq`): for each text row whose bit is set in the mask at `MBOX + &30` to `+&32`, the union over its eight lines of this frame's written extents and the next buffer's dirty extents into `MBOX + 2r`, and whether anything covers the sights (`MBOX + &33` asks, bit 7 of `MBOX + &34` answers) | A, X, Y; the mailbox |
 
 The clip window is `R_CL`, `R_CR`, `R_CT`, `R_CB` in zero page (`&0A-&0D`).
 The mailbox's offsets are in `gfx-rws.asm`: vertices at `&00`, `&10`, `&20`
 and `&30`, line ends at `&40`, `R_PN` `&48`, `R_COL2` `&49`, `R_COL3` `&4A`,
-`R_SN` `&4B`, `R_SCOL` `&4C`, the stars at `&50`, `&68` and `&80`. A frame on
-buffer b is: `R_SETBUF` b, `R_STARERASE`, `R_REPAIR`, the shapes
+`R_SN` `&4B`, `R_POLY`'s own and `R_BY1` at `&4C` to `&51`, `R_SCOL` `&66`, the
+stars at `&67`, `&7A` and `&8D` (19 each, at the end, so that the disc layer's
+batches have `&00` to `&65`). A frame on
+buffer b is: `R_SETBUF` b, `R_STARERASE`, `R_REPAIR`, the disc layer's
+batches (`R_GETW`), the shapes
 (`R_POLY`, `R_LINE`, `R_DOT`; `R_SPAN` with `R_MARKDIRTY` for anything
 else, such as a disc or text), then `R_STARPLOT`.
 
@@ -73,13 +75,13 @@ else, such as a disc or text), then `R_STARPLOT`.
   planet and the sun incrementally, with 3.9K of code, 1.5K of inputs and
   2.4K of boundary arrays per buffer: with the rest it would need about 24K,
   and bank 5 is 16K. `R_REPAIR` keeps its other job, the repair of each
-  buffer's dirty rows. The Model B's disc layer is in the flight code's
-  cold bank instead (`gfx-dlayer.asm`: "The disc layer", below), and bank 5
-  only hands it the repair's extents and draws or marks the spans it queues
-  (`R_GETW`, `R_DRAINQ`: `gfx-raster_dq.asm`).
+  buffer's dirty rows outside the disc layer's rows. The disc layer's row
+  code (the painter) and its arrays are in the flight code's bank 7 (below,
+  "The discs"), and bank 5 hands it its rows' dirty or written extents,
+  takes back what it wrote and draws the long spans it queues (`R_GETW`).
 * **The lens flare** (`R_FLARE`) is in bank 6, with the frame layer (below).
-* **The kept solid rows** (`KF`): the Model B keeps only the disc layer's
-  disc.
+* **The kept solid rows** (`KF`, the station close): bank 5 has no room for
+  them; the Model B keeps only the discs.
 * The page-crossing alignments of the Master port's arrays are not kept:
   only cycles depend on them.
 
@@ -104,8 +106,9 @@ buffer). The gate runs it with `--quick`.
 The frame layer is the BBC Master port's current one (its `gfx-frame.asm`,
 `gfx-frame_cold.asm`, `gfx-finit.asm`, `gfx-hangar.asm` and its tables,
 `gfx-flare.asm` and `gfx-flare6.asm`, in the hand-converted NMOS 6502 code
-of its Model B branch), adapted to the Model B, without the Master port's
-disc layer, kept solid rows, moons and rings. The game's drawing routines,
+of its Model B branch), adapted to the Model B, with the Master port's disc
+layer (its row code in the flight code's bank 7: "The discs", below) and
+its planets' surfaces, without its kept solid rows, moons and rings. The game's drawing routines,
 in a view that draws ships (`QQ11` = 0 and `GFORCE` = 0: record mode),
 record what they would have drawn; once per main loop iteration `F_FRAME`
 draws the records into the buffer not on show and asks the vertical sync
@@ -130,7 +133,7 @@ What differs from the Master port's frame layer:
   `f_enter`) takes the back buffer's base, which `f_bufpatch` sets each
   frame (`f_scr`, and the sights' addresses).
 * **The rasteriser's state is in bank 5,** which bank 6 cannot see: it is
-  reached only through the trampolines in main RAM (`T_INIT` to `T_DRAINQ`,
+  reached only through the trampolines in main RAM (`T_INIT` to `T_GETW`,
   `gfx-rtramp.asm`), with the inputs in the mailbox and the zero page. What
   the Master port's frame layer read or wrote of the rasteriser's arrays
   goes through bank 5 instead: a text cell that `f_mark` must erase in both
@@ -147,7 +150,11 @@ What differs from the Master port's frame layer:
   after which the clip window is put back (`f_clip`), and nothing of `FZ`
   is kept across them (`f_ship` projects first and sets up its pointers
   after; the loops that run game code count in bank 6, `f_ii`, `f_di`).
-* **The discs** are the Model B's (below: "The discs").
+* **The discs** are the Master port's, with the disc layer's row code (the
+  painter) and each buffer's disc state in the flight code's bank 7, driven
+  a batch of rows at a time through the mailbox (below: "The discs"). The
+  sun near the planet (`S_SUN`) is in this bank in a build with `_SSUN`,
+  which does not fit yet.
 * **The lighting** runs in the game's bank 4 (`L_SUN`, `L_REC`,
   `gfx-light.asm`, with the faces' normals, which the blueprint set
   carries), where the quarter squares are (the only copy): `F_SHIP` is
@@ -157,9 +164,9 @@ What differs from the Master port's frame layer:
 * **The lens flare** is in bank 6 with the frame layer (the Master port's
   `R_FLARE` is in its bank 7): it writes the back buffer itself, and marks
   each ghost's box dirty (`T_MARKBOX`) where the Master port writes each
-  row's dirty extent. Its probes see the planet over a smaller sun by the
-  planet's disc (`fl_inpl`, `F_HW`), as the Model B draws the smaller disc
-  over the bigger one.
+  row's dirty extent. Its probes see the planet in front of a smaller sun by
+  the planet's disc (`fl_inpl`, `F_HW`), where the Master port reads the
+  disc layer's spans (in bank 7 here).
 * **Not here**, as the Model B has no use for them: the energy bomb's bolt
   (`F_BOMB`: disc Elite's bomb flashes the screen and draws no bolt), the
   notes of stars drawn directly (`F_DSTAR`, `f_unstar`: on the Model B the
@@ -178,7 +185,7 @@ What differs from the Master port's frame layer:
 | main `&7EA0-&7EAF` | the shared variables, `GVARS` (`elite-map.asm`) |
 | zero page `&06-&27`, `&D2-&E1` | the rasteriser's, and the frame layer's pointers (`FZ`: the game's `XX2`, `K3` and `K4`, dead between iterations): `F_FRAME` keeps the game's bytes in bank 6 (`f_zsv`) and puts them back |
 | bank 6 `&8000` on | the code: the frame layer, the lens flare, the screens drawn directly (`gfx-frame_cold.asm`), the hangar, `F_INIT`; then the faces' and the lighting's tables (`gfx-faces.asm`, `gfx-light6.asm`) |
-| then | the state: the ship records `F_RP` (29 bytes a ship, a field to an array of `MAXSH` = `NOSH`), the text map's row counts `F_TMR` (whole in a page), `f_zsv`, the faces' levels `F_SR`, the docking slot `F_SLV`, then page-aligned the discs' half-widths `F_HW` (the planet's) and `F_HW2` (the sun's) and the text map `F_TM` (24 x 32) |
+| then | the state: the ship records `F_RP` (29 bytes a ship, a field to an array of `MAXSH` = `NOSH`), the text map's row counts `F_TMR` (whole in a page), `f_zsv`, the faces' levels `F_SR`, the docking slot `F_SLV`, then page-aligned the discs' half-widths `F_HW` (the planet's) and `F_HW2` (the sun's), the text map `F_TM` (24 x 32), and the discs' rows this frame: `R_NDISCR`, `R_NDISCL` (the spans), `R_NDN`, `R_NDX0` to `R_NDX3` (the planet's boundaries) |
 | bank 6 `&BFC0` | `FJT`, the dispatcher |
 
 The ships' tables are by `GTYPE`: the ship type, 1 to 31 as in the flight
@@ -202,25 +209,22 @@ entry. Not from an interrupt.
 |---:|---|---|
 | 0 | `F_INIT`: once, first: `T_INIT`, empty lists, direct mode, buffer 0 marked as used (`GSTASH`) | |
 | 1 | `F_DIRECT`: the screen is about to be cleared and drawn on directly (`TTX66`): direct mode, buffer 1 on show, no sights, beams, text or stars; but for an in-system jump in space mode (`GWARP`), the frames go on and only the text goes | |
-| 2 | `F_FRAME`: draw this frame and empty the lists; not in a space view (`QQ11` non-zero), just empty them | `QQ11` |
+| 2 | `F_FRAME`: draw this frame and empty the lists; not in a space view (`QQ11` non-zero), just empty them; with C set (the flight code's `hframe`), the sun near the planet first (`S_SUN`, in a build with `_SSUN`) | `QQ11`, C |
 | 3 | `F_SHIP`: record the ship LL9 is drawing, as its part 6 starts (`S_SHIP`) | `GTYPE`, `GNF`, `XX2` (the faces' levels, `L_REC`), `XX4`, `INWK` 0-8, `XX16`, `XX0` |
 | 4 | `F_LINE`: record an enemy laser beam | `X1`, `Y1`, `X2`, `Y2` |
 | 5 | `F_PDOT`: a particle of the frame's `PTCLS` (`H_DOT`) | A = x, `Y1` = y, `ZZ` |
 | 6 | `F_PLANET`: record the planet (`TYPE` even) or the sun (odd) | `K3`, `K4` (centre, 16-bit), `K` (radius), `TYPE`; the planet's `INWK+6` to `+8` |
 | 7 | `F_SHPPT`: record a distant ship as a 2x2 dot in its type's colour | `K3`, `K4`, `TYPE` |
-| 8 | `F_PCURVE`: start a planet curve (a meridian planet's) | |
-| 9 | `F_PPOINT`: its next point, joined to the last by a line | `K6`, `K5+2` (x, y, 16-bit) |
-| 10 | `F_CHAR`: a character at (`XC` - 1, `YC`): into the text map in record or space mode; noted, or given to the cells buffer 0 may show, otherwise | A = the character |
-| 11 | `F_DELCHAR`: clear a cell of the text map | A = column, Y = row |
-| 12 | `F_CLRTEXT`: clear rows of the text map | A = first row, Y = last row |
-| 13 | `F_GUN`: set up part 6's loop for a firing ship's gun vertex alone (`H_LL42`); returns Y = its offset in the vertex data | A = byte #6 of the blueprint; `XX0`, `XX16` |
-| 14 | `F_HANG0`: empty the lists before the hangar's ships are recorded | |
-| 15 | `F_HANGAR`: the hangar's frame | |
-| 16 | `F_CLOUD`: an explosion cloud in record mode (`H_PTCLS`, C set: noted for the frame; `H_PTCLSE`, C clear): what the game keeps of `PTCLS` | `XX19`, `INF`, `XSAV` |
+| 8 | `F_CHAR`: a character at (`XC` - 1, `YC`): into the text map in record or space mode; noted, or given to the cells buffer 0 may show, otherwise | A = the character |
+| 9 | `F_DELCHAR`: clear a cell of the text map | A = column, Y = row |
+| 10 | `F_CLRTEXT`: clear rows of the text map | A = first row, Y = last row |
+| 11 | `F_GUN`: set up part 6's loop for a firing ship's gun vertex alone (`H_LL42`); returns Y = its offset in the vertex data | A = byte #6 of the blueprint; `XX0`, `XX16` |
+| 12 | `F_HANG0`: empty the lists before the hangar's ships are recorded | |
+| 13 | `F_HANGAR`: the hangar's frame | |
+| 14 | `F_CLOUD`: an explosion cloud in record mode (`H_PTCLS`, C set: noted for the frame; `H_PTCLSE`, C clear): what the game keeps of `PTCLS` | `XX19`, `INF`, `XSAV` |
 
 Limits per frame: `MAXSH` (`NOSH`, 12) ships, as many beams and as many
-dots (distant ships and clouds); 3 planet curves with 64 points between
-them. The stars are recorded by the hooks straight into the mailbox
+dots (distant ships and clouds). The stars are recorded by the hooks straight into the mailbox
 (`R_SX`, `R_SY`, `R_SS`, entries 1 to `NOST`; `R_SS` = 0 for none).
 
 The shared variables (`GVARS`, `elite-map.asm`):
@@ -235,7 +239,8 @@ The shared variables (`GVARS`, `elite-map.asm`):
 * `GNF`, `GTYPE`: `F_SHIP`'s and `L_REC`'s inputs.
 * `GSTASH` bit 7: a disc command has used buffer 0 (`PCLI`): the next frame
   starts it afresh (`f_b0new`).
-* `GA`: `GCALL`'s A. `GDL`: the disc layer's (which buffers have its disc).
+* `GA`: `GCALL`'s A. `PF_CLS`: the planet's class, as `PF_HOOK` made it
+  this iteration (bit 7: it made the surface's circles, in the mailbox).
 
 `GVARS + 8`, `+ 9` and `+ 11` are free.
 
@@ -251,8 +256,10 @@ text drawn directly given to the text map, `f_sync`); `f_bufpatch`; the
 clip window 2..253 x 1..191; `T_SETBUF`; the text cells to be erased and
 the sights if they have gone, marked dirty (`f_text1`, `f_sight1`); the
 ships sorted far to near and the first projected (`f_sort`, `f_proj0`).
-Then it waits for the last flip, and draws: `T_STARERASE`, `T_REPAIR`; the
-discs and the meridians (`f_discs`, `f_curves`, below); the enemy beams;
+Before that wait, the discs' rows are made (`f_dprep`, below), first of
+all, as the planet's circles are in the mailbox. Then it waits for the last
+flip, and draws: `T_STARERASE`; the repair and the discs (`f_ddraw`,
+below); the enemy beams;
 the ships, far to near, each projected as it is drawn (`f_proj`: the game's
 `LL42F`, part 6 on), its faces flat-shaded and lit, culled by their winding
 in the ship's handedness when Elite showed them without testing their
@@ -274,74 +281,83 @@ countdown counts down) and its hand-over of the text drawn directly
 
 ### The discs
 
-The Model B's arrangement, which another disc layer is to replace, is in
-one place, `f_discs` and `f_curves` (`gfx-frame.asm`, "The discs"): the
-bigger of the sun and the planet (the sun if not smaller) through the disc
-layer in the flight code's bank 7 (`gfx-dlayer.asm`, "The disc layer"
-below: `DL_FRAME`, a far call, with A = the buffer and X = the discs
-recorded, returning the disc it drew; its records come from the game's
-hooks, `DL_PLAN`, `DL_CURVE`, `DL_POINT`), which keeps it on each buffer from
-frame to frame; the other, if both are recorded, filled whole, a span a row
-(`f_disc`, `T_SPAN`, which marks it dirty); and a meridian planet's
-meridians and equator as lines over the planet (`f_curves`, from
-`F_PCURVE`, `F_PPOINT`). The planet's half-widths (`F_HW`) are built
-whichever draws it, for `f_behind` and the lens flare. As the disc layer
-writes the screen itself, its writes are in no extent: `f_discs` keeps the
-rows its disc covers on each buffer (`f_dlt`, `f_dlb`), and the text and the
-sights over those rows, this frame's or the buffer's last, are drawn again
-(`f_wq`).
+The sun and the planet are the Master port's discs (`gfx-frame.asm`, "The
+discs", whose comments describe them): the bigger (the sun if not smaller)
+is the disc layer, kept on each buffer from frame to frame and drawn only
+where it changed, and the other, if both are on the screen, the second
+disc, behind it, incremental too (`R_DISC2`). A planet that is the layer
+has its surface as colour boundaries along each row (`R_NDN`, `R_NDX0-3`),
+which the circle engine's `PC_ROWS` makes from the circles `PF_HOOK` made
+in the game's iteration (the beach ball of a meridian planet, a crater
+planet's craters: "Planet surfaces" in the Master port's docs); with no
+circles (a build without `_CIRCLES`) it is a plain disc. The bank holds
+what the Master port's frame layer does of it and the rows' arrays; the
+row code, the painter, which compares each row with what the buffer holds
+and writes only the pixels that changed (the edges' strips, the repair of
+dirty rows, the second disc's pieces), is in the flight code's bank 7 with
+each buffer's state (`gfx-window7.asm`: `gfx-raster_disc.asm` with the
+strips, `gfx-raster_disc2.asm`), as bank 5 has no room for it.
 
-### The disc layer
+* **`f_dprep`** (before the wait): which disc is the layer (`f_lay`) and
+  which the second (`f_sec`); the layer's spans, clipped to the window
+  (`f_sunrows`, `f_plrows`, `f_discspans`: `R_NDISCL/R`, `R_NDT`, `R_NDB`,
+  with the half-width tables `F_HW`, `F_HW2` rebuilt when a radius
+  changes), and the planet's boundaries (`f_bounds`: `PC_ROWS`, which reads
+  the records where `PF_HOOK` left them, in the mailbox: `PCB`, `PC_N`,
+  `pc_inv`, before the frame uses the mailbox for anything else; a disc
+  command in the iteration, which takes the mailbox, drops them: `f_b0new`).
+* **`f_ddraw`** (after the wait, in place of `T_REPAIR`): the band of rows
+  (the layer's on this buffer last time, `f_dlt`, `f_dlb`, and this frame's);
+  `T_REPAIR` repairs the dirty rows outside it; the painter's frame
+  (`DP_BEGIN`, a far call: the buffer, whether its rows keep boundaries,
+  a change of the layer's colour, which makes the old disc dirty, and a
+  buffer blanked since, which it forgets); then the band's rows in batches
+  (`f_dbat`): for each, one `T_GETW` (bank 5 draws the spans the painter
+  queued, puts what it wrote on the last batch's rows into `R_WL`/`R_WR`,
+  and gives this batch's dirty extents, emptying them) and one far call to
+  `DP_ROWS`, the slots filled from the row arrays (empty spans outside
+  `R_NDT`..`R_NDB`). Then `f_disc2`: the second disc's spans into the same
+  arrays, its rows (old, `R_S2T`..`R_S2B`, and new) in batches to
+  `DP_DISC2`, with the rows' written extents instead (what the layer and
+  the repair wrote on them), and a last `T_GETW` for the last batch.
+* **The batches** are in the mailbox (`gfx-rws.asm`, `DB_*`), `&00` to `&65`:
+  16 rows (one colour: the new span, `DB_NL`, `DB_NR`, and the dirty or
+  written extent in, what was written out, `DB_WL`, `DB_WR`) or 8 (with the
+  boundaries' count and colour, `DB_NN`, and `DB_X0` to `DB_X3`); the queue
+  of spans of 16 whole bytes or more for bank 5's row runs, seven at a time
+  (`DB_Q`, `DB_QN`); `DB_PY`, the row of the batch whose writes `T_GETW`
+  puts. The stars are at the mailbox's end, out of the way.
+* **The painter** is the Master port's `R_DISCROWS` row code (`r_dlb` for
+  one colour, `r_dmb` with boundaries, `r_dp2`, `r_dq`, `r_dpe` with the
+  strips, `r_drg`, `r_segw`, `r_dp1`) and `R_DISC2`, with the row in X for
+  each buffer's arrays and the slot in Y for the batch: a row that changed
+  has its slot's data taken into variables and what it wrote put back
+  (`dp_ld`, `dp_st`). It writes the screen itself (a row's address worked
+  out, `r_rowp`; the masks from four-byte tables, `r_sw`), queueing the
+  layer's long spans while the queue has room (the layer's writes on a row
+  never overlap, so their order does not matter; the second disc's may, so
+  it writes all of its own). Each buffer's arrays (`R_DISCL/R`, `R_BDN`,
+  `R_BDX0-2`, `R_S2L/R`) are the other's but for their high bytes, which
+  `DP_BEGIN` patches into the code (`dp_patch`, generated from the sites'
+  labels into `gfx-raster_dpatch.asm`). The window's state is not in the
+  `D.CODEC` image: a buffer is blanked whenever a program is loaded (a disc
+  command uses buffer 0, `TTX66` blanks buffer 1), and `DP_BEGIN` sets up
+  each buffer's state at the first frame after (`f_dpr`, `f_dforget`).
+* **The rest of the frame** sees the discs' writes as any others: they are
+  in `R_WL`/`R_WR` (so the text and the sights over them are drawn again),
+  and the planet's half-widths (`F_HW`) are there for `f_behind` and the
+  lens flare's probes.
 
-The sun or the planet, whichever is bigger (the sun if not smaller, the
-Master port's choice), is kept on each screen buffer from frame to frame
-by the disc layer, `gfx-dlayer.asm`, which is in the flight code's cold
-bank (its code, records and state, then 11 page-aligned
-tables of rows, crater extents and half-widths) and is
-reached from bank 6 by a far call (`DL_FRAME`, after `T_REPAIR`). Its disc
-is not marked dirty, so the repair leaves it alone except where something
-else was drawn over it the frame before on that buffer.
+The flight code records the discs as before (`F_PLANET`, from `SUN` and
+from `CIRCLE`'s `H_CIRC`); the docked code records none, so the painter
+(which only the flight code's bank 7 has) is never called while docked.
 
-* **Records.** `CIRCLE` and `SUN` record the disc for it too (`DL_PLAN`, a
-  far call from the hook), and `PLS22` and `BLINE` record a crater planet's
-  crater (`DL_CURVE`, `DL_POINT`) for it rather than for bank 6; a meridian
-  planet's curves stay bank 6's, drawn as lines over the disc. `F_FRAME`
-  calls `DL_FRAME` when a disc is recorded or the back buffer has the
-  layer's disc on it (`GDL`, `GVARS + 15`: bit b for buffer b, cleared when
-  `F_FRAME` blanks both buffers), with A = the buffer and X = which discs
-  are recorded; it returns the one it drew, which bank 6 then leaves out
-  (bank 6 still builds the planet's half-widths, which the lens flare
-  reads).
-* **Rows.** For each row of the old disc's or the new one's (twenty at a
-  time, with the repair's extents `R_WL`/`R_WR` for them from bank 5,
-  `T_GETW`), it works out the new span and the crater's band on it, and
-  compares them with what the disc left on that row of this buffer (four
-  page tables per buffer): the old disc's pixels that the new one does not
-  cover go black, the new pixels and those the band moved over or the
-  repair blacked are filled. A row that only moved its ends (the usual
-  case) costs its two ends; a disc where it was two frames ago on this
-  buffer (and with no band) fills only what the repair blacked. When the
-  disc on the buffer was the other one, or none is known, all of the new
-  disc is filled.
-* **Writing.** The screen is main RAM, so it writes the spans itself: one
-  byte with both masks, or the end bytes masked and the middle ones through
-  an unrolled run (up to 32 bytes). A longer span would go to bank 5's row
-  runs through a queue in the mailbox (`MBOX + &28`, nine spans, drained by
-  `T_DRAINQ`); no disc that the frames draw needs it, so bank 5 is paged in
-  only for the extents.
-* **Small discs.** A disc with a radius under 40 is drawn whole each frame
-  and marked dirty (the spans queued and marked by `T_GETW` with A = `&80`
-  + n) after the buffer's kept disc, if any, is taken off: small discs
-  move across the screen, and keeping them costs more than the repair.
-* **The crater** is a band of the Master port's dark crater colour
-  (`&50`/`&A0`) across the disc's rows: the closed ellipse that `PLS22`
-  works out, each edge stepped row by row (halved while longer than 255),
-  its x at each row widening the row's extent.
-
-The tests are bank 6's (`6-harness/test_frame.py`): eight discs against a
-model of the layer (the half-widths, the clipping, the crater's extents),
-and a sequence of 23 frames on both buffers (moving, growing and static
-discs, the sun and the planet swapping, small discs and back, no disc,
+The tests are bank 6's (`6-harness/test_frame.py`): nine single frames
+against a model (the layer in front, the second disc behind, a beach ball
+and craters from circle records as `planet_caps.py` makes them, `PC_ROWS`'
+rows checked against that model's), and a sequence of 30 frames on both
+buffers (moving, growing and still discs, the sun and the planet swapping,
+the second disc coming and going, surfaces spinning and going, no disc,
 ships and lines over them), each frame's buffer byte for byte the same
 scene drawn on a fresh machine.
 
@@ -368,7 +384,7 @@ the next frame on the buffer repairs it.
 bank numbers and the game's variables; `&8000-&BFFF` paged by ROMSEL
 (`&FE30`) between the flight code's home bank (`D.CODEH`, with a blueprint
 set from a `D.MOx` file in its slot), bank 5, bank 6 and the flight code's
-cold bank (with the disc layer); the MOS ROM at `&C000`. The ships are
+cold bank (with the disc layer's painter); the MOS ROM at `&C000`. The ships are
 recorded by the game's own `LL9` (with a ship firing at us and one just
 killed, exploding); every other entry is called as the game calls it,
 `LDX #n : JSR GCALL` from main RAM with the home bank paged; and the frame
@@ -382,8 +398,8 @@ back; entering space mode and the flip; what was drawn (the sun's colour,
 the ships, the explosion's particles, the nearest ship's vertices where
 they should be, the glyphs, the sights); and the repair, the text
 included: buffer 0 after one scene and then another is byte for byte buffer
-0 after the second alone. With the disc layer against a model of it (eight
-discs, and a sequence of 23 frames on both buffers). It writes the frames as
+0 after the second alone. With the discs against a model of them (nine
+scenes, and a sequence of 30 frames on both buffers: "The discs"). It writes the frames as
 PNGs (`--png DIR`, default `3-assembled-output`).
 
 ## The game's side
@@ -460,7 +476,7 @@ particle the original draws.
 
 | Where | Bank | In record mode |
 |---|---|---|
-| `TT100`, `DEATH` (`MFRAME`), `ESCAPE` (`LL9F`) | home, cold | after each `M%` (or `LL9`), `L_SUN` (the light for the next iteration's ships, in a space view) and `F_FRAME` (`hframe`: A, X, Y and the flags as they were) |
+| `TT100`, `DEATH` (`MFRAME`), `ESCAPE` (`LL9F`) | home, cold | after each `M%` (or `LL9`), `L_SUN` (the light for the next iteration's ships, in a space view) and `F_FRAME` with C set (`hframe`: A, X, Y and the flags as they were; the docked code's `hframe` clears C, so that only the flight code's frame runs `S_SUN`) |
 | `LL9` part 5 | home | `GFAR` set when a face is shown without testing its normal |
 | `LL9` part 6 (`H_LL42`), `S_SHIP`, `SPLV`, `SHAND`, `L_REC` | home, cold | the ship is recorded (above); a ship firing at us has its gun vertex projected (`F_GUN`, `LL48`) |
 | `LL9` part 9 (`EE31`: `H_EE31`, `HEE31`) | home, cold | byte #31 set as `EE31` sets it, the beam recorded (`F_LINE`); returns as `LL155` |
@@ -468,10 +484,9 @@ particle the original draws.
 | `SHPPT` | home | the distant ship's dot is recorded (`F_SHPPT`) |
 | `DOEXP` (`H_PTCLSE`), `PTCLS` (`H_PTCLS`), `PIXEL` in `PTCLS` (`H_DOT`) | home | the clouds (above) |
 | `PIXEL2` (`PX2`, `px24r`) | home | star `Y` is recorded straight into the mailbox (`MB_SX`, `MB_SY`, `MB_SS`; size 1, 2 or 3 by `ZZ`, as `PIXEL` draws it), or marked absent if it is off screen |
-| `SUN` (`HLS`, `HL2S`) | home | the sun is recorded as a disc (`F_PLANET`, and the disc layer's `DL_PLAN`); its rows are worked out as before (they take random numbers), but not drawn |
+| `SUN` (`HLS`, `HL2S`) | home | the sun is recorded as a disc (`F_PLANET`); its rows are worked out as before (they take random numbers), but not drawn |
 | `WPLS` | home | the sun's heap is emptied, nothing erased |
-| `CIRCLE` | home | the planet is recorded as a disc (`F_PLANET`, and `DL_PLAN`), and `CIRCLE` returns as `CIRCLE2` would (FLAG = 0, C clear) |
-| `PLS22`, `BLINE` | home | a new curve, and each point, without the clipping and the heap: a meridian planet's (`TYPE` 128) for bank 6 (`F_PCURVE`, `F_PPOINT`), a crater's for the disc layer (`DL_CURVE`, `DL_POINT`, far calls to the cold bank) |
+| `CIRCLE` (`H_CIRC`) | home | the planet is recorded as a disc (`F_PLANET`) and its surface as circles (`PF_HOOK`, in a build with `_CIRCLES`: at the end of the home bank, with the circle engine's `pc_circ`, which reads the quarter squares), and `H_CIRC` returns from `PL9` as its parts 2 and 3 would, leaving what the game reads of them (`K2`, `TGT`, `FLAG`, `LSX2`, `STP`, `CNT`, as the Master port's `H_CIRC`): `PL9` parts 2 and 3, `PLS2`, `PLS22`, `PLS3`, `PLS4` and `PLS5` are `Area: none` (outside record mode, the launch and hyperspace rings' frames, the planet is its circle alone) |
 | `WPLS2` | home | the heap is reset, nothing erased |
 | `LASLI`, `LASLI2` | cold | `GLASV` is set (the frame draws the beams from `LASX`, `LASY`); nothing to draw or remove |
 | `MA93` | home | (every mode) `Q = 0` before the altitude's `JSR LL5`; the reference is patched to match |
@@ -546,23 +561,36 @@ and the frame's runs of game code leave everything as the original does.
 
 ## Speed
 
-The gate's run, 10,000 iterations: 201,735 cycles per flight iteration,
-9.91 flight iterations per second, against the original's 168,749 and
-11.85 (0.836 times; with the old frame layer, 226,316 cycles and 8.98).
+The gate's run, 10,000 iterations: 150,274 cycles per flight iteration,
+13.31 flight iterations per second, against the original's 168,749 and
+11.85 (1.123 times; with the old disc layer, 201,618 cycles and 9.92, and
+with the old frame layer too, 226,316 and 8.98). The planets are plain
+discs in this build (no `_CIRCLES`), and there is no sun near the planet
+(no `_SSUN`).
 By scene (`6-harness/bscenes.mjs` records each iteration's time and the
 planet's, the station's and the ships' positions in a build's run;
 `6-harness/scenes.py` compares two such runs, counting a flight iteration
 in the front view that both put in the same scene, the first of these that
 fits):
 
-| Scene | Iterations | The original | The port | Against the original | The old frame layer |
+| Scene | Iterations | The original | The port | Against the original | The old port |
 |---|---:|---:|---:|---:|---:|
-| Station close: the station ahead, nearer than 16 x 256 | 706 | 187,528 cycles, 10.67 it/s | 302,204 cycles, 6.62 it/s | 0.62 | 0.56 |
-| Sun close: the sun ahead, nearer than 1,024 x 256 | 402 | 169,142, 11.82 | 200,011, 10.00 | 0.85 | 0.76 |
-| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen) | 1,032 | 146,033, 13.70 | 147,566, 13.55 | 0.99 | 0.81 |
-| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 6,681 | 181,260, 11.03 | 216,738, 9.23 | 0.84 | 0.76 |
-| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 270 | 103,168, 19.39 | 117,145, 17.07 | 0.88 | 0.70 |
-| Ships about (the rest, with other ships in the bubble) | 745 | 137,912, 14.50 | 148,395, 13.48 | 0.93 | 0.81 |
+| Station close: the station ahead, nearer than 16 x 256 | 706 | 187,528 cycles, 10.67 it/s | 292,616 cycles, 6.83 it/s | 0.64 | 0.56 |
+| Sun close: the sun ahead, nearer than 1,024 x 256 | 402 | 169,142, 11.82 | 199,739, 10.01 | 0.85 | 0.76 |
+| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen) | 1,032 | 146,033, 13.70 | 140,461, 14.24 | 1.04 | 0.82 |
+| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 6,681 | 181,260, 11.03 | 148,122, 13.50 | 1.22 | 0.76 |
+| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 270 | 103,168, 19.39 | 94,913, 21.07 | 1.09 | 0.70 |
+| Ships about (the rest, with other ships in the bubble) | 745 | 137,912, 14.50 | 110,203, 18.15 | 1.25 | 0.81 |
+
+The disc layer keeps both discs on each buffer and writes only what changed
+(the Master port's), where the old one kept the bigger alone and drew a
+small disc whole. Its batches cost, over the gate's run (`bprofile.mjs`),
+about 90 disc rows a flight iteration in 6 batches, 18,300 cycles a flight
+iteration, about 200 cycles a row: filling the slots in bank 6 (52 a row),
+`R_GETW` in bank 5 (the dirty extents taken and emptied, the writes put
+back: about 70 a row), a changed row's data taken and put back in the
+painter (`dp_ld`, `dp_st`: 84 a changed row, about half the rows), and a
+trampoline and a far call a batch (about 220 cycles).
 
 The frames' gain is the Master port's: no ship line heap, clipping or
 projection in the game's iteration (the frame projects only the ships it
@@ -614,3 +642,4 @@ spans, polygons and the repair), `r_pgfix` 28,055, the repair's row code
 | Check a run page once per buffer, and patch it without clearing the carry (`828b473`) | 247,931 | 6,659 |
 | Keep the bigger disc on each buffer: the disc layer, in the flight code's cold bank (from `9bfefc3`'s 247,961) | 226,316 | 21,645 |
 | The Master port's frame layer in bank 6: ships projected by the frame, clouds drawn by it, the text map | 201,735 | 24,581 |
+| The Master port's disc layer, both discs incremental, its row code in the flight code's bank 7 | 150,274 | 51,461 |

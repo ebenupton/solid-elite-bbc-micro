@@ -24,7 +24,7 @@
 \
 \   * The rasteriser (bank 5) keeps its state in its own bank, which this
 \     bank cannot see: it is reached only through the trampolines in main
-\     RAM (T_INIT to T_DRAINQ, gfx-rtramp.asm), with the inputs in its
+\     RAM (T_INIT to T_GETW, gfx-rtramp.asm), with the inputs in its
 \     mailbox (MBOX) and zero page (&06-&27). So what the Master port's frame
 \     layer read or wrote of the rasteriser's arrays goes through bank 5: a
 \     cell f_mark erases is marked dirty at each buffer's next frame
@@ -40,10 +40,12 @@
 \     farH (elite-far.asm), at fixed entries in each program's S% table:
 \     S% + 16 (LL42F: LL9's part 6 on) and S% + 19 (PTCLR: PTCLS's drawing).
 \
-\   * The discs are the Model B's own: the bigger of the sun and the planet
-\     through the disc layer in bank 7 (DL_FRAME, gfx-dlayer.asm), the other
-\     a filled disc of spans, and a meridian planet's meridians and equator
-\     lines over it (f_discs, f_curves: the one place this layer draws discs).
+\   * The discs are the Master port's (f_dprep, f_ddraw, f_disc2), with the
+\     disc layer's row code, the painter, in the flight code's bank 7
+\     (gfx-raster_disc.asm, gfx-raster_disc2.asm), reached by far calls and
+\     given its rows a batch at a time in the mailbox; the planet's surface
+\     rows (PC_ROWS, gfx-merid.asm) and the sun near the planet (S_SUN,
+\     gfx-ssun.asm, a build with _SSUN) are in this bank.
 \
 \   * The lighting (L_SUN, L_REC, gfx-light.asm) runs in the game's bank 4,
 \     where the quarter squares are: F_SHIP is given the faces' levels in XX2.
@@ -78,6 +80,10 @@ R_CL    = &0A
 R_CR    = &0B
 R_CT    = &0C
 R_CB    = &0D
+R_DCE   = &0E           \ (the disc layer's colour pair, for the painter in
+R_DCO   = &0F           \ bank 7: f_ddraw)
+RZ_T0   = &20           \ (DP_BEGIN's colour B pair)
+RZ_T1   = &21
 
 MAXSH = NOSH            \ ships per frame: LL9 records a ship at most once an
                         \ iteration, and only the ships in the NOSH slots
@@ -86,8 +92,6 @@ MAXLN = MAXSH           \ lines per frame: the enemy beams, one per ship
                         \ recorded (H_EE31)
 MAXDT = MAXSH           \ dots per frame: a distant ship's (SHPPT) or an
                         \ explosion cloud (DOEXP), at most one per ship recorded
-MAXCV = 3               \ planet curves per frame (a meridian planet's
-MAXPT = 64              \ meridian and equator) and their points
 
 NDSTAR = NOST + 1       \ stars 1..NOST in the mailbox's R_SX, R_SY, R_SS
 
@@ -103,7 +107,7 @@ SGCLOUD = HOME% + 19    \ table, elite-source-*.asm): LL42F, PTCLR
 \ Shared with the interrupt and the game (GVARS, elite-map.asm): GMODE (bit 7
 \ set = space mode, double buffered), GFRONT (the buffer shown), GFLIP (non-
 \ zero = flip pending to GPEND), GPEND, GFORCE (non-zero = draw directly
-\ even though QQ11 = 0), GSIGHT, GLASV, GWARP, GSTASH, GNF, GTYPE, GDL.
+\ even though QQ11 = 0), GSIGHT, GLASV, GWARP, GSTASH, GNF, GTYPE, PF_CLS.
 
 .F_BACK     EQUB 1      \ the buffer being drawn (the one not displayed)
 .F_TCH      SKIP 24     \ per text row: bit b set (P) = the row changed since
@@ -141,14 +145,6 @@ ASSERT HI(F_TCH) = HI(F_TCH + 23)
 .F_SUX      EQUW 0      \ its centre x, y (16-bit signed screen)
 .F_SUY      EQUW 0
 .F_SUR      EQUB 0      \ its radius
-
-.F_NCV      EQUB 0      \ planet curves recorded this frame (F_PCURVE)
-.F_CVS      SKIP MAXCV  \ each curve's first point
-.F_NPT      EQUB 0      \ curve points recorded (F_PPOINT): x and y, 16-bit
-.F_PXL      SKIP MAXPT
-.F_PXH      SKIP MAXPT
-.F_PYL      SKIP MAXPT
-.F_PYH      SKIP MAXPT
 
 \ ------------------------------------------------------------------------------
 \ Fixed colours (even-row byte, odd-row byte), by index (FC_BLACK to FC_STAR:
@@ -649,39 +645,6 @@ RPN = 4
  STA F_SUON
  RTS
 
-\ F_PCURVE: start a planet curve (a meridian planet's meridian or equator,
-\ as PLS22 begins one); F_PPOINT: its next point, (K6, K5+2) 16-bit (as
-\ BLINE has them). Consecutive points are joined by lines (f_curves). A
-\ crater planet's crater is the disc layer's (DL_CURVE, DL_POINT)
-
-.F_PCURVE
- LDX F_NCV
- CPX #MAXCV
- BCS fpc9
- LDA F_NPT
- STA F_CVS,X
- INC F_NCV
-.fpc9
- RTS
-
-.F_PPOINT
- LDA F_NCV
- BEQ fpp9
- LDX F_NPT
- CPX #MAXPT
- BCS fpp9
- LDA K6
- STA F_PXL,X
- LDA K6+1
- STA F_PXH,X
- LDA K5+2
- STA F_PYL,X
- LDA K5+3
- STA F_PYH,X
- INC F_NPT
-.fpp9
- RTS
-
 \ ------------------------------------------------------------------------------
 \ F_FRAME: render this frame's display list into the back buffer and queue a
 \ flip. Called once per main-loop iteration (after M%: MFRAME), and per
@@ -691,6 +654,11 @@ RPN = 4
 
 .F_FRAME
  STY f_ysav
+IF _SSUN
+ BCC ff0s               \ the flight code's frame (C set: hframe): the sun near
+ JSR S_SUN              \ the planet first, in every iteration (gfx-ssun.asm)
+.ff0s
+ENDIF
  LDA QQ11
  BEQ ff1
  JMP f_reset            \ not a space view: just forget what was recorded
@@ -723,6 +691,7 @@ RPN = 4
                         \ copy is the game's between frames)
  LDA F_BACK
  JSR T_SETBUF
+ JSR f_dprep            \ the discs' rows (first: PC_ROWS reads the mailbox)
  JSR f_text1            \ text cells to be erased: background them (old dirty)
  JSR f_sight1           \ and the sights, if they have gone
  LDA F_NSHIP            \ the ships in their order, the first one projected
@@ -736,9 +705,9 @@ RPN = 4
  BNE ff2                \ no longer on screen
 
  JSR T_STARERASE        \ undo last time's stars in this buffer
- JSR T_REPAIR           \ and repair the rest of what was drawn on it
- JSR f_discs            \ the sun and the planet (the disc layer, bank 7)
- JSR f_curves           \ a meridian planet's meridians and equator
+ JSR f_ddraw            \ repair the rest of what was drawn on it, and draw
+                        \ the sun and the planet (the disc layer and the
+                        \ second disc, through the painter in bank 7)
 .ff_lin                 \ (F_HANGAR points this call at f_hback for its frame)
  JSR f_lines            \ enemy lasers
  JSR f_ships            \ filled ships, far to near
@@ -789,8 +758,6 @@ RPN = 4
  STA F_NDOT
  STA F_PLON
  STA F_SUON
- STA F_NCV
- STA F_NPT
  LDA #LO(F_SR)
  STA F_DLP
  LDA #HI(F_SR)
@@ -878,13 +845,9 @@ RPN = 4
  STX f_mkn+1            \ and no cells to erase: its text shows nothing,
  JSR T_SETBUF           \ right for any F_TCH: the text map)
  JSR T_RESETBUF
- LDA GDL                \ (the disc layer's disc is no longer on it)
- AND #%11111101
- STA GDL
- LDA #&FF
- STA f_dlt+1            \ (nor any disc rows, f_text2)
+ LDX #1                 \ (nor any disc: f_dforget)
+ JSR f_dforget
  LDA #0
- STA f_dlb+1
  STA F_BACK             \ buffer 1 is on show: draw into buffer 0 first
  STA GFLIP
  LDA #&80
@@ -920,127 +883,103 @@ RPN = 4
 .f_scr   EQUB HI(SCREEN%)       \ this frame's buffer's screen base, high byte
 
 \ ------------------------------------------------------------------------------
-\ The discs (Port: the Model B's arrangement, which another disc layer is to
-\ replace; this is the one place the frame layer draws the sun and the
-\ planet): the bigger of the two (the sun if not smaller) through the disc
-\ layer in the flight code's bank 7 (gfx-dlayer.asm: DL_FRAME, by a far call,
-\ with the records the game's hooks gave it, DL_PLAN, DL_CURVE and
-\ DL_POINT), which keeps it on each buffer from frame to frame and returns
-\ the disc it drew; the other, if both are recorded, filled whole as a span
-\ a row (f_disc: T_SPAN, which marks it dirty); and a meridian planet's
-\ meridians and equator as lines over the planet (f_curves). The planet's
-\ half-widths (F_HW) are built whichever draws it: f_behind and the lens
-\ flare read them. f_dlt/f_dlb keep, per buffer, the rows the disc layer's
-\ disc covered there (it writes the screen itself, so its writes are in no
-\ written extent: f_text2 and f_sight2 redraw over those rows)
+\ The discs (Port: the BBC Master port's f_discs and f_disc2, with its disc
+\ layer's row code, the painter, in the flight code's bank 7: gfx-raster_disc.asm
+\ and gfx-raster_disc2.asm, reached by far calls, farC; docs/renderer.md, "The
+\ discs"). The bigger of the sun and the planet (the sun if not smaller) is
+\ the disc layer, kept on each buffer from frame to frame and drawn where it
+\ changed: its spans (f_sunrows, f_plrows: R_NDISCL/R, R_NDT, R_NDB) and the
+\ planet's surface as boundaries (f_bounds: R_NDN, R_NDX0-3, R_NDF, from the
+\ circle engine's PC_ROWS, gfx-merid.asm), made before the wait (f_dprep);
+\ the other, if both are on the screen, is the second disc, behind it,
+\ incremental too (f_disc2). After the wait (f_ddraw) bank 5 repairs the
+\ dirty rows outside the band of the layer's rows, old and new (T_REPAIR),
+\ and the painter takes the band's rows a batch at a time in the mailbox
+\ (gfx-rws.asm: DB_*), with their dirty extents from bank 5, whose row
+\ extents then get what it wrote (T_GETW: f_dbat). Each buffer's rows of
+\ the layer (f_dlt, f_dlb), its colour (F_DCOL), whether its rows had
+\ boundaries (f_bmode) and the second disc's rows and colour (R_S2T, R_S2B,
+\ R_S2C) are kept here; a blanked buffer's are forgotten (f_dforget), and
+\ the painter's with them at its next frame (f_dpr: DP_BEGIN's PB_RESET).
 \ ------------------------------------------------------------------------------
 
-.f_discs
- LDA #0                 \ the disc layer draws the bigger disc if there is
- STA f_lay              \ one, or takes the old one off the buffer if it has
- LDA F_SUON             \ one (GDL); f_lay = the one it drew (1 the sun, 2 the
- AND #1                 \ planet), which is not drawn below
- STA fz_t
- LDA F_PLON
- AND #2
- ORA fz_t
- TAX
- BNE fds0
- LDY F_BACK
- INY
- TYA
- AND GDL
- BEQ fds4
-.fds0
- LDA F_BACK
- JSR f_dlframe
- STA f_lay
-.fds4
- LDX F_BACK             \ the rows of the layer's disc on this buffer: the
- LDA f_dlt,X            \ last frame's (for f_text2) and this one's
- STA f_dlto
- LDA f_dlb,X
- STA f_dlbo
- LDA #&FF               \ (none: top 255, bottom 0)
- STA f_dlt,X
+\ f_dprep: which disc is the layer (f_lay: 1 the sun, 2 the planet, 0 none)
+\ and which the second (f_sec), and the layer's rows (F_FRAME, before the
+\ wait, and before anything of the frame uses the mailbox: f_bounds' PC_ROWS
+\ reads the planet's records there, PCB)
+
+.f_dprep
  LDA #0
- STA f_dlb,X
- LDA f_lay
- BEQ fds5
- LSR A                  \ (1: the sun, Y = F_SUY - F_PLY; 2: the planet, Y = 0)
- LDY #0
- BCC P%+4
- LDY #F_SUY - F_PLY
- LDA F_PLY,Y            \ top = cy - r, within 1..191
- SEC
- SBC F_PLR,Y
- STA fz_t
- LDA F_PLY+1,Y
- SBC #0
- BMI fds6               \ (above the screen: 1)
- BNE fds5               \ (below it: none)
- LDA fz_t
- BNE fds6a
-.fds6
+ STA f_lay
+ STA f_sec
+ LDA F_SUON             \ the sun this frame?
+ BEQ fds2
+ LDA F_PLON
+ BEQ fds1               \ the sun only
+ LDA F_SUR
+ CMP F_PLR
+ BCC fds3               \ the planet bigger: the planet the layer, the sun second
+ LDA #2
+ STA f_sec              \ the sun the layer, the planet second
+.fds1
  LDA #1
-.fds6a
- STA fz_u
- LDA F_PLY,Y            \ bottom = cy + r, within 1..191
- CLC
- ADC F_PLR,Y
- STA fz_t
- LDA F_PLY+1,Y
- ADC #0
- BMI fds5               \ (above the screen: none)
- BNE fds8
- LDA fz_t
- CMP #192
- BCC fds8a
-.fds8
- LDA #191
-.fds8a
- CMP fz_u               \ (bottom above top: none)
- BCC fds5
- STA f_dlb,X
- LDA fz_u
- STA f_dlt,X
-.fds5
- LDA F_SUON             \ the sun first (it is further away)
- BEQ fds1
- LDA f_lay
- CMP #1
- BEQ fds1
+ STA f_lay
+ BNE f_sunrows          \ (always)
+.fds2
+ LDA F_PLON
+ BEQ fds9               \ neither
+ LDA #2
+ STA f_lay
+ BNE fds6               \ (always)
+.fds3
+ LDA #2
+ STA f_lay
+ LDA #1
+ STA f_sec
+.fds6
+ JSR f_plrows           \ the planet's spans, and its surface as boundaries
+ JMP f_bounds
+.fds9
+ LDA #1                 \ no disc: no rows (R_NDF: f_nobounds)
+ STA R_NDT
+ LDA #0
+ STA R_NDB
+ JMP f_nobounds
+
+\ f_sunrows / f_plrows: a disc's spans into R_NDISCL/R and R_NDT/R_NDB, from
+\ its centre (16-bit screen coordinates) and radius (8-bit), using a cached
+\ half-width table per disc (rebuilt only when the radius changes); the sun
+\ a disc of one colour (R_NDF: f_nobounds)
+
+.f_sunrows
+ JSR f_nobounds
  LDA F_SUX
  STA f_cx
  LDA F_SUX+1
- STA f_cx+1
+ STA f_cxh
  LDA F_SUY
  STA f_cy
  LDA F_SUY+1
  STA f_cy+1
  LDA F_SUR
  STA f_r
- CMP f_hw2r             \ its half-widths, unless they are for this radius
- BEQ fds2
+ CMP f_hw2r
+ BEQ fsu1
  STA f_hw2r
  LDA #HI(F_HW2)
  STA fhw_st+2
  JSR f_hwbuild
-.fds2
+.fsu1
  LDA #HI(F_HW2)
- STA fdh_ld+2
- LDA #FC_SUNE
- STA R_COLE
- LDA #FC_SUNO
- STA R_COLO
- JSR f_disc
-.fds1
- LDA F_PLON
- BEQ fds9
+ STA fpr_ld+2
+ STA fpr_ld2+2
+ JMP f_discspans
+
+.f_plrows
  LDA F_PLX
  STA f_cx
  LDA F_PLX+1
- STA f_cx+1
+ STA f_cxh
  LDA F_PLY
  STA f_cy
  LDA F_PLY+1
@@ -1048,143 +987,307 @@ RPN = 4
  LDA F_PLR
  STA f_r
  CMP f_hwr
- BEQ fds3
+ BEQ fpr1
  STA f_hwr
  LDA #HI(F_HW)
  STA fhw_st+2
  JSR f_hwbuild
-.fds3
- LDA f_lay              \ (the layer's: its half-widths only, for f_behind
- CMP #2                 \ and the flare)
- BEQ fds9
+.fpr1
  LDA #HI(F_HW)
- STA fdh_ld+2
- LDA #FC_PLANE
- STA R_COLE
- LDA #FC_PLANO
- STA R_COLO
- JMP f_disc
-.fds9
- RTS
- ASSERT F_SUR - F_PLR = F_SUY - F_PLY
+ STA fpr_ld+2
+ STA fpr_ld2+2
+ JMP f_discspans
+ ASSERT LO(F_HW) = 0 AND LO(F_HW2) = 0   \ (page aligned: only the high bytes
+                                         \ are patched)
 
-.f_dlframe              \ DL_FRAME, in the flight code's cold bank (A = the
- JSR farC               \ buffer, X = the discs recorded: bit 0 the sun, bit 1
- EQUW DL_FRAME          \ the planet; returns A = the disc it drew)
-
-.f_lay  EQUB 0          \ the disc the layer drew: 0 none, 1 the sun, 2 the planet
-.f_dlt  EQUB &FF, &FF   \ per buffer: the rows of the layer's disc on it (top
-.f_dlb  EQUB 0, 0       \ 255: none)
-.f_dlto EQUB 0          \ this buffer's, the frame before (f_text2, f_sight2)
-.f_dlbo EQUB 0
-
-\ f_disc: the disc at (f_cx, f_cy) (16-bit) of radius f_r, its half-widths at
-\ fdh_ld's page, in the colour pair: each row inside the clip window a span,
-\ marked dirty
-
-.fdi_x0
+.fds_none
+ LDA #1
+ STA R_NDT
+ LSR A                  \ (NMOS: A = 0, and C set, as every exit of
+ STA R_NDB              \ f_discspans leaves it: f_disc2)
  RTS
 
-.f_disc
- LDA f_cy               \ fz_p = the top row, cy - r, clipped
+.f_discspans            \ rows of the disc (f_cx, f_cy, f_r) within the window
+                        \ (every exit sets R_NDT and R_NDB)
+ LDA f_cy               \ fz_p = top row = cy - r, fz_q = bottom row = cy + r
  SEC
  SBC f_r
  STA fz_p
  LDA f_cy+1
  SBC #0
- BMI fdi_t              \ above the screen: the window's top
- BNE fdi_x0             \ below row 255: nothing
- LDA fz_p
- CMP R_CT
- BCS fdi_t2
-.fdi_t
- LDA R_CT
- STA fz_p
-.fdi_t2
- LDA f_cy               \ fz_q = the bottom row, cy + r, clipped
+ STA fz_p+1
+ LDA f_cy
  CLC
  ADC f_r
  STA fz_q
  LDA f_cy+1
  ADC #0
- BMI fdi_x0             \ above the screen: nothing
- BNE fdi_b              \ below row 255: the window's bottom
+ STA fz_q+1
+ BMI fds_none           \ bottom above the screen
+ BNE fdx1               \ bottom below row 255: clamp
  LDA fz_q
  CMP R_CB
- BCC fdi_b2
-.fdi_b
+ BCC fdx2
+.fdx1
  LDA R_CB
  STA fz_q
-.fdi_b2
- LDA fz_q
+.fdx2
+ LDA fz_p+1             \ top
+ BMI fdx3               \ above row 0: clamp
+ BNE fds_none           \ below row 255
+ LDA fz_p
+ CMP R_CT
+ BCS fdx4
+.fdx3
+ LDA R_CT
+ STA fz_p
+.fdx4
+ LDA fz_q               \ empty if top > bottom
  CMP fz_p
- BCC fdi_x0             \ none
- LDY fz_p
-.fdi_row
- STY fz_i               \ Y = the row
- TYA                    \ X = |row - cy| (<= r)
- SEC
+ BCC fds_none
+ STA R_NDB
+ LDA fz_p
+ STA R_NDT
+ SEC                    \ d = top - cy (16-bit signed, |d| <= r)
  SBC f_cy
  STA fz_t
  LDA #0
  SBC f_cy+1
- BPL fdi_d
- LDA fz_t
- EOR #&FF
+ STA fz_u
+ LDA f_cxh              \ fast path if the whole disc is inside the window
+ BEQ fds_z              \ horizontally: cx - r >= CL and cx + r <= CR
+ LDA #&90               \ high byte of cx nonzero: fpr_b1 becomes BCC and
+ BNE fds_pat            \ fpr_b2 BCS, both always taken (NMOS: for BRA)
+.fds_z
+ LDA f_cx
+ SEC
+ SBC f_r
+ BCC fds_slow
+ CMP R_CL
+ BCC fds_slow
+ LDA f_cx
  CLC
- ADC #1
+ ADC f_r
+ BCS fds_slow
+ SBC R_CR               \ (C = 0) borrow iff cx + r <= CR
+ BCS fds_slow
+ JMP fds_fast           \ (the fast path follows the slow one, out of
+                        \ branch range)
+.fds_slow               \ (the disc crosses the window's side, or the screen's)
+ LDA #&B0               \ high byte of cx zero: fpr_b1 becomes BCS and fpr_b2
+.fds_pat                \ BCC, never taken (no-ops: NMOS, for BIT #imm)
+ STA fpr_b1
+ EOR #&20               \ (BCC <-> BCS)
+ STA fpr_b2
+ CLC                    \ (C = 0 at fpr2, through the loop)
+ LDY R_NDT
+ LDX #&E8               \ X = |d| through the loop, stepped by fpr_id: INX
+ LDA fz_u               \ (&E8) if d >= 0, else DEX (&CA) until d reaches 0
+ BPL fpr4
+ EOR fz_t               \ (d < 0: fz_u = &FF as |d| <= r <= 255, so A = NOT d)
+ ADC #1                 \ (C = 0, and no carry: A <= 255)
  STA fz_t
-.fdi_d
- LDX fz_t
-.fdh_ld
- LDA F_HW,X             \ patched: the half-width table's page
+ LDX #&CA
+.fpr4
+ STX fpr_id
+ LDX fz_t               \ |d|
+.fpr2                   \ (C = 0 here: NMOS, the CLC that was here is above)
+.fpr_ld2
+ LDA F_HW,X             \ patched: half-width
  STA fz_n
- CLC                    \ R_XR = cx + n, clipped
- LDA f_cx
- ADC fz_n
- STA R_XR
- LDA f_cx+1
- ADC #0
- BMI fdi_nx             \ left of the screen: none
- BNE fdi_rc             \ right of it: the window's right
- LDA R_XR
+.fpr_b1
+ BCS fpr10              \ patched: BCC (always: C = 0) if the high byte of cx
+                        \ is nonzero (out of line), else BCS (never: a no-op)
+.fpr_cx                 \ right = cx + n, clamped: < CL (or
+ ADC #0                 \ patched: f_cx (the low byte of cx lives in this
+                        \ operand); negative): empty; > CR (or > 255): CR
+ BCS fpr5               \ high byte of cx + n = 1
+.fpr11
  CMP R_CL
- BCC fdi_nx
+ BCC fpr8
  CMP R_CR
- BCC fdi_r2
-.fdi_rc
+ BCC fpr6
+.fpr5
  LDA R_CR
- STA R_XR
-.fdi_r2
- SEC                    \ R_XL = cx - n, clipped
- LDA f_cx
- SBC fz_n
- STA R_XL
- LDA f_cx+1
- SBC #0
- BMI fdi_lc             \ left of the screen: the window's left
- BNE fdi_nx             \ right of it: none
- LDA R_XL
+.fpr6
+ STA R_NDISCR,Y
+ LDA f_cx               \ left = cx - n: negative: CL; > 255 or > CR: empty;
+ SEC                    \ < CL: CL
+.fpr_b2
+ BCC fpr13              \ patched: BCS (always: C = 1) if fpr_b1 is BCC,
+ SBC fz_n               \ else BCC (never)
+ BCC fpr3               \ high byte of cx - n = -1
+.fpr14
  CMP R_CR
- BEQ fdi_l2
- BCS fdi_nx
+ BEQ fpr7
+ BCS fpr8
  CMP R_CL
- BCS fdi_l2
-.fdi_lc
+ BCS fpr7
+.fpr3
  LDA R_CL
- STA R_XL
-.fdi_l2
- LDY fz_i
- JSR T_SPAN             \ (which marks the span dirty too)
-.fdi_nx
- LDY fz_i
- CPY fz_q
+ BNE fpr7               \ (NMOS: R_CL = 2, F_FRAME)
+.fpr10                  \ right, A = n, C = 0, high byte of cx nonzero (X =
+ ADC f_cx               \ |d| kept; fz_t is free in the loop): A = low byte,
+ STA fz_t               \ C = carry
+ LDA f_cxh
+ ADC #0                 \ high byte of cx + n
+ BMI fpr8               \ minus: empty
+ BNE fpr5               \ plus: CR
+ LDA fz_t               \ zero
+ BCS fpr11              \ (NMOS: C = 1, as high byte &FF + 1 = 0)
+.fpr17
+ LDA fz_t               \ (fpr13: high byte zero)
+ BCS fpr14              \ (NMOS: C = 1, as high byte 1 - 1 = 0)
+.fpr13                  \ left, A = cx's low byte, C = 1, high byte of cx
+ SBC fz_n               \ nonzero: A = low byte, C = no borrow
+ STA fz_t
+ LDA f_cxh
+ SBC #0                 \ high byte of cx - n
+ BEQ fpr17
+ BMI fpr3               \ (plus: empty)
+.fpr8
+ LDA #0                 \ empty row: R = 0, L = 255
+ STA R_NDISCR,Y
+ LDA #&FF
+.fpr7
+ STA R_NDISCL,Y
+.fpr9
+.fpr_id
+ INX                    \ patched: DEX while d < 0; when |d| reaches 0
+ BNE fpr16              \ step up from then on (fz_u is not kept)
+ LDA #&E8
+ STA fpr_id
+.fpr16
+ CPY fz_q               \ (= R_NDB: stored from fz_q at fdx4, unchanged here)
  INY
- BCC fdi_row
-.fdi_x
+ BCC fpr2
  RTS
 
-.f_cx  EQUW 0           \ the disc: centre, radius
+.fds_fast               \ here r <= 127 and |d| <= r, so d fits a signed byte
+ LDA f_cx
+ STA fsy_cr+1           \ patch cx and 2cx + 1 (mod 256) into both loops
+ STA fdf_cr+1
+ SEC
+ ROL A
+ STA fsy_cl+1
+ STA fdf_cl+1
+ LDA fz_q               \ A = B - T (B = R_NDB = fz_q, T = R_NDT = fz_p)
+ SEC
+ SBC fz_p               \ (C = 1 after: B >= T)
+ LDY fz_t               \ Y = d = T - cy (|d| <= 127, so N = sign of d)
+ BPL fdd                \ d >= 0: all rows at or below cy
+ CLC
+ ADC fz_t               \ A = b = B - cy, C = 1 iff b >= 0
+ BCS fdsym              \ b >= 0: cy is in T..B
+                        \ b < 0 (C = 0): rows T..B are cy - k for k = -b..a
+ EOR #&FF               \ (a = -d), walked up from B
+ TAY
+ INY                    \ Y = -b
+ LDX fz_q               \ X = B
+ LDA #2
+ SBC fz_t               \ (C = 0) A = a + 1 (C = 0 after)
+ STA fdf_cp+1
+ LDA #&CA               \ DEX
+ BNE fdxs
+.fdd                    \ d >= 0 (A = B - T, C = 1, Y = d): rows T..B are cy + k
+ ADC fz_t               \ for k = d..b; A = B - T + d + 1 = b + 1 <= 128 (C = 0)
+ STA fdf_cp+1
+ LDX fz_p               \ X = T
+ LDA #&E8               \ INX
+.fdxs
+ STA fdf_st
+.fdf1                   \ X = row, Y = k = |row - cy|, C = 0 here
+.fpr_ld
+ LDA F_HW,Y             \ patched: half-width table
+.fdf_cr
+ ADC #0                 \ patched: cx (A = cx + n <= cx + r <= 255, so C = 0)
+ STA R_NDISCR,X
+ EOR #&FF
+.fdf_cl
+ ADC #0                 \ patched: 2cx + 1 (A = 2cx + 1 + ~(cx + n) = cx - n)
+ STA R_NDISCL,X
+.fdf_st
+ INX                    \ patched: INX (rows below cy) or DEX (rows above cy)
+ INY
+.fdf_cp
+ CPY #0                 \ patched: last k, plus 1 (C = 0 until then)
+ BNE fdf1
+ RTS
+
+.fdsym                  \ (A = b, C = 1; a = cy - T = -d > 0)
+ TAY                    \ Y = b
+ CLC
+ ADC fz_t               \ A = b - a, C = 1 iff b >= a
+ BEQ fdse
+ BCC fdsu
+ INY                    \ b > a: rows cy - k and cy + k together for k = 0..a,
+ STY fdf_cp+1           \ then rows cy + k for k = a + 1..b
+ LDA #&E8               \ INX
+ STA fdf_st
+ LDA #1
+ SBC fz_t               \ (C = 1) A = a + 1 (C = 0 after)
+ STA fsy_cp+1
+ ADC f_cy               \ A = cy + a + 1 <= B + 1 (C = 0 after)
+ STA fsx_x+1
+ LDA #&A2               \ LDX #
+ BNE fds_c
+.fdsu                   \ b < a (C = 0): rows cy - k and cy + k together for
+ INY                    \ k = 0..b, then rows cy - k for k = b + 1..a
+ STY fsy_cp+1           \ (C = 0 still)
+ LDA #2
+ SBC fz_t               \ (C = 0) A = a + 1
+ STA fdf_cp+1
+ LDA #&CA               \ DEX
+ STA fdf_st
+ LDA #&A9               \ LDA # (a no-op here: NMOS, for BIT #; X is
+ BNE fds_c              \ already row cy - b - 1)
+.fdse                   \ b = a (C = 1, Y = a): rows cy - k and cy + k for k = 0..a
+ INY
+ STY fsy_cp+1           \ a + 1
+ LDA #&60               \ RTS
+.fds_c
+ STA fsx_x              \ what follows the symmetric loop
+ LDA fpr_ld+2           \ the symmetric loop reads n(k) at table + k (page
+ STA fsy_ld+2           \ aligned: no page crossing)
+ LDA f_cy               \ X = row cy - k, Y = k, from k = 0; rows cy + k are
+ TAX                    \ written at (table + cy) + k
+ CLC
+ ADC #LO(R_NDISCR)      \ (cy <= R_CB = 191: no carry, see the ASSERT)
+ STA fsy_sr+1
+ TXA
+ ADC #LO(R_NDISCL)
+ STA fsy_sl+1
+ LDA #HI(R_NDISCL)
+ ADC #0                 \ (C = 0 after)
+ STA fsy_sl+2
+ LDY #0
+.fsyl                   \ C = 0 here
+.fsy_ld
+ LDA F_HW,Y             \ patched: half-width table (high byte)
+.fsy_cr
+ ADC #0                 \ patched: cx
+ STA R_NDISCR,X
+.fsy_sr
+ STA R_NDISCR,Y         \ patched: R_NDISCR + cy (low byte)
+ EOR #&FF
+.fsy_cl
+ ADC #0                 \ patched: 2cx + 1
+ STA R_NDISCL,X
+.fsy_sl
+ STA R_NDISCL,Y         \ patched: R_NDISCL + cy
+ DEX
+ INY
+.fsy_cp
+ CPY #0                 \ patched: last k, plus 1 (C = 0 until then)
+ BNE fsyl
+.fsx_x
+ LDX #0                 \ patched: LDX #first tail row, LDA # (no-op) or RTS
+ CLC                    \ (Y = k of the first tail row already)
+ JMP fdf1
+ ASSERT LO(R_NDISCR) + 191 < 256
+
+f_cx = fpr_cx + 1       \ (the operand of ADC # in the slow disc loop)
+.f_cxh EQUB 0           \ high byte of cx
 .f_cy  EQUW 0
 .f_r   EQUB 0
 .f_hwr EQUB 0           \ the radius F_HW was built for (0 = none)
@@ -1248,56 +1351,398 @@ RPN = 4
 .fhw9
  RTS
 
-\ f_curves: each planet curve's points joined by lines
+\ f_nobounds: the layer has no boundaries (a plain disc)
 
-.f_curves
- LDA F_NCV
- BEQ fcv9
- LDA #FC_PLINE
- JSR f_setcol
- LDX #0
-.fcv1
- STX fz_i               \ the curve
- LDA F_CVS,X            \ its first point
- STA fz_n
- INX                    \ and its end: the next curve's first point, or the
- LDA F_NPT              \ last recorded
- CPX F_NCV
- BCS fcv3
- LDA F_CVS,X
-.fcv3
- STA fz_t
-.fcv4
- LDX fz_n               \ the line from point n to point n + 1, if there
- INX                    \ is one
- CPX fz_t
- BCS fcv8
- STX fz_n
- LDA F_PXL-1,X
- STA R_X0
- LDA F_PXH-1,X
- STA R_X0+1
- LDA F_PYL-1,X
- STA R_Y0
- LDA F_PYH-1,X
- STA R_Y0+1
- LDA F_PXL,X
- STA R_X1
- LDA F_PXH,X
- STA R_X1+1
- LDA F_PYL,X
- STA R_Y1
- LDA F_PYH,X
- STA R_Y1+1
- JSR T_LINE
- JMP fcv4
-.fcv8
- LDX fz_i
- INX
- CPX F_NCV
- BCC fcv1
-.fcv9
+.f_nobounds
+ LSR R_NDF              \ (NMOS: R_NDF is 0 or 1)
  RTS
+
+\ f_bounds: the planet's surface as boundaries, R_NDN and R_NDX0-3, for rows
+\ R_NDT..R_NDB (which f_plrows has just set), between colour A, the disc's
+\ (the beach ball's sea), and colour B (FC_PLLE, FC_PLLO: DP_BEGIN's): the
+\ circles on its sphere that PF_HOOK made this iteration, if it made any
+\ (PF_CLS bit 7: the beach ball, or craters), as the circle engine's rows
+\ (PC_ROWS, gfx-merid.asm)
+
+.f_bounds
+ JSR f_nobounds
+ LDA R_NDT
+ CMP R_NDB
+ BEQ P%+4
+ BCS fnb9
+ BIT PF_CLS
+ BPL fnb9
+ INC R_NDF
+ JMP PC_ROWS
+.fnb9
+ RTS
+
+\ The planet's colours, every style's the beach ball's (pairs of bytes, even
+\ rows and odd rows): colour A, the disc, its sea (FC_PLANE, FC_PLANO), and
+\ colour B, its detail (the beach ball's land, the craters), green
+
+FC_PLLE = &5F : FC_PLLO = &AF
+
+\ f_ddraw: (F_FRAME, after the wait, in place of the repair) the repair, the
+\ disc layer and the second disc on this buffer
+
+.f_ddraw
+ LDA R_NDT              \ the layer's new rows, within the window (none:
+ CMP R_CT               \ 255, 0), as R_DISCROWS' R_PRNT, R_PRNB
+ BCS fdw1
+ LDA R_CT
+.fdw1
+ STA f_nt
+ LDA R_NDB
+ CMP R_CB
+ BCC fdw2
+ LDA R_CB
+.fdw2
+ STA f_nb
+ CMP f_nt
+ BCS fdw3
+ LDA #0
+ STA f_nb
+ LDA #&FF
+ STA f_nt
+.fdw3
+ LDX F_BACK             \ the band: the layer's rows, old and new, on this
+ LDA f_dlt,X            \ buffer (which bank 5 leaves to the painter)
+ CMP f_nt
+ BCC fdw4
+ LDA f_nt
+.fdw4
+ STA f_dy
+ LDA f_dlb,X
+ CMP f_nb
+ BCS fdw5
+ LDA f_nb
+.fdw5
+ STA f_dhi
+ LDA f_nt               \ (this frame's, for the next on this buffer)
+ STA f_dlt,X
+ LDA f_nb
+ STA f_dlb,X
+ LDA f_dy               \ the repair (T_REPAIR: rows A .. Y are the band)
+ LDY f_dhi
+ JSR T_REPAIR
+ LDX F_BACK             \ the second disc: rows on this buffer, or to come?
+ LDA f_sec
+ BNE fdw6
+ LDA R_S2B,X
+ CMP R_S2T,X
+ BCS fdw6
+ LDA f_dhi              \ nor the layer's: nothing more
+ CMP f_dy
+ BCS fdw6
+ RTS
+.fdw6
+ LDA f_bmode,X          \ DP_BEGIN's flags: boundaries kept on this buffer's
+ BNE fdw7               \ rows (the layer's this frame, or last time:
+ LDA R_NDF              \ PB_BON, as the Master port's R_PRBMODE), and none
+ BEQ fdw8               \ there before (PB_BCLR)
+ LDA #PB_BCLR + PB_BON
+ BNE fdw9               \ (always)
+.fdw7
+ LDA #PB_BON
+.fdw8
+.fdw9
+ STA f_dfl
+ LDA R_NDF
+ STA f_bmode,X
+ LDA f_lay              \ another colour on this buffer: the old disc
+ CMP F_DCOL,X           \ folded into the dirty extents (PB_FOLD, the Master
+ BEQ fdw10              \ port's f_discdirty)
+ STA F_DCOL,X
+ LDA f_dfl
+ ORA #PB_FOLD
+ STA f_dfl
+.fdw10
+ LDA f_dpr              \ blanked since its last disc: the painter forgets
+ AND f_bbit,X           \ what it kept of it (PB_RESET)
+ BEQ fdw11
+ EOR f_dpr
+ STA f_dpr
+ LDA f_dfl
+ ORA #PB_RESET
+ STA f_dfl
+.fdw11
+ LDA #FC_PLLE           \ colour B (DP_BEGIN takes it in RZ_T0, RZ_T1)
+ STA RZ_T0
+ LDA #FC_PLLO
+ STA RZ_T1
+ LDA #0                 \ nothing queued or put yet
+ STA DB_QN
+ STA f_dput
+ TXA
+ LDX f_dfl
+ JSR f_dpbegin
+ LDA f_dhi              \ the layer's rows, if any
+ CMP f_dy
+ BCC fdw20
+ LDA #0                 \ the layer's colour: none, the sun or the planet
+ TAY                    \ (colour A: the beach ball's sea)
+ LDX f_lay
+ BEQ fdw13
+ LDA #FC_PLANE
+ LDY #FC_PLANO
+ DEX
+ DEX
+ BEQ fdw13
+ LDA #FC_SUNE
+ LDY #FC_SUNO
+.fdw13
+ STA R_DCE
+ STY R_DCO
+ LDX #16                \ the batches: 16 rows, or 8 with boundaries (their
+ LDA f_dfl              \ counts and colours and their x in the slots too)
+ AND #PB_BON
+ BEQ fdw14
+ LDA #&80               \ (bit 7: the slots', bit 6: this frame's)
+ LDY R_NDF
+ BEQ P%+4
+ LDA #&C0
+ LDX #8
+.fdw14
+ STA f_d2c
+ STX f_dN
+ LDX #0                 \ (the dirty extents in the slots: the layer's)
+ JSR f_dbat
+.fdw20
+ JSR f_disc2            \ the second disc's rows
+ LDA #0                 \ then what the last batch wrote put, and its spans
+ LDX f_dput             \ drawn
+ JMP T_GETW
+
+.f_bbit EQUB 1, 2       \ (f_dpr's bit for each buffer)
+
+\ f_dbat: rows f_dy .. f_dhi (f_dy <= f_dhi) through the painter, f_dN at a
+\ time (X = 0: the layer's, DP_ROWS, with their dirty extents; X = &80: the
+\ second disc's, DP_DISC2, with what was written on them, and A = its
+\ colour change, &FF or 0), each batch's slots filled from R_NDISCL/R in
+\ R_NDT .. R_NDB (empty outside), with f_d2c bit 7 R_NDN and R_NDX0-3 too
+\ (R_NDN zero with bit 6 clear); with each batch bank 5 puts what the last
+\ one wrote and draws what it queued (T_GETW)
+
+.f_dbat
+ STX f_dmd
+ STA f_dc2
+.fdb1
+ LDA f_dhi              \ n = min(f_dhi - f_dy + 1, f_dN)
+ SEC
+ SBC f_dy
+ CLC
+ ADC #1
+ CMP f_dN
+ BCC fdb2
+ LDA f_dN
+.fdb2
+ STA f_dn
+ ORA f_dmd              \ (bit 7: the written extents, not the dirty ones)
+ LDY f_dy
+ LDX f_dput
+ JSR T_GETW
+ LDX #0                 \ the slots
+ LDY f_dy
+.fdb3
+ CPY R_NDT
+ BCC fdb6
+ CPY R_NDB
+ BEQ fdb4
+ BCS fdb6
+.fdb4
+ LDA R_NDISCL,Y
+ STA DB_NL,X
+ LDA R_NDISCR,Y
+ STA DB_NR,X
+ BIT f_d2c
+ BPL fdb8
+ BVC fdb7
+ LDA R_NDN,Y
+ STA DB_NN,X
+ LDA R_NDX0,Y
+ STA DB_X0,X
+ LDA R_NDX1,Y
+ STA DB_X1,X
+ LDA R_NDX2,Y
+ STA DB_X2,X
+ LDA R_NDX3,Y
+ STA DB_X3,X
+ JMP fdb8
+.fdb6
+ LDA #&FF               \ an empty span
+ STA DB_NL,X
+ LDA #0
+ STA DB_NR,X
+ BIT f_d2c
+ BPL fdb8
+.fdb7
+ LDA #0                 \ no boundaries
+ STA DB_NN,X
+.fdb8
+ INY
+ INX
+ CPX f_dn
+ BNE fdb3
+ LDY f_dy               \ the painter
+ LDX f_dn
+ BIT f_dmd
+ BMI fdb9
+ JSR f_dprows
+ JMP fdb10
+.fdb9
+ LDA f_dc2
+ JSR f_dpdisc2
+.fdb10
+ LDA f_dy               \ the next batch
+ STA DB_PY              \ (whose writes the next T_GETW puts)
+ CLC
+ ADC f_dn
+ STA f_dy
+ LDA f_dn
+ STA f_dput
+ LDA f_dhi
+ CMP f_dy
+ BCC fdb11
+ JMP fdb1
+.fdb11
+ RTS
+
+.f_dpbegin              \ the painter's entries, in the flight code's bank 7
+ JSR farC               \ (gfx-raster_disc.asm, gfx-raster_disc2.asm)
+ EQUW DP_BEGIN
+.f_dprows
+ JSR farC
+ EQUW DP_ROWS
+.f_dpdisc2
+ JSR farC
+ EQUW DP_DISC2
+
+\ f_disc2: the second disc (both the sun and the planet on screen: more
+\ often since the sun near the planet is drawn too, S_SUN). It is the
+\ smaller disc, and the sun and the planet are the same size (PLANET's radius
+\ 24576 / z for both), so it is the further: R_DISC2 (DP_DISC2, the painter)
+\ draws what the layer's span leaves of each of its rows, incrementally. With
+\ no second disc it is called only to erase what this buffer still holds of
+\ one (R_S2T .. R_S2B: its rows), with empty spans. A planet that is the
+\ second disc is a plain disc
+
+.f_disc2
+ LDA f_sec
+ BEQ fd29
+ CMP #1
+ BEQ fd21
+ LDA #FC_PLANE          \ (the planet's colour A: the beach ball's sea)
+ STA R_COLE
+ LDA #FC_PLANO
+ STA R_COLO
+ JSR f_plrows
+ JMP fd22
+.fd21
+ LDA #FC_SUNE
+ STA R_COLE
+ LDA #FC_SUNO
+ STA R_COLO
+ JSR f_sunrows
+.fd22
+ LDX F_BACK             \ its colour changed (or none before): every row's
+ LDA R_COLE             \ old span black, then its new one whole (R_DISC2's
+ CMP R_S2C,X            \ d_fl)
+ BEQ fd23
+ STA R_S2C,X
+ LDA #&FF
+ BNE fd24               \ (always)
+.fd23
+ LDA #0
+.fd24
+ STA f_dc2
+ LDA R_NDB              \ its rows (none: 255, 0)
+ CMP R_NDT
+ BCS fd25
+.fd29
+ LDA #0
+ STA f_dc2
+ STA R_NDB
+ LDA #&FF
+ STA R_NDT
+.fd25
+ LDX F_BACK             \ the rows of the batches: old and new (lo .. hi)
+ LDA R_S2T,X
+ CMP R_NDT
+ BCC P%+5
+ LDA R_NDT
+ STA f_dy
+ LDA R_S2B,X
+ CMP R_NDB
+ BCS P%+5
+ LDA R_NDB
+ STA f_dhi
+ LDA R_NDT              \ (this frame's, for the next on this buffer)
+ STA R_S2T,X
+ LDA R_NDB
+ STA R_S2B,X
+ LDA f_dhi
+ CMP f_dy
+ BCC fd28               \ none, old or new
+ LDA #0                 \ one colour, 16 rows a batch, the written extents
+ STA f_d2c
+ LDA #16
+ STA f_dN
+ LDA f_dc2
+ LDX #&80
+ JMP f_dbat
+.fd28
+ RTS
+
+\ f_dforget: buffer X (blanked) holds no disc: the layer's rows, its colour,
+\ its boundaries and the second disc forgotten here, and in the painter at
+\ its next frame on it (f_dpr)
+
+.f_dforget
+ LDA #&FF
+ STA f_dlt,X
+ STA R_S2T,X
+ LDA #0
+ STA f_dlb,X
+ STA R_S2B,X
+ STA R_S2C,X
+ STA F_DCOL,X
+ STA f_bmode,X
+ LDA f_dpr
+ ORA f_bbit,X
+ STA f_dpr
+ RTS
+
+.f_lay   EQUB 0         \ the disc layer: 0 none, 1 the sun, 2 the planet
+.f_sec   EQUB 0         \ the second disc
+.f_nt    EQUB 0         \ the layer's rows this frame (none: 255, 0)
+.f_nb    EQUB 0
+.f_dy    EQUB 0         \ f_dbat: the next batch's first row, the last row,
+.f_dhi   EQUB 0         \ the rows a batch, this batch's
+.f_dN    EQUB 0
+.f_dn    EQUB 0
+.f_dput  EQUB 0         \ the last batch's rows (its first: DB_PY)
+.f_dmd   EQUB 0         \ 0 the layer, &80 the second disc
+.f_dc2   EQUB 0         \ the second disc's colour change (&FF)
+.f_d2c   EQUB 0         \ bit 7: boundaries in the slots; bit 6: this frame's
+.f_dfl   EQUB 0         \ DP_BEGIN's flags
+.f_dpr   EQUB 3         \ bit b: buffer b blanked since the painter last drew it
+.f_dlt   EQUB &FF, &FF  \ per buffer: the layer's rows on it (none: 255, 0)
+.f_dlb   EQUB 0, 0
+.F_DCOL  EQUB 0, 0      \ per buffer: the layer on it (f_lay)
+.f_bmode EQUB 0, 0      \ per buffer: its rows may hold boundaries
+.R_S2T   EQUB &FF, &FF  \ per buffer: the second disc's rows on it and its
+.R_S2B   EQUB 0, 0      \ colour (0: none)
+.R_S2C   EQUB 0, 0
+.R_NDT   EQUB 1         \ the layer's or the second disc's rows this frame
+.R_NDB   EQUB 0
+.R_NDF   EQUB 0         \ 1: the layer has boundaries (R_NDN, R_NDX0-3)
+
+PB_BON   = 1            \ DP_BEGIN's flags (gfx-raster_disc.asm)
+PB_FOLD  = 2
+PB_BCLR  = &40
+PB_RESET = &80
+
 
 \ ------------------------------------------------------------------------------
 \ Lines, ships, dots, lasers, stars
@@ -2192,9 +2637,8 @@ F_TCOL = &FF            \ text ink: yellow (logical colour 3)
 \ last text steps (F_TCH, whose bit is then cleared), and elsewhere those
 \ whose pixels something overwrote this frame: anything in this frame's
 \ written or dirty extents over the row's eight lines (R_WL/R_WR and this
-\ buffer's dirty extents, from bank 5 for all the rows at once: f_wq), or
-\ the disc layer's disc there, which bank 7 writes itself (f_dlt, f_dlb:
-\ the row whole)
+\ buffer's dirty extents, from bank 5 for all the rows at once: f_wq; the
+\ disc layer's writes are in R_WL/R_WR, which f_ddraw has bank 5 put there)
 
 .f_text2
  JSR f_wq               \ the written extents, and the sights' (f_sight2)
@@ -2214,23 +2658,11 @@ F_TCOL = &FF            \ text ink: yellow (logical colour 3)
  BEQ ft2w
  EOR F_TCH,X
  STA F_TCH,X
-.ft2a
  LDY #0
  STY f_wl
  LDY #31
  BNE ft27
 .ft2w
- TXA                    \ in the disc layer's rows (this frame's or the
- ASL A                  \ last's on this buffer): the whole row
- ASL A
- ASL A
- CMP f_dlb2
- BEQ P%+4
- BCS ft2v
- ORA #7
- CMP f_dlt2
- BCS ft2a
-.ft2v
  TXA                    \ the cells over this frame's writes: R_GETW's
  ASL A                  \ extent for the row (f_wq: in the mailbox)
  TAY
@@ -2271,21 +2703,9 @@ F_TCOL = &FF            \ text ink: yellow (logical colour 3)
 \ in MBOX+&30..&32 (bit r AND 7 of byte r DIV 8 for text row r), &FF in
 \ MBOX+&33 for the sights; the rows' extents come back as (WL, WR) pairs at
 \ MBOX + 2r (WR = 0: none), and bit 7 of MBOX+&34 set if anything was drawn
-\ over the sights. Also the disc layer's rows on this buffer, this frame's
-\ and the last's together (f_dlt2..f_dlb2)
+\ over the sights
 
 .f_wq
- LDX F_BACK             \ the disc layer's rows: the union of this frame's
- LDA f_dlt,X            \ and the last's
- CMP f_dlto
- BCC P%+5
- LDA f_dlto
- STA f_dlt2
- LDA f_dlb,X
- CMP f_dlbo
- BCS P%+5
- LDA f_dlbo
- STA f_dlb2
  LDA #0                 \ the rows' mask
  STA MBOX+&30
  STA MBOX+&31
@@ -2322,8 +2742,6 @@ F_TCOL = &FF            \ text ink: yellow (logical colour 3)
  JMP T_GETW
 
 .f_bits EQUB 1, 2, 4, 8, 16, 32, 64, 128
-.f_dlt2 EQUB 0          \ the disc layer's rows on this buffer, this frame's
-.f_dlb2 EQUB 0          \ and the last's (f_wq)
 
 \ f_glyph: draw character A at column Y, text row fz_i, ink F_TCOL, only on
 \ the glyph's pixels and only inside the clip window
@@ -2477,8 +2895,8 @@ SGOUT = 20
 \ f_sight2: the sights, when wanted: drawn if this buffer does not show them,
 \ or if anything was drawn over them this frame (f_wq's bit 7 of MBOX+&34:
 \ this frame's written or dirty extents covering x = SGX on rows SGY-SGOUT to
-\ SGY+SGOUT, or SGX-SGOUT to SGX+SGOUT on row SGY), or the disc layer's disc
-\ is on their rows on this buffer (this frame's or the last's: f_dlt2, f_dlb2)
+\ SGY+SGOUT, or SGX-SGOUT to SGX+SGOUT on row SGY: the disc layer's writes
+\ among them)
 
 .f_sight2
  LDA GSIGHT
@@ -2487,13 +2905,7 @@ SGOUT = 20
  LDA F_SGS,X
  BEQ fsg3               \ not drawn yet
  BIT MBOX+&34           \ overwritten?
- BMI fsg3
- LDA f_dlb2             \ the disc layer's rows (bottom >= SGY - SGOUT and top
- CMP #SGY-SGOUT         \ <= SGY + SGOUT)?
- BCC fsg9
- LDA f_dlt2
- CMP #SGY+SGOUT+1
- BCS fsg9
+ BPL fsg9
 .fsg3
  LDX F_BACK
  LDA #&FF

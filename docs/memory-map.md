@@ -334,26 +334,29 @@ see the history of this file).
 | Buffer 0 | `&1000-&3FFF` | the renderer's second screen buffer (`BUF0`); also DFS's workspace page (`&1000-&10FF`, which `PCLI` puts back for each disc command and keeps in `DFSSAVE%` between them) and, during a load, the staging area `STAGE%` (`&1600`, up to 16K, into buffer 1) |
 | Buffer 1 | `&4000-&6FFF` | the screen (`SCREEN%`): the space view's first buffer, and the only one outside a space view |
 | The dashboard | `&7000-&7DFF` | `PANEL%`: the dashboard's seven character rows, shown by the rupture's frame B |
-| The mailbox | `&7E00-&7E9D` | the rasteriser's inputs (`MBOX`, `gfx-rws.asm`); `PCLI`'s command and OSFILE block (`PCBUF`, `PBLK`) share its polygon vertices, and the disc layer its first `&4C` bytes (the repair's extents at `&00`, its span queue at `&28`) |
-| The shared variables | `&7EA0-&7EAF` | `GVARS`: the renderer's state that the game's hooks, the interrupt and the frame layer share (the last, `GDL`, the disc layer's: which buffers have its disc) |
+| The mailbox | `&7E00-&7E9F` | the rasteriser's inputs (`MBOX`, `gfx-rws.asm`), the stars at its end (`&67-&9F`); `PCLI`'s command and OSFILE block (`PCBUF`, `PBLK`) share its polygon vertices, as do the planet's circle records from `PF_HOOK` to the frame (`PCB`, `PC_N`, `pc_inv`: `&00-&49`) and, during the frame, the disc layer's batches (`&00-&65`) |
+| The shared variables | `&7EA0-&7EAF` | `GVARS`: the renderer's state that the game's hooks, the interrupt and the frame layer share (the last, `PF_CLS`, the planet's class as `PF_HOOK` made it) |
 | The high resident block | `&7EB0-&7EF0` | `RESH%` (`elite-resident-high.asm`): the palette and the rupture's register routine and tables |
 | The missile's blueprint | `&7F00-&7F9F` | as in the original, without its edges; then the programs' main RAM part, `PROGM%` (`&7FA0-&7FFD`); `VEC` at `&7FFE` |
-| Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`, with the lighting (`gfx-light.asm`: `L_REC`, and in the flight code `L_SUN`) and the quarter squares at `&B300-&B6FF` (`QSL`, `QSH`); the blueprint set at `&B700`, with its ships' normals and `FC_NORMTAB` (`NORMTAB`) |
-| Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000`, then `QQ18`; in the flight code, then the renderer's window (`WIN7%`: the disc layer, `gfx-dlayer.asm`); `DFSSAVE%` at `&BF00` |
+| Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`, with the lighting (`gfx-light.asm`: `L_REC`, and in the flight code `L_SUN`); in a build with `_CIRCLES`, the planet's surface after the hot pass (`PF_HOOK`, `gfx-planet7.asm`, and the circle engine's `pc_circ`, `gfx-merid.asm`); the quarter squares at `&B300-&B6FF` (`QSL`, `QSH`); the blueprint set at `&B700`, with its ships' normals and `FC_NORMTAB` (`NORMTAB`) |
+| Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000` (in the docked code, after its set's face lists), then `QQ18`; in the flight code, then the overlay region (`OVL%`) and the renderer's window (`WIN7%`, `gfx-window7.asm`: the disc layer's painter and the second disc, `&A387` on, and each buffer's disc state in the twelve pages `&B300-&BEFF`, not in the image); `DFSSAVE%` at `&BF00` |
 | Bank 5 | ROMSEL `BANK5` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), the jump table `RJT` |
-| Bank 6 | ROMSEL `BANK6` | the frame layer, from `F.BANK`: its code with the lens flare, the screens drawn directly and the hangar's background (`&8000-&A091`), the face lists and the lighting's ramps (`&A092-&ABCF`), its state (`&ABD0-&B3FF`), the dispatcher `FJT` (`&BFC0`) |
+| Bank 6 | ROMSEL `BANK6` | the frame layer, from `F.BANK`: its code with the discs, the circle engine's rows (`PC_ROWS`), the lens flare, the screens drawn directly and the hangar's background (`&8000-&A656`), the lighting's ramps and the faces' small tables, its state with the discs' rows, the face lists of the blueprint set loaded (`FCSLOT`, the 847 bytes below the dispatcher), the dispatcher `FJT` (`&BFC0`); in a build with `_SSUN`, also the sun near the planet (`S_SUN`, `gfx-ssun.asm`), which it has no room for yet |
 
-Free space now: 60 bytes in the flight code's home bank (the lighting and
+Free space now: 438 bytes in the flight code's home bank (the lighting and
 the faces' normals take 1,956 there, for which `DEATH`, `LASLI`, `PU1`,
 `TIDY` and its routines, `MAS1`, `PIXEL`, `LL145`'s first part and `ARCTAN`
-moved to the cold bank: [renderer.md](renderer.md), "The hooks"), 320 in
-its cold bank (the disc layer took 6,066: [renderer.md](renderer.md), "The
-disc layer"), 3,386 in the docked code's home bank (below `QSL`) and 18
-after its blueprints, 5,568 in its cold bank, 1 in resident block A and 3
-in the glue, 17 in the high resident block, 78 in each program's main RAM
-part, 3,008 in bank 6, and in bank 5 43 in its low region (`&8000-&8FFF`),
-180 in its high region (`&9600-&BFBF`) and 272 after `R_LINE`'s cold part,
-`R_RESETBUF` and `r_wq`. The flight code's banks are what the frames can
+moved to the cold bank: [renderer.md](renderer.md), "The hooks"; the
+planet's surface, 2,543 bytes with `_CIRCLES`, does not fit yet, by 2,108),
+34 in its cold bank (the renderer's window takes 3,927 and its state 3,072:
+[renderer.md](renderer.md), "The discs"), 3,385 in the docked code's home
+bank (below `QSL`) and 18 after its blueprints, 5,568 in its cold bank, 1 in
+resident block A and 7 in the glue, 17 in the high resident block, 78 in
+each program's main RAM part, 128 in bank 6 (without `S_SUN`, 1,151 bytes,
+which would leave it 896 short), and in bank 5 43 in its low region
+(`&8000-&8FFF`), 56 in its high region (`&9600-&BFBF`) and 260 after
+`R_LINE`'s cold part, `R_RESETBUF` and `r_wq`. The flight code's banks are
+what the frames can
 use; the docked code's are free only while docked.
 
 ## What is not in the original's order

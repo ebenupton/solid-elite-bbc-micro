@@ -134,9 +134,10 @@
  GSTASH = GVARS + 13    \ Bit 7 set: a disc command has used buffer 0 (PCLI):
                         \ the next frame starts it afresh (f_b0new)
  GA = GVARS + 14        \ GCALL's A across the paging (gfx-glue.asm)
- GDL = GVARS + 15       \ The disc layer (gfx-dlayer.asm): bit 0 set if buffer
-                        \ 0 has the layer's disc on it, bit 1 buffer 1 (the
-                        \ frame layer clears a buffer's when it is cleared)
+ PF_CLS = GVARS + 15    \ The planet's class, as PF_HOOK made it in this
+                        \ iteration (gfx-planet7.asm: 0 a meridian planet, 1
+                        \ craters; bit 7 set if it made the surface's circles,
+                        \ which the frame's f_bounds draws)
 
                         \ The frame layer's entries, as the game calls them
                         \ (LDX #FG_xxx : JSR GCALL, gfx-glue.asm), in the order
@@ -150,17 +151,15 @@
  FG_PDOT     = 5
  FG_PLANET   = 6
  FG_SHPPT    = 7
- FG_PCURVE   = 8
- FG_PPOINT   = 9
- FG_CHAR     = 10
- FG_DELCHAR  = 11
- FG_CLRTEXT  = 12
- FG_GUN      = 13
- FG_HANG0    = 14
- FG_HANGAR   = 15
- FG_CLOUD    = 16
- FG_SETLD    = 17
- FG_N        = 18
+ FG_CHAR     = 8
+ FG_DELCHAR  = 9
+ FG_CLRTEXT  = 10
+ FG_GUN      = 11
+ FG_HANG0    = 12
+ FG_HANGAR   = 13
+ FG_CLOUD    = 14
+ FG_SETLD    = 15
+ FG_N        = 16
 
                         \ The fixed colours of the frame layer's lines and dots
                         \ (indices into its F_CPE, gfx-frame.asm)
@@ -173,9 +172,11 @@
  FC_SIGHT = 5            \ laser sights
  FC_STAR = 6             \ stardust
 
- MB_SX = MBOX + &50     \ The stars' x, y and size (1 to 3, 0 for none) in the
- MB_SY = MBOX + &68     \ rasteriser's mailbox (R_SX, R_SY and R_SS in
- MB_SS = MBOX + &80     \ gfx-rws.asm), which the game's star hooks write
+ MB_SX = MBOX + &67     \ The stars' x, y and size (1 to 3, 0 for none) in the
+ MB_SY = MBOX + &7A     \ rasteriser's mailbox (R_SX, R_SY and R_SS in
+ MB_SS = MBOX + &8D     \ gfx-rws.asm), which the game's star hooks write: 19
+                        \ each (stars 1 to NOST), at the mailbox's end, so that
+                        \ the frame's disc layer has the rest
 
  PCBUF = MBOX           \ PCLI's command (32 bytes) and OSFILE block (18), in
  PBLK = MBOX + &20      \ the mailbox's polygon vertices (R_PXL to R_PYH),
