@@ -56,11 +56,11 @@ sys.path.insert(0, os.path.join(REPO, '2-build-files'))
 
 HOME = 4                                         # the banks (the loader finds
 RBANK, FBANK, COLD = 5, 6, 7                     # them; any distinct numbers)
-BPSLOT = 0xB900                                  # (elite-map.asm)
+BPSLOT = 0xB700                                  # (elite-map.asm)
 STUB = 0x7FC0                                    # where the test's caller runs
 FG = ['F_INIT', 'F_DIRECT', 'F_FRAME', 'F_SHIP', 'F_LINE', 'F_PDOT', 'F_PLANET', 'F_SHPPT',
       'F_PCURVE', 'F_PPOINT', 'F_CHAR', 'F_DELCHAR', 'F_CLRTEXT', 'F_GUN', 'F_HANG0', 'F_HANGAR',
-      'F_CLOUD']
+      'F_CLOUD', 'F_SETLD']
 # the drawing's temporaries, which game code the frame runs may leave changed
 # (blib.mjs's DRAW_EXCLUDE): name, length
 DRAWTMP = [('SC', 2), ('T1', 1), ('P', 3), ('Q', 1), ('R', 1), ('S', 1), ('T', 1), ('U', 1), ('XX15', 6),
@@ -116,6 +116,7 @@ class Mem:
 
     def __init__(self, S):
         self.main = bytearray(0x10000)
+        self.fcsize = S['FCSLOT_SIZE']
         cold = open(os.path.join(OUT, 'D.CODEC.bin'), 'rb').read()
         self.banks = {HOME: bytearray(open(os.path.join(OUT, 'D.CODEH.bin'), 'rb').read()),
                       RBANK: bytearray(open(os.path.join(OUT, 'BANK5.bin'), 'rb').read()),
@@ -145,9 +146,14 @@ class Mem:
         self.bad = []
 
     def blueprints(self, name):
-        """the blueprint set D.MOx into the home bank's slot"""
+        """the blueprint set D.MOx into the home bank's slot, and its face
+        lists, after the slot's pages, into bank 6's (as PCLI, then LOMOD's
+        F_SETLD, do; elite-shipset.asm)"""
         d = open(os.path.join(OUT, 'D.MO%s.bin' % name), 'rb').read()
-        self.banks[HOME][BPSLOT - 0x8000:BPSLOT - 0x8000 + len(d)] = d
+        n = 0xC000 - BPSLOT
+        self.banks[HOME][BPSLOT - 0x8000:0x4000] = d[:n]
+        fcslot = 0xBFC0 - self.fcsize
+        self.banks[FBANK][fcslot - 0x8000:fcslot - 0x8000 + self.fcsize] = d[n:n + self.fcsize].ljust(self.fcsize, b'\0')
 
     def __getitem__(self, a):
         if 0x8000 <= a < 0xC000:

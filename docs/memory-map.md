@@ -54,11 +54,12 @@ program's source.
 4. **Both home banks have one layout.** `S%`, the program's entry table,
    is at `&8000` (`HOME%`) in both, as the original's was at `&11E3` in
    both, so that the loader's resident code can enter either. The blueprint
-   set is at `&B900-&BFFF` (`BPSLOT%`, the original's `XX21` at `&5600`) in
-   both: 1,792 bytes, as the blueprints are assembled without their edge
+   set is at `&B700-&BFFF` (`BPSLOT%`, the original's `XX21` at `&5600`) in
+   both: 2,304 bytes, as the blueprints are assembled without their edge
    lists (the `EDGE` macro assembles nothing: every ship is drawn from its
    faces, and nothing reads the edges), so the largest set, `D.MOC`, takes
-   1,693 bytes where the original's files take 2,560. The blueprints'
+   1,693 bytes where the original's files take 2,560; the rest holds the
+   renderer's data for the set's ships ("Per-set renderer data", below). The blueprints'
    headers, their edge counts included, are as they were. The flight code loads its set from a `D.MOx` file there; the docked
    code's set is its own, assembled with it. The missile's blueprint stays
    in main RAM at `&7F00`, as in the original, where both sets point.
@@ -111,7 +112,7 @@ Master port, each program is emitted in three passes, **low**, **hot** and
   call any pass but not the other overlay, even through code in between:
   `2-build-files/ovlcheck.py` checks every path at build time.
 * **`Area: blueprints`** (the docked code's own ship blueprints) is bank 4's
-  blueprint slot at `&B900`.
+  blueprint slot at `&B700`.
 * **`Area: none`** is code the port no longer runs: each copy has only its
   labels and one `RTS`, at its place, so a reference still assembles and
   returns at once.
@@ -287,6 +288,34 @@ an iteration on average (two loads a hyperspace jump at most).
 * Anything else (`*CAT`, `*DELETE`, `*DIR`) is copied into main RAM and
   passed to the MOS.
 
+## Per-set renderer data
+
+Only one blueprint set's ships exist at a time, so the renderer's data for
+each ship type is loaded with its set, as the blueprints are, rather than
+kept for all 33 types: `2-build-files/faces.py` writes it by set
+(`gfx-setnorm.asm`, `gfx-settab.asm`, `gfx-setfaces.asm`) and
+`elite-shipset.asm` assembles each set's part at the end of its ship file:
+
+* the ships' unit normals after the blueprints, and their table
+  `FC_NORMTAB` at `NORMTAB` (the slot's last 66 bytes), which the lighting
+  (`L_REC`) reads as before (`LDA FC_NORMTAB,X`: the same instructions);
+* the face and detail lists with `FC_FACETAB` and `FC_DETTAB`, assembled
+  at bank 6's `FCSLOT` (847 bytes below the dispatcher, the largest set's)
+  and carried in the file after the slot's pages: `PCLI` copies the slot's
+  nine pages into bank 4 and leaves the file at `STAGE%`, and `LOMOD` then
+  has the frame layer copy the lists into `FCSLOT` (`F_SETLD`). The docked
+  code's set has its lists at the start of its cold image, and `DEEOR`,
+  which every start of the docked code after a load runs first, has them
+  copied the same way.
+
+`2-build-files/setcheck.py` (run by `make`) reads every set's data as built,
+from its own `XX21`, and checks it byte for byte against faces.py's tables
+of all types (`faces-master.json`). Against tables of all types this saves
+466 bytes of bank 4 (the 978-byte normals table, less the slot's two more
+pages) and 1,201 of bank 6. The lookups are unchanged; the larger files and
+the copy cost about 14,400 cycles per hyperspace iteration in the gate's
+run (375 per flight iteration on average).
+
 ## The map
 
 The map at the end of part 3 (the parts before it differed below `&8000`:
@@ -309,7 +338,7 @@ see the history of this file).
 | The shared variables | `&7EA0-&7EAF` | `GVARS`: the renderer's state that the game's hooks, the interrupt and the frame layer share (the last, `GDL`, the disc layer's: which buffers have its disc) |
 | The high resident block | `&7EB0-&7EF0` | `RESH%` (`elite-resident-high.asm`): the palette and the rupture's register routine and tables |
 | The missile's blueprint | `&7F00-&7F9F` | as in the original, without its edges; then the programs' main RAM part, `PROGM%` (`&7FA0-&7FFD`); `VEC` at `&7FFE` |
-| Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`, with the lighting (`gfx-light.asm`: `L_REC`, and in the flight code `L_SUN`) and the faces' normals (`gfx-normals.asm`); the quarter squares at `&B500-&B8FF` (`QSL`, `QSH`); the blueprint set at `&B900` |
+| Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`, with the lighting (`gfx-light.asm`: `L_REC`, and in the flight code `L_SUN`) and the quarter squares at `&B300-&B6FF` (`QSL`, `QSH`); the blueprint set at `&B700`, with its ships' normals and `FC_NORMTAB` (`NORMTAB`) |
 | Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000`, then `QQ18`; in the flight code, then the renderer's window (`WIN7%`: the disc layer, `gfx-dlayer.asm`); `DFSSAVE%` at `&BF00` |
 | Bank 5 | ROMSEL `BANK5` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), the jump table `RJT` |
 | Bank 6 | ROMSEL `BANK6` | the frame layer, from `F.BANK`: its code with the lens flare, the screens drawn directly and the hangar's background (`&8000-&A091`), the face lists and the lighting's ramps (`&A092-&ABCF`), its state (`&ABD0-&B3FF`), the dispatcher `FJT` (`&BFC0`) |

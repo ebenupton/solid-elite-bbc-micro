@@ -1393,6 +1393,8 @@ ENDMACRO
 \ ******************************************************************************
 
  PRINT "S.D.MOC ", ~CODE%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD%
- SAVE "3-assembled-output/D.MOC.bin", CODE%, P%
- ASSERT P% <= BPSLOT_END%      \ (Port: the blueprint slot, elite-map.asm)
+ SETN = 2               \ Port: the renderer's data for this set's ships
+ INCLUDE "1-source-files/main-sources/elite-shipset.asm"
+
+ SAVE "3-assembled-output/D.MOC.bin", CODE%, SETF_END%
 

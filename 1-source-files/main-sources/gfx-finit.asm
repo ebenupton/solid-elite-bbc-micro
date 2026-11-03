@@ -46,3 +46,38 @@
  LDA #&FF
  STA GSTASH
  JMP f_reset            \ (no docking slot, the lists empty; Y kept)
+
+\ ============================================================================
+\ F_SETLD (FG_SETLD): copy a blueprint set's face lists (FC_FACETAB,
+\ FC_DETTAB and their lists, FCSLOT_SIZE bytes) into their slot, FCSLOT,
+\ from main RAM page A (STAGE%, where PCLI has just loaded the set's file or
+\ the docked code's cold image: LOMOD and DEEOR call it). Keeps Y.
+\ ============================================================================
+.F_SETLD
+{
+  STA src+2
+  LDA #HI(FCSLOT)
+  STA dst+2
+  STY ys
+  LDY #HI(FCSLOT_SIZE) + 1  \ pages, the last one partial
+  LDX #0
+.lp
+  CPY #1
+  BNE src
+  CPX #LO(FCSLOT_SIZE)
+  BEQ done
+.src
+  LDA &FF00,X             \ (patched)
+.dst
+  STA LO(FCSLOT) + &FF00,X  \ (high byte patched)
+  INX
+  BNE lp
+  INC src+2
+  INC dst+2
+  DEY
+  BNE lp
+.done
+  LDY ys
+  RTS
+.ys EQUB 0
+}

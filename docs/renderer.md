@@ -149,9 +149,11 @@ What differs from the Master port's frame layer:
   after; the loops that run game code count in bank 6, `f_ii`, `f_di`).
 * **The discs** are the Model B's (below: "The discs").
 * **The lighting** runs in the game's bank 4 (`L_SUN`, `L_REC`,
-  `gfx-light.asm`, with the faces' normals, `gfx-normals.asm`), where the
-  quarter squares are (the only copy): `F_SHIP` is given the faces' levels
-  in `XX2`. Its face lists (`gfx-faces.asm`) hold no normals.
+  `gfx-light.asm`, with the faces' normals, which the blueprint set
+  carries), where the quarter squares are (the only copy): `F_SHIP` is
+  given the faces' levels in `XX2`. Its face lists, loaded with the
+  blueprint set into `FCSLOT` ([memory-map.md](memory-map.md), "Per-set
+  renderer data"), hold no normals.
 * **The lens flare** is in bank 6 with the frame layer (the Master port's
   `R_FLARE` is in its bank 7): it writes the back buffer itself, and marks
   each ghost's box dirty (`T_MARKBOX`) where the Master port writes each

@@ -104,6 +104,7 @@ all:
 	$(PYTHON) 2-build-files/bank6.py $(BEEBASM)
 	$(PYTHON) 2-build-files/bankcheck.py
 	$(PYTHON) 2-build-files/ovlcheck.py
+	$(PYTHON) 2-build-files/setcheck.py
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-a.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-b.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-c.asm -v >> 3-assembled-output/compile.txt

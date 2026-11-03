@@ -90,8 +90,23 @@
 
 .BP_END%
 
- PRINT "Docked blueprints: ", ~BPSLOT%, "-", ~BP_END%-1, ", free ", BPSLOT_END%-BP_END%
- ASSERT XX21 = BPSLOT% AND BP_END% <= BPSLOT_END%
+ ASSERT XX21 = BPSLOT%
+
+ SETN = 16              \ Port: the renderer's data for this set's ships: their
+                        \ normals and FC_NORMTAB here (elite-shipset.asm's
+                        \ parts 1 and 2), their face lists at the start of the
+                        \ cold image (below)
+
+ INCLUDE "1-source-files/main-sources/gfx-setnorm.asm"
+
+ PRINT "Docked blueprints: ", ~BPSLOT%, "-", ~BP_END%-1, ", normals to ", ~P%-1, ", free ", NORMTAB-P%
+ ASSERT P% <= NORMTAB
+
+ ORG NORMTAB
+
+ INCLUDE "1-source-files/main-sources/gfx-settab.asm"
+
+ ASSERT P% = BPSLOT_END%
 
  ORG PROGI%             \ the main RAM part's image, at the end of the blueprint
  COPYBLOCK PROGM%, PROGM_END%, PROGI%   \ slot (elite-map.asm)
@@ -99,7 +114,17 @@
  SAVE "3-assembled-output/T.CODEH.bin", HOME%, &C000, HOME%
 
  CLEAR &8000, &C000
- ORG &8000
+
+ ORG FCSLOT             \ Port: the face lists of this code's blueprint set,
+                        \ assembled at bank 6's slot, FCSLOT, and moved to the
+ INCLUDE "1-source-files/main-sources/gfx-setfaces.asm"   \ start of the cold image,
+                        \ which PCLI loads at STAGE%: DEEOR has the frame layer
+ SETF_END% = P%         \ copy them from there (F_SETLD)
+ ASSERT SETF_END% <= FCSLOT + FCSLOT_SIZE
+ COPYBLOCK FCSLOT, SETF_END%, &8000
+ CLEAR FCSLOT, &C000
+
+ ORG &8000 + SETF_END% - FCSLOT
 
 .COLD_START%
 

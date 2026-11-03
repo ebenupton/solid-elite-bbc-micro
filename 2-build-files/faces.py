@@ -100,9 +100,13 @@ def _geom(s):
                 [f['vis'] for f in s['faces']])
 
 
+SETS = {}                                       # set letter -> its types (load_ships)
+
+
 def load_ships():
     found = {}
     for name, mem in _sets():
+        SETS[name[-1].lower()] = []
         for t in range(1, 32):
             a = mem[XX21 + 2 * (t - 1)] | mem[XX21 + 2 * (t - 1) + 1] << 8
             if not a:
@@ -110,6 +114,7 @@ def load_ships():
             s = parse(mem, a)
             if t == 2 and len(s['verts']) == 24:
                 t = 32                           # the dodecahedron station
+            SETS[name[-1].lower()].append(t)
             if t in found:
                 if t != 8:                       # (the splinter's normals vary)
                     assert _geom(found[t]) == _geom(s) and found[t]['faces'] == s['faces'], \
@@ -1070,10 +1075,16 @@ def emit(ships, path):
           '\\ (lightramps.py).  Per-type pointer tables have an entry for every type',
           '\\ 0..32 (type 0 is a dummy, and a type no blueprint set has, FC_SNONE).',
           '\\',
+          '\\ The face lists, FC_FACETAB and FC_DETTAB with what they point to, are',
+          '\\ loaded with each blueprint set, as only one set\'s ships exist at a time:',
+          '\\ gfx-setfaces.asm has them by set, and each D.MOx file (and the docked',
+          '\\ code\'s cold image) carries its set\'s, which the game copies into the',
+          '\\ slot FCSLOT here (F_SETLD) when it loads them.',
+          '\\',
           '\\ FC_FACETAB -> per face f, in blueprint order: n + 16 * its hue ramp (0..8',
           '\\   in the shared pool, gfx-light6.asm), then n XX3 offsets (4 * vertex)',
           '\\   (its unit normal, which the lighting uses to pick the ramp entry, is',
-          '\\   in gfx-normals.asm, in the game\'s bank 4).  Polygons are',
+          '\\   with the blueprints, in the game\'s bank 4).  Polygons are',
           '\\   convex and CLOCKWISE ON SCREEN (x right, y down) when the face is',
           '\\   front-facing, for every orientation with det -1, i.e. as set by ZINF',
           '\\   and kept by TIDY (sidev = nosev x roofv).  The station (NWSPS negates',
@@ -1109,60 +1120,11 @@ def emit(ships, path):
     L.append('FC_SUNE = &%02X : FC_SUNO = &%02X' % (se, so))
     L.append('FC_PLANE = &%02X : FC_PLANO = &%02X' % (pe, po))
     L.append('')
-    for name, tag in (('FACETAB', 'F'), ('DETTAB', 'D')):
-        L.append('.FC_%s' % name)
-        L.append('%-30s\\ type 0: unused' % ' EQUW 0')
-        nbytes += 2
-        have = dict(ships)
-        for t in range(1, NTYPES + 1):
-            if t in have:
-                L.append(('%-30s' % (' EQUW FC_S%d_%s' % (t, tag))) + '\\ type %d: %s' % (t, have[t]['name']))
-            else:
-                L.append(('%-30s' % (' EQUW FC_SNONE_%s' % tag)) + '\\ type %d: in no set' % t)
-            nbytes += 2
-        L.append('')
-    for t, s in ships:
-        L.append('\\ %s (type %d): hues %s + %s' % ((s['name'], t) + SHIP_HUES[t]))
-        L.append('.FC_S%d_F' % t)
-        for f in range(len(s['faces'])):
-            p = s['nodes'][f]['poly']
-            c = LR.hue_byte(s['fam'][f])
-            nx, ny, nz = s['n63'][f]
-            assert len(p) < 16
-            vals = [len(p) + 16 * c] + [4 * v for v in p]
-            nbytes += len(vals)
-            L.append(' EQUB %d + 16 * %d%s    \\ face %d: %s' % (
-                len(p), c, ''.join(', %d' % (4 * v) for v in p), f, s['fam'][f]))
-        L.append('.FC_S%d_D' % t)
-
-        def item(d, what):
-            nonlocal nbytes
-            if d.get('kind') == 'line' or not d.get('fam'):
-                c = LR.fixed_byte(d['col'])
-                if 'fillvis' in d:
-                    c |= d['fillvis'] << 2      # (f_col reads bits 0-1 only)
-            else:
-                c = LR.hue_byte(d['fam'])
-            f1, f2 = d['faces']
-            vals = [d['vis'], f1 | f2 << 4, c, len(d['verts'])] + [4 * v for v in d['verts']]
-            nbytes += len(vals)
-            L.append(' EQUB %d, &%02X, &%02X, %d%s    \\ %s %s, %s' % (
-                d['vis'], f1 | f2 << 4, c, len(d['verts']),
-                ''.join(', %d' % (4 * v) for v in d['verts']), what, d['verts'],
-                d.get('fam') or ('unlit %d' % d['col'])))
-        L.append(' EQUB %d                       \\ fins' % len(s['fins']))
-        nbytes += 1
-        for d in s['fins']:
-            item(d, 'fin')
-        L.append(' EQUB %d                       \\ details' % len(s['dets']))
-        nbytes += 1
-        for d in s['dets']:
-            item(d, d['kind'])
-        L.append('')
-    L.append('.FC_SNONE_F                    \\ a type in no blueprint set: no faces, fins or details')
-    L.append('.FC_SNONE_D')
-    L.append(' EQUB 0, 0')
-    nbytes += 2
+    L.append('FCSLOT_SIZE = %d                \\ the face lists\' slot (gfx-setfaces.asm), at the' % fcslot_size(ships))
+    L.append('FCSLOT = &BFC0 - FCSLOT_SIZE    \\ top of bank 6, below the dispatcher')
+    L.append('FC_FACETAB = FCSLOT')
+    L.append('FC_DETTAB = FCSLOT + 2 * (FC_NTYPES + 1)')
+    L.append('')
     have = dict(ships)
     L.append('.FC_MINVIS                     \\ by type: least visibility distance of any polygon vertex;')
     L.append('                              \\ if XX4 > this, some polygon vertex may be unprojected (stale)')
@@ -1189,40 +1151,152 @@ def emit(ships, path):
     return nbytes
 
 
-def emit_normals(ships, path):
-    """gfx-normals.asm: each face's unit normal, for the lighting's L_REC
-    (gfx-light.asm), which runs in the game's bank 4 with the quarter
-    squares: the only copy of the normals (the face lists in bank 6 have
-    none)"""
-    L = ['\\ gfx-normals.asm -- generated by faces.py (see docs/renderer.md); do not edit.',
-         '\\',
-         '\\ The ships\' faces\' unit normals, for the lighting (gfx-light.asm\'s L_REC,',
-         '\\ in the game\'s bank 4, INCLUDEd in the block L_REC of each program).',
-         '\\ FC_NORMTAB -> per type 0..%d, per face f in blueprint order (as' % NTYPES,
-         '\\   gfx-faces.asm\'s face lists): x, y, z, signed bytes, magnitude 61.',
-         '']
-    nbytes = 0
-    have = dict(ships)
-    L.append('.FC_NORMTAB')
-    L.append('%-30s\\ type 0: unused' % ' EQUW 0')
-    nbytes += 2
-    for t in range(1, NTYPES + 1):
-        if t in have:
-            L.append(('%-30s' % (' EQUW FC_S%d_N' % t)) + '\\ type %d: %s' % (t, have[t]['name']))
+def type_lists(t, s):
+    """the face list and detail list of type t: (lines, bytes, values), the
+    values being the face list's bytes then the detail list's"""
+    import lightramps as LR
+    L, nb, fv, dv = [], [0], [], []
+    L.append('\\ %s (type %d): hues %s + %s' % ((s['name'], t) + SHIP_HUES[t]))
+    L.append('.FC_S%d_F' % t)
+    for f in range(len(s['faces'])):
+        p = s['nodes'][f]['poly']
+        c = LR.hue_byte(s['fam'][f])
+        assert len(p) < 16
+        nb[0] += 1 + len(p)
+        fv.extend([len(p) + 16 * c] + [4 * v for v in p])
+        L.append(' EQUB %d + 16 * %d%s    \\ face %d: %s' % (
+            len(p), c, ''.join(', %d' % (4 * v) for v in p), f, s['fam'][f]))
+    L.append('.FC_S%d_D' % t)
+
+    def item(d, what):
+        if d.get('kind') == 'line' or not d.get('fam'):
+            c = LR.fixed_byte(d['col'])
+            if 'fillvis' in d:
+                c |= d['fillvis'] << 2      # (f_col reads bits 0-1 only)
         else:
-            L.append(('%-30s' % ' EQUW 0') + '\\ type %d: in no set' % t)
-        nbytes += 2
+            c = LR.hue_byte(d['fam'])
+        f1, f2 = d['faces']
+        nb[0] += 4 + len(d['verts'])
+        dv.extend([d['vis'], f1 | f2 << 4, c, len(d['verts'])] + [4 * v for v in d['verts']])
+        L.append(' EQUB %d, &%02X, &%02X, %d%s    \\ %s %s, %s' % (
+            d['vis'], f1 | f2 << 4, c, len(d['verts']),
+            ''.join(', %d' % (4 * v) for v in d['verts']), what, d['verts'],
+            d.get('fam') or ('unlit %d' % d['col'])))
+    L.append(' EQUB %d                       \\ fins' % len(s['fins']))
+    nb[0] += 1
+    dv.append(len(s['fins']))
+    for d in s['fins']:
+        item(d, 'fin')
+    L.append(' EQUB %d                       \\ details' % len(s['dets']))
+    nb[0] += 1
+    dv.append(len(s['dets']))
+    for d in s['dets']:
+        item(d, d['kind'])
+    return L, nb[0], (fv, dv)
+
+
+def docked_set():
+    """the docked code's blueprint set, from its XX21 (elite-source-docked.asm)"""
+    src = open(os.path.join(SRC, 'elite-source-docked.asm'), encoding='latin-1').read()
+    lines = src[src.index('\n.XX21\n'):].split('\n')[1:]
+    types, t = [], 0
+    for l in lines:
+        m = re.match(r'\s*EQUW (\S+)', l)
+        if not m:
+            continue
+        t += 1
+        if m.group(1) != '0':
+            types.append(t)
+        if t == 31:
+            return types
+
+
+def all_sets():
+    """(SETN, name, types): the sixteen D.MOx sets (0 to 15) and the docked
+    code's (16)"""
+    out = [(k, 'D.MO' + c.upper(), SETS[c]) for k, c in enumerate(sorted(SETS))]
+    return out + [(16, 'the docked code', docked_set())]
+
+
+def fcslot_size(ships):
+    have = dict(ships)
+    sizes = {t: type_lists(t, have[t])[1] for t in have}
+    return max(4 * (NTYPES + 1) + 2 + sum(sizes[t] for t in ts) for k, n, ts in all_sets())
+
+
+def emit_setdata(ships):
+    """the per-set data that each blueprint set carries, in three files that
+    elite-shipset.asm INCLUDEs with SETN set (0-15: D.MOA to D.MOP, 16: the
+    docked code's set): gfx-setnorm.asm (which says which types the set has,
+    then its ships' unit normals, after the blueprints in bank 4's slot),
+    gfx-settab.asm (their table FC_NORMTAB, at NORMTAB at the slot's end) and
+    gfx-setfaces.asm (FC_FACETAB and FC_DETTAB with the face and detail
+    lists, assembled at bank 6's FCSLOT)"""
+    have = dict(ships)
+    sets = all_sets()
+    head = lambda name, what: ['\\ %s -- generated by faces.py (see docs/renderer.md); do not edit.' % name,
+                               '\\', '\\ ' + what,
+                               '\\ (elite-shipset.asm; 2-build-files/setcheck.py checks each set\'s data',
+                               '\\ as built against the tables of all types.)', '']
+    L = head('gfx-setnorm.asm', 'The types the set SETN has, then its ships\' unit normals: x, y, z per face, signed bytes, magnitude 61.')
+    L += ['FCSLOT_SIZE = %d                \\ the face lists\' slot in bank 6 (the largest set\'s)' % fcslot_size(ships),
+          'FCSLOT = &BFC0 - FCSLOT_SIZE', '']
+    for k, name, ts in sets:
+        L.append('IF SETN = %d                     \\ %s: types %s' % (k, name, ', '.join(map(str, ts))))
+        for t in range(1, NTYPES + 1):
+            L.append(' ST%d = %s' % (t, 'TRUE' if t in ts else 'FALSE'))
+        L.append('ENDIF')
     L.append('')
     for t, s in ships:
+        L.append('IF ST%d' % t)
         L.append('.FC_S%d_N                     \\ %s' % (t, s['name']))
         for f in range(len(s['faces'])):
             nx, ny, nz = s['n63'][f]
             L.append(' EQUB %d AND &FF, %d AND &FF, %d AND &FF    \\ face %d' % (nx, ny, nz, f))
-            nbytes += 3
-    L.append('')
-    L.append('\\ %d bytes in all' % nbytes)
-    open(path, 'w').write('\n'.join(L) + '\n')
-    return nbytes
+        L.append('ENDIF')
+    open(os.path.join(SRC, 'gfx-setnorm.asm'), 'w').write('\n'.join(L) + '\n')
+    L = head('gfx-settab.asm', 'FC_NORMTAB: by type 0..%d, the set\'s unit normals for that type (0: not in the set).' % NTYPES)
+    L.append('.FC_NORMTAB_S')
+    L.append(' EQUW 0                        \\ type 0: unused')
+    for t in range(1, NTYPES + 1):
+        if t in have:
+            L += ['IF ST%d' % t, ' EQUW FC_S%d_N                \\ type %d: %s' % (t, t, have[t]['name']),
+                  'ELSE', ' EQUW 0', 'ENDIF']
+        else:
+            L.append(' EQUW 0                        \\ type %d: in no set' % t)
+    open(os.path.join(SRC, 'gfx-settab.asm'), 'w').write('\n'.join(L) + '\n')
+    L = head('gfx-setfaces.asm', 'FC_FACETAB and FC_DETTAB by type 0..%d, then the set\'s face and detail lists (gfx-faces.asm describes them); a type the set does not have points at FC_SNONE.' % NTYPES)
+    for name, tag in (('FACETAB', 'F'), ('DETTAB', 'D')):
+        L.append('.FC_%s_S' % name)
+        L.append(' EQUW FC_SNONE_%s                \\ type 0: unused' % tag)
+        for t in range(1, NTYPES + 1):
+            if t in have:
+                L += ['IF ST%d' % t, ' EQUW FC_S%d_%s                \\ type %d: %s' % (t, tag, t, have[t]['name']),
+                      'ELSE', ' EQUW FC_SNONE_%s' % tag, 'ENDIF']
+            else:
+                L.append(' EQUW FC_SNONE_%s                \\ type %d: in no set' % (tag, t))
+    for t, s in ships:
+        L.append('IF ST%d' % t)
+        L += type_lists(t, s)[0]
+        L.append('ENDIF')
+    L.append('.FC_SNONE_F                    \\ a type this set does not have: no faces, fins or details')
+    L.append('.FC_SNONE_D')
+    L.append(' EQUB 0, 0')
+    open(os.path.join(SRC, 'gfx-setfaces.asm'), 'w').write('\n'.join(L) + '\n')
+
+
+def emit_master(ships, path):
+    """the all-types tables as JSON, for setcheck.py: per type its normals
+    and its face and detail lists, as bytes"""
+    import json
+    out = {}
+    for t, s in ships:
+        n = []
+        for f in range(len(s['faces'])):
+            n += [v & 255 for v in s['n63'][f]]
+        fv, dv = type_lists(t, s)[2]
+        out[t] = dict(normals=n, faces=fv, details=dv)
+    json.dump(out, open(path, 'w'), indent=0)
 
 
 def report(ships):
@@ -1248,10 +1322,14 @@ def main():
     for t, s in ships:
         LR.annotate(t, s)
     n = emit(ships, os.path.join(SRC, 'gfx-faces.asm'))
-    nn = emit_normals(ships, os.path.join(SRC, 'gfx-normals.asm'))
+    emit_setdata(ships)
+    emit_master(ships, os.path.join(ROOT, '2-build-files', 'faces-master.json'))
     LR.emit_light(os.path.join(SRC, 'gfx-light6.asm'))
     print('\n'.join(report(ships)))
-    print('gfx-faces.asm: %d bytes of tables, gfx-normals.asm: %d' % (n, nn))
+    print('gfx-faces.asm: %d bytes of tables; gfx-setfaces.asm: the face lists\' slot %d bytes'
+          % (n, fcslot_size(ships)))
+    for k, name, ts in all_sets():
+        print('  set %d (%s): types %s' % (k, name, ts))
 
 
 if __name__ == '__main__':

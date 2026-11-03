@@ -26644,9 +26644,14 @@ ENDIF
  LDX #LO(SHIPI)         \ Set (Y X) to point to the OS command at SHIPI, which
  LDY #HI(SHIPI)         \ loads the relevant ship blueprints file
 
- JMP OSCLI              \ Call OSCLI to execute the OS command at (Y X), which
-                        \ loads the relevant ship blueprints file, and return
-                        \ from the subroutine using a tail call
+ JSR OSCLI              \ Call OSCLI to execute the OS command at (Y X), which
+                        \ loads the relevant ship blueprints file
+
+ LDA #HI(STAGE% + SETF% - BPSLOT%)   \ Port: the file carries its ships' face
+ LDX #FG_SETLD          \ lists after the slot's pages, still at STAGE% after
+ JMP GCALL              \ PCLI's copy: have the frame layer copy them into its
+                        \ slot (F_SETLD, elite-shipset.asm), and return from the
+                        \ subroutine using a tail call
 
 \ ******************************************************************************
 \
@@ -30744,16 +30749,15 @@ ENDMACRO
 \ "Lighting"), in this bank as it multiplies with the quarter squares (QSL,
 \ QSH): L_SUN keeps the light for the next iteration's ships (from MFRAME),
 \ and L_REC turns each face's visibility in XX2 into its level for the ship
-\ being recorded, from the faces' unit normals (FC_NORMTAB, gfx-normals.asm,
-\ which faces.py generates).
+\ being recorded, from the faces' unit normals (FC_NORMTAB, which the
+\ blueprint set carries at NORMTAB with its ships' normals: gfx-settab.asm
+\ and gfx-setnorm.asm, which faces.py generates, elite-shipset.asm).
 \
 \ ******************************************************************************
 
 LIGHT_SUN = TRUE
 
  INCLUDE "1-source-files/main-sources/gfx-light.asm"
-
- INCLUDE "1-source-files/main-sources/gfx-normals.asm"
 
 \ ******************************************************************************
 \

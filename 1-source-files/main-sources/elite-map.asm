@@ -43,10 +43,18 @@
                         \ PCLI loads the program, and the flight code's D.MOx
                         \ files load over it afterwards
 
- BPSLOT% = &B900        \ The blueprint set in each home bank, to BPSLOT_END%
- BPSLOT_END% = PROGI%   \ without their edge lists (the EDGE macro), the
-                        \ largest set fits below PROGI% (the ship files and the
-                        \ docked code's layout check it)
+ BPSLOT% = &B700        \ The blueprint set in each home bank, to BPSLOT_END%
+ BPSLOT_END% = PROGI%   \ without their edge lists (the EDGE macro), then its
+                        \ ships' unit normals for the lighting, and their table
+                        \ FC_NORMTAB at NORMTAB, at the slot's end (gfx-setdata.asm,
+                        \ elite-shipset.asm): the largest set fits below PROGI%
+                        \ (the ship files and the docked code's layout check it)
+
+ NORMTAB = BPSLOT_END% - 2 * 33   \ FC_NORMTAB, by ship type 0 to 32
+
+ SETF% = &C000          \ Where a D.MOx file carries its ships' face lists:
+                        \ after the slot's pages (elite-shipset.asm)
+ FC_NORMTAB = NORMTAB
 
  OVSTASH = &3C00        \ Where the flight code's overlay loader keeps WP and
                         \ the filing system's zero page during a load (ovload:
@@ -151,7 +159,8 @@
  FG_HANG0    = 14
  FG_HANGAR   = 15
  FG_CLOUD    = 16
- FG_N        = 17
+ FG_SETLD    = 17
+ FG_N        = 18
 
                         \ The fixed colours of the frame layer's lines and dots
                         \ (indices into its F_CPE, gfx-frame.asm)

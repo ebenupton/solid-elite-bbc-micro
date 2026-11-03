@@ -2064,6 +2064,12 @@ IF _STH_DISC OR _IB_DISC
                         \ there is nothing to decrypt, as in the sideways RAM
                         \ variant
 
+ LDA #HI(STAGE%)        \ Port: every start of the docked code after PCLI has
+ LDX #FG_SETLD          \ loaded it comes here first, while its cold image is
+ JSR GCALL              \ still at STAGE%: have the frame layer copy this
+                        \ code's blueprint set's face lists, which start the
+                        \ image (elite-layout-docked.asm), into its slot
+
  JMP BRKBK              \ Jump to BRKBK
 
 ELIF _SRAM_DISC
@@ -25996,16 +26002,15 @@ ENDMACRO
 \ "Lighting"), in this bank as it multiplies with the quarter squares (QSL,
 \ QSH, which the docked code has for it alone; its light is fixed, LLT):
 \ L_REC turns each face's visibility in XX2 into its level for the ship
-\ being recorded, from the faces' unit normals (FC_NORMTAB, gfx-normals.asm,
-\ which faces.py generates).
+\ being recorded, from the faces' unit normals (FC_NORMTAB, which the
+\ blueprint set carries at NORMTAB with its ships' normals: gfx-settab.asm
+\ and gfx-setnorm.asm, which faces.py generates, elite-shipset.asm).
 \
 \ ******************************************************************************
 
 LIGHT_SUN = FALSE
 
  INCLUDE "1-source-files/main-sources/gfx-light.asm"
-
- INCLUDE "1-source-files/main-sources/gfx-normals.asm"
 
 \ ******************************************************************************
 \

@@ -36,7 +36,7 @@
 \ orientation vectors a = sidev, roofv, nosev (their high bytes halved: 48 =
 \ 1), |Ls| <= 64, 62 for a unit vector; then for each visible face, d = (n .
 \ Ls + 16) >> 5 for its unit normal n in blueprint coordinates (magnitude 61,
-\ FC_NORMTAB, gfx-normals.asm, from faces.py) is about 118 (n . L), and its
+\ FC_NORMTAB, loaded with the blueprints, from faces.py) is about 118 (n . L), and its
 \ level is min(31, (d + d / 16 + 2) / 4), or 0 if n . Ls < 0 (a ship vertex
 \ v is v_x sidev + v_y roofv + v_z nosev in view space, and so is a normal,
 \ whether the orientation is a rotation or, as the station's until its
@@ -459,7 +459,7 @@ ENDIF
  DEX
  BPL lr3
 
- LDA GTYPE              \ the type's unit normals (FC_NORMTAB, gfx-normals.asm:
+ LDA GTYPE              \ the type's unit normals (FC_NORMTAB, the set's:
  ASL A                  \ three bytes a face), less one (the loop below reads
  TAX                    \ bytes 1 to 3)
  LDA FC_NORMTAB,X
