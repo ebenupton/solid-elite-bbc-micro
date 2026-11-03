@@ -29565,9 +29565,10 @@ ENDMACRO
  JSR LL5h               \ Do the first four steps, shifting zeroes into T
 
  LDX S                  \ T is now 0, so set T to the dividend's low byte, as
- STX T                  \ the original has it at this point, and S = 0, as the
- LDX #0                 \ original's sixteen shifts leave it, and fall through
- STX S                  \ into LL5h to do the last four steps
+ STX T                  \ the original has it at this point, and S = 0 (Y = 0
+ STY S                  \ on return from LL5h), as the original's sixteen
+                        \ shifts leave it, and fall through into LL5h to do
+                        \ the last four steps
 
 .LL5h
 
