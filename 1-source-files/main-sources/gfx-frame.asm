@@ -2192,13 +2192,13 @@ fsd_zl = &20 : fsd_zh = &21 : fsd_rl = &22 : fsd_q = &24 : fsd_x = &25
 .f_itemv
  LDY #1                 \ face1 + 16 * face2: the brighter level (a hidden
  LDA (fz_q),Y           \ face's is 0)
+ PHA                    \ keep the byte for face2
  AND #15
  TAY
  LDA (fz_dl),Y
  AND #31
  STA fz_u
- LDY #1
- LDA (fz_q),Y
+ PLA                    \ face1 + 16 * face2 again
  LSR A
  LSR A
  LSR A
