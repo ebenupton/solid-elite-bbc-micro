@@ -5855,9 +5855,6 @@ ENDIF
  STA K5+1
  STA XX15+5
 
-
- LDA XX15+5             \ Restore A = x_hi
-
  BIT FLAG               \ If FLAG = 0, jump down to BL1 (FLAG is only ever 0
  BPL BL1                \ or &FF; BIT keeps A = x_hi)
 
