@@ -32458,17 +32458,11 @@ LIGHT_SUN = TRUE
                         \ We've just stored the screen x-coordinate of the
                         \ vertex on the XX3 heap, so now for the y-coordinate
 
- TXA                    \ Store the heap pointer in X on the stack (at this
- PHA                    \ it points to the last entry on the heap, not the first
-                        \ free byte)
-
  LDA #0                 \ Set U = 0
  STA U
 
- LDA T                  \ Set Q = z_lo
- STA Q
-
- LDA XX15+3             \ Set A = y_lo
+ LDA XX15+3             \ Set A = y_lo (Q is still z_lo from LL60, as LL61 and
+                        \ LL28 do not change it)
 
  CMP Q                  \ If y_lo < z_lo jump to LL67
  BCC LL67
@@ -32534,12 +32528,9 @@ LIGHT_SUN = TRUE
                         \ up the screen, converts to a low y-coordinate, which
                         \ is the opposite way round to the x-coordinates
 
- PLA                    \ Restore the heap pointer from the stack into X
- TAX
-
- INX                    \ When we stored the heap pointer, it pointed to the
-                        \ last entry on the heap, not the first free byte, so we
-                        \ increment it so it does point to the next free byte
+ LDX CNT                \ Set X = CNT + 2, the heap pointer for the y-coordinate
+ INX                    \ (we are one past the stored x_hi, which is at CNT+1)
+ INX
 
  LDA XX15+5             \ If y_sign is negative, jump up to LL70, which will
  BMI LL70               \ store #Y + (U R) on the XX3 heap and return by jumping
