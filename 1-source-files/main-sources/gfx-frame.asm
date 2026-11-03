@@ -2095,8 +2095,7 @@ fsd_zl = &20 : fsd_zh = &21 : fsd_rl = &22 : fsd_q = &24 : fsd_x = &25
  ASL A
  SEC
  SBC f_cnt              \ 7 * count (C = 1: no borrow)
- SEC
- ADC fz_dt
+ ADC fz_dt              \ + 1 via the C = 1 left by the SBC
  STA fz_q
  LDA fz_dt+1
  ADC #0
