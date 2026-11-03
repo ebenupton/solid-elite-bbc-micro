@@ -14095,6 +14095,8 @@ ENDMACRO
 
  BNE DVL9               \ If A is not 0, shift a bit at a time from DVL9
 
+.dvb9a
+
  LDA P+1                \ If P+1 >= 64, set A back to 0 and shift a bit at a
  CMP #64                \ time from DVL9 (the loop would stop within the byte)
  BCC P%+7
@@ -14112,8 +14114,11 @@ ENDMACRO
  ADC #8
  TAY
 
- PLA                    \ Set A to the new high byte (and Z if it is 0), and
- JMP dvb9               \ loop back to dvb9 to see if we can shift another byte
+ PLA                    \ Set A to the new high byte (and Z if it is 0)
+
+ BEQ dvb9a              \ If it is 0, loop back to see if we can shift another
+                        \ byte, otherwise fall through into DVL9 (which is what
+                        \ the BNE at dvb9 would have done)
 
 .DVL9
 
