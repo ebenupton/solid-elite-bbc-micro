@@ -396,8 +396,7 @@ FLHMAX = 26             \ the ring round the sun only for a sun this small
  LDA fl_gx
  SEC
  SBC fl_t
- BCS P%+4
- LDA #0
+ BCC P%+6               \ (borrow: clamp to 2)
  CMP #2
  BCS P%+4
  LDA #2
