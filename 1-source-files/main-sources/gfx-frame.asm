@@ -1890,8 +1890,7 @@ fsd_zl = &20 : fsd_zh = &21 : fsd_rl = &22 : fsd_q = &24 : fsd_x = &25
  BPL fsq9
  BMI fsq2
 .fsq1
- EOR #&FF               \ 128 - q, q <= 128
- SEC
+ EOR #&FF               \ 128 - q, q <= 128 (C set from fsd_div)
  ADC #128
  BCC fsq9
 .fsq2
