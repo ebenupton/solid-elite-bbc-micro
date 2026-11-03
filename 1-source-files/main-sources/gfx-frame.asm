@@ -1905,8 +1905,7 @@ fsd_zl = &20 : fsd_zh = &21 : fsd_rl = &22 : fsd_q = &24 : fsd_x = &25
  BCC fsq9
  BCS fsq4
 .fsq3
- CLC                    \ 96 + q < 190
- ADC #96
+ ADC #95                \ 96 + q < 190 (C set from fsd_div)
  BCS fsq9
  CMP #2*96-2
  BCS fsq9
