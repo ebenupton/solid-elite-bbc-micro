@@ -4959,9 +4959,10 @@ ENDIF
  LDA TWOS,X             \ Fetch a one-pixel byte from TWOS where pixel X is set,
  STA R                  \ and store it in R
 
- LDA Y1                 \ Set Y = Y1 mod 8, which is the pixel row within the
+ TYA                    \ Set Y = Y1 mod 8, which is the pixel row within the
  AND #7                 \ character block at which we want to draw the start of
- TAY                    \ our line (as each character block has 8 rows)
+ TAY                    \ our line (as each character block has 8 rows); Y
+                        \ already holds Y1 on both paths into LI15
 
                         \ The following calculates:
                         \
