@@ -605,10 +605,9 @@ NEXT
   STX r_m0
   RTS
 .long
-  LDA RZ_T6
   LDX RZ_T1
   STX r_v0
-  JMP r_div8
+  JMP r_div8+2            \ (RZ_T6 already holds the dividend: skip r_div8's STA RZ_T6)
 }
 \ the 32-bit multiply and divide
 .rp_m0 EQUB 0           \ 32-bit dividend / product; quotient m0,m1
