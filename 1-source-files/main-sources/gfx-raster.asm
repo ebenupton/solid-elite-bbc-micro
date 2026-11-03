@@ -873,11 +873,9 @@ R_ENDPAGE 15
   BCC out
   JSR r_rowset
   TYA
-  LSR A
-  LDA R_COLE
-  BCC ev
-  LDA R_COLO
-.ev
+  AND #1
+  TAX
+  LDA R_COLE,X            \ R_COLE, or R_COLO for an odd row
   STA RZ_COL
   LDX R_XL
   JMP r_spc
