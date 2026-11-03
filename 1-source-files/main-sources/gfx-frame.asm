@@ -212,12 +212,11 @@ DLMAX = 3               \ (TTX66's ee3: TT11, three digits)
  ASL A
  ASL A                  \ (row MOD 8) * 32
  STX f_tmld+1
- ORA f_tmld+1
- CLC
- ADC #LO(F_TM)
+ ORA f_tmld+1          \ (F_TM is page aligned: LO(F_TM) = 0)
  STA f_tmld+1
  STA f_tmst+1
  LDA f_tmld+2
+ CLC
  ADC #HI(F_TM)
  STA f_tmld+2
  STA f_tmst+2

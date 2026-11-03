@@ -79,6 +79,7 @@ F_SRN = MAXSH * 15      \ (the most faces is 15)
 .F_HW   SKIP 256        \ the planet's half-widths (f_hwbuild)
 .F_HW2  SKIP 256        \ the sun's
 .F_TM   SKIP 768        \ the text map: desired characters, 24 rows of 32
+ ASSERT LO(F_TM) = 0    \ (f_cell adds only the high byte)
 .R_NDISCR SKIP 192      \ the discs' rows this frame (f_discspans: the layer's,
 .R_NDISCL SKIP 192      \ then the second disc's), spans (L = 255, R = 0 for
 .R_NDN   SKIP 192       \ none), and the layer's boundaries (PC_ROWS): the
