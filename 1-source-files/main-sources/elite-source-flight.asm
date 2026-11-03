@@ -11324,7 +11324,7 @@ ENDIF
  EOR #%10000000
  STA K3+2,X
 
- JMP TS72               \ Jump to TS72 to return from the subroutine
+ RTS                    \ Return from the subroutine
 
 \ ******************************************************************************
 \
