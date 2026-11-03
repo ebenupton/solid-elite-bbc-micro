@@ -25400,16 +25400,10 @@ ENDMACRO
 
  DEC MCNT               \ Decrement the main loop counter in MCNT
 
- BEQ P%+5               \ If the counter has reached zero, which it will do
-                        \ every 256 main loops, skip the next JMP instruction
-                        \ (or to put it another way, if the counter hasn't
-                        \ reached zero, jump down to MLOOP, skipping all the
-                        \ following checks)
-
-.ytq
-
- JMP MLOOP              \ Jump down to MLOOP to do some end-of-loop tidying and
-                        \ restart the main loop
+ BNE MLOOP              \ If the counter hasn't reached zero (255 times out of
+                        \ 256), jump down to MLOOP to do some end-of-loop
+                        \ tidying and restart the main loop, skipping all the
+                        \ following checks
 
                         \ We only get here once every 256 iterations of the
                         \ main loop. If we aren't in witchspace and don't
@@ -25425,7 +25419,7 @@ ENDMACRO
                         \ a cargo canister (1.5% chance)
 
  LDA MJ                 \ If we are in witchspace following a mis-jump, skip the
- BNE ytq                \ following by jumping down to MLOOP (via ytq above)
+ BNE MLOOP              \ following by jumping down to MLOOP
 
  JSR DORND              \ Set A and X to random numbers
 
