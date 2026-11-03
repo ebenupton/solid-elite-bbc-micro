@@ -5230,18 +5230,16 @@ ENDIF
                         \ of the horizontal pixel row that we want to draw our
                         \ horizontal line on
 
- TXA                    \ Set Y = 2 * bits 2-7 of X1, the offset of X1's
- AND #%11111100         \ character block in its page, moving SC(1 0) to the
- ASL A                  \ row's second page if X1 >= 128
- TAY
- BCC P%+4
- INC SCH
-
-.HL1
-
  TXA                    \ Set T = bits 2-7 of X1, which will contain the
  AND #%11111100         \ character number of the start of the line * 4
  STA T
+
+ ASL A                  \ Set Y = 2 * bits 2-7 of X1, the offset of X1's
+ TAY                    \ character block in its page, moving SC(1 0) to the
+ BCC P%+4               \ row's second page if X1 >= 128
+ INC SCH
+
+.HL1
 
  LDA X2                 \ Set A = bits 2-7 of X2, which will contain the
  AND #%11111100         \ character number of the end of the line * 4
