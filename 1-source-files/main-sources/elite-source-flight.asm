@@ -6464,10 +6464,6 @@ ENDIF
  STA SZ,Y               \ z_hi so the new particle starts in the far distance
  STA ZZ
 
- LDA Y1                 \ Set A to the new value of y_hi. This has no effect as
-                        \ STC1 starts with a jump to PIXEL2, which starts with a
-                        \ LDA instruction
-
  JMP STC1               \ Jump up to STC1 to draw this new particle
 
 .stl_pat
