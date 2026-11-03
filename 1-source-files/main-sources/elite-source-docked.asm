@@ -8218,13 +8218,9 @@ ENDIF
                         \ bank indicators, so we can calculate each of the four
                         \ energy banks' values and store them in XX12
 
- LDA ENERGY             \ Set A = Q = ENERGY / 4, so they are both now in the
+ LDA ENERGY             \ Set A = ENERGY / 4, so it is now in the
  LSR A                  \ range 0-63 (so that's a maximum of 16 in each of the
  LSR A                  \ banks, and a maximum of 15 in the top bank)
-
- STA Q                  \ Set Q to A, so we can use Q to hold the remaining
-                        \ energy as we work our way through each bank, from the
-                        \ full ones at the bottom to the empty ones at the top
 
 .DLL24
 
@@ -8235,13 +8231,13 @@ ENDIF
                         \ not full to the brim, and is therefore the last one
                         \ with any energy in it, so jump to DLL26
 
- STA Q                  \ This bank is full, so update Q with the energy of the
-                        \ remaining banks
+ PHA                    \ This bank is full, so save the energy of the
+                        \ remaining banks on the stack
 
  LDA #16                \ Store this bank's level in XX12 as 16, as it is full,
  STA XX12,X             \ with XX12+3 for the bottom bank and XX12+0 for the top
 
- LDA Q                  \ Set A to the remaining energy level again
+ PLA                    \ Set A to the remaining energy level again
 
  DEX                    \ Decrement X to point to the next bank, i.e. the one
                         \ above the bank we just processed
@@ -8255,10 +8251,11 @@ ENDIF
 
 .DLL26
 
- LDA Q                  \ If we get here then the bank we just checked is not
- STA XX12,X             \ fully charged, so store its value in XX12 (using Q,
-                        \ which contains the energy of the remaining banks -
-                        \ i.e. this one)
+ ADC #16                \ If we get here then the bank we just checked is not
+ STA XX12,X             \ fully charged, so store its value in XX12 (adding
+                        \ back the 16 we subtracted, as the C flag is clear, to
+                        \ give the energy of the remaining banks - i.e. this
+                        \ one)
 
                         \ Now that we have the four energy bank values in XX12,
                         \ we can draw them, starting with the top bank in XX12
