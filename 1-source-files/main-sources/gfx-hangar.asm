@@ -38,17 +38,15 @@ HTOP = 16               \ the wall's top row: text row 1, the view's name, is on
  STY fh_y
  LDX #LO(f_hback)
  LDY #HI(f_hback)
- JSR fhg_pat
- LDY fh_y
+ JSR fhg_pat            \ (fhg_pat restores Y)
  JSR F_FRAME
  LDX #LO(f_lines)
  LDY #HI(f_lines)
- JSR fhg_pat
- LDY fh_y
- RTS
+ JMP fhg_pat            \ and returns with Y restored
 .fhg_pat
  STX ff_lin+1
  STY ff_lin+2
+ LDY fh_y               \ the caller's Y
  RTS
 .fh_y EQUB 0
 
