@@ -227,9 +227,6 @@ FLHMAX = 26             \ the ring round the sun only for a sun this small
  STY fl_i
  BMI flm3               \ (NMOS: X = &FF)
 
-.flm9
- RTS
-
 .flm8                   \ the sums for the next ghost: S -= (k - k') 32 D
  LDY fl_dk,X
 .flc1
@@ -253,7 +250,7 @@ FLHMAX = 26             \ the ring round the sun only for a sun this small
 .flm3                   \ the next ghost
  LDX fl_i
  CPX #FLNG
- BCS flm9
+ BCS flab9              \ (the RTS in fl_abs)
  INC fl_i
  TXA                    \ k = 8: the ring round the sun, if the sun is small
  BNE flm8
