@@ -3069,15 +3069,13 @@ SGOUT = 20
 
 .f_abs16
  BPL fab1
- EOR #&FF
- STA fz_u
- LDA fz_t
- EOR #&FF
- CLC
- ADC #1
+ STA fz_u               \ negate the 16-bit value: 0 - (A fz_t)
+ SEC
+ LDA #0
+ SBC fz_t
  STA fz_t
- LDA fz_u
- ADC #0
+ LDA #0
+ SBC fz_u
 .fab1
  BNE fab9
  LDA fz_t
