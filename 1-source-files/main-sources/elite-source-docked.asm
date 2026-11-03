@@ -3522,8 +3522,9 @@ ENDIF
  AND #%10000000         \ into RAT2
  STA RAT2
 
- LDA INWK+29            \ Fetch the ship's roll counter and extract the value
- AND #%01111111         \ without the sign bit into A
+ EOR INWK+29            \ Fetch the ship's roll counter and clear the sign
+                        \ bit by EOR'ing with the sign we just extracted, so
+                        \ A is the value without the sign bit
 
  BEQ MV5                \ If the roll counter is 0, then jump to MV5 to skip the
                         \ following, as the ship is not rolling

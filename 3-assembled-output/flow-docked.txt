@@ -1,120 +1,120 @@
-hot &8000-&B2FF: 118 units, 9198 bytes, 3858 free
+hot &8000-&B2FF: 118 units, 9196 bytes, 3860 free
   &8000    22 S%
   &8016    15 INBAY
   &8025    20 DEEOR
   &8039    16 BRKBK
   &8049    17 MVEIT (Part 1 of 9)
-  &805A   102 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
-  &80C0    87 MVT1
-  &8117    92 MVT3
-  &8173   103 MVS4
-  &81DA   140 MVS5
-  &8266    53 MVT6
-  &829B    26 UNIV
-  &82B5     8 TWOS
-  &82BD     8 TWOS2
-  &82C5     4 CTWOS
-  &82C9   239 LOIN (Part 1 of 7)..LOIN (Part 4 of 7)
-  &83B8   394 LOIN (Part 5 of 7)..HLOIN
-  &8542     4 TWFL
-  &8546     4 TWFR
-  &854A   143 PX3..PIXEL
-  &85D9   154 BLINE
-  &8673    52 FLIP
-  &86A7   194 DIALS (Part 1 of 4)..DIALS (Part 4 of 4)
-  &8769    16 PZW
-  &8779   119 DILX
-  &87F0    86 DIL2
-  &8846    36 HATB
-  &886A    91 HALL
-  &88C5     1 HANGER
-  &88C6   141 HAS1
-  &8953     1 HAS2
-  &8954    33 UNWISE
-  &8975    10 MU5
-  &897F    57 MLS2..MU11
-  &89B8     5 MU6
-  &89BD    34 FMLTU2..FMLTU
-  &89DF    35 MLTU2
-  &8A02    54 MUT2..MULT1
-  &8A38    10 MULT12
-  &8A42    91 TAS3..ADD
-  &8A9D    35 TIS1
-  &8AC0    32 DV42..DVID4
-  &8AE0   129 DVID3B2
-  &8B61    18 cntr
-  &8B73    53 BUMP2..REDU2
-  &8BA8     8 LYN
-  &8BB0   200 CPIX4..CPIX2
-  &8C78     8 DOEXP
-  &8C80    60 WPSHPS..FLFLLS
-  &8CBC    10 DET1
-  &8CC6    16 SHD..DENGY
-  &8CD6    19 SPS3
-  &8CE9    14 GINF
-  &8CF7   124 NWSHP
-  &8D73     9 NwS1
-  &8D7C    14 ABORT..ABORT2
-  &8D8A   316 SPBLB..BULB
-  &8EC6     8 SPBT
-  &8ECE    65 MSBAR
-  &8F0F   303 SUN (Part 1 of 4)..SUN (Part 4 of 4)
-  &903E   114 CIRCLE..CIRCLE2
-  &90B0    10 WP1
-  &90BA   140 WPLS..CHKON
-  &9146   100 TT17
-  &91AA    45 SFX
-  &91D7    86 RES2..ZINF
-  &922D   167 me2..Main game loop (Part 6 of 6)
-  &92D4   179 TT102
-  &9387     1 brkd
-  &9388    25 BRBR
-  &93A1   163 TITLE
-  &9444    14 CHECK
-  &9452    58 TRNME..GTNMEW
-  &948C    29 MT26
-  &94A9     5 RLINE
-  &94AE    11 ZERO
-  &94B9    20 ZEBC..ZES2
-  &94CD     3 CTLI
-  &94D0    16 DELI
-  &94E0   248 CATS..SVE
-  &95D8    31 QUS1
-  &95F7    85 GTDRV..LOD
-  &964C     7 FX200
-  &9653     4 GTNMES
-  &9657   238 SPS1..NO3
-  &9745    47 NOS1..DKS4
-  &9774    15 DKS2
-  &9783    35 DKJ1
-  &97A6   153 DOKEY..mes9
-  &983F   162 TIDY
-  &98E1    45 TIS2
-  &990E    70 TIS3..DVIDT
-  &9954    66 SHPPT
-  &9996    55 LL5
-  &99CD    35 LL28
-  &99F0    32 LL38
-  &9A10    87 LL51
-  &9A67     4 SHCOL
-  &9A6B     6 RECM
-  &9A71    13 DRAWQ
-  &9A7E    14 LL9B
-  &9A8C    18 LL9F
-  &9A9E    11 LL42F
-  &9AA9    68 H_LL42..H_EE31
-  &9AED    79 S_SHIP
-  &9B3C    18 SPLV
-  &9B4E   136 SHAND
-  &9BD6   316 L_REC
-  &9D12  1199 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
-  &A1C1     1 LL9 (Part 9 of 12), drawing
-  &A1C2     1 LL9 (Part 10 of 12)
-  &A1C3   294 LL145 (Part 1 of 4)..LL145 (Part 4 of 4)
-  &A2E9     1 LL9 (Part 11 of 12)
-  &A2EA     2 LL9 (Part 12 of 12)
-  &A2EC     1 LL9 (Part 12 of 12), drawing
-  &A2ED   122 LL118
-  &A367   107 LL120..LL123
-  &A3D2    28 LL129
+  &805A   100 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
+  &80BE    87 MVT1
+  &8115    92 MVT3
+  &8171   103 MVS4
+  &81D8   140 MVS5
+  &8264    53 MVT6
+  &8299    26 UNIV
+  &82B3     8 TWOS
+  &82BB     8 TWOS2
+  &82C3     4 CTWOS
+  &82C7   239 LOIN (Part 1 of 7)..LOIN (Part 4 of 7)
+  &83B6   394 LOIN (Part 5 of 7)..HLOIN
+  &8540     4 TWFL
+  &8544     4 TWFR
+  &8548   143 PX3..PIXEL
+  &85D7   154 BLINE
+  &8671    52 FLIP
+  &86A5   194 DIALS (Part 1 of 4)..DIALS (Part 4 of 4)
+  &8767    16 PZW
+  &8777   119 DILX
+  &87EE    86 DIL2
+  &8844    36 HATB
+  &8868    91 HALL
+  &88C3     1 HANGER
+  &88C4   141 HAS1
+  &8951     1 HAS2
+  &8952    33 UNWISE
+  &8973    10 MU5
+  &897D    57 MLS2..MU11
+  &89B6     5 MU6
+  &89BB    34 FMLTU2..FMLTU
+  &89DD    35 MLTU2
+  &8A00    54 MUT2..MULT1
+  &8A36    10 MULT12
+  &8A40    91 TAS3..ADD
+  &8A9B    35 TIS1
+  &8ABE    32 DV42..DVID4
+  &8ADE   129 DVID3B2
+  &8B5F    18 cntr
+  &8B71    53 BUMP2..REDU2
+  &8BA6     8 LYN
+  &8BAE   200 CPIX4..CPIX2
+  &8C76     8 DOEXP
+  &8C7E    60 WPSHPS..FLFLLS
+  &8CBA    10 DET1
+  &8CC4    16 SHD..DENGY
+  &8CD4    19 SPS3
+  &8CE7    14 GINF
+  &8CF5   124 NWSHP
+  &8D71     9 NwS1
+  &8D7A    14 ABORT..ABORT2
+  &8D88   316 SPBLB..BULB
+  &8EC4     8 SPBT
+  &8ECC    65 MSBAR
+  &8F0D   303 SUN (Part 1 of 4)..SUN (Part 4 of 4)
+  &903C   114 CIRCLE..CIRCLE2
+  &90AE    10 WP1
+  &90B8   140 WPLS..CHKON
+  &9144   100 TT17
+  &91A8    45 SFX
+  &91D5    86 RES2..ZINF
+  &922B   167 me2..Main game loop (Part 6 of 6)
+  &92D2   179 TT102
+  &9385     1 brkd
+  &9386    25 BRBR
+  &939F   163 TITLE
+  &9442    14 CHECK
+  &9450    58 TRNME..GTNMEW
+  &948A    29 MT26
+  &94A7     5 RLINE
+  &94AC    11 ZERO
+  &94B7    20 ZEBC..ZES2
+  &94CB     3 CTLI
+  &94CE    16 DELI
+  &94DE   248 CATS..SVE
+  &95D6    31 QUS1
+  &95F5    85 GTDRV..LOD
+  &964A     7 FX200
+  &9651     4 GTNMES
+  &9655   238 SPS1..NO3
+  &9743    47 NOS1..DKS4
+  &9772    15 DKS2
+  &9781    35 DKJ1
+  &97A4   153 DOKEY..mes9
+  &983D   162 TIDY
+  &98DF    45 TIS2
+  &990C    70 TIS3..DVIDT
+  &9952    66 SHPPT
+  &9994    55 LL5
+  &99CB    35 LL28
+  &99EE    32 LL38
+  &9A0E    87 LL51
+  &9A65     4 SHCOL
+  &9A69     6 RECM
+  &9A6F    13 DRAWQ
+  &9A7C    14 LL9B
+  &9A8A    18 LL9F
+  &9A9C    11 LL42F
+  &9AA7    68 H_LL42..H_EE31
+  &9AEB    79 S_SHIP
+  &9B3A    18 SPLV
+  &9B4C   136 SHAND
+  &9BD4   316 L_REC
+  &9D10  1199 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
+  &A1BF     1 LL9 (Part 9 of 12), drawing
+  &A1C0     1 LL9 (Part 10 of 12)
+  &A1C1   294 LL145 (Part 1 of 4)..LL145 (Part 4 of 4)
+  &A2E7     1 LL9 (Part 11 of 12)
+  &A2E8     2 LL9 (Part 12 of 12)
+  &A2EA     1 LL9 (Part 12 of 12), drawing
+  &A2EB   122 LL118
+  &A365   107 LL120..LL123
+  &A3D0    28 LL129
 hotm &7FB0-&7FFD: 0 units, 0 bytes, 78 free
