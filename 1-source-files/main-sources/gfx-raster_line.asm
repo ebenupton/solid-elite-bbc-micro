@@ -203,13 +203,12 @@
   STA rl_s
   LDA rl_ax,X
   STA rl_d
+  STA rl_h
   LDA rl_ax+1,X
   STA rl_d+1
   LSR A
   STA rl_h+1
-  LDA rl_d
-  ROR A
-  STA rl_h
+  ROR rl_h                \ h = d DIV 2 (carry from the LSR)
   LDA rl_ax,Y
   STA rl_a
   LDA rl_ax+1,Y
