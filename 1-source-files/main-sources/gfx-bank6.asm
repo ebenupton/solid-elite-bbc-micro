@@ -1,10 +1,10 @@
 \ ******************************************************************************
 \
-\ gfx-bankf.asm - bank F: the filled renderer's frame layer (docs/renderer.md)
+\ gfx-bank6.asm - bank 6: the filled renderer's frame layer (docs/renderer.md)
 \
-\ Port (Model B): assembled by 2-build-files/bankf.py once the flight program
+\ Port (Model B): assembled by 2-build-files/bank6.py once the flight program
 \ is (it reads the game's addresses from the flight program's symbols, and
-\ the banks' from the loader's, into 3-assembled-output/bankf-game.asm):
+\ the banks' from the loader's, into 3-assembled-output/bank6-game.asm):
 \
 \   &8000        the frame layer (gfx-frame.asm), the lighting (gfx-light.asm),
 \                the faces and lighting tables (gfx-faces.asm, gfx-light6.asm,
@@ -23,7 +23,7 @@
 \ ******************************************************************************
 
  INCLUDE "1-source-files/main-sources/elite-map.asm"
- INCLUDE "3-assembled-output/bankf-game.asm"
+ INCLUDE "3-assembled-output/bank6-game.asm"
  INCLUDE "1-source-files/main-sources/gfx-rws.asm"
 
  CPU 0
@@ -82,7 +82,7 @@
 .FJT_END
  ASSERT fjt_hi - fjt_lo = FG_N AND FJT_END <= &C000
 
-PRINT "Bank F (frame layer): code &8000-", ~F_CODEEND-1, " (", F_CODEEND-&8000, " bytes), tables ", ~F_CODEEND, "-", ~F_TABEND-1, " (", F_TABEND-F_CODEEND, "), state ", ~F_QSL, "-", ~F_DLEND-1, ", free ", FJT-F_DLEND, " (+", F_QSL-F_TABEND, " alignment), the dispatcher ", ~FJT, "-", ~FJT_END-1
+PRINT "Bank 6 (frame layer): code &8000-", ~F_CODEEND-1, " (", F_CODEEND-&8000, " bytes), tables ", ~F_CODEEND, "-", ~F_TABEND-1, " (", F_TABEND-F_CODEEND, "), state ", ~F_QSL, "-", ~F_DLEND-1, ", free ", FJT-F_DLEND, " (+", F_QSL-F_TABEND, " alignment), the dispatcher ", ~FJT, "-", ~FJT_END-1
 PRINT "Glue (main RAM): ", ~GLUE%, "-", ~GLUE_END-1, " (", GLUE_END-GLUE%, " bytes: trampolines ", rtramp_end-GLUE%, ", GCALL ", GLUE_END-GCALL, ")"
 
- SAVE "3-assembled-output/F.bin", &8000, &C000, &8000
+ SAVE "3-assembled-output/BANK6.bin", &8000, &C000, &8000

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""bankf.py: build bank F, the filled renderer's frame layer (docs/renderer.md).
+"""bank6.py: build bank 6, the filled renderer's frame layer (docs/renderer.md).
 
-    python3 2-build-files/bankf.py [BEEBASM]
+    python3 2-build-files/bank6.py [BEEBASM]
 
 Port (Model B): run after the flight program is assembled. The frame layer
 reads the game's variables where the flight program has them (its zero page
@@ -9,10 +9,10 @@ and main RAM workspace, the same in the docked program, which this checks)
 and calls bank R through the trampolines in main RAM, which page the bank
 whose number the loader keeps in BANK5 (likewise GCALL and BANK6): so this
 writes those addresses, and the game's constants it uses, into
-3-assembled-output/bankf-game.asm, from flight-symbols.txt,
+3-assembled-output/bank6-game.asm, from flight-symbols.txt,
 docked-symbols.txt, loader-symbols.txt and elite-source-flight.asm, then
-assembles gfx-bankf.asm. Writes 3-assembled-output/F.bin (16K, at &8000),
-GLUE.bin (the main RAM glue, at GLUE%) and bankf-symbols.txt, prints bank
+assembles gfx-bank6.asm. Writes 3-assembled-output/BANK6.bin (16K, at &8000),
+GLUE.bin (the main RAM glue, at GLUE%) and bank6-symbols.txt, prints bank
 F's usage and appends the assembly's report to compile.txt.
 """
 import os, re, subprocess, sys
@@ -36,7 +36,7 @@ def symbols(name):
 
 
 flight, docked, loader = symbols('flight'), symbols('docked'), symbols('loader')
-L = ['\\ bankf-game.asm -- written by 2-build-files/bankf.py; do not edit.', '']
+L = ['\\ bank6-game.asm -- written by 2-build-files/bank6.py; do not edit.', '']
 for v in VARS:
     a = flight[v]
     assert docked.get(v) == a, '%s is at &%04X in the flight program, %r in the docked' % (v, a, docked.get(v))
@@ -51,16 +51,16 @@ for c in CONSTS:
     m = re.search(r'^\s*%s\s*=\s*(\d+)\s' % re.escape(c), src, re.M)
     assert m, c
     L.append('%-8s = %s' % (c, m.group(1)))
-open(os.path.join(OUT, 'bankf-game.asm'), 'w').write('\n'.join(L) + '\n')
+open(os.path.join(OUT, 'bank6-game.asm'), 'w').write('\n'.join(L) + '\n')
 
-r = subprocess.run([BEEBASM, '-i', os.path.join(MS, 'gfx-bankf.asm'), '-v'], capture_output=True, text=True)
+r = subprocess.run([BEEBASM, '-i', os.path.join(MS, 'gfx-bank6.asm'), '-v'], capture_output=True, text=True)
 out = r.stdout + r.stderr
 if r.returncode or re.search(r'error|assert', out, re.I):
     print('\n'.join(l for l in out.splitlines() if re.search(r'error|assert', l, re.I))[-3000:])
-    sys.exit('bankf: assembly failed')
+    sys.exit('bank6: assembly failed')
 open(os.path.join(OUT, 'compile.txt'), 'a').write(out)
-print('\n'.join(l for l in out.splitlines() if l.startswith('Bank F') or l.startswith('Glue')))
-d = subprocess.run([BEEBASM, '-i', os.path.join(MS, 'gfx-bankf.asm'), '-d'],
+print('\n'.join(l for l in out.splitlines() if l.startswith('Bank 6') or l.startswith('Glue')))
+d = subprocess.run([BEEBASM, '-i', os.path.join(MS, 'gfx-bank6.asm'), '-d'],
                    capture_output=True, text=True, check=True)
-open(os.path.join(OUT, 'bankf-symbols.txt'), 'w').write(
+open(os.path.join(OUT, 'bank6-symbols.txt'), 'w').write(
     '\n'.join(l for l in d.stdout.splitlines() if l.startswith('[{')) + '\n')

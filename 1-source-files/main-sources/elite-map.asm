@@ -131,9 +131,9 @@
 
                         \ The frame layer's entries, as the game calls them
                         \ (LDX #FG_xxx : JSR GCALL, gfx-glue.asm), in the order
-                        \ of bank F's dispatcher (gfx-bankf.asm)
+                        \ of bank F's dispatcher (gfx-bank6.asm)
 
- FG_INIT     = 0         \ the entries, in fjt_lo's order (gfx-bankf.asm)
+ FG_INIT     = 0         \ the entries, in fjt_lo's order (gfx-bank6.asm)
  FG_DIRECT   = 1
  FG_FRAME    = 2
  FG_SHIP     = 3

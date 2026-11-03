@@ -3,7 +3,7 @@
 
     python3 6-harness/test_frame.py [--png DIR] [--nobuild]
 
-Port (Model B): builds banks R and F (2-build-files/bankr.py and bankf.py;
+Port (Model B): builds banks R and F (2-build-files/bankr.py and bank6.py;
 the game must have been built, for the symbols they read) and runs them on
 py65's NMOS 6502 (the Model B's) with:
 
@@ -67,11 +67,11 @@ def syms_of(name):
 
 
 def consts():
-    """elite-map.asm's constants, bankf-game.asm's (the game's) and
+    """elite-map.asm's constants, bank6-game.asm's (the game's) and
     gfx-faces.asm's (BeebAsm's symbol dump has labels only)"""
     out = {}
     ms = os.path.join(REPO, '1-source-files', 'main-sources')
-    for f in (os.path.join(ms, 'elite-map.asm'), os.path.join(OUT, 'bankf-game.asm'),
+    for f in (os.path.join(ms, 'elite-map.asm'), os.path.join(OUT, 'bank6-game.asm'),
               os.path.join(ms, 'gfx-faces.asm')):
         for l in open(f, encoding='latin-1'):
             for st in l.split('\\')[0].split(':'):
@@ -86,7 +86,7 @@ def consts():
 
 
 def build():
-    for tool in ('bank5.py', 'bankf.py'):
+    for tool in ('bank5.py', 'bank6.py'):
         r = subprocess.run([sys.executable, os.path.join(REPO, '2-build-files', tool), BEEBASM],
                            capture_output=True, text=True)
         if r.returncode:
@@ -103,7 +103,7 @@ class Mem:
         cold = open(os.path.join(OUT, 'D.CODEC.bin'), 'rb').read()
         self.banks = {HOME: bytearray(0x4000),
                       RBANK: bytearray(open(os.path.join(OUT, 'BANK5.bin'), 'rb').read()),
-                      FBANK: bytearray(open(os.path.join(OUT, 'F.bin'), 'rb').read()),
+                      FBANK: bytearray(open(os.path.join(OUT, 'BANK6.bin'), 'rb').read()),
                       COLD: bytearray(cold + bytes(0x4000 - len(cold)))}
         os_rom = os.path.join(HERE, 'node_modules', 'jsbeeb', 'public', 'roms', 'os.rom')
         self.main[0xC000:0x10000] = open(os_rom, 'rb').read()[:0x4000]
@@ -145,7 +145,7 @@ class Machine:
     def __init__(self):
         from py65.devices.mpu6502 import MPU
         self.S = dict(consts())
-        self.S.update(syms_of('bankf'))
+        self.S.update(syms_of('bank6'))
         self.S['loader'] = syms_of('loader')
         self.F = syms_of('flight')
         self.mem = Mem(self.S)

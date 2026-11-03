@@ -57850,13 +57850,13 @@ End macro FLHW
      BFEA   9A
      BFEB   9A
 .FJT_END
-Bank F (frame layer): code &8000-&9B0E  (6927  bytes), tables &9B0F -&A9BB  (3757 ), state &AA00 -&B8FF , free 1728  (+68  alignment), the dispatcher &BFC0 -&BFEB 
+Bank 6 (frame layer): code &8000-&9B0E  (6927  bytes), tables &9B0F -&A9BB  (3757 ), state &AA00 -&B8FF , free 1728  (+68  alignment), the dispatcher &BFC0 -&BFEB 
 Glue (main RAM): &724 -&7B9  (150  bytes: trampolines 120 , GCALL 30 )
-Saving file '3-assembled-output/F.bin'
+Saving file '3-assembled-output/BANK6.bin'
 Including file 1-source-files/main-sources/elite-map.asm
 Processed file '1-source-files/main-sources/elite-map.asm' ok
-Including file 3-assembled-output/bankf-game.asm
-Processed file '3-assembled-output/bankf-game.asm' ok
+Including file 3-assembled-output/bank6-game.asm
+Processed file '3-assembled-output/bank6-game.asm' ok
 Including file 1-source-files/main-sources/gfx-rws.asm
 Processed file '1-source-files/main-sources/gfx-rws.asm' ok
 Including file 1-source-files/main-sources/gfx-glue.asm
@@ -57875,7 +57875,7 @@ Including file 1-source-files/main-sources/gfx-faces.asm
 Processed file '1-source-files/main-sources/gfx-faces.asm' ok
 Including file 1-source-files/main-sources/gfx-light6.asm
 Processed file '1-source-files/main-sources/gfx-light6.asm' ok
-Processed file '1-source-files/main-sources/gfx-bankf.asm' ok
+Processed file '1-source-files/main-sources/gfx-bank6.asm' ok
 .XX21
      B900   00 7F
      B902   5D B9

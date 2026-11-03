@@ -6,7 +6,7 @@
 \ A's spare room, so that it is visible whatever bank is paged: the
 \ trampolines into bank R, the rasteriser (gfx-rtramp.asm, which the frame
 \ layer calls), and GCALL, through which the game calls the frame layer in
-\ bank F. Bank F is built against these addresses (gfx-bankf.asm), and
+\ bank F. Bank F is built against these addresses (gfx-bank6.asm), and
 \ writes GLUE.bin; the resident block is to INCLUDE this file at GLUE% when
 \ the game starts calling the renderer (nothing does yet).
 \
@@ -18,7 +18,7 @@
 \
 \ ******************************************************************************
 
-FJT = &BFC0             \ bank F's dispatcher (gfx-bankf.asm)
+FJT = &BFC0             \ bank F's dispatcher (gfx-bank6.asm)
 
 \ (the entries' numbers, FG_*, are in elite-map.asm, for the game's hooks)
 

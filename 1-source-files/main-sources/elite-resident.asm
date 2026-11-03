@@ -886,7 +886,7 @@ pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
 \
 \ Port: the renderer's glue (gfx-glue.asm): GCALL, which the game calls bank
 \ F's entries through, and the trampolines that bank F calls bank R through,
-\ at GLUE% (which bank F is built against, 2-build-files/bankf.py)
+\ at GLUE% (which bank F is built against, 2-build-files/bank6.py)
 \
 \ ******************************************************************************
 
