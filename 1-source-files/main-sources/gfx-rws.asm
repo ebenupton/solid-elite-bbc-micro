@@ -51,63 +51,13 @@ R_SCOL   = MBOX + &4C   \ R_STARPLOT: the stars' colour byte
 R_SX     = MBOX + &50   \ R_STARPLOT: the stars' x, y and size (1..3), 24 each
 R_SY     = MBOX + &68
 R_SS     = MBOX + &80
-R_NDT    = MBOX + &98   \ (the disc layer's inputs: names only, as the
-R_NDB    = MBOX + &99   \ shared code that bank R keeps refers to them;
-R_NDF    = MBOX + &9A   \ nothing reads them)
-R_DBE    = MBOX + &9B
-R_DBO    = MBOX + &9C
-R_NDN    = MBOX + &9D
-R_NDP    = MBOX + &9D
-R_NDX0   = MBOX + &9D
-R_NDX1   = MBOX + &9D
-R_NDX2   = MBOX + &9D
-R_NDX3   = MBOX + &9D
-R_NDISCL = MBOX + &9D
-R_NDISCR = MBOX + &9D
+R_PYS    = MBOX + &98   \ R_POLY's own: its first row, last row, last row + 1,
+R_PYL1   = MBOX + &99   \ non-zero if some x is outside CL..CR (8-bit
+R_PYE    = MBOX + &9A   \ polygons), CR + 1
+R_PXC    = MBOX + &9B
+R_PCR1   = MBOX + &9C
 R_BY1    = MBOX + &9E   \ R_MARKBOX: the last row
 MBOX_END = MBOX + &9F
  ASSERT R_SX = MB_SX AND R_SY = MB_SY AND R_SS = MB_SS   \ (elite-map.asm's names)
-
-\ Bank R's state (gfx-raster.asm lays the bank out around it)
-R_DIRTYL0 = &9000       \ buffer 0's dirty extents (empty: L = 255, R = 0)
-R_DIRTYR0 = &90C0
-R_WL      = &9180       \ this frame's written extents (R = 0: none)
-R_WR      = &9240       \ (whole in a page)
-R_DIRTYL1 = &9300       \ buffer 1's: buffer 0's + &300 (R_SETBUF patches only
-R_DIRTYR1 = &93C0       \ operands' high bytes)
-R_DISCL0 = R_DIRTYL0    \ (the disc spans: names only, for code that bank R
-R_DISCR0 = R_DIRTYR0    \ keeps but never runs)
-R_DISCL1 = R_DIRTYL1
-R_DISCR1 = R_DIRTYR1
-
-RDATA = &9500           \ the rest of the state, where the Tube's bank P had
-R_PRBUF   = RDATA       \ its inputs (PDATA): the scalars ...
-R_PRDYT   = RDATA + 1
-R_PRDYB   = RDATA + 3
-R_PRDST   = RDATA + 5
-R_PRDSB   = RDATA + 7
-R_PRSCNT  = RDATA + 9
-R_PRECNT  = RDATA + 11
-R_PRWT    = RDATA + 13
-R_PRWB    = RDATA + 14
-R_PRBMODE = RDATA + 15
-R_PRNT    = RDATA + 17
-R_PRNB    = RDATA + 18
-R_PRLO    = RDATA + 19
-R_PRHI    = RDATA + 20
-R_PRDYA   = RDATA + 21
-R_PRDYZ   = RDATA + 22
-R_PRCWB   = RDATA + 23
-R_NTMP    = RDATA + &18 \ ... the NMOS conversion's temporaries (nmos.py's
-R_NTMPY   = RDATA + &19 \ --tmp and --tmpy; the Tube's were in zero page) and
-R_NTMPX   = RDATA + &1A \ R_LINE's cold part's (its PHX and PLX) ...
-R_PYS     = RDATA + &20 \ ... R_POLY's private scalars ...
-R_PYL1    = RDATA + &21
-R_PYE     = RDATA + &22
-R_PXC     = RDATA + &23
-R_PCR1    = RDATA + &24
-R_PTA     = RDATA + &100 \ ... and its edge tables
-R_PTB     = RDATA + &1C0
-RDATA_END = RDATA + &280
 
 RJT = &BFC0             \ the entry points' jump table

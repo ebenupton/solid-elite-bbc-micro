@@ -1,24 +1,63 @@
-\ Port (Model B): copied from the Tube branch's master/src/gfx-raster_rep.asm (the BBC
-\ Master port's rasteriser, with its _HOSTB support for a Model B host), for
-\ bank R; made NMOS at build time by 2-build-files/nmos.py (bankr.sh). Notes
-\ marked Port (bank R) are this copy's changes.
-
 \ ============================================================================
-\ raster_rep.asm -- r7_rowrep, the repair of dirty rows that are no disc rows
-\ (black through the row runs), split from gfx-raster_disc.asm (which
-\ INCLUDEs it) so that the Tube's Model B host can put it with the runs, in
-\ its bank P (tube/src/hb-p.asm)
+\ raster_rep.asm -- bank 5's repair and its other Model B entries: R_REPAIR,
+\ r7_rowrep, r_wclear, R_SPANM and R_MARKBOX (NMOS 6502).
+\
+\ Model B: the BBC Master port repairs a buffer's dirty rows in R_DISCROWS
+\ (its disc window: r7_crep for the rows that are no disc rows, then the
+\ disc rows in the row loop).  Here the disc layer is not in bank 5, and
+\ R_REPAIR repairs every dirty row of the buffer, as r7_crep repairs a row
+\ that is no disc row: each row's extent, widened to whole bytes, blacked
+\ by one run through the row runs (the border bytes in columns 0 and 63
+\ masked), its R_WL/R_WR set to that and its DIRTY emptied.  Afterwards
+\ R_WL/R_WR hold, per row, what the repair wrote (shapes drawn later are in
+\ DIRTY, not R_WL/R_WR).
 \ ============================================================================
 
-IF _HOSTB AND _RBANK = 2   \ (Model B, bank P: gfx-raster_disc.asm's equates)
-c_L   = &18
+c_L   = &18                 \ r7_rowrep's zero page (the rasteriser's scratch)
 c_R   = &19
 c_NL  = &1A
 c_YE  = &1E
 c_M   = &23
 c_CO  = &22
-ENDIF
-\ r7_rowrep: rows Y .. c_YE - 1 (see above)
+
+\ ============================================================================
+\ R_REPAIR: the start of a frame on the current buffer, after R_STARERASE:
+\ clear last frame's R_WL/R_WR, then repair the buffer's dirty rows
+\ ============================================================================
+.R_REPAIR
+{
+  JSR r_wclear            \ clear last frame's WL/WR rows
+  LDA #&FF
+  STA R_PRWT
+  LDX R_PRBUF
+  LDA R_PRDYB,X           \ the dirty rows R_PRDYT .. R_PRDYB, if any
+  CMP R_PRDYT,X
+  BCC none
+  STA R_PRWB              \ they become WL/WR's rows
+  ADC #0                  \ (C = 1 from the CMP: + 1)
+  STA c_YE
+  LDA R_PRDYT,X
+  STA R_PRWT
+  TAY
+  JSR r7_rowrep
+  LDX R_PRBUF             \ no dirty rows left
+  LDA #&FF
+  STA R_PRDYT,X
+  LDA #0
+  STA R_PRDYB,X
+  RTS
+.none
+  LDA #0
+  STA R_PRWB
+  RTS
+}
+
+\ ============================================================================
+\ r7_rowrep: rows Y .. c_YE - 1, each with a dirty extent blacked through its
+\ row run (the BBC Master port's, made NMOS, and for the Model B's two
+\ buffers: the run page checked for this buffer, r_pgfix, and the border
+\ bytes' screen page from the buffer's row pages)
+\ ============================================================================
 .r7_rowrep
 {
   LDX R_PRBUF
@@ -38,19 +77,21 @@ ENDIF
   BEQ fnx
   CMP #252
   BCS slow
-  TAX
+  TAX                     \ X = R
   ORA #3
   STA R_WR,Y
-  LDA r_j,X             \ plant the RTS after column R DIV 4
-  STA RZ_PP
 .fl1
   LDA R_DIRTYL0,Y
   AND #&FC                \ L AND &FC = 0 <=> L < 4
   BEQ slow
   STA R_WL,Y
+  STX c_R                 \ (R)
   TAX
-  LDA r_j-4,X           \ enter at column L DIV 4
+  LDA r_j-4,X             \ enter at column L DIV 4
   STA fj+1
+  LDX c_R                 \ plant the RTS after column R DIV 4 (X: its
+  LDA r_j,X               \ offset, which the run keeps)
+  TAX
   LDA #&FF
 .fs1
   STA R_DIRTYL0,Y
@@ -59,20 +100,21 @@ ENDIF
   LSR A
   LSR A
   ORA #HI(r_run0)         \ (= ADC: Y DIV 8 < 32)
-IF _HOSTB
-  JSR r_pgfix             \ (Model B: the page for the buffer)
-ENDIF
   STA fj+2
-  STA RZ_PP+1
-  LDA #&60
-  STA (RZ_PP)
+  STA fpl+2
+  STA fpr+2
+  JSR r_pgfix             \ (Model B: its stores for this buffer; keeps X, Y)
+  LDA #r_opRTS
+.fpl
+  STA &FF00,X             \ (the run page)
   LDA #0
 .fs2
   STA R_DIRTYR0,Y
 .fj
-  JSR &FFFF               \ patched: straight into the row run (the run keeps Y)
-  LDA #r_opSTA
-  STA (RZ_PP)
+  JSR &FFFF               \ patched: straight into the row run (the run keeps
+  LDA #r_opSTA            \ X and Y)
+.fpr
+  STA &FF00,X             \ (the run page)
 .fnx
   INY
   CPY c_YE
@@ -80,7 +122,8 @@ ENDIF
   RTS
 .slow                     \ an end in column 0 or 63: the general row code
   JSR row1
-  BRA fnx
+  JMP fnx
+
 \ row1: row Y, general (the border columns' bytes masked)
 .row1
 .ld2
@@ -111,35 +154,40 @@ ENDIF
   LSR A
   CMP #63
   BEQ e63
-.nr1
-  INC A
+.nr1                      \ (A = the last column, C = 0 or 1)
   CMP c_NL
-  BEQ nx
-  BCC nx
-  TAX                     \ plant the RTS at column NR
-  LDA r7_j3,X
-  STA RZ_PP
+  BCC nx                  \ (NR = last + 1 <= NL: no whole byte)
+  ADC #0                  \ NR = the last column + 1 (C = 1 here: CMP)
+  ASL A                   \ plant the RTS at column NR (r_jm at 4 NR: 3 (NR - 1))
+  ASL A
+  TAX
+  LDA r_jm,X
+  STA r1p+1               \ (its offset)
   TYA                     \ the run page of row Y
   LSR A
   LSR A
   LSR A
   ORA #HI(r_run0)         \ (= ADC: Y DIV 8 < 32)
-IF _HOSTB
-  JSR r_pgfix             \ (Model B: the page for the buffer)
-ENDIF
-  STA RZ_PP+1
   STA rj+2
-  LDX c_NL
-  LDA r7_j3,X
+  STA rpl+2
+  STA rpr+2
+  JSR r_pgfix             \ (Model B: its stores for this buffer; keeps X, Y)
+  LDA c_NL
+  ASL A
+  ASL A
+  TAX
+  LDA r_jm,X
   STA rj+1
-  LDA #&60
-  STA (RZ_PP)
-  STY RZ_Y
+.r1p
+  LDX #0                  \ (the plant's offset)
+  LDA #r_opRTS
+.rpl
+  STA &FF00,X
   LDA #0
   JSR rj
   LDA #r_opSTA
-  STA (RZ_PP)
-  LDY RZ_Y
+.rpr
+  STA &FF00,X
 .nx
   RTS
 .rj
@@ -149,13 +197,13 @@ ENDIF
   JSR edge0
   LDY RZ_Y
   LDA #1
-  BRA nl1
+  BNE nl1                 \ (always)
 .e63
   STY RZ_Y
   JSR edge63
   LDY RZ_Y
   LDA #62
-  BRA nr1
+  BNE nr1                 \ (always)
 \ edge0 / edge63: black pixels c_L .. c_R of row RZ_Y within column 0 / 63
 .edge0
   LDX c_R
@@ -167,7 +215,7 @@ ENDIF
   LDX c_L
   AND r_lm,X
   LDX #0
-  BRA eg
+  BEQ eg                  \ (always)
 .edge63
   LDA c_L
   CMP #252
@@ -186,40 +234,87 @@ ENDIF
   EOR #&FF
   STA c_M
   STX c_CO
-  LDA RZ_Y
+  LDY RZ_Y
+  TYA
   AND #7
   ORA c_CO
   STA RZ_PA
-  LDA RZ_Y
-  LSR A
-  LSR A
-  AND #&FE
-IF _HOSTB
-  CLC
-.^r_bs7
-  ADC #&40
-ELSE
-  ORA #&40
-ENDIF
+.^r_yp6
+  LDA r_ypg,Y             \ (Model B: the buffer's row page, R_SETBUF's)
   CPX #0
   BEQ eg1
-  INC A
-.eg1
+  ORA #1                  \ (column 63: the page's second half; the page is
+.eg1                      \ even)
   STA RZ_PA+1
-  LDA (RZ_PA)
+  LDY #0
+  LDA (RZ_PA),Y
   AND c_M
-  STA (RZ_PA)
+  STA (RZ_PA),Y
   RTS
 .dlh EQUB HI(R_DIRTYL0), HI(R_DIRTYL1)
 .drh EQUB HI(R_DIRTYR0), HI(R_DIRTYR1)
 }
 
+\ ============================================================================
+\ r_wclear: R_WR[R_PRWT .. R_PRWB] = 0, in blocks of 8 rows from (R_PRWB OR 7)
+\ down to (R_PRWT AND &F8): the rows of those blocks outside R_PRWT..R_PRWB
+\ are 0 already.  Clobbers A, X.
+\ ============================================================================
+.r_wclear
+{
+  LDA R_PRWB
+  CMP R_PRWT
+  BCC none
+  ORA #7
+  TAX
+  LDA R_PRWT
+  AND #&F8
+  STA lim+1
+.lp
+  LDA #0
+  STA R_WR,X
+  STA R_WR-1,X
+  STA R_WR-2,X
+  STA R_WR-3,X
+  STA R_WR-4,X
+  STA R_WR-5,X
+  STA R_WR-6,X
+  STA R_WR-7,X
+  TXA
+  SEC
+  SBC #8
+  BCC none
+  TAX
+.lim
+  CMP #0
+  BCS lp
+.none
+  RTS
+}
 
+\ ============================================================================
+\ R_SPANM (Model B): R_SPAN, then R_MARKDIRTY for the same row and ends (so
+\ the frame layer fills and marks a row in one call; R_XL <= R_XR)
+\ ============================================================================
+.R_SPANM
+  JSR R_SPAN
+  LDY RZ_Y
+  JMP R_MARKDIRTY
 
-\ the repair's run offset of byte column k (1..63; r7_rowrep's row1)
-.r7_j3                    \ run offset of byte column k (1..63)
-FOR k, 0, 63
-  EQUB LO(3 * (k - 1))
-NEXT
-
-
+\ ============================================================================
+\ R_MARKBOX (Model B): R_MARKDIRTY for rows Y .. R_BY1, each by R_XL..R_XR
+\ (the lens flare's ghosts, which bank 6 draws itself)
+\ ============================================================================
+.R_MARKBOX
+{
+  STY rmb_y
+.lp
+  JSR R_MARKDIRTY
+  LDY rmb_y
+  CPY R_BY1
+  INY
+  STY rmb_y
+  BCC lp
+  RTS
+.rmb_y EQUB 0
+}

@@ -57,7 +57,7 @@
  PUTFILE "3-assembled-output/T.CODEH.bin", "T.CODEH", &008000, &008000
  PUTFILE "3-assembled-output/T.CODEC.bin", "T.CODEC", &008000, &008000
 
- PUTFILE "3-assembled-output/R.bin", "R.BANK", &008000, &008000
+ PUTFILE "3-assembled-output/BANK5.bin", "R.BANK", &008000, &008000
  PUTFILE "3-assembled-output/F.bin", "F.BANK", &008000, &008000
  PUTFILE "3-assembled-output/D.MOA.bin", "D.MOA", &00B600, &00B600
  PUTFILE "3-assembled-output/D.MOB.bin", "D.MOB", &00B600, &00B600

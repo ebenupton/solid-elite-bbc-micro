@@ -86,7 +86,7 @@ def consts():
 
 
 def build():
-    for tool in ('bankr.py', 'bankf.py'):
+    for tool in ('bank5.py', 'bankf.py'):
         r = subprocess.run([sys.executable, os.path.join(REPO, '2-build-files', tool), BEEBASM],
                            capture_output=True, text=True)
         if r.returncode:
@@ -102,7 +102,7 @@ class Mem:
         self.main = bytearray(0x10000)
         cold = open(os.path.join(OUT, 'D.CODEC.bin'), 'rb').read()
         self.banks = {HOME: bytearray(0x4000),
-                      RBANK: bytearray(open(os.path.join(OUT, 'R.bin'), 'rb').read()),
+                      RBANK: bytearray(open(os.path.join(OUT, 'BANK5.bin'), 'rb').read()),
                       FBANK: bytearray(open(os.path.join(OUT, 'F.bin'), 'rb').read()),
                       COLD: bytearray(cold + bytes(0x4000 - len(cold)))}
         os_rom = os.path.join(HERE, 'node_modules', 'jsbeeb', 'public', 'roms', 'os.rom')

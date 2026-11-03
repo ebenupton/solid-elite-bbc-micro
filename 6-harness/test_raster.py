@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Soak test for bank R, the filled renderer's rasteriser (docs/renderer.md).
+"""Soak test for bank 5, the filled renderer's rasteriser (docs/renderer.md).
 
     python3 6-harness/test_raster.py [--seed N] [--quick] [--only spans,polys,...]
 
 Port (Model B): a thin adapter over the BBC Master port's test (its
 6-harness/test_raster.py, over the Demonstration Disc port's raster_model.py:
 the pixel-exact Python reference, the write guard and the tests), pointed at
-bank R as 2-build-files/bankr.py builds it (it is run first, so the test is
+bank 5 as 2-build-files/bank5.py builds it (it is run first, so the test is
 of the current sources):
 
-  * the machine is py65's NMOS 6502 (the Model B's), with bank R's image at
+  * the machine is py65's NMOS 6502 (the Model B's), with bank 5's image at
     &8000-&BFFF and nothing else paged; each entry point is called through
-    bank R's jump table, RJT, as the frame layer's trampolines call it;
+    bank 5's jump table, RJT, as the frame layer's trampolines call it;
   * the screen is buffer 0 at &1000 or buffer 1 at &4000 (gfx-rws.asm's
     BUF0 and SCREEN%), as the last R_SETBUF chose: the reference model's
     12K screen is that buffer's;
@@ -19,14 +19,17 @@ of the current sources):
     (&7E00), the state in bank R: the model reads and writes them by name, so
     it needs no change;
   * the write guard allows exactly the renderer's zero page (&06-&27), the
-    stack page, the two screen buffers, the mailbox and bank R; and the row
+    stack page, the two screen buffers, the mailbox and bank 5; and the row
     runs must be left as they were (no RTS left planted), except that a
     page's stores may have been moved to the other buffer (r_pgfix: the
     high byte of each STA's operand, by &30);
   * there is no disc layer (no R_DISCROWS): the frames test runs its 'none'
     scenario (no disc), with R_REPAIR where the model calls R_DISCROWS;
   * R_POLY's 4-row colour: every polygon is drawn with R_COL2 = R_COLE and
-    R_COL3 = R_COLO, the 2-row colour pair the reference models.
+    R_COL3 = R_COLO, the 2-row colour pair the reference models;
+  * the stars are the Master port's: a star's pixels within one screen byte
+    are set only if the whole byte is black (star_ref, as the Master port's
+    test models it).
 
 Needs py65 and BeebAsm ($BEEBASM, or beebasm on the path). Exit status 0
 only if every test passes.
@@ -41,10 +44,11 @@ import raster_model as tr                        # noqa: E402  (the model and it
 
 MS = os.path.join(REPO, '1-source-files', 'main-sources')
 BEEBASM = os.environ.get('BEEBASM', 'beebasm')
-FILES = ['gfx-raster.asm', 'gfx-raster_poly.asm', 'gfx-raster_polyb.asm', 'gfx-raster_line.asm',
-         'gfx-raster_lineb.asm', 'gfx-raster_rep.asm', 'gfx-raster_lcold.asm', 'gfx-raster_arith.asm',
-         'gfx-raster_pset.asm']
-CONFIG = {'_HOSTB': 1, '_RBANK': 2, '_TPART': 0}  # (gfx-bankr.asm's)
+FILES = ['gfx-raster.asm', 'gfx-raster_poly.asm', 'gfx-raster_line.asm', 'gfx-raster_lcold.asm',
+         'gfx-raster_reset.asm', 'gfx-raster_init.asm', 'gfx-raster_rep.asm', 'gfx-raster_dq.asm']
+CONFIG = {}
+tr.NSTARS = int(re.search(r'^\s*NOST\s*=\s*(\d+)', open(os.path.join(MS, 'elite-source-flight.asm'),
+                encoding='latin-1').read(), re.M).group(1)) + 1   # (the stars the game records: MB_SX ..)
 ENTRIES = ['R_INIT', 'R_SETBUF', 'R_RESETBUF', 'R_REPAIR', 'R_SPAN', 'R_MARKDIRTY', 'R_DOT',
            'R_POLY', 'R_LINE', 'R_STARERASE', 'R_STARPLOT']
 
@@ -66,22 +70,25 @@ def rws_constants():
 
 
 def build():
-    """bank R, as the game's build makes it: R.bin and its symbols"""
-    r = subprocess.run([sys.executable, os.path.join(REPO, '2-build-files', 'bankr.py'), BEEBASM],
+    """bank 5, as the game's build makes it: BANK5.bin and its symbols"""
+    r = subprocess.run([sys.executable, os.path.join(REPO, '2-build-files', 'bank5.py'), BEEBASM],
                        capture_output=True, text=True)
     if r.returncode:
         print(r.stdout, r.stderr)
-        raise SystemExit('bank R did not build')
+        raise SystemExit('bank 5 did not build')
     out = os.path.join(REPO, '3-assembled-output')
     syms = rws_constants()                       # (BeebAsm's symbol dump has labels only)
-    for k, v in re.findall(r"'([^']+)':(-?\d+)L?", open(os.path.join(out, 'bankr-symbols.txt')).read()):
+    for k, v in re.findall(r"'([^']+)':(-?\d+)L?", open(os.path.join(out, 'bank5-symbols.txt')).read()):
         syms.setdefault(k, int(v))
-    return syms, open(os.path.join(out, 'R.bin'), 'rb').read(), r.stdout.strip()
+    for k in ('R_NDT', 'R_NDB', 'R_NDF', 'R_DBE', 'R_DBO', 'R_DCE', 'R_DCO'):
+        syms.setdefault(k, syms['MBOX'] + 0x9D)  # (the disc layer's inputs, which the model's
+                                                 # frames set: bank 5 has no disc layer)
+    return syms, open(os.path.join(out, 'BANK5.bin'), 'rb').read(), r.stdout.strip()
 
 
 def active_lines(path):
-    """the lines of a source that bank R assembles (its IF conditions on
-    _HOSTB, _RBANK and _TPART evaluated as gfx-bankr.asm sets them)"""
+    """the lines of a source that bank 5 assembles (its IF conditions
+    evaluated as CONFIG has them)"""
     out, stack = [], []
     for l in open(path, encoding='latin-1').read().split('\n'):
         t = l.split('\\')[0].strip()
@@ -109,7 +116,7 @@ def active_lines(path):
 
 
 def check_patch_sites():
-    """every instruction of bank R's code that names buffer 0's state must be
+    """every instruction of bank 5's code that names buffer 0's state must be
     a patch site that R_SETBUF (or its r_sbpoly) patches, with its own
     array's high byte (the Master port's check, over the lines bank R
     assembles)"""
@@ -117,7 +124,7 @@ def check_patch_sites():
     for f in FILES:
         src += active_lines(os.path.join(MS, f))
     txt = '\n'.join(src)
-    names = ('r_dl', 'r_dr', 'r_sl', 'r_sr', 'r_s0y', 'r_s0x', 'r_s0a', 'r_s0b')
+    names = ('r_dl', 'r_dr', 'r_s0y', 'r_s0x', 'r_s0a', 'r_s0b')
     sites, listed = set(), set(re.findall(r'(r_pt\d+)\+2', txt))
     bad = []
     for ln in src:
@@ -151,7 +158,7 @@ def check_patch_sites():
 
 
 class Machine(tr.Machine):
-    """an NMOS 6502 with bank R at &8000 and both screen buffers"""
+    """an NMOS 6502 with bank 5 at &8000 and both screen buffers"""
 
     def __init__(self, org=None, seed=1):
         import random
@@ -224,6 +231,25 @@ class Machine(tr.Machine):
         on the Master both buffers are at one address)"""
         for b in self.base:
             self.mem[b:b + 0x3000] = list(data)
+
+
+def star_ref(ref, x, y, s, scol):
+    """A star (R_STARPLOT): per row, per byte, its in-window pixels are set to
+    scol only if the whole byte is black. (The docking slot's box is the frame
+    layer's: f_slot takes those stars out of R_SS before the plot.)"""
+    rows = [y] + ([y + 1] if s == 3 and y < 255 else [])
+    xs = [x] + ([x + 1] if s >= 2 and x < 255 else [])
+    for py in rows:
+        if not (ref.ct <= py <= ref.cb):
+            continue
+        byts = {}
+        for px in xs:
+            if ref.cl <= px <= ref.cr:
+                byts.setdefault(px >> 2, []).append(px)
+        for c, pxs in byts.items():
+            if all(ref.getpix(4 * c + p, py) == 0 for p in range(4)):
+                for px in pxs:
+                    ref.setpix(px, py, scol, scol)
 
 
 # the Master port's test's overrides (R_POLY's colours, R_LINE's end points
@@ -309,6 +335,7 @@ def test_lines(self, n):
 
 tr.Machine = Machine
 tr.check_patch_sites = check_patch_sites
+tr.star_ref = star_ref
 tr.Tester.set_col = set_col
 tr.Tester.draw_line = draw_line
 tr.Tester.test_lines = test_lines

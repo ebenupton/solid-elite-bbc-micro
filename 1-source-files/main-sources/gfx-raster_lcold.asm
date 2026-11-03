@@ -1,8 +1,3 @@
-\ Port (Model B): copied from the Tube branch's master/src/gfx-raster_lcold.asm (the BBC
-\ Master port's rasteriser, with its _HOSTB support for a Model B host), for
-\ bank R; made NMOS at build time by 2-build-files/nmos.py (bankr.sh). Notes
-\ marked Port (bank R) are this copy's changes.
-
 \ ============================================================================
 \ raster_lcold.asm -- R_LINE's cold part (gfx-raster_line.asm, in the
 \ polygon window), here in the shared region for room: rl_mdq, rl_mdqa (the
@@ -10,7 +5,8 @@
 \ rp_mul16 and rp_div32) and rl_long (lines with d > 255).  They use the
 \ shared region (the arithmetic, r_pset, R_LINE's variables in a run page's
 \ tail) and the zero page, nothing of the polygon window's.  INCLUDE it in
-\ bank 5's assembly, after gfx-raster.asm.
+\ bank 5's assembly, after gfx-raster.asm (elite-gfx.asm: in the room below
+\ the per-x tables, from r_tfree).
 \ ============================================================================
 
 \ rl_mdq: (rp_ma * rp_mb + rl_t) DIV / MOD rp_v -> quotient rp_m0,m1,
@@ -59,15 +55,17 @@
   STA rl_t+1
   LDA l_e
   STA rl_t
-  LDA rl_mo                \ X = the major axis (0 = x, 1 = y: l_x0,X)
-  LSR A
-  TAX
+  LDA rl_mo                \ X = the major axis (0 = x, 1 = y: l_x0,X), kept
+  LSR A                   \ in l_e (NMOS: no PHX/PLX; rl_t has e now)
+  STA l_e
+  BPL lp                  \ (always)
+.md
+  DEC l_x0,X
 .lp
-  PHX
   LDX l_x0
   LDY l_y0
   JSR r_pset
-  PLX
+  LDX l_e
   DEC l_n
   BEQ done
   INC l_x0,X              \ major step
@@ -90,16 +88,20 @@
   EOR #1
   TAX
   BIT rl_s
-  BMI md
+  BMI md                  \ (the minor step; X is reloaded at lp)
   INC l_x0,X
-  BRA mn
-.md
-  DEC l_x0,X
-.mn
-  TXA
-  EOR #1
-  TAX
-  BRA lp
+  JMP lp
 .done
   RTS
 }
+
+\ The rasteriser's private state (only the rasteriser reads or writes it, and
+\ R_INIT sets it up)
+.R_PRBUF    SKIP 1          \ the current buffer
+.R_PRDYT    SKIP 2          \ per buffer: the rows that may have a dirty extent
+.R_PRDYB    SKIP 2
+.R_PRSCNT   SKIP 2          \ per buffer: star records
+.R_PRECNT   SKIP 2          \ per buffer: star records erased, not yet in WL
+.R_PRWT     SKIP 1          \ the rows of WL/WR that may be non-empty
+.R_PRWB     SKIP 1
+
