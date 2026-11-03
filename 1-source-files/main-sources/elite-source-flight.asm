@@ -34706,11 +34706,11 @@ LIGHT_SUN = TRUE
                         \                    = (z_sign z_hi z_lo) - speed
 
  LDA TYPE               \ If the ship type is not the sun (129) then skip the
- AND #%10000001         \ next instruction, otherwise return from the subroutine
- CMP #129               \ as we don't need to rotate the sun around its origin.
- BNE P%+3               \ Having both the AND and the CMP is a little odd, as
-                        \ the sun is the only ship type with bits 0 and 7 set,
-                        \ so the AND has no effect and could be removed
+ CMP #129               \ next instruction, otherwise return from the subroutine
+ BNE P%+3               \ as we don't need to rotate the sun around its origin.
+                        \ The original also has an AND #%10000001 before the
+                        \ CMP, but the sun is the only ship type with bits 0
+                        \ and 7 set, so the AND has no effect and is removed
 
  RTS                    \ Return from the subroutine, as the ship we are moving
                         \ is the sun and doesn't need any of the following
