@@ -31635,24 +31635,20 @@ LIGHT_SUN = TRUE
 
  LDA XX15               \ Set A = XX15
 
- JSR FMLTU              \ Set T = A * Q / 256
- STA T                  \       = XX15 * XX12 / 256
+ JSR FMLTU              \ Set R = A * Q / 256
+ STA R                  \       = XX15 * XX12 / 256
 
  LDA XX12+1             \ Set S = sign of XX15(1 0) * XX12(1 0), so:
  EOR XX15+1             \
- STA S                  \   (S T) = XX15(1 0) * XX12(1 0) / 256
+ STA S                  \   (S R) = XX15(1 0) * XX12(1 0) / 256
 
  LDA XX12+2             \ Set Q = XX12+2
  STA Q
 
  LDA XX15+2             \ Set A = XX15+2
 
- JSR FMLTU              \ Set Q = A * Q
+ JSR FMLTU              \ Set Q = A * Q (FMLTU leaves R alone)
  STA Q                  \       = XX15+2 * XX12+2 / 256
-
- LDA T                  \ Set T = R, so now:
- STA R                  \
-                        \   (S R) = XX15(1 0) * XX12(1 0) / 256
 
  LDA XX12+3             \ Set A = sign of XX15+3 * XX12+3, so:
  EOR XX15+3             \
