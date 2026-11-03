@@ -3895,9 +3895,6 @@ ENDIF
  LDX INWK+3,Y
  STX S
 
- LDX INWK,Y             \ These instructions have no effect as MAD overwrites
- STX P                  \ X and P when called, but they set X = P = nosev_x_lo
-
  LDA INWK+1,Y           \ Set A = -nosev_x_hi
  EOR #%10000000
 
@@ -3907,9 +3904,6 @@ ENDIF
                         \ and store (A X) in nosev_y, so this does:
                         \
                         \ nosev_y = nosev_y - alpha * nosev_x_hi
-
- STX P                  \ This instruction has no effect as MAD overwrites P,
-                        \ but it sets P = nosev_y_lo
 
  LDX INWK,Y             \ Set (S R) = nosev_x
  STX R
@@ -3925,9 +3919,6 @@ ENDIF
                         \
                         \ nosev_x = nosev_x + alpha * nosev_y_hi
 
- STX P                  \ This instruction has no effect as MAD overwrites P,
-                        \ but it sets P = nosev_x_lo
-
  LDA BETA               \ Set Q = beta (the pitch angle to rotate through)
  STA Q
 
@@ -3935,11 +3926,6 @@ ENDIF
  STX R
  LDX INWK+3,Y
  STX S
- LDX INWK+4,Y
-
- STX P                  \ This instruction has no effect as MAD overwrites P,
-                        \ but it sets P = nosev_y
-
  LDA INWK+5,Y           \ Set A = -nosev_z_hi
  EOR #%10000000
 
@@ -3949,9 +3935,6 @@ ENDIF
                         \ and store (A X) in nosev_y, so this does:
                         \
                         \ nosev_y = nosev_y - beta * nosev_z_hi
-
- STX P                  \ This instruction has no effect as MAD overwrites P,
-                        \ but it sets P = nosev_y_lo
 
  LDX INWK+4,Y           \ Set (S R) = nosev_z
  STX R
