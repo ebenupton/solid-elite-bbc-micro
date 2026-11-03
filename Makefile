@@ -107,7 +107,6 @@ all:
 	echo _CIRCLES=$(circles-on) >> 1-source-files/main-sources/elite-build-options.asm
 	echo _SSUN=$(ssun-on) >> 1-source-files/main-sources/elite-build-options.asm
 	$(PYTHON) 2-build-files/streams.py measure > 3-assembled-output/compile.txt
-	$(PYTHON) 2-build-files/panel.py >> 3-assembled-output/compile.txt
 	$(PYTHON) 2-build-files/bank5.py $(BEEBASM)
 	$(BEEBASM) -i 1-source-files/main-sources/elite-missile.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-loader3.asm -v >> 3-assembled-output/compile.txt

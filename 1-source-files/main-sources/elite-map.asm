@@ -77,10 +77,70 @@
                         \ second buffer (BUF0)
 
  SCREEN% = &4000        \ The screen: 256 x 192 pixels in four colours (MODE 1's
-                        \ format, 64-byte rows), then the dashboard's 256 x 56
-                        \ at PANEL%, shown as one 31-row frame by the 6845, as
-                        \ BBC Master Elite's screen
- PANEL% = &7000
+                        \ format, 64-byte rows, at the 6845's 2 MHz clock)
+ PANEL% = &7000         \ The dashboard: the original's, 128 x 56 pixels in
+                        \ four colours (mode 5's format, 32-byte rows, at the
+                        \ 1 MHz clock), seven rows of 256 bytes, P.DIALS
+                        \ (docs/video-timing.md)
+
+ RUPT% = &7700          \ The rupture's code (elite-rupture.asm), after the
+ RUPTPG = 3             \ dashboard: RUPTPG pages, which the loader copies
+
+ CRTC = &FE00           \ The 6845's address and data registers
+
+ ULAA = &D8             \ The video ULA's control register for the screen (MODE
+ ULAB = &C4             \ 1: 2 MHz clock, four colours) and the dashboard (mode
+                        \ 5: 1 MHz clock, four colours)
+
+ ESCPA = &0386          \ ESCP, the escape pod flag, in both programs (their
+                        \ layouts check it), for the dashboard's palette
+
+ RTRIM1 = 0             \ The switches' trims, in 2 MHz cycles (half
+ RTRIM2 = 0             \ microseconds), added to the cycle of S1's (RTRIM1) and
+                        \ S2's (RTRIM2) write to the ULA's control register: 0
+                        \ in jsbeeb; on a real Model B, the values that the
+                        \ timing check gives (docs/video-timing.md, "On a real
+                        \ Model B")
+
+                        \ The switches' targets: S1 (line 191 of the next field)
+                        \ and S2 (line 311) as cycles from the loader's
+                        \ calibration probe (the vertical sync's start, line
+                        \ 272, as rwait's target), each split into whole
+                        \ microseconds (RD1, RD2, modulo 256 in timer 2) and a
+                        \ half (RH1, RH2: the odd cycle, an instruction of 3
+                        \ cycles in place of 2 before the write); RS1 and RS2
+                        \ place the writes on cycle 76 in jsbeeb with no trim
+                        \ (docs/video-timing.md)
+ RS1 = 2 * (14800 - 1 * 64) - 7 + RTRIM1
+ RS2 = 2 * (2512 - 1 * 64) - 6 + RTRIM2
+ RD1 = RS1 DIV 2
+ RH1 = RS1 AND 1
+ RD2 = RS2 DIV 2
+ RH2 = RS2 AND 1
+
+ RWMAX = 80             \ The longest wait (microseconds) that rwait takes as
+                        \ on time; more means the interrupt came late
+
+ MACRO RTRIMI h         \ A switch's odd half microsecond, before the write to
+  IF h                  \ the ULA's control register: 3 cycles or 2
+   BIT &70
+  ELSE
+   NOP
+  ENDIF
+ ENDMACRO
+
+ MACRO RWAITX c         \ Exactly c cycles (c >= 2)
+  IF c AND 1
+   BIT &70
+   FOR I%, 1, (c - 3) DIV 2
+    NOP
+   NEXT
+  ELSE
+   FOR I%, 1, c DIV 2
+    NOP
+   NEXT
+  ENDIF
+ ENDMACRO
 
  DFSSAVE% = &BF00       \ DFS's workspace, &1000-&10FF, between disc commands:
                         \ the last page of each program's cold bank, which no
@@ -90,9 +150,10 @@
  PANELROWS = 7          \ The dashboard's character rows
 
  RLINEUS = 64           \ The screen's line, in microseconds
- RPA = 188 * RLINEUS - 2  \ Timer 1's periods for the rupture (resident's IRQG):
- RPB = 124 * RLINEUS - 2  \ point 2 (line 8) to point 1 (line 196), and point 1 to
-                        \ point 2 (the latch counts N + 2 microseconds)
+ RPA = 192 * RLINEUS - 2  \ Timer 1's periods for the rupture (RUPT): point 2
+ RPB = 120 * RLINEUS - 2  \ (a line before S2 on line 311) to point 1 (a line
+                        \ before S1 on line 191), and point 1 to point 2 (the
+                        \ latch counts N + 2 microseconds)
 
  BUF0 = &1000           \ The filled renderer's second screen buffer, buffer 0
                         \ (&1000-&3FFF; buffer 1 is SCREEN%), which the
@@ -197,9 +258,9 @@
                         \ (&0724-&07BC), which includes it there, so that bank 6
                         \ can be built against it
 
- DTMP = &07BD          \ Workspace for the dashboard's drawing routines, at
- DTMP2 = &07BE          \ the end of the resident block A (elite-resident.asm)
- DSTK = &07BF           \ The scanner stick's pixels (CPIX2 sets it for SCAN)
+ DTMP = &07BD           \ Workspace for the hangar's lines (HAS2 and HAS3, in
+ DTMP2 = &07BE          \ the docked code), at the end of the resident block A
+                        \ (elite-resident.asm)
 
  LCOL = &A8             \ The colour of the next lines, pixels and characters
                         \ that the drawing routines draw on the space view: a

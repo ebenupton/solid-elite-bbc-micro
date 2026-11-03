@@ -209,6 +209,9 @@
 
 .dfsin
 
+ JSR rdin               \ Stop the rupture's clock switches while the disc is in
+                        \ use (DFS's NMIs could fall inside one: rdin)
+
  LDA dfsok              \ If DFS's workspace has not been kept yet, leave it
  BEQ dfs3
 
@@ -217,6 +220,8 @@
  BNE dfs1               \ (this BNE is effectively a JMP)
 
 .dfsout
+
+ JSR rdout              \ Start the rupture's clock switches again (rdout)
 
  LDA #&FF               \ Note that DFS's workspace is kept
  STA dfsok
@@ -395,6 +400,9 @@
 \ ******************************************************************************
 
 .BRKR
+
+ JSR rdout              \ Start the rupture's clock switches again, in case a
+                        \ disc command ended here with an error
 
  LDA BANK4              \ Page the program's home bank in
  STA &F4
@@ -684,15 +692,16 @@ ENDIF
 \
 \ ------------------------------------------------------------------------------
 \
-\ Port: the screen is one MODE 1 frame in four fixed colours (SCREEN% and
-\ PANEL%, elite-map.asm), so there is no split to make: the original's IRQ1
-\ switched to mode 5 and the dashboard's palette at timer 1 and back at the
-\ vertical sync (LINSCN, in the loader's block B, which still runs the
-\ loading screen). This handles the vertical sync as LINSCN did, without the
-\ mode: it sets DL for WSCAN, writes the palette (which the energy bomb's
-\ flash changes for a frame) and decrements LASCT; everything else, timer 1
-\ included (the MOS's 100 Hz clock, which the game no longer takes), goes to
-\ the MOS's handler. The loader's LOAD routine installs it.
+\ Port: the field is two CRTC frames, the screen (lines 0-191, MODE 1 at the
+\ 2 MHz clock) and the original's mode 5 dashboard (lines 192-311, at the
+\ 1 MHz clock), switched in mid-line on an exact cycle (the rupture,
+\ elite-rupture.asm, docs/video-timing.md). The system VIA's timer 1 fires
+\ two lines before each switch: that goes to RUPT, which makes the switch and
+\ then passes the interrupt on to the MOS (its 100 Hz clock). The vertical
+\ sync, in frame B, is handled as LINSCN did, without the mode: it sets DL for
+\ WSCAN, writes the screen's palette (which the energy bomb's flash changes
+\ for a frame) and decrements LASCT. Every other interrupt goes to the MOS's
+\ handler. The loader's LOAD routine installs it.
 \
 \ ******************************************************************************
 
@@ -743,115 +752,9 @@ ENDIF
 
 .irqt
 
-                        \ The rupture: each 312-line field is two CRTC frames,
-                        \ frame A (24 rows of the screen buffer shown, no
-                        \ vsync) and frame B (15 rows, of which the first 7
-                        \ show the dashboard, vsync at its row 10); the 6845
-                        \ latches the start address at each frame's start, so
-                        \ timer 1, free running, fires twice a field (point 2
-                        \ at line 8, in frame A, and point 1 at line 196, in
-                        \ frame B; its latch alternates) to set the other
-                        \ frame's registers (the Tube branch's Model B host's
-                        \ hb_irq, ~/elite-full-tube tube/src/hb-irq.asm). The
-                        \ timer interrupt also goes to the MOS, whose 100 Hz
-                        \ clock, keyboard and sound it drives (twice a field)
-
-                        \ Writing timer 1's latch clears its interrupt flag,
-                        \ so the MOS handles the interrupt first: an extra
-                        \ return frame on the stack brings its RTI back to
-                        \ irqr, which then sets up the rupture and returns
-                        \ from the interrupt itself
-
- LDA #HI(irqr)          \ Push a return frame for the MOS's RTI: irqr, with the
- PHA                    \ I flag set
- LDA #LO(irqr)
- PHA
- LDA #%00000100
- PHA
-
- LDA &FC                \ Pass the interrupt on to the MOS, with A restored
- JMP (IRQMOS)
-
-.irqr
-
- PHA                    \ Store A, X and Y on the stack (the MOS has restored
- TXA                    \ them as they were when the interrupt came)
- PHA
- TYA
- PHA
-
- LDA rphase             \ Flip the rupture's phase (1 at point 2, 0 at point 1)
- EOR #1
- STA rphase
- BEQ irq1
-
-                        \ Point 2 (frame A has started): frame A's registers,
-                        \ and the dashboard's address for frame B
-
- LDX #(rregA - rreg)    \ R4, R6, R7 for frame A (24 rows, all shown, no vsync)
- JSR rregs
-
- LDA #12                \ R12 = the dashboard, latched when frame A ends (R13
- STA VIA+&00            \ is 0 for every start address, the screens and the
- LDA #HI(PANEL% DIV 8)  \ dashboard each starting on a multiple of &800, so it
- STA VIA+&01            \ is written once, by the loader)
-
- LDA #LO(RPB)           \ Point 1 next, RPB microseconds on
- STA VIA+&46
- LDA #HI(RPB)
- STA VIA+&47
-
- JMP irq2
-
-.irq1
-
-                        \ Point 1 (frame B has started): frame B's registers,
-                        \ and the screen buffer to show in the next frame A
-
- LDX #(rregB - rreg)    \ R4, R6, R7 for frame B (15 rows, PANR shown, vsync at
- JSR rregs              \ row 10)
-
- LDX #0                 \ If the frame layer has asked for a flip (GFLIP), show
- LDA GFLIP              \ buffer GPEND from the next frame A on, and note that
- BEQ irq3               \ it is done: the buffer that was on show is no longer
- LDA rflip              \ read from here on, as frame B shows the dashboard
- BNE irq3               \ (docs/renderer.md, "The buffers and the flip"); but
- LDA GPEND              \ not in the field after a flip (rflip), so that a
- STA GFRONT             \ frame is on show for two fields at least: 25 frames a
- STX GFLIP              \ second at most, as the BBC Master port's
- INX
-
-.irq3
-
- STX rflip              \ (rflip: 1 if this field flipped)
-
- LDA #12                \ R12 = the buffer on show, GFRONT (0 for BUF0, 1 for
- STA VIA+&00            \ SCREEN%), latched when frame B ends (R13 is 0)
- LDX GFRONT
- LDA rsah,X
- STA VIA+&01
-
- LDA #LO(RPA)           \ Point 2 next, RPA microseconds on
- STA VIA+&46
- LDA #HI(RPA)
- STA VIA+&47
-
-.irq2
-
- PLA                    \ Restore Y, X and A from the stack and return from the
- TAY                    \ interrupt
- PLA
- TAX
- PLA
- RTI
-
-.rphase
-
- EQUB 0                 \ The rupture's phase
-
-.rflip
-
- EQUB 0                 \ 1 if the last field's point 1 flipped the buffers
+ JMP RUPT               \ The rupture's two points: switch the 6845's clock and
+                        \ set up the next CRTC frame (RUPT, elite-rupture.asm,
+                        \ which passes the interrupt on to the MOS after it)
 
 .PANR
 
@@ -879,7 +782,7 @@ pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
 \
 \ ******************************************************************************
 
- PRINT "Resident block A: &0400-", ~P%-1, ", free ", GLUE%-P%, " (then the renderer's glue, the dashboard's workspace, SNE and ACT)"
+ PRINT "Resident block A: &0400-", ~P%-1, ", free ", GLUE%-P%, " (then the renderer's glue, the hangar's workspace, SNE and ACT)"
  ASSERT P% <= GLUE% AND PROGM_END% > PROGM% AND PROGM_END% - PROGM% <= 128
 
 \ ******************************************************************************

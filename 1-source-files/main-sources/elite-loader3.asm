@@ -772,6 +772,17 @@ ENDIF
 
 .LOAD
 
+ LDX #0                 \ Port: copy the rupture's code to RUPT% (its pages,
+                        \ elite-rupture.asm), while the loader's image is still
+.rpl                    \ in memory
+
+FOR I%, 0, RUPTPG - 1
+ LDA RUPTcode + I% * 256,X
+ STA RUPT% + I% * 256,X
+NEXT
+ INX
+ BNE rpl
+
  LDX #(RESH_END - RESH% - 1)  \ Port: copy the high resident block to RESH%
                         \ (elite-resident-high.asm), with the palette and the
 .rhl                    \ rupture's registers, first, while the loader's image
@@ -822,32 +833,62 @@ ENDIF
                         \ T.CODEH and T.CODEC, into its two sideways RAM banks,
                         \ through the game's own OSCLI, in the resident block)
 
- LDX #LO(LTPN)          \ Port: load the dashboard's image, P.PANEL, into
+ LDX #LO(LTPN)          \ Port: load the dashboard's image, P.DIALS, into
  LDY #HI(LTPN)          \ PANEL% (through PCLI, which passes the command to the
  JSR PCLI               \ MOS)
 
-                        \ Port: switch the screen to the game's four-colour
-                        \ screen (elite-map.asm): the loading screen was the
-                        \ original's split mode 4 and mode 5, with its own
-                        \ interrupt handler, IRQ1 in block B
+                        \ Port: switch the screen to the game's (elite-map.asm,
+                        \ docs/video-timing.md): the loading screen is the
+                        \ original's split mode 4 and mode 5, at the 6845's 1
+                        \ MHz clock, with its own interrupt handler (IRQ1 in
+                        \ block B); the game's is a 2 MHz screen and the 1 MHz
+                        \ dashboard, the rupture (RUPT), which takes over at
+                        \ its switch S2, on the loading screen's line 311
 
  SEI                    \ Disable interrupts while we change the screen
 
- LDX #(scrtab_end - scrtab - 2)
+ LDA VIA+&6B            \ Set the user VIA's timer 2 running free, as the
+ AND #%11011111         \ rupture's clock: one-shot mode (which counts on
+ STA VIA+&6B            \ through 0), its interrupt disabled, and started
+ LDA #%00100000
+ STA VIA+&6E
+ LDA #&FF
+ STA VIA+&68
+ STA VIA+&69
 
-.scrl
+ LDX #(rinit_end - rinit - 2)
 
- LDA scrtab,X           \ Set 6845 register scrtab+X to scrtab+X+1, for each
- STA VIA+&00            \ pair in scrtab
- LDA scrtab+1,X
- STA VIA+&01
+.rnl
+
+ LDA rinit,X            \ Set 6845 register rinit+X to rinit+X+1, for each
+ STA VIA+&00            \ pair in rinit: the field as one 39-row frame, vsync
+ LDA rinit+1,X          \ at its row 34 (line 272), with the game's screen as
+ STA VIA+&01            \ the start address of the next frame (frame A)
  DEX
  DEX
- BPL scrl
+ BPL rnl
 
- LDA #&D8               \ Set the Video ULA's control register to MODE 1's
- STA VIA+&20            \ value (a 2 MHz 6845 clock, four colours), and the
- STA &0248              \ MOS's copy of it
+ JSR rcal               \ Find the vertical sync in timer 2, and set the
+                        \ switches' targets from it
+
+ LDA #0                 \ No switch has been made late (the calibration's
+ STA rslip              \ probes use rwait's late path, and count there)
+
+ LDA #LO(35*RLINEUS-12) \ Start timer 1 to fire on line 310 (we are just after
+ STA VIA+&44            \ line 272's start), a line before S2, and then RPA
+ LDA #HI(35*RLINEUS-12) \ microseconds on (point 1, a line before S1)
+ STA VIA+&45
+ LDA #LO(RPA)
+ STA VIA+&46
+ LDA #HI(RPA)
+ STA VIA+&47
+
+ LDA #1                 \ The first point is point 2 (S2), from the loading
+ STA rphase             \ screen's 1 MHz clock
+ STA rstate
+
+ LDA #ULAA              \ The MOS's copy of the ULA's control register, as the
+ STA &0248              \ game's screen has it
 
  LDY #15                \ Write the four-colour palette, PALCMYK
 
@@ -858,43 +899,6 @@ ENDIF
  DEY
  BPL palt
 
-                        \ Start the rupture (IRQG, in the resident block A):
-                        \ the field as one 39-row frame for now, with vsync
-                        \ at its row 34 and no interlace (so that a field is
-                        \ exactly 312 lines, timer 1's period), then, once the
-                        \ vertical sync comes, timer 1 started to fire at line
-                        \ 8 (point 2), where IRQG sets up frame A, and then
-                        \ every RPA and RPB microseconds in turn
-
- LDX #(rinit_end - rinit - 2)
-
-.rnl
-
- LDA rinit,X            \ Set 6845 register rinit+X to rinit+X+1, for each
- STA VIA+&00            \ pair in rinit
- LDA rinit+1,X
- STA VIA+&01
- DEX
- DEX
- BPL rnl
-
- LDA #%00000010         \ Clear the vertical sync's flag, and wait for it to be
- STA VIA+&4D            \ set again
-
-.rnw
-
- BIT VIA+&4D
- BEQ rnw
-
- LDA #LO(48*RLINEUS-200)  \ Start timer 1 to fire 48 lines on (line 8), less the
- STA VIA+&44            \ time to here, and then RPA microseconds on
- LDA #HI(48*RLINEUS-200)
- STA VIA+&45
- LDA #LO(RPA)
- STA VIA+&46
- LDA #HI(RPA)
- STA VIA+&47
-
  LDA VEC                \ Copy the MOS's IRQ1V handler from VEC to IRQMOS, for
  STA IRQMOS             \ IRQG
  LDA VEC+1
@@ -902,8 +906,8 @@ ENDIF
 
  LDA #LO(IRQG)          \ Point IRQ1V at the game's interrupt handler, IRQG
  STA IRQ1V              \ (in the resident block), which handles the vertical
- LDA #HI(IRQG)          \ sync and passes everything else to the MOS (at VEC)
- STA IRQ1V+1
+ LDA #HI(IRQG)          \ sync and the rupture, and passes everything else to
+ STA IRQ1V+1            \ the MOS (at VEC)
 
  CLI                    \ Re-enable interrupts
 
@@ -941,23 +945,138 @@ ENDIF
 
 .LTPN
 
- EQUS "L.P.PANEL"       \ Port: "*LOAD P.PANEL", the dashboard's image (to its
+ EQUS "L.P.DIALS"       \ Port: "*LOAD P.DIALS", the dashboard's image (to its
  EQUB 13                \ own load address, PANEL%)
 
-.scrtab
+.rcal
 
-                        \ Port: the 6845 registers for the game's screen, as
-                        \ register and value pairs (the others keep mode 4's
-                        \ values, which mode 1 shares):
- EQUB 0, 127            \ R0 = 127, the horizontal total for a 2 MHz clock
- EQUB 1, 64             \ R1 = 64, 64 characters (256 pixels) a line
- EQUB 2, 90             \ R2 = 90, the horizontal sync's position for that
- EQUB 3, &28            \ R3 = &28, mode 1's sync widths
- EQUB 6, 31             \ R6 = 31, 24 rows of space view and 7 of dashboard
- EQUB 12, HI(SCREEN% DIV 8)
- EQUB 13, LO(SCREEN% DIV 8)  \ R12 R13 = SCREEN% / 8, the screen's start
+                        \ Port: find the vertical sync's start (line 272) in
+                        \ timer 2's count, to the microsecond, and set the
+                        \ switches' targets from it (docs/video-timing.md,
+                        \ "Calibration"): a coarse wait for the sync's flag,
+                        \ then a probe a field later at each microsecond from
+                        \ just before it, until the flag is seen (a field is
+                        \ &4E00 microseconds, so each probe's target is one
+                        \ field and one microsecond on from the last's)
 
-.scrtab_end
+ LDA #%00000010         \ Clear the vertical sync's flag and wait for it
+ STA VIA+&4D
+
+.rc1
+
+ BIT VIA+&4D
+ BEQ rc1
+
+ JSR rt2rd              \ (rcvh rcvl) = timer 2, just after the sync's flag set
+
+ LDA rcvl               \ (rch rcl) = the first probe, 170 microseconds earlier
+ CLC                    \ in the field (a probe reads the flag about 94
+ ADC #170               \ microseconds after its time, rwait's return)
+ STA rcl
+ LDA rcvh
+ ADC #0
+ STA rch
+
+ LDA #96                \ At most 96 probes (rcn: rwait uses Y)
+ STA rcn
+
+.rc2
+
+ LDA rcl                \ (rch rcl) = the next probe: a field and a microsecond
+ SEC                    \ on, &4E01 counts lower
+ SBC #&01
+ STA rcl
+ LDA rch
+ SBC #&4E
+ STA rch
+
+.rc3
+
+ JSR rt2rd2             \ Wait until timer 2 is 40 or fewer counts above the
+ LDA rcdl                \ probe (rt2rd2 sets (rcdh rcdl) = timer 2 less the
+ SEC                    \ probe)
+ SBC #41
+ LDA rcdh
+ SBC #0
+ BPL rc3
+
+ LDA #%00000010         \ Clear the sync's flag, then read it at the probe's
+ STA VIA+&4D            \ exact time (rwait, with the probe as target 4)
+ LDA rcl
+ STA rtgt+4
+ LDX #4
+ JSR rwait
+ LDA VIA+&4D
+
+ AND #%00000010         \ If the flag is set, the sync has started: this probe
+ BNE rc4                \ is the calibration
+
+ DEC rcn                \ Otherwise try the next microsecond
+ BNE rc2
+
+.rc4
+
+ LDA rcl                \ The targets, RD1 and RD2 microseconds after the
+ SEC                    \ probe (docs/video-timing.md)
+ SBC #LO(RD1)
+ STA rtgt
+ LDA rcl
+ SEC
+ SBC #LO(RD2)
+ STA rtgt+2
+
+ RTS
+
+.rt2rd2
+
+ JSR rt2rd              \ Read timer 2, and set (rcdh rcdl) = it less the probe
+ LDA rcvl
+ SEC
+ SBC rcl
+ STA rcdl
+ LDA rcvh
+ SBC rch
+ STA rcdh
+ RTS
+
+.rt2rd
+
+ LDA VIA+&69            \ (rcvh rcvl) = timer 2, read until both bytes agree
+ STA rcvh
+ LDA VIA+&68
+ STA rcvl
+ LDA VIA+&69
+ CMP rcvh
+ BNE rt2rd
+ RTS
+
+.rcn
+
+ EQUB 0                 \ The probes left
+
+.rcl
+
+ EQUB 0                 \ The probe (low byte, then high byte)
+
+.rch
+
+ EQUB 0
+
+.rcvl
+
+ EQUB 0                 \ Timer 2 as read (low byte, then high byte)
+
+.rcvh
+
+ EQUB 0
+
+.rcdl
+
+ EQUB 0                 \ Timer 2 less the probe (low byte, then high byte)
+
+.rcdh
+
+ EQUB 0
 
 .rinit
 
@@ -967,6 +1086,8 @@ ENDIF
  EQUB 5, 0              \ R5 = 0, no vertical adjust
  EQUB 7, 34             \ R7 = 34, vsync at row 34
  EQUB 8, 0              \ R8 = 0, no interlace
+ EQUB 12, HI(SCREEN% DIV 8)
+ EQUB 13, LO(SCREEN% DIV 8)  \ R12 R13 = SCREEN% / 8, the next frame's start
 
 .rinit_end
 
@@ -1457,14 +1578,14 @@ ENDIF
 
 .DORND
 
- LDA RAND+1             \ r1´ = r1 + r3 + C
- TAX                    \ r3´ = r1
+ LDA RAND+1             \ r1Â´ = r1 + r3 + C
+ TAX                    \ r3Â´ = r1
  ADC RAND+3
  STA RAND+1
  STX RAND+3
 
- LDA RAND               \ X = r2´ = r0
- TAX                    \ A = r0´ = r0 + r2
+ LDA RAND               \ X = r2Â´ = r0
+ TAX                    \ A = r0Â´ = r0 + r2
  ADC RAND+2
  STA RAND
  STX RAND+2
@@ -2013,6 +2134,30 @@ ENDIF
  COPYBLOCK RESH%, RESH_END, RESHcode
 
  ORG RESHcode + RESH_END - RESH%
+
+\ ******************************************************************************
+\
+\       Name: RUPTcode
+\       Type: Subroutine
+\   Category: Loader
+\    Summary: The rupture's code, which the LOAD routine copies to RUPT%
+\
+\ ******************************************************************************
+
+.RUPTcode
+
+ ORG RUPT%
+
+ INCLUDE "1-source-files/main-sources/elite-rupture.asm"
+
+.RUPT_END
+
+ PRINT "Rupture block: ", ~RUPT%, "-", ~RUPT_END-1, " (", RUPT_END-RUPT%, " bytes)"
+ ASSERT RUPT_END <= RUPT% + RUPTPG * 256
+
+ COPYBLOCK RUPT%, RUPT_END, RUPTcode
+
+ ORG RUPTcode + RUPT_END - RUPT%
 
 \ ******************************************************************************
 \

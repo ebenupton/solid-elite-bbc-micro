@@ -51,7 +51,7 @@
 
  PUTFILE "3-assembled-output/ELITE4.bin", "ELITE4", &FF1900, &FF197B
 
- PUTFILE "3-assembled-output/P.PANEL.bin", "P.PANEL", PANEL%, PANEL%
+ PUTFILE "1-source-files/images/P.DIALS.bin", "P.DIALS", PANEL%, PANEL%
  PUTFILE "3-assembled-output/D.CODEH.bin", "D.CODEH", &008000, &008000
  PUTFILE "3-assembled-output/D.CODEC.bin", "D.CODEC", &008000, &008000
  PUTFILE "3-assembled-output/D.OV1.bin", "D.OV1", &008000, &008000

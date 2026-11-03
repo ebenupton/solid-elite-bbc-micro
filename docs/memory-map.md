@@ -163,8 +163,8 @@ where it goes. `3-assembled-output/flow-flight.txt` and `flow-docked.txt`
 list every container and its units.
 
 The main RAM part is small (94 bytes): main RAM is the screen's (both
-buffers and the dashboard, `&1000-&7DFF`), the workspaces' and the resident
-block's. The low pass holds `WSCAN` and `DELAY`, which the cold pass calls
+buffers and the dashboard, `&1000-&76FF`), the rupture's, the workspaces'
+and the resident block's, with `&7968-&7DFF` free after the rupture. The low pass holds `WSCAN` and `DELAY`, which the cold pass calls
 directly; bank 4 holds the whole of each hot pass, so the main RAM
 container is empty. A low block may not fall into a cold one (its stub
 would be in the low pass); a hot block that falls into a low one falls into
@@ -258,8 +258,10 @@ four banks. Its last part, `LOAD`, runs at `&0B00`, as the original's did
 (two pages now): it copies the high resident block to `RESH%`, loads the
 renderer's banks (`R.BANK`, `F.BANK`, through `STAGE%`) and starts the frame
 layer (`F_INIT`), loads the docked code with "L.T.CODE" through `PCLI` and
-the dashboard's image `P.PANEL` to `PANEL%`, switches to the game's
-four-colour screen and starts the rupture (`IRQG`), points WRCHV and BRKV at
+the dashboard's image `P.DIALS` (the original's) to `PANEL%`, copies the
+rupture's code to `RUPT%`, starts the user VIA's timer 2 and calibrates it
+against the field (`rcal`), switches to the game's screen and starts the
+rupture (`IRQG`, `RUPT`: [video-timing.md](video-timing.md)), points WRCHV and BRKV at
 `WRCHR` and `BRKR`, and starts the game at `S%+3` in the docked code's home
 bank. The disc is an 80-track one: it holds 520 sectors.
 
@@ -325,7 +327,7 @@ see the history of this file).
 |---|---|---|
 | Zero page, stack | `&0000-&00E1`, `&0100-&01FF` | as in the original; the rasteriser uses `&06-&27` and the frame layer `&D2-&E1` during a frame, and put the game's bytes back |
 | `UP` | `&0300-&03CF` | as in the original |
-| Resident block A | `&0400-&07BF` | the port's (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin` and `dfsout`, `WRCHR`, `BRKR`, the last saved commander and the break handler (`S1%`, `NA%`, `CHK2`, `CHK`, `BRBR1`, block B's in the original), the interrupt handler `IRQG` (the rupture and the flip), and at `GLUE%` = `&0724` the renderer's glue (`GCALL` and the trampolines into bank 5); the dashboard's workspace at `&07BD-&07BF` |
+| Resident block A | `&0400-&07BF` | the port's (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin` and `dfsout`, `WRCHR`, `BRKR`, the last saved commander and the break handler (`S1%`, `NA%`, `CHK2`, `CHK`, `BRBR1`, block B's in the original), the interrupt handler `IRQG` (the vertical sync, and the rupture's timer to `RUPT`), and at `GLUE%` = `&0724` the renderer's glue (`GCALL` and the trampolines into bank 5); the hangar's workspace at `&07BD-&07BE` |
 | `SNE`, `ACT` | `&07C0-&07FF` | as in the original |
 | `QQ16` | `&0880-&08BF` | as in the original |
 | `K%` and the line heaps | `&0900-&0CFF` | as in the original (the loader's `LOAD` runs at `&0B00-&0CFF` before the game starts) |
@@ -333,10 +335,11 @@ see the history of this file).
 | `WP` | `&0E00-&0FD2` | as in the original |
 | Buffer 0 | `&1000-&3FFF` | the renderer's second screen buffer (`BUF0`); also DFS's workspace page (`&1000-&10FF`, which `PCLI` puts back for each disc command and keeps in `DFSSAVE%` between them) and, during a load, the staging area `STAGE%` (`&1600`, up to 16K, into buffer 1) |
 | Buffer 1 | `&4000-&6FFF` | the screen (`SCREEN%`): the space view's first buffer, and the only one outside a space view |
-| The dashboard | `&7000-&7DFF` | `PANEL%`: the dashboard's seven character rows, shown by the rupture's frame B |
+| The dashboard | `&7000-&76FF` | `PANEL%`: the original's mode 5 dashboard, seven character rows of 256 bytes (`P.DIALS`), shown at the 1 MHz clock by the rupture's frame B ([video-timing.md](video-timing.md)) |
+| The rupture | `&7700-&7967` | `RUPT%` (`elite-rupture.asm`, which the loader copies there): the two clock switches, the frames' vertical registers, the flip, the disc freeze (`rdin`, `rdout`) and their variables; free to `&7DFF` |
 | The mailbox | `&7E00-&7E9F` | the rasteriser's inputs (`MBOX`, `gfx-rws.asm`), the stars at its end (`&67-&9F`); `PCLI`'s command and OSFILE block (`PCBUF`, `PBLK`) share its polygon vertices, as do the planet's circle records from `PF_HOOK` to the frame (`PCB`, `PC_N`, `pc_inv`: `&00-&49`) and, during the frame, the disc layer's batches (`&00-&65`) |
 | The shared variables | `&7EA0-&7EAF` | `GVARS`: the renderer's state that the game's hooks, the interrupt and the frame layer share (the last, `PF_CLS`, the planet's class as `PF_HOOK` made it) |
-| The high resident block | `&7EB0-&7EF0` | `RESH%` (`elite-resident-high.asm`): the palette and the rupture's register routine and tables |
+| The high resident block | `&7EB0-&7EBF` | `RESH%` (`elite-resident-high.asm`): the screen's palette (64 bytes free after it) |
 | The missile's blueprint | `&7F00-&7F9F` | as in the original, without its edges; then the programs' main RAM part, `PROGM%` (`&7FA0-&7FFD`); `VEC` at `&7FFE` |
 | Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`, with the lighting (`gfx-light.asm`: `L_REC`, and in the flight code `L_SUN`); in a build with `_CIRCLES`, the planet's surface after the hot pass (`PF_HOOK`, `gfx-planet7.asm`, and the circle engine's `pc_circ`, `gfx-merid.asm`); the quarter squares at `&B300-&B6FF` (`QSL`, `QSH`); the blueprint set at `&B700`, with its ships' normals and `FC_NORMTAB` (`NORMTAB`) |
 | Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000` (in the docked code, after its set's face lists), then `QQ18`; in the flight code, then the overlay region (`OVL%`) and the renderer's window (`WIN7%`, `gfx-window7.asm`: the disc layer's painter and the second disc, `&A387` on, and each buffer's disc state in the twelve pages `&B300-&BEFF`, not in the image); `DFSSAVE%` at `&BF00` |

@@ -45,55 +45,5 @@
   ENDIF
  NEXT
 
-\ ******************************************************************************
-\
-\       Name: rregs
-\       Type: Subroutine
-\   Category: Drawing the screen
-\    Summary: Set the 6845's R4, R7 and R6 for one of the rupture's two CRTC
-\             frames, and the frames' registers and screen addresses
-\
-\ ******************************************************************************
-
-.rregs
-
-                        \ Set R4, R6 and R7 from rreg+X: R4 and R7, then R6
-                        \ (which in frame B is PANR, so that DET1 can hide the
-                        \ dashboard)
-
- LDA #4
- STA VIA+&00
- LDA rreg,X
- STA VIA+&01
- LDA #7
- STA VIA+&00
- LDA rreg+1,X
- STA VIA+&01
- LDA #6
- STA VIA+&00
- LDA rreg+2,X
- BPL P%+5
- LDA PANR
- STA VIA+&01
- RTS
-
-.rreg
-
-.rregA
-
- EQUB 23, 127, 24       \ Frame A: R4, R7, R6
-
-.rregB
-
- EQUB 14, 10, &FF       \ Frame B: R4, R7, R6 (&FF: PANR)
-
-.rsah
-
- EQUB HI(BUF0 DIV 8), HI(SCREEN% DIV 8)
-
- ASSERT LO(BUF0 DIV 8) = 0 AND LO(SCREEN% DIV 8) = 0 AND LO(PANEL% DIV 8) = 0
-                        \ (R13, the start address's low byte, is 0 for all
-                        \ three: IRQG writes R12 only)
-
  PRINT "High resident block: ", ~RESH%, "-", ~P%-1, ", free ", &7F00-P%
  ASSERT P% <= &7F00

@@ -207,11 +207,14 @@ patch, applied by the harness (`6-harness/blib.mjs`, `PATCHES`, named in
 * **The altitude's leftover `Q` is defined.** The original's altitude takes
   a square root of `R` and of whatever its drawing left in `Q`; the port
   sets `Q` = 0 there, and the gate's reference is patched the same way.
-* **The dashboard** is the original's, doubled to the four-colour screen and
-  recoloured (red to magenta, green to cyan), not the Master port's design.
+* **The dashboard** is the original's, in mode 5 at its own resolution and
+  in its own colours (and the escape pod's), shown at the 1 MHz clock
+  below the 2 MHz screen by two switches of the clock in mid-line, each on
+  an exact cycle ([docs/video-timing.md](docs/video-timing.md)); not the
+  Master port's design.
 * **Palette effects are not reproduced**: the hyperspace rings' mode change
-  (`HFX`) and the colour flashes; the palette is fixed (black, cyan,
-  magenta, yellow).
+  (`HFX`) and the colour flashes; the space view's palette is fixed
+  (black, cyan, magenta, yellow).
 * **The disc is 80 tracks.**
 * **Key presses**: at a few frames a second near a large station a very
   short key press can fall between two keyboard scans (the redock test

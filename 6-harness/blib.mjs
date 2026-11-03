@@ -290,6 +290,7 @@ export function progHooks(b, cpu) {
 
 // Run one build under the pilot.
 //   opts.build (loadBuild), opts.pilot (object with keys(ctx), dks(ctx), observe(ctx)),
+//   opts.onBoot(session) (called once the disc has booted, before the game),
 //   opts.iters (MLOOP iterations to record), opts.maxSecs (emulated), opts.seedBoot(regions,
 //   written, rb) (at TT170: returns [addr, bytes] to write, given the set of addresses
 //   written since the game's entry), opts.patch({ wr, rb, sy }) (called at BAY after
@@ -304,6 +305,7 @@ export async function runElite(opts) {
     const b = opts.build;
     const s = await bootModelB(b.disc);
     const cpu = s._machine.processor;
+    if (opts.onBoot) opts.onBoot(s);      // (bhsync.mjs: hooks from the loader on)
     const regions = regionsFor(b);
     const canon = canonFor(b, regions);
     const rd = (a, n = 1) => { const r = new Array(n); for (let i = 0; i < n; i++) r[i] = cpu.ramRomOs[(a + i) & 0xffff]; return r; };

@@ -8068,12 +8068,11 @@ ENDIF
 
 .DIALS
 
- LDA #&A0               \ Set SC(1 0) = &71A0, which is the screen address for
+ LDA #&D0               \ Set SC(1 0) = &78D0, which is the screen address for
  STA SC                 \ the character block containing the left end of the
- LDA #&71               \ top indicator in the right part of the dashboard, the
- STA SC+1               \ one showing our speed (Port: on the four-colour
-                        \ screen, where the original's column 26 of row 24,
-                        \ &78D0, is at PANEL% + 26 * 16)
+ LDA #HI(PANEL%)        \ top indicator in the right part of the dashboard, the
+ STA SC+1               \ one showing our speed (Port: the dashboard is at
+                        \ PANEL%, the original's &7800)
 
  JSR PZW                \ Call PZW to set A to the colour for dangerous values
                         \ and X to the colour for safe values
@@ -8293,12 +8292,11 @@ ENDIF
 \
 \ ******************************************************************************
 
- LDA #&70               \ Set SC(1 0) = &7020, which is the screen address for
+ LDA #HI(PANEL%)        \ Set SC(1 0) = &7810, which is the screen address for
+                        \ (Port: PANEL% + &10)
  STA SC+1               \ the character block containing the left end of the
- LDA #&20               \ top indicator in the left part of the dashboard, the
- STA SC                 \ one showing the forward shield (Port: on the
-                        \ four-colour screen, where the original's column 2 of
-                        \ row 24, &7810, is at PANEL% + 2 * 16)
+ LDA #&10               \ top indicator in the left part of the dashboard, the
+ STA SC                 \ one showing the forward shield
 
  LDA FSH                \ Draw the forward shield indicator using a range of
  JSR DILX               \ 0-255, and increment SC to point to the next indicator
@@ -8482,14 +8480,17 @@ ENDIF
                         \ character's width of 4 pixels
 
  CMP T1                 \ If A >= T1 then we have passed the threshold where we
-                        \ change bar colour, so we want the "high value" colour
+ BCS DL30               \ change bar colour, so jump to DL30 to set A to the
+                        \ "high value" colour
 
- LDA K                  \ Set A to K, the "high value" colour to use (this does
-                        \ not affect the C flag)
+ LDA K+1                \ Set A to K+1, the "low value" colour to use
 
- BCS DL31               \ If A >= T1, jump to DL31 to keep the high colour
+ BNE DL31               \ Jump down to DL31 (this BNE is effectively a JMP as A
+                        \ will never be zero)
 
- LDA K+1                \ Otherwise set A to K+1, the "low value" colour
+.DL30
+
+ LDA K                  \ Set A to K, the "high value" colour to use
 
 .DL31
 
@@ -8526,44 +8527,20 @@ ENDIF
                         \ only keep pixels that have their equivalent bits set
                         \ in the mask byte in A
 
-                        \ Port: on the four-colour screen each of the
-                        \ original's mode 5 bytes is two MODE 1 bytes, EXPL and
-                        \ EXPR of it, eight bytes apart, so this draws the
-                        \ three rows of each (X, the block counter, waits in
-                        \ DTMP2)
+ STA (SC),Y             \ Draw the shape of the mask on pixel row Y of the
+                        \ character block we are processing
 
- STX DTMP2              \ Keep the block counter in DTMP2
-
- TAX                    \ Draw the left MODE 1 byte of the shape on pixel rows
- LDA EXPL,X             \ Y to Y + 2 of the character block
- STA (SC),Y
- INY
- STA (SC),Y
- INY
+ INY                    \ Draw the next pixel row, incrementing Y
  STA (SC),Y
 
- TYA                    \ Move Y to the same rows of the next character block
- CLC                    \ along
- ADC #6
- TAY
-
- TXA                    \ Port: EXPR(b) = EXPL((b << 2) AND &FF), so the
- ASL A                  \ right byte is EXPL's at X * 4 (one table: the
- ASL A                  \ left byte's pixels are b's bits 7, 6, 3, 2, the
- TAX                    \ right byte's bits 5, 4, 1, 0)
- LDA EXPL,X             \ Draw the right MODE 1 byte of the shape there
- STA (SC),Y
- INY
- STA (SC),Y
- INY
+ INY                    \ And draw the third pixel row, incrementing Y
  STA (SC),Y
 
- TYA                    \ Add 6 to Y, so Y is now 16 more than when we started
+ TYA                    \ Add 6 to Y, so Y is now 8 more than when we started
  CLC                    \ this loop iteration, so Y now points to the address
  ADC #6                 \ of the first line of the indicator bar in the next
- TAY                    \ pair of character blocks
-
- LDX DTMP2              \ Restore the block counter
+ TAY                    \ character block (as each character is 8 bytes of
+                        \ screen memory)
 
  DEX                    \ Decrement the loop counter for the next character
                         \ block along in the indicator
@@ -8623,7 +8600,6 @@ ENDIF
 .DL6
 
  INC SC+1               \ Increment the high byte of SC to point to the next
- INC SC+1               \ (Port: two pages down a character row on the screen)
                         \ character row on-screen (as each row takes up exactly
                         \ one page of 256 bytes) - so this sets up SC to point
                         \ to the next indicator, i.e. the one below the one we
@@ -8716,10 +8692,8 @@ ENDIF
                         \ vertical bar (i.e. A is acting as a mask on the
                         \ four-pixel colour byte)
 
- BNE DLL12              \ Jump to DLL12 to skip the code for drawing a blank,
-                        \ and move on to drawing the indicator (this BNE is
-                        \ effectively a JMP as A = CTWOS,X AND &F0 is &80, &40,
-                        \ &20 or &10, never zero, because X = Q < 4 here)
+ JMP DLL12              \ Jump to DLL12 to skip the code for drawing a blank,
+                        \ and move on to drawing the indicator
 
 .DLL11
 
@@ -8734,50 +8708,31 @@ ENDIF
                         \ character blocks we display from now on will be blank
 .DLL12
 
-                        \ Port: on the four-colour screen, draw the mode 5 byte
-                        \ in A as its two MODE 1 bytes, EXPL and EXPR of it, on
-                        \ the four pixel rows of this pair of character blocks
+ STA (SC),Y             \ Draw the shape of the mask on pixel row Y of the
+                        \ character block we are processing
 
- TAX                    \ Draw the left byte on pixel rows Y to Y + 3
- LDA EXPL,X
- STA (SC),Y
- INY
- STA (SC),Y
- INY
- STA (SC),Y
- INY
+ INY                    \ Draw the next pixel row, incrementing Y
  STA (SC),Y
 
- TYA                    \ Move Y to the same rows of the next character block
- CLC
- ADC #5
- TAY
-
- TXA                    \ Port: EXPR(b) = EXPL((b << 2) AND &FF), so the
- ASL A                  \ right byte is EXPL's at X * 4 (one table: the
- ASL A                  \ left byte's pixels are b's bits 7, 6, 3, 2, the
- TAX                    \ right byte's bits 5, 4, 1, 0)
- LDA EXPL,X             \ Draw the right byte there
- STA (SC),Y
- INY
- STA (SC),Y
- INY
- STA (SC),Y
- INY
+ INY                    \ And draw the third pixel row, incrementing Y
  STA (SC),Y
 
- TYA                    \ Add 5 to Y, so Y is now 16 more than when we started
+ INY                    \ And draw the fourth pixel row, incrementing Y
+ STA (SC),Y
+
+ TYA                    \ Add 5 to Y, so Y is now 8 more than when we started
  CLC                    \ this loop iteration, so Y now points to the address
  ADC #5                 \ of the first line of the indicator bar in the next
- TAY                    \ pair of character blocks
+ TAY                    \ character block (as each character is 8 bytes of
+                        \ screen memory)
 
- CPY #60                \ If Y < 60 then we still have some more character
+ CPY #30                \ If Y < 30 then we still have some more character
  BCC DLL10              \ blocks to draw, so loop back to DLL10 to display the
-                        \ next one along (Port: four pairs)
+                        \ next one along
 
  INC SC+1               \ Increment the high byte of SC to point to the next
- INC SC+1               \ character row on-screen (Port: two pages a row on the
-                        \ four-colour screen) - so this sets up SC to point
+                        \ character row on-screen (as each row takes up exactly
+                        \ one page of 256 bytes) - so this sets up SC to point
                         \ to the next indicator, i.e. the one below the one we
                         \ just drew
 
@@ -12566,90 +12521,83 @@ ENDIF
 
 .CPIX2
 
-                        \ Port: CPIX2 draws on the four-colour screen's
-                        \ dashboard (PANEL%), where each of the original's mode
-                        \ 5 pixels is two pixels: the dash at (X1, Y1) is the
-                        \ four pixels from x = X1 AND %11111110 (a whole
-                        \ character block if X1 AND 2 is 0, else the right half
-                        \ of one and the left half of the next), in the
-                        \ colour COL on the original's dashboard: COL's colour
-                        \ in the screen's palette (CMYK: the original's red
-                        \ magenta, its yellow yellow, its green cyan). It
-                        \ leaves SC(1 0) pointing at the dash's right half,
-                        \ and in DSTK the pixels of the stick that SCAN draws
-                        \ there (the original's CTWOS+1,X AND COL)
-
  LDA Y1                 \ Fetch the y-coordinate into A
+
  TAY                    \ Store the y-coordinate in Y
 
- LSR A                  \ Set SCH = &40 + 2 * (Y1 div 8), the page of its
- LSR A                  \ character row (rows 24 to 30, from PANEL%)
- AND #%11111110
- CLC
- ADC #&40
- STA SCH
+ LSR A                  \ Set A = A / 8, so A now contains the character row we
+ LSR A                  \ need to draw in (as each character row contains 8
+ LSR A                  \ pixel rows)
 
- LDA X1                 \ Set SC = 2 * bits 2-7 of X1, the offset of its
- AND #%11111100         \ character block in the row, in the row's second page
- ASL A                  \ if X1 >= 128
- STA SC
- BCC P%+4
- INC SCH
+ CLC                    \ Port: the dashboard's rows 24 to 30 are at PANEL%,
+ ADC #HI(PANEL%) - 24   \ not &7800 (the original's &60 OR the row)               \ Each character row in Elite's screen mode takes up one
+                        \ page in memory (256 bytes), so we now OR with &60 to
+                        \ get the page containing the dash (see the comments in
+                        \ routine TT26 for more discussion about calculating
+                        \ screen memory addresses)
+
+ STA SCH                \ Store the screen page in the high byte of SC(1 0)
+
+ LDA X1                 \ Each character block contains 8 pixel rows, so to get
+ AND #%11111000         \ the address of the first byte in the character block
+                        \ that we need to draw into, as an offset from the start
+                        \ of the row, we clear bits 0-2
+
+ STA SC                 \ Store the address of the character block in the low
+                        \ byte of SC(1 0), so now SC(1 0) points to the
+                        \ character block we need to draw into
 
  TYA                    \ Set Y to the y-coordinate mod 8, which will be the
  AND #7                 \ number of the pixel row we need to draw within the
  TAY                    \ character block
 
- LDA COL                \ Set DTMP to COL's colour on the four-colour screen:
- CMP #&F0               \ &F0 (yellow) becomes &FF, &0F (red) &F0 (magenta),
- BEQ cpx1               \ and &FF (green) &0F (cyan)
- CMP #&0F
- BEQ cpx2
- LDA #&0F
- BNE cpx3
-.cpx1
- LDA #&FF
- BNE cpx3
-.cpx2
- LDA #&F0
-.cpx3
- STA DTMP
+ LDA X1                 \ Copy bits 0-1 of X1 to bits 1-2 of X, and clear the C
+ AND #%00000110         \ flag in the process (using the LSR). X will now be
+ LSR A                  \ a value between 0 and 3, and will be the pixel number
+ TAX                    \ in the character row for the left pixel in the dash.
+                        \ This is because each character row is one byte that
+                        \ contains 4 pixels, but covers 8 screen coordinates, so
+                        \ this effectively does the division by 2 that we need
 
- LDA X1                 \ If X1 AND 2 is 0, the dash is one whole character
- AND #2                 \ block, so draw it and set DSTK to its right half
- BNE cpx4
+ LDA CTWOS,X            \ Fetch a mode 5 one-pixel byte with the pixel position
+ AND COL                \ at X, and AND with the colour byte so that pixel takes
+                        \ on the colour we want to draw (i.e. A is acting as a
+                        \ mask on the colour byte)
 
- LDA DTMP
- EOR (SC),Y
- STA (SC),Y
+ EOR (SC),Y             \ Draw the pixel on-screen using EOR logic, so we can
+ STA (SC),Y             \ remove it later without ruining the background that's
+                        \ already on-screen
 
- LDA #%00110011
- AND DTMP
- STA DSTK
+ LDA CTWOS+1,X          \ Fetch a mode 5 one-pixel byte with the pixel position
+                        \ at X+1, so we can draw the right pixel of the dash
 
- RTS
+ BPL CP1                \ The CTWOS table has an extra row at the end of it that
+                        \ repeats the first value, %10001000, so if we have not
+                        \ fetched that value, then the right pixel of the dash
+                        \ is in the same character block as the left pixel, so
+                        \ jump to CP1 to draw it
 
-.cpx4
+ LDA SC                 \ Otherwise the left pixel we drew was at the last
+ ADC #8                 \ position of four in this character block, so we add
+ STA SC                 \ 8 to the screen address to move onto the next block
+                        \ along (as there are 8 bytes in a character block).
+                        \ The C flag was cleared above, so this ADC is correct
 
- LDA #%00110011         \ Otherwise draw the right half of this block
- AND DTMP
- EOR (SC),Y
- STA (SC),Y
+ LDA CTWOS+1,X          \ Re-fetch the mode 5 one-pixel byte, as we just
+                        \ overwrote A (the byte will still be the fifth byte
+                        \ from the table, which is correct as we want to draw
+                        \ the leftmost pixel in the next character along as the
+                        \ dash's right pixel)
 
- LDA SC                 \ Move SC(1 0) on to the next character block (moving
- CLC                    \ to the row's second page when crossing x = 128)
- ADC #8
- STA SC
- BCC P%+4
- INC SCH
+.CP1
 
- LDA #%11001100         \ And draw the left half of that one, which is also the
- AND DTMP               \ stick's pixels
- STA DSTK
- EOR (SC),Y
- STA (SC),Y
+ AND COL                \ Apply the colour mask to the pixel byte, as above
 
- RTS
+ EOR (SC),Y             \ Draw the dash's right pixel according to the mask in
+ STA (SC),Y             \ A, with the colour in COL, using EOR logic, just as
+                        \ above
+
+ RTS                    \ Return from the subroutine
 
 \ ******************************************************************************
 \
@@ -19065,57 +19013,29 @@ ENDIF
 
 .BULB
 
-                        \ Port: on the four-colour screen, the bulbs' row is at
-                        \ PANEL% + 5 * 512 (the original's &7D00), and each of
-                        \ the original's character blocks is two, so the bulb
-                        \ in the original's block A / 8 is at PANEL% + 5 * 512
-                        \ + 2 * A, its bitmap's rows drawn as their MODE 1
-                        \ bytes, EXPL and EXPR, with EOR
-
- ASL A                  \ Set SC(1 0) = &7A00 + 2 * A
- STA SC
- LDA #&7A
- ADC #0
- STA SC+1
+ STA SC                 \ Store the low byte of the screen address in SC
 
  STX P+1                \ Set P(2 1) = (Y X)
  STY P+2
 
- LDY #7                 \ Draw the left halves of the bitmap's eight rows
+ LDA #HI(PANEL%) + 5    \ Port: the dashboard is at PANEL%, the original's &7800               \ Set A to the high byte of the screen address, which is
+                        \ &7D as the bulbs are both in the character row from
+                        \ &7D00 to &7DFF
 
+ STA SC+1               \ Port: RREN's work (the original's character printer
+ LDY #7                 \ ends with it): EOR the eight bytes at P(2 1) onto
+                        \ the screen at SC(1 0)
 .BUL1
 
  LDA (P+1),Y
- TAX
- LDA EXPL,X
  EOR (SC),Y
  STA (SC),Y
  DEY
  BPL BUL1
 
- LDA SC                 \ Move SC(1 0) on to the next character block
- ORA #8
- STA SC
-
- LDY #7                 \ Draw the right halves of the bitmap's eight rows
-
-.BUL2
-
- LDA (P+1),Y
- TAX
- TXA                    \ Port: EXPR(b) = EXPL((b << 2) AND &FF), so the
- ASL A                  \ right byte is EXPL's at X * 4 (one table: the
- ASL A                  \ left byte's pixels are b's bits 7, 6, 3, 2, the
- TAX                    \ right byte's bits 5, 4, 1, 0)
- LDA EXPL,X
- EOR (SC),Y
- STA (SC),Y
- DEY
- BPL BUL2
-
- RTS                    \ Return from the subroutine
-
- INCLUDE "3-assembled-output/elite-panel-tables.asm"
+ RTS               \ Call RREN to print the character definition pointed to
+                        \ by P(2 1) at the screen address pointed to by (A SC),
+                        \ returning from the subroutine using a tail call
 
 \ ******************************************************************************
 \
@@ -19186,16 +19106,15 @@ ENDIF
 
 .MSBAR
 
- TXA                    \ Set T = X * 16 (Port: on the four-colour screen, where
- ASL A                  \ each of the original's character blocks is two)
+ TXA                    \ Set T = X * 8
  ASL A                  \
  ASL A                  \ This also clears the C flag, as X is in the range 0
  ASL A                  \ to 3
  STA T
 
- LDA #97                \ Set SC = 97 - T - (1 - C)
- SBC T                  \        = 97 - (X * 16) - 1
- STA SC                 \        = 96 - (X * 16)
+ LDA #49                \ Set SC = 49 - T - (1 - C)
+ SBC T                  \        = 49 - (X * 8) - 1
+ STA SC                 \        = 48 - (X * 8)
 
                         \ So the low byte of SC(1 0) contains the row address
                         \ for the rightmost missile indicator, made up as
@@ -19209,9 +19128,9 @@ ENDIF
                         \     missile, for X = 1 we hop to the left by one
                         \     character, and so on
 
- LDA #&7C               \ Set the high byte of SC(1 0) to &7C, the character row
+ LDA #HI(PANEL%) + 6    \ Port: the dashboard is at PANEL%, the original's &7800               \ Set the high byte of SC(1 0) to &7E, the character row
  STA SCH                \ that contains the missile indicators (i.e. the bottom
-                        \ row of the screen; Port: PANEL% + 6 * 512)
+                        \ row of the screen)
 
  TYA                    \ Set A to the correct colour, which is a three-pixel
                         \ wide mode 5 character row in the correct colour (for
@@ -19222,37 +19141,12 @@ ENDIF
  LDY #5                 \ We now want to draw this line five times, so set a
                         \ counter in Y
 
-                        \ Port: on the four-colour screen, draw the mode 5 row
-                        \ as its two MODE 1 bytes, EXPL and EXPR of it, eight
-                        \ bytes apart
-
- STX DSTK               \ Set DTMP = EXPL(A) and DTMP2 = EXPR(A), keeping X in
- TAX                    \ DSTK
- LDA EXPL,X
- STA DTMP
- TXA                    \ Port: EXPR(b) = EXPL((b << 2) AND &FF), so the
- ASL A                  \ right byte is EXPL's at X * 4 (one table: the
- ASL A                  \ left byte's pixels are b's bits 7, 6, 3, 2, the
- TAX                    \ right byte's bits 5, 4, 1, 0)
- LDA EXPL,X
- STA DTMP2
- LDX DSTK
-
 .MBL1
 
- LDA DTMP               \ Draw the three-pixel row's left byte, and as we do not
- STA (SC),Y             \ use EOR logic, this will overwrite anything that is
-                        \ already there (so drawing a black missile will delete
-                        \ what's there)
-
- TYA                    \ Draw its right byte, eight bytes on
- ORA #8
- TAY
- LDA DTMP2
- STA (SC),Y
- TYA
- AND #7
- TAY
+ STA (SC),Y             \ Draw the three-pixel row, and as we do not use EOR
+                        \ logic, this will overwrite anything that is already
+                        \ there (so drawing a black missile will delete what's
+                        \ there)
 
  DEY                    \ Decrement the counter for the next row
 

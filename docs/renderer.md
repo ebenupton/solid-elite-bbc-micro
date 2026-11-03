@@ -539,9 +539,9 @@ own disc calls (the commander file's `OSFILE`, and `CATD`) keep the page as
 
 ### The buffers and the flip
 
-The rupture's interrupt (`IRQG`, `elite-resident.asm`) shows buffer
-`GFRONT` (0: `BUF0`, 1: `SCREEN%`) in each frame A, and at its point 1 (the
-start of frame B, the dashboard) carries out a pending flip: `GFRONT` =
+The rupture (`RUPT`, `elite-rupture.asm`, which `IRQG` calls at timer 1)
+shows buffer `GFRONT` (0: `BUF0`, 1: `SCREEN%`) in each frame A, and at the
+start of frame B (the dashboard) carries out a pending flip: `GFRONT` =
 `GPEND`, `GFLIP` = 0. As in the BBC Master port, the frame rate is capped at
 25 frames a second: a flip pending at the field straight after a flip is
 held for one field (`rflip`), so each frame is on show for two fields at
@@ -561,10 +561,13 @@ and the frame's runs of game code leave everything as the original does.
 
 ## Speed
 
-The gate's run, 10,000 iterations: 151,897 cycles per flight iteration,
-13.17 flight iterations per second, against the original's 168,749 and
-11.85 (1.111 times). The planets are plain discs in this build (no
-`_CIRCLES`); the sun near the planet is drawn (`S_SUN`).
+The gate's run, 10,000 iterations: 153,010 cycles per flight iteration,
+13.07 flight iterations per second, against the original's 168,749 and
+11.85 (1.103 times), of which the dashboard's clock switches take about
+1,350 cycles ([video-timing.md](video-timing.md)). The planets are plain
+discs in this build (no `_CIRCLES`); the sun near the planet is drawn
+(`S_SUN`). The scenes below were measured before the dashboard's switches,
+at 151,897 cycles.
 By scene (`6-harness/bscenes.mjs` records each iteration's time and the
 planet's, the station's and the ships' positions in a build's run;
 `6-harness/scenes.py` compares two such runs, counting a flight iteration
