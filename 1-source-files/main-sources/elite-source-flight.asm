@@ -35426,14 +35426,14 @@ LIGHT_SUN = TRUE
                         \ then set the sign afterwards
 
  LDA K                  \ We now do the following sum:
- CLC                    \
- ADC K2                 \   (A y_hi y_lo -) = K(3 2 1 0) + K2(3 2 1 0)
+ ADC K2                 \
+                        \   (A y_hi y_lo -) = K(3 2 1 0) + K2(3 2 1 0)
                         \
                         \ starting with the low bytes (which we don't keep)
                         \
-                        \ The CLC has no effect because MULT3 clears the C
-                        \ flag, so this instruction could be removed (as it is
-                        \ in the cassette version, for example)
+                        \ There is no need for a CLC because MULT3 clears the
+                        \ C flag on every exit, and nothing since then has
+                        \ affected it
 
  LDA K+1                \ We then do the middle bytes, which go into y_lo
  ADC K2+1

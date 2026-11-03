@@ -1,4 +1,4 @@
-hot &8000-&B2FF: 93 units, 12126 bytes, 930 free
+hot &8000-&B2FF: 93 units, 12125 bytes, 931 free
   &8000    22 S%
   &8016    16 INBAY..LTLI
   &8026     3 DEEOR
@@ -91,5 +91,5 @@ hot &8000-&B2FF: 93 units, 12126 bytes, 930 free
   &ACF2    87 MVT1
   &AD49   103 MVS4
   &ADB0    53 MVT6
-  &ADE5   377 MV40..SCAN
+  &ADE5   376 MV40..SCAN
 hotm &7FE2-&7FFD: 0 units, 0 bytes, 28 free
