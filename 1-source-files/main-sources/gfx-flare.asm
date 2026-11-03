@@ -524,8 +524,7 @@ fl_mt = P% - 4          \ row masks of densities 1, 2, 4, 6, 8 / 16 (4x4
  EOR #&FF               \ XL = max(gx - h, 2)
  SEC
  ADC fl_gx
- BCS P%+4
- LDA #0
+ BCC P%+6               \ (borrow: clamp to 2)
  CMP #2
  BCS P%+4
  LDA #2
