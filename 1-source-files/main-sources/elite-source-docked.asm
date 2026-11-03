@@ -3485,8 +3485,9 @@ ENDIF
  AND #%10000000         \ into RAT2
  STA RAT2
 
- LDA INWK+30            \ Fetch the ship's pitch counter and extract the value
- AND #%01111111         \ without the sign bit into A
+ EOR INWK+30            \ Fetch the ship's pitch counter and clear the sign
+                        \ bit by EOR'ing with the sign we just extracted, so
+                        \ A is the value without the sign bit
 
  BEQ MV8                \ If the pitch counter is 0, then jump to MV8 to skip
                         \ the following, as the ship is not pitching
