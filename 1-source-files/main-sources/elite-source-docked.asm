@@ -5898,18 +5898,18 @@ ENDIF
  EOR #3                 \ the C flag, which PIXEL returns as the original does)
  BNE pxd1
 
- LDA SC
- ORA #8
- STA SC
+ TYA                    \ Point Y at the next character block instead of SC (SC
+ ORA #8                 \ bit 3 is clear and Y < 8, so SC + Y + 8 is the same
+ TAY                    \ address as before, and no page is crossed)
 
  LDA #%10001000
  AND LCOL
  EOR (SC),Y
  STA (SC),Y
 
- LDA SC
- AND #%11110111
- STA SC
+ TYA                    \ Restore Y (bit 3 was set above, so clear it)
+ EOR #8
+ TAY
 
 .pxd1
 
