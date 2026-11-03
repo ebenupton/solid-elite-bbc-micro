@@ -9,6 +9,17 @@
 \ the per-x tables, from r_tfree).
 \ ============================================================================
 
+\ rl_mdqa: rl_mdq with rp_mb = d and rp_v = a (rl_gen's rl_i and rl_j bounds);
+\ falls into rl_mdq
+.rl_mdqa
+  LDA rl_d
+  STA rp_mb
+  LDA rl_d+1
+  STA rp_mb+1
+  LDA rl_a
+  STA rp_v0
+  LDA rl_a+1
+  STA rp_v1
 \ rl_mdq: (rp_ma * rp_mb + rl_t) DIV / MOD rp_v -> quotient rp_m0,m1,
 \ remainder rp_m2,m3 (rl_t signed; the quotient must fit 16 bits).  Clobbers
 \ rp_mb.
@@ -35,17 +46,6 @@
   STA rp_m3
   JMP rp_div32
 }
-\ rl_mdqa: rl_mdq with rp_mb = d and rp_v = a (rl_gen's rl_i and rl_j bounds)
-.rl_mdqa
-  LDA rl_d
-  STA rp_mb
-  LDA rl_d+1
-  STA rp_mb+1
-  LDA rl_a
-  STA rp_v0
-  LDA rl_a+1
-  STA rp_v1
-  JMP rl_mdq
 
 \ rl_long: rl_gen's line with d > 255, pixel by pixel from the first pixel
 \ inside the window (l_x0, l_y0), l_n pixels, with the 16-bit error term e =
