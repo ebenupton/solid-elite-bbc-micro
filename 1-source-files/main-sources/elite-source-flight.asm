@@ -21397,12 +21397,10 @@ ENDMACRO
 .BUL2
 
  LDA (P+1),Y
- TAX
- TXA                    \ Port: EXPR(b) = EXPL((b << 2) AND &FF), so the
- ASL A                  \ right byte is EXPL's at X * 4 (one table: the
- ASL A                  \ left byte's pixels are b's bits 7, 6, 3, 2, the
- TAX                    \ right byte's bits 5, 4, 1, 0)
- LDA EXPL,X
+ ASL A                  \ Port: EXPR(b) = EXPL((b << 2) AND &FF), so the
+ ASL A                  \ right byte is EXPL's at b * 4 (one table: the
+ TAX                    \ left byte's pixels are b's bits 7, 6, 3, 2, the
+ LDA EXPL,X             \ right byte's bits 5, 4, 1, 0)
  EOR (SC),Y
  STA (SC),Y
  DEY
