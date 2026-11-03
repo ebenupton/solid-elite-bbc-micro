@@ -622,11 +622,10 @@ fl_mt = P% - 4          \ row masks of densities 1, 2, 4, 6, 8 / 16 (4x4
  SBC fl_hw+1
  BCC fsc9
 .fl_drow                \ row A, if inside the clip window
- CMP #1
- BCC fsc9
+ TAY                    \ Y = row; Z set if row 0
+ BEQ fsc9
  CMP #192
  BCS fsc9
- TAY
  JMP fl_row1
 .fsc9
  RTS
