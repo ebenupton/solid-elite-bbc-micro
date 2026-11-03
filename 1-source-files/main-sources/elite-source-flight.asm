@@ -22598,9 +22598,8 @@ ENDMACRO
 
  TXA                    \ Negate X using two's complement, so X = ~X + 1
  EOR #%11111111
- CLC
- ADC #1
  TAX
+ INX
 
 .PLF17
 
