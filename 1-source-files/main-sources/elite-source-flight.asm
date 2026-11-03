@@ -19315,18 +19315,17 @@ ENDMACRO
 
 .ex
 
- TAX                    \ Copy the token number into X
-
- LDA #LO(QQ18)          \ Set V(1 0) to point to the recursive token table at
- STA V                  \ location QQ18
- LDA #HI(QQ18)
- STA V+1
+ LDX #LO(QQ18)          \ Set V(1 0) to point to the recursive token table at
+ STX V                  \ location QQ18 (using X so that A keeps the token
+ LDX #HI(QQ18)          \ number)
+ STX V+1
 
  LDY #0                 \ Set a counter Y to point to the character offset
                         \ as we scan through the table
 
- TXA                    \ Copy the token number back into A, so both A and X
-                        \ now contain the token number we want to print
+ TAX                    \ Copy the token number into X (setting the flags, as
+                        \ A and X now both contain the token number we want
+                        \ to print)
 
  BEQ TT50               \ If the token number we want is 0, then we have
                         \ already found the token we are looking for, so jump
