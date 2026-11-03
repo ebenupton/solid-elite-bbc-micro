@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Filled ships for the Model B port (the BBC Master port's faces.py, itself
 from the demo port's tools/faces.py, read-only at ~/elite-master-fork):
-parse disc Elite's ship blueprints (the 16 sets 3-assembled-output/D.MOA.bin
-to D.MOP.bin at &B600, with the missile, MISSILE.bin, at &7F00), rebuild each
+parse disc Elite's ship blueprints (the 16 sets D.MOA to D.MOP at &5600, with
+the missile at &7F00, as the released game has them: the port's blueprints
+are assembled without their edge lists, so it reads the released files in
+4-reference-binaries/sth, whose vertices and faces are the port's), rebuild each
 face's polygon, turn the blueprint's detail edges into filled surface details,
 fins and lines, find each ship's symmetries and give every face a fixed colour
 from two hue ramps (adjacent faces never alike, symmetric where the geometry
@@ -27,7 +29,8 @@ See docs/renderer.md.
 import os, re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # the repository
-BUILD = os.path.join(ROOT, '3-assembled-output')
+REF = os.path.join(ROOT, '4-reference-binaries', 'sth')   # (the released blueprints, with edges)
+XX21 = 0x5600                                           # (where the released game loads D.MOx)
 SRC = os.path.join(ROOT, '1-source-files', 'main-sources')
 NAMES = {1: 'Missile', 2: 'Coriolis station', 3: 'Escape pod', 4: 'Alloy plate', 5: 'Cargo canister',
          6: 'Boulder', 7: 'Asteroid', 8: 'Splinter', 9: 'Shuttle', 10: 'Transporter',
@@ -71,14 +74,14 @@ def parse(mem, a):
 
 
 def _sets():
-    """each blueprint set as a 64K memory image: the D.MOx file at &B600 (XX21
-    first) and the missile at &7F00"""
+    """each blueprint set as a 64K memory image: the released D.MOx file at
+    &5600 (XX21 first) and the missile at &7F00"""
     import glob
-    miss = open(os.path.join(BUILD, 'MISSILE.bin'), 'rb').read()
-    for f in sorted(glob.glob(os.path.join(BUILD, 'D.MO?.bin'))):
+    miss = open(os.path.join(REF, 'MISSILE.bin'), 'rb').read()
+    for f in sorted(glob.glob(os.path.join(REF, 'D.MO?.bin'))):
         mem = bytearray(0x10000)
         d = open(f, 'rb').read()
-        mem[0xB600:0xB600 + len(d)] = d
+        mem[XX21:XX21 + len(d)] = d
         mem[0x7F00:0x7F00 + len(miss)] = miss
         yield os.path.basename(f)[:-4], mem
 
@@ -92,7 +95,7 @@ def load_ships():
     found = {}
     for name, mem in _sets():
         for t in range(1, 32):
-            a = mem[0xB600 + 2 * (t - 1)] | mem[0xB600 + 2 * (t - 1) + 1] << 8
+            a = mem[XX21 + 2 * (t - 1)] | mem[XX21 + 2 * (t - 1) + 1] << 8
             if not a:
                 continue
             s = parse(mem, a)

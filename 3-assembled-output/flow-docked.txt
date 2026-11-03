@@ -1,4 +1,4 @@
-hot &8000-&B5F9: 108 units, 9342 bytes, 4476 free
+hot &8000-&B8F9: 108 units, 9342 bytes, 5244 free
   &8000    16 S%
   &8010    15 INBAY
   &801F    13 DEEOR

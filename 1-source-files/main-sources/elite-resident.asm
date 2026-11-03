@@ -121,8 +121,8 @@
 
  JSR pload              \ Load the blueprint file to STAGE%
 
- LDA BANK4              \ Copy its ten pages to the home bank's blueprint slot
- LDX #10
+ LDA BANK4              \ Copy it to the home bank's blueprint slot
+ LDX #HI(BPSLOT_END% - BPSLOT% + &FF)
  LDY #HI(BPSLOT%)
  JSR bcopy
 

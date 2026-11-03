@@ -31,15 +31,18 @@
                         \ game entry, +6: JMP to the WRCHV handler, +9: IRQ1's
                         \ address, +11: JMP to the BRKV handler)
 
- BPSLOT% = &B600        \ The blueprint set in each home bank (2.5K, up to the
-                        \ end of the bank)
+ BPSLOT% = &B900        \ The blueprint set in each home bank, to BPSLOT_END%
+ BPSLOT_END% = &C000    \ (the end of the bank): without their edge lists
+                        \ (the EDGE macro), the largest set takes up to
+                        \ BPSLOT_END% (the ship files and the docked code's
+                        \ layout check it)
 
  STAGE% = &1600         \ Where files are loaded before they are copied into
                         \ their bank (main RAM &1600 to &55FF, over the top of
                         \ the screens, which the game clears after each load)
 
- QSL = &B200            \ The quarter squares, QS(n) = INT(n * n / 4) for n = 0
- QSH = &B400            \ to 511: their low bytes at QSL and high bytes at QSH,
+ QSL = BPSLOT% - &400   \ The quarter squares, QS(n) = INT(n * n / 4) for n = 0
+ QSH = QSL + &200       \ to 511: their low bytes at QSL and high bytes at QSH,
                         \ two pages each, page aligned (their users index them
                         \ by an operand's low byte and pick the page by its
                         \ high bit), in the flight code's home bank, just

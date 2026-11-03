@@ -249,8 +249,12 @@ ENDMACRO
 
 MACRO EDGE vertex1, vertex2, face1, face2, visibility
 
- f = face1 + (face2 << 4)
- EQUB visibility, f, vertex1 << 2, vertex2 << 2
+                        \ Port: the edge lists are not assembled, as every ship
+                        \ is drawn from its faces and nothing reads them
+                        \ (docs/memory-map.md); the blueprints' headers, their
+                        \ edge counts included, are as they were, and the edge
+                        \ offset is the faces' (2-build-files/faces.py reads
+                        \ the edges from the released files)
 
 ENDMACRO
 
@@ -1377,5 +1381,6 @@ ENDMACRO
 \ ******************************************************************************
 
  PRINT "S.D.MOP ", ~CODE%, " ", ~P%, " ", ~LOAD%, " ", ~LOAD%
- SAVE "3-assembled-output/D.MOP.bin", CODE%, CODE% + &0A00
+ SAVE "3-assembled-output/D.MOP.bin", CODE%, P%
+ ASSERT P% <= BPSLOT_END%      \ (Port: the blueprint slot, elite-map.asm)
 

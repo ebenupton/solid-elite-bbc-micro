@@ -1,4 +1,4 @@
-hot &8000-&B1F9: 90 units, 12572 bytes, 222 free
+hot &8000-&B4F9: 90 units, 12572 bytes, 990 free
   &8000    16 S%
   &8010    16 INBAY..LTLI
   &8020     3 DEEOR

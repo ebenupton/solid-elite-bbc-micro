@@ -54,8 +54,12 @@ program's source.
 4. **Both home banks have one layout.** `S%`, the program's entry table,
    is at `&8000` (`HOME%`) in both, as the original's was at `&11E3` in
    both, so that the loader's resident code can enter either. The blueprint
-   set is at `&B600-&BFFF` (`BPSLOT%`, the original's `XX21` at `&5600`) in
-   both. The flight code loads its set from a `D.MOx` file there; the docked
+   set is at `&B900-&BFFF` (`BPSLOT%`, the original's `XX21` at `&5600`) in
+   both: 1,792 bytes, as the blueprints are assembled without their edge
+   lists (the `EDGE` macro assembles nothing: every ship is drawn from its
+   faces, and nothing reads the edges), so the largest set, `D.MOC`, takes
+   1,693 bytes where the original's files take 2,560. The blueprints'
+   headers, their edge counts included, are as they were. The flight code loads its set from a `D.MOx` file there; the docked
    code's set is its own, assembled with it. The missile's blueprint stays
    in main RAM at `&7F00`, as in the original, where both sets point.
 5. **The MOS's vectors and the filing system see main RAM only.** WRCHV,
@@ -94,7 +98,7 @@ Master port, each program is emitted in three passes, **low**, **hot** and
   `direct-docked.txt`).
 * **`Area: cold`** is the cold pass, bank 7 from `&8000`.
 * **`Area: blueprints`** (the docked code's own ship blueprints) is bank 4's
-  blueprint slot at `&B600`.
+  blueprint slot at `&B900`.
 * **`Area: none`** is code the port no longer runs: each copy has only its
   labels and one `RTS`, at its place, so a reference still assembles and
   returns at once.
@@ -274,9 +278,9 @@ see the history of this file).
 | The mailbox | `&7E00-&7E9D` | the rasteriser's inputs (`MBOX`, `gfx-rws.asm`); `PCLI`'s command and OSFILE block (`PCBUF`, `PBLK`) share its polygon vertices, and the disc layer its first `&4C` bytes (the repair's extents at `&00`, its span queue at `&28`) |
 | The shared variables | `&7EA0-&7EAF` | `GVARS`: the renderer's state that the game's hooks, the interrupt and the frame layer share (the last, `GDL`, the disc layer's: which buffers have its disc) |
 | The high resident block | `&7EB0-&7EF0` | `RESH%` (`elite-resident-high.asm`): the palette and the rupture's register routine and tables |
-| The missile's blueprint | `&7F00-&7FFF` | as in the original (with `VEC` at `&7FFE`) |
-| Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`; in the flight code, the quarter squares at `&B200-&B5FF` (`QSL`, `QSH`); the blueprint set at `&B600` |
-| Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000` (in the flight code, the disc layer, `DLAYER`, at `&9B0E-&B2BF` with its tables), then `QQ18`; `DFSSAVE%` at `&BF00` |
+| The missile's blueprint | `&7F00-&7F9F` | as in the original, without its edges; `&7FA0-&7FFD` free; `VEC` at `&7FFE` |
+| Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`; in the flight code, the quarter squares at `&B500-&B8FF` (`QSL`, `QSH`); the blueprint set at `&B900` |
+| Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000`, then `QQ18`; in the flight code, then the renderer's window (`WIN7%`: the disc layer, `gfx-dlayer.asm`); `DFSSAVE%` at `&BF00` |
 | Bank R | ROMSEL `BANK5` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), the jump table `RJT` |
 | Bank F | ROMSEL `BANK6` | the frame layer, from `F.BANK`: its code with the lens flare and the hangar's background (`&8000-&9B0E`), the faces' and lighting tables, its state (`&AA00-&B8FF`), the dispatcher `FJT` |
 
