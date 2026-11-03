@@ -1,4 +1,4 @@
-hot &8000-&B2FF: 95 units, 12150 bytes, 906 free
+hot &8000-&B2FF: 95 units, 12148 bytes, 908 free
   &8000    22 S%
   &8016    16 INBAY..LTLI
   &8026     3 DEEOR
@@ -16,82 +16,82 @@ hot &8000-&B2FF: 95 units, 12150 bytes, 906 free
   &8887    14 MAS2
   &8895    38 MAS3
   &88BB    92 MVT3
-  &8917   160 MVS5
-  &89B7   580 TACTICS (Part 1 of 7)..TACTICS (Part 7 of 7)
-  &8BFB   189 DOCKIT
-  &8CB8    61 VCSU1..TAS1
-  &8CF5    24 TAS6
-  &8D0D    85 HITCH
-  &8D62   255 STARS2..QSMUL
-  &8E61   267 MU5..MULT3
-  &8F6C    76 MLS2..MLS1
-  &8FB8   100 SQUA..MU11
-  &901C     5 MU6
-  &9021    86 FMLTU2..FMLTU
-  &9077   162 MLTU2
-  &9119    81 MUT2..MULT1
-  &916A    10 MULT12
-  &9174   133 TAS3..ADD
-  &91F9    43 DV42..DVID4
-  &9224   184 DVID3B2
-  &92DC    23 cntr
-  &92F3   411 BUMP2..DOEXP
-  &948E    10 DET1
-  &9498    16 SHD..DENGY
-  &94A8   134 DOT..CPIX2
-  &952E    19 SPS3
-  &9541    19 GINF
-  &9554   178 NWSHP
-  &9606   136 PROJ..PL9 (Part 3 of 3)
-  &968E    30 PLS1
-  &96AC     1 PLS2
-  &96AD     1 PLS22
-  &96AE   440 SUN (Part 1 of 4)..CIRCLE2
-  &9866    76 WPLS2..WP1
-  &98B2    46 WPLS
-  &98E0    49 EDGES
-  &9911    98 CHKON..PLS6
-  &9973    78 TT17
-  &99C1   329 KS3..SFX
-  &9B0A   167 ZINF..Main game loop (Part 2 of 6)
-  &9BB1    38 Main game loop (Part 5 of 6)..Main game loop (Part 6 of 6)
-  &9BD7   165 TT102
-  &9C7C    13 FAROF..FAROF2
-  &9C89     7 MAS4
-  &9C90    14 DPLT
-  &9C9E    76 SPS1..TAS2
-  &9CEA   101 RDKEY
-  &9D4F   123 ECMOF..KYTB
-  &9DCA    51 DKS1..DKS2
-  &9DFD    23 DKS3
-  &9E14   332 DKJ1..DK4
-  &9F60    73 SHPPT
-  &9FA9    62 LL5
-  &9FE7   142 LL28
-  &A075    32 LL38
-  &A095    87 LL51
-  &A0EC     4 SHCOL
-  &A0F0     6 RECM
-  &A0F6    97 H_CIRC
-  &A157    29 MFRAME
-  &A174     6 LL9F
-  &A17A    20 HLS
-  &A18E    14 H_PTCLS
-  &A19C    14 H_PTCLSE
-  &A1AA    17 H_DOT
-  &A1BB    11 LL42F
-  &A1C6    68 H_LL42..H_EE31
-  &A20A    89 S_SHIP
-  &A263   961 L_REC
-  &A624  1208 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
-  &AADC   128 None..LL9 (Part 10 of 12)
-  &AB5C     1 LL9 (Part 11 of 12)
-  &AB5D     2 LL9 (Part 12 of 12)
-  &AB5F     1 LL9 (Part 12 of 12), drawing
-  &AB60   307 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
-  &AC93   119 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
-  &AD0A    87 MVT1
-  &AD61   103 MVS4
-  &ADC8    53 MVT6
-  &ADFD   377 MV40..SCAN
+  &8917   158 MVS5
+  &89B5   580 TACTICS (Part 1 of 7)..TACTICS (Part 7 of 7)
+  &8BF9   189 DOCKIT
+  &8CB6    61 VCSU1..TAS1
+  &8CF3    24 TAS6
+  &8D0B    85 HITCH
+  &8D60   255 STARS2..QSMUL
+  &8E5F   267 MU5..MULT3
+  &8F6A    76 MLS2..MLS1
+  &8FB6   100 SQUA..MU11
+  &901A     5 MU6
+  &901F    86 FMLTU2..FMLTU
+  &9075   162 MLTU2
+  &9117    81 MUT2..MULT1
+  &9168    10 MULT12
+  &9172   133 TAS3..ADD
+  &91F7    43 DV42..DVID4
+  &9222   184 DVID3B2
+  &92DA    23 cntr
+  &92F1   411 BUMP2..DOEXP
+  &948C    10 DET1
+  &9496    16 SHD..DENGY
+  &94A6   134 DOT..CPIX2
+  &952C    19 SPS3
+  &953F    19 GINF
+  &9552   178 NWSHP
+  &9604   136 PROJ..PL9 (Part 3 of 3)
+  &968C    30 PLS1
+  &96AA     1 PLS2
+  &96AB     1 PLS22
+  &96AC   440 SUN (Part 1 of 4)..CIRCLE2
+  &9864    76 WPLS2..WP1
+  &98B0    46 WPLS
+  &98DE    49 EDGES
+  &990F    98 CHKON..PLS6
+  &9971    78 TT17
+  &99BF   329 KS3..SFX
+  &9B08   167 ZINF..Main game loop (Part 2 of 6)
+  &9BAF    38 Main game loop (Part 5 of 6)..Main game loop (Part 6 of 6)
+  &9BD5   165 TT102
+  &9C7A    13 FAROF..FAROF2
+  &9C87     7 MAS4
+  &9C8E    14 DPLT
+  &9C9C    76 SPS1..TAS2
+  &9CE8   101 RDKEY
+  &9D4D   123 ECMOF..KYTB
+  &9DC8    51 DKS1..DKS2
+  &9DFB    23 DKS3
+  &9E12   332 DKJ1..DK4
+  &9F5E    73 SHPPT
+  &9FA7    62 LL5
+  &9FE5   142 LL28
+  &A073    32 LL38
+  &A093    87 LL51
+  &A0EA     4 SHCOL
+  &A0EE     6 RECM
+  &A0F4    97 H_CIRC
+  &A155    29 MFRAME
+  &A172     6 LL9F
+  &A178    20 HLS
+  &A18C    14 H_PTCLS
+  &A19A    14 H_PTCLSE
+  &A1A8    17 H_DOT
+  &A1B9    11 LL42F
+  &A1C4    68 H_LL42..H_EE31
+  &A208    89 S_SHIP
+  &A261   961 L_REC
+  &A622  1208 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
+  &AADA   128 None..LL9 (Part 10 of 12)
+  &AB5A     1 LL9 (Part 11 of 12)
+  &AB5B     2 LL9 (Part 12 of 12)
+  &AB5D     1 LL9 (Part 12 of 12), drawing
+  &AB5E   307 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
+  &AC91   119 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
+  &AD08    87 MVT1
+  &AD5F   103 MVS4
+  &ADC6    53 MVT6
+  &ADFB   377 MV40..SCAN
 hotm &7FE2-&7FFD: 0 units, 0 bytes, 28 free
