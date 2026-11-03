@@ -63,16 +63,8 @@
 
 .HOME_END%
 
-.PROGI%                 \ The main RAM part's image, which PCLI copies to PROGM%
 
- SKIP PROGM_END% - PROGM%
-
-.PROGI_END%
-
- CLEAR PROGI%, PROGI_END%
- COPYBLOCK PROGM%, PROGM_END%, PROGI%
-
- PRINT "Docked bank 4: &8000-", ~HOME_END%-1, " (the hot pass), the main RAM part's image to ", ~PROGI_END%-1, ", free ", HOT_END%-HOME_END%
+ PRINT "Docked bank 4: &8000-", ~HOME_END%-1, " (the hot pass), free ", HOT_END%-HOME_END%
  PRINT "Docked main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%
  ASSERT HOME_END% <= HOT_END%
 
@@ -82,10 +74,13 @@
 
 .BP_END%
 
- PRINT "Docked blueprints: ", ~BPSLOT%, "-", ~BP_END%-1, ", free ", &C000-BP_END%
- ASSERT XX21 = BPSLOT% AND BP_END% <= &C000
+ PRINT "Docked blueprints: ", ~BPSLOT%, "-", ~BP_END%-1, ", free ", BPSLOT_END%-BP_END%
+ ASSERT XX21 = BPSLOT% AND BP_END% <= BPSLOT_END%
 
- SAVE "3-assembled-output/T.CODEH.bin", HOME%, BP_END%, HOME%
+ ORG PROGI%             \ the main RAM part's image, at the end of the blueprint
+ COPYBLOCK PROGM%, PROGM_END%, PROGI%   \ slot (elite-map.asm)
+
+ SAVE "3-assembled-output/T.CODEH.bin", HOME%, &C000, HOME%
 
  CLEAR &8000, &C000
  ORG &8000

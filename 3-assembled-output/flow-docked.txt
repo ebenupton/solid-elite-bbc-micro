@@ -1,4 +1,4 @@
-hot &8000-&B8A1: 106 units, 9326 bytes, 5172 free
+hot &8000-&B8FF: 106 units, 8887 bytes, 5705 free
   &8000    16 S%
   &8010    15 INBAY
   &801F    13 DEEOR
@@ -23,86 +23,86 @@ hot &8000-&B8A1: 106 units, 9326 bytes, 5172 free
   &8674    52 FLIP
   &86A8   194 DIALS (Part 1 of 4)..DIALS (Part 4 of 4)
   &876A    16 PZW
-  &877A   115 DILX
-  &87ED    82 DIL2
-  &883F    36 HATB
-  &8863    96 HALL
-  &88C3   113 HANGER
-  &8934   112 HAS1
-  &89A4    83 HAS2
-  &89F7    33 UNWISE
-  &8A18    10 MU5
-  &8A22    57 MLS2..MU11
-  &8A5B     5 MU6
-  &8A60    34 FMLTU2..FMLTU
-  &8A82    35 MLTU2
-  &8AA5    54 MUT2..MULT1
-  &8ADB    10 MULT12
-  &8AE5    91 TAS3..ADD
-  &8B40    35 TIS1
-  &8B63    32 DV42..DVID4
-  &8B83   129 DVID3B2
-  &8C04    18 cntr
-  &8C16    53 BUMP2..REDU2
-  &8C4B     8 LYN
-  &8C53   200 CPIX4..CPIX2
-  &8D1B     8 DOEXP
-  &8D23    60 WPSHPS..FLFLLS
-  &8D5F    10 DET1
-  &8D69    16 SHD..DENGY
-  &8D79    19 SPS3
-  &8D8C    14 GINF
-  &8D9A   124 NWSHP
-  &8E16     9 NwS1
-  &8E1F    14 ABORT..ABORT2
-  &8E2D   568 SPBLB..BULB
-  &9065     8 SPBT
-  &906D    61 MSBAR
-  &90AA   303 SUN (Part 1 of 4)..SUN (Part 4 of 4)
-  &91D9   114 CIRCLE..CIRCLE2
-  &924B    10 WP1
-  &9255   140 WPLS..CHKON
-  &92E1   100 TT17
-  &9345    45 SFX
-  &9372    86 RES2..ZINF
-  &93C8   167 me2..Main game loop (Part 6 of 6)
-  &946F   179 TT102
-  &9522     1 brkd
-  &9523    25 BRBR
-  &953C   168 TITLE
-  &95E4    14 CHECK
-  &95F2    58 TRNME..GTNMEW
-  &962C    29 MT26
-  &9649     5 RLINE
-  &964E    11 ZERO
-  &9659    20 ZEBC..ZES2
-  &966D     3 CTLI
-  &9670    16 DELI
-  &9680   248 CATS..SVE
-  &9778    31 QUS1
-  &9797    85 GTDRV..LOD
-  &97EC     7 FX200
-  &97F3     4 GTNMES
-  &97F7   238 SPS1..NO3
-  &98E5    47 NOS1..DKS4
-  &9914    15 DKS2
-  &9923    35 DKJ1
-  &9946   153 DOKEY..mes9
-  &99DF   162 TIDY
-  &9A81    45 TIS2
-  &9AAE    70 TIS3..DVIDT
-  &9AF4    63 SHPPT
-  &9B33    55 LL5
-  &9B6A    35 LL28
-  &9B8D    32 LL38
-  &9BAD    87 LL51
-  &9C04     4 SHCOL
-  &9C08     6 RECM
-  &9C0E    13 DRAWQ
-  &9C1B    24 LL9B
-  &9C33  1453 LL9 (Part 1 of 12)..LL9 (Part 10 of 12)
-  &A1E0   294 LL145 (Part 1 of 4)..LL145 (Part 4 of 4)
-  &A306   225 LL9 (Part 11 of 12)..LL118
-  &A3E7   107 LL120..LL123
-  &A452    28 LL129
+  &877A   119 DILX
+  &87F1    86 DIL2
+  &8847    36 HATB
+  &886B    91 HALL
+  &88C6     1 HANGER
+  &88C7   112 HAS1
+  &8937     1 HAS2
+  &8938    33 UNWISE
+  &8959    10 MU5
+  &8963    57 MLS2..MU11
+  &899C     5 MU6
+  &89A1    34 FMLTU2..FMLTU
+  &89C3    35 MLTU2
+  &89E6    54 MUT2..MULT1
+  &8A1C    10 MULT12
+  &8A26    91 TAS3..ADD
+  &8A81    35 TIS1
+  &8AA4    32 DV42..DVID4
+  &8AC4   129 DVID3B2
+  &8B45    18 cntr
+  &8B57    53 BUMP2..REDU2
+  &8B8C     8 LYN
+  &8B94   200 CPIX4..CPIX2
+  &8C5C     8 DOEXP
+  &8C64    60 WPSHPS..FLFLLS
+  &8CA0    10 DET1
+  &8CAA    16 SHD..DENGY
+  &8CBA    19 SPS3
+  &8CCD    14 GINF
+  &8CDB   124 NWSHP
+  &8D57     9 NwS1
+  &8D60    14 ABORT..ABORT2
+  &8D6E   316 SPBLB..BULB
+  &8EAA     8 SPBT
+  &8EB2    65 MSBAR
+  &8EF3   303 SUN (Part 1 of 4)..SUN (Part 4 of 4)
+  &9022   114 CIRCLE..CIRCLE2
+  &9094    10 WP1
+  &909E   140 WPLS..CHKON
+  &912A   100 TT17
+  &918E    45 SFX
+  &91BB    86 RES2..ZINF
+  &9211   167 me2..Main game loop (Part 6 of 6)
+  &92B8   179 TT102
+  &936B     1 brkd
+  &936C    25 BRBR
+  &9385   168 TITLE
+  &942D    14 CHECK
+  &943B    58 TRNME..GTNMEW
+  &9475    29 MT26
+  &9492     5 RLINE
+  &9497    11 ZERO
+  &94A2    20 ZEBC..ZES2
+  &94B6     3 CTLI
+  &94B9    16 DELI
+  &94C9   248 CATS..SVE
+  &95C1    31 QUS1
+  &95E0    85 GTDRV..LOD
+  &9635     7 FX200
+  &963C     4 GTNMES
+  &9640   238 SPS1..NO3
+  &972E    47 NOS1..DKS4
+  &975D    15 DKS2
+  &976C    35 DKJ1
+  &978F   153 DOKEY..mes9
+  &9828   162 TIDY
+  &98CA    45 TIS2
+  &98F7    70 TIS3..DVIDT
+  &993D    63 SHPPT
+  &997C    55 LL5
+  &99B3    35 LL28
+  &99D6    32 LL38
+  &99F6    87 LL51
+  &9A4D     4 SHCOL
+  &9A51     6 RECM
+  &9A57    13 DRAWQ
+  &9A64    24 LL9B
+  &9A7C  1453 LL9 (Part 1 of 12)..LL9 (Part 10 of 12)
+  &A029   294 LL145 (Part 1 of 4)..LL145 (Part 4 of 4)
+  &A14F   225 LL9 (Part 11 of 12)..LL118
+  &A230   107 LL120..LL123
+  &A29B    28 LL129
 hotm &7FB0-&7FFD: 0 units, 0 bytes, 78 free

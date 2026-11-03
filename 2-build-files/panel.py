@@ -10,8 +10,9 @@ pixels across), loaded to PANEL% (&7000): each mode 5 pixel becomes two
 MODE 1 pixels, so the dashboard keeps its shape, and its colours become the
 screen's: the original's red (1) magenta, yellow (2) yellow and its third
 colour (3) cyan. The dashboard's routines draw at the same doubled scale
-(MODE 5 byte b becomes MODE 1 bytes EXPL(b) and EXPR(b), which this also
-writes, as elite-panel-tables.asm, for them).
+(MODE 5 byte b becomes MODE 1 bytes EXPL(b) and EXPL((b << 2) AND &FF), the
+left one from b's bits 7, 6, 3, 2 and the right from its bits 5, 4, 1, 0;
+this also writes EXPL, as elite-panel-tables.asm, for them).
 """
 import os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -46,10 +47,11 @@ for row in range(7):
 open(os.path.join(out, "P.PANEL.bin"), "wb").write(img)
 with open(os.path.join(out, "elite-panel-tables.asm"), "w") as f:
     f.write("\\ elite-panel-tables.asm, written by 2-build-files/panel.py: the dashboard's\n"
-            "\\ mode 5 bytes as pairs of MODE 1 bytes (left and right), in CMYK colours\n\n")
-    for name, k in (("EXPL", 0), ("EXPR", 1)):
-        f.write(".%s\n\n" % name)
-        for i in range(0, 256, 8):
-            f.write(" EQUB " + ", ".join("&%02X" % expand(b)[k] for b in range(i, i + 8)) + "\n")
-        f.write("\n")
+            "\\ mode 5 bytes as the left one of their pair of MODE 1 bytes, in CMYK colours\n"
+            "\\ (the right one is EXPL((b << 2) AND &FF))\n\n")
+    assert all(expand(b)[1] == expand((b << 2) & 255)[0] for b in range(256))
+    f.write(".EXPL\n\n")
+    for i in range(0, 256, 8):
+        f.write(" EQUB " + ", ".join("&%02X" % expand(b)[0] for b in range(i, i + 8)) + "\n")
+    f.write("\n")
 print("panel.py: P.PANEL.bin (%d bytes), elite-panel-tables.asm" % len(img))

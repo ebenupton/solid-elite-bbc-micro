@@ -26,7 +26,6 @@
 
  HOTM% = LOW_END%
  HOTM_END% = PROGM_END%
- PROGI% = HOME%          \ (S%+14: the address of the main RAM part's image, as yet unknown)
 
  CLEAR &8000, &C000
  ORG HOME%
@@ -47,7 +46,7 @@
                         \ (bank 4 also holds the main RAM part's image)
  ORG HOME%
 .M_HOT
- ORG HOT_END% - (PROGM_END% - PROGM%)
+ ORG HOT_END%
 .M_HOT_END
  ORG HOTM%
 .M_HOTM

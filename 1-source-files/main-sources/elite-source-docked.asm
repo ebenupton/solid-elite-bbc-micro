@@ -8565,7 +8565,11 @@ ENDIF
  ADC #6
  TAY
 
- LDA EXPR,X             \ Draw the right MODE 1 byte of the shape there
+ TXA                    \ Port: EXPR(b) = EXPL((b << 2) AND &FF), so the
+ ASL A                  \ right byte is EXPL's at X * 4 (one table: the
+ ASL A                  \ left byte's pixels are b's bits 7, 6, 3, 2, the
+ TAX                    \ right byte's bits 5, 4, 1, 0)
+ LDA EXPL,X             \ Draw the right MODE 1 byte of the shape there
  STA (SC),Y
  INY
  STA (SC),Y
@@ -8765,7 +8769,11 @@ ENDIF
  ADC #5
  TAY
 
- LDA EXPR,X             \ Draw the right byte there
+ TXA                    \ Port: EXPR(b) = EXPL((b << 2) AND &FF), so the
+ ASL A                  \ right byte is EXPL's at X * 4 (one table: the
+ ASL A                  \ left byte's pixels are b's bits 7, 6, 3, 2, the
+ TAX                    \ right byte's bits 5, 4, 1, 0)
+ LDA EXPL,X             \ Draw the right byte there
  STA (SC),Y
  INY
  STA (SC),Y
@@ -9213,14 +9221,10 @@ ENDIF
                         \ back to EOR logic so that we can erase anything we
                         \ draw on-screen)
 
- JSR RECM               \ Port: in record mode the hangar's lines are the
- BNE hall9              \ frame's background: draw the frame (F_HANGAR) and
- LDX #FG_HANGAR         \ return, in place of HANGER
- JMP GCALL
-
-.hall9
-
-                        \ Fall through into HANGER to draw the hangar background
+ LDX #FG_HANGAR         \ Port: the hangar's lines are the frame's background
+ JMP GCALL              \ (HALL runs in record mode, as its TT66 sets QQ11 = 0):
+                        \ draw the frame (F_HANGAR) and return, in place of
+                        \ falling into HANGER
 
 \ ******************************************************************************
 \
@@ -9228,6 +9232,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Ship hangar
 \    Summary: Display the ship hangar
+\       Area: none
 \
 \ ------------------------------------------------------------------------------
 \
@@ -9610,6 +9615,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Ship hangar
 \    Summary: Draw a hangar background line from left to right
+\       Area: none
 \
 \ ------------------------------------------------------------------------------
 \
@@ -19093,7 +19099,11 @@ ENDIF
 
  LDA (P+1),Y
  TAX
- LDA EXPR,X
+ TXA                    \ Port: EXPR(b) = EXPL((b << 2) AND &FF), so the
+ ASL A                  \ right byte is EXPL's at X * 4 (one table: the
+ ASL A                  \ left byte's pixels are b's bits 7, 6, 3, 2, the
+ TAX                    \ right byte's bits 5, 4, 1, 0)
+ LDA EXPL,X
  EOR (SC),Y
  STA (SC),Y
  DEY
@@ -19216,7 +19226,11 @@ ENDIF
  TAX                    \ DSTK
  LDA EXPL,X
  STA DTMP
- LDA EXPR,X
+ TXA                    \ Port: EXPR(b) = EXPL((b << 2) AND &FF), so the
+ ASL A                  \ right byte is EXPL's at X * 4 (one table: the
+ ASL A                  \ left byte's pixels are b's bits 7, 6, 3, 2, the
+ TAX                    \ right byte's bits 5, 4, 1, 0)
+ LDA EXPL,X
  STA DTMP2
  LDX DSTK
 

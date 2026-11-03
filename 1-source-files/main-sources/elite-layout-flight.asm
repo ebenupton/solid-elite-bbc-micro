@@ -65,16 +65,8 @@
 
 .HOME_END%
 
-.PROGI%                 \ The main RAM part's image, which PCLI copies to PROGM%
 
- SKIP PROGM_END% - PROGM%
-
-.PROGI_END%
-
- CLEAR PROGI%, PROGI_END%
- COPYBLOCK PROGM%, PROGM_END%, PROGI%
-
- PRINT "Flight bank 4: &8000-", ~HOME_END%-1, " (the hot pass), the main RAM part's image to ", ~PROGI_END%-1, ", free ", HOT_END%-HOME_END%
+ PRINT "Flight bank 4: &8000-", ~HOME_END%-1, " (the hot pass), free ", HOT_END%-HOME_END%
  PRINT "Flight main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%
  ASSERT HOME_END% <= HOT_END%
 
@@ -93,7 +85,11 @@
 
  ASSERT QSH = QSL + &200 AND P% = BPSLOT%
 
- SAVE "3-assembled-output/D.CODEH.bin", HOME%, BPSLOT%, HOME%
+ ORG PROGI%             \ the main RAM part's image, at the end of the blueprint
+ COPYBLOCK PROGM%, PROGM_END%, PROGI%   \ slot (elite-map.asm): the D.MOx file
+                        \ loads over it afterwards
+
+ SAVE "3-assembled-output/D.CODEH.bin", HOME%, &C000, HOME%
 
  CLEAR &8000, &C000
  ORG &8000

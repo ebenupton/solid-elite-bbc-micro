@@ -31,11 +31,22 @@
                         \ game entry, +6: JMP to the WRCHV handler, +9: IRQ1's
                         \ address, +11: JMP to the BRKV handler)
 
+ PROGM% = &7FA0         \ Each program's main RAM part (its low pass, then the
+ PROGM_END% = &7FFE     \ hot pass's main RAM container), after the missile's
+                        \ blueprint (which ends there without its edges) and
+                        \ before VEC: the program's layout copies it into its
+                        \ bank 4 image at PROGI% (S%+14), and PCLI copies it
+                        \ here when it loads the program
+
+ PROGI% = &C000 - (PROGM_END% - PROGM%)   \ The main RAM part's image, at the
+                        \ end of bank 4's blueprint slot: needed only while
+                        \ PCLI loads the program, and the flight code's D.MOx
+                        \ files load over it afterwards
+
  BPSLOT% = &B900        \ The blueprint set in each home bank, to BPSLOT_END%
- BPSLOT_END% = &C000    \ (the end of the bank): without their edge lists
-                        \ (the EDGE macro), the largest set takes up to
-                        \ BPSLOT_END% (the ship files and the docked code's
-                        \ layout check it)
+ BPSLOT_END% = PROGI%   \ without their edge lists (the EDGE macro), the
+                        \ largest set fits below PROGI% (the ship files and the
+                        \ docked code's layout check it)
 
  STAGE% = &1600         \ Where files are loaded before they are copied into
                         \ their bank (main RAM &1600 to &55FF, over the top of
@@ -61,12 +72,6 @@
                         \ the last page of each program's cold bank, which no
                         \ cold image reaches (elite-layout-*.asm)
 
- PROGM% = &7FA0         \ Each program's main RAM part (its low pass, then the
- PROGM_END% = &7FFE     \ hot pass's main RAM container), after the missile's
-                        \ blueprint (which ends there without its edges) and
-                        \ before VEC: the program's layout copies it into its
-                        \ bank 4 image at PROGI% (S%+14), and PCLI copies it
-                        \ here when it loads the program
 
  PANELROWS = 7          \ The dashboard's character rows
 
