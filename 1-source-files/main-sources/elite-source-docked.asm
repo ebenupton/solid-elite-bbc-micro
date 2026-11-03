@@ -8481,17 +8481,14 @@ ENDIF
                         \ character's width of 4 pixels
 
  CMP T1                 \ If A >= T1 then we have passed the threshold where we
- BCS DL30               \ change bar colour, so jump to DL30 to set A to the
-                        \ "high value" colour
+                        \ change bar colour, so we want the "high value" colour
 
- LDA K+1                \ Set A to K+1, the "low value" colour to use
+ LDA K                  \ Set A to K, the "high value" colour to use (this does
+                        \ not affect the C flag)
 
- BNE DL31               \ Jump down to DL31 (this BNE is effectively a JMP as A
-                        \ will never be zero)
+ BCS DL31               \ If A >= T1, jump to DL31 to keep the high colour
 
-.DL30
-
- LDA K                  \ Set A to K, the "high value" colour to use
+ LDA K+1                \ Otherwise set A to K+1, the "low value" colour
 
 .DL31
 
