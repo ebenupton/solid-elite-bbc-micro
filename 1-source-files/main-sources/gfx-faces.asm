@@ -6,9 +6,9 @@
 \ 0..32 (type 0 is a dummy, and a type no blueprint set has, FC_SNONE).
 \
 \ FC_FACETAB -> per face f, in blueprint order: n + 16 * its hue ramp (0..8
-\   in the shared pool, gfx-light6.asm), its unit normal (x, y, z: signed
-\   bytes of magnitude 61; the lighting picks the ramp entry), then n XX3
-\   offsets (4 * vertex).  Polygons are
+\   in the shared pool, gfx-light6.asm), then n XX3 offsets (4 * vertex)
+\   (its unit normal, which the lighting uses to pick the ramp entry, is
+\   in gfx-normals.asm, in the game's bank 4).  Polygons are
 \   convex and CLOCKWISE ON SCREEN (x right, y down) when the face is
 \   front-facing, for every orientation with det -1, i.e. as set by ZINF
 \   and kept by TIDY (sidev = nosev x roofv).  The station (NWSPS negates
@@ -24,13 +24,18 @@
 \   with XX2 = 255: cull by its winding, as its face).
 \   Fins (n = 3, two-sided, zero thickness, standing on the body edge
 \   between face1 and face2): k = number of face1, face2 visible; draw
-\   k = 0 before the faces (behind the body), k = 1 after the details,
-\   then k = 2 (the fin nearest the viewer) last.
+\   k = 1 after the details, then k = 2 (the fin nearest the viewer)
+\   last; not k = 0 (behind the body: LL9 does not project a vertex on
+\   the body edge that lists only face1 and face2).
 \   An unlit polygon detail (the docking slots: black) has 4 * its fill
 \   visibility added to its colour byte: if XX4 > that, some vertices
 \   are unprojected, and f_poly2 draws only its side from vertex 0 to 1.
 \ FC_MINVIS[type]: if XX4 > it, a polygon vertex may not have been
 \   projected (vertex visibility distance < XX4): do not fill that ship.
+\ FC_DOTZ[type]: from z_hi = it out, the distant dot is drawn under the
+\   faces (f_sdot): nearer, the polygon vertices' thinnest half-extent
+\   (of their bounding box, x, y or z) is 3 pixels or more (z_hi <
+\   half-extent / 3), and the faces cover the dot; at least 4.
 \ FC_DOTE/FC_DOTO[type]: colour of the ship drawn as a distant dot.
 
 FC_NTYPES = 32
@@ -109,15 +114,15 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Missile (type 1): hues pink + gold
 .FC_S1_F
- EQUB 3 + 16 * 1, -59 AND &FF, 0 AND &FF, 15 AND &FF, 12, 0, 16    \ face 0: gold
- EQUB 3 + 16 * 1, 0 AND &FF, -59 AND &FF, 15 AND &FF, 4, 16, 0    \ face 1: gold
- EQUB 3 + 16 * 1, 59 AND &FF, 0 AND &FF, 15 AND &FF, 8, 4, 0    \ face 2: gold
- EQUB 3 + 16 * 1, 0 AND &FF, 59 AND &FF, 15 AND &FF, 8, 0, 12    \ face 3: gold
- EQUB 4 + 16 * 6, 61 AND &FF, 0 AND &FF, 0 AND &FF, 8, 20, 24, 4    \ face 4: pink
- EQUB 4 + 16 * 6, 0 AND &FF, -61 AND &FF, 0 AND &FF, 4, 24, 28, 16    \ face 5: pink
- EQUB 4 + 16 * 6, -61 AND &FF, 0 AND &FF, 0 AND &FF, 32, 12, 16, 28    \ face 6: pink
- EQUB 4 + 16 * 6, 0 AND &FF, 50 AND &FF, 35 AND &FF, 20, 8, 12, 32    \ face 7: pink
- EQUB 4 + 16 * 1, 0 AND &FF, 61 AND &FF, 4 AND &FF, 20, 24, 28, 32    \ face 8: gold
+ EQUB 3 + 16 * 1, 12, 0, 16    \ face 0: gold
+ EQUB 3 + 16 * 1, 4, 16, 0    \ face 1: gold
+ EQUB 3 + 16 * 1, 8, 4, 0    \ face 2: gold
+ EQUB 3 + 16 * 1, 8, 0, 12    \ face 3: gold
+ EQUB 4 + 16 * 6, 8, 20, 24, 4    \ face 4: pink
+ EQUB 4 + 16 * 6, 4, 24, 28, 16    \ face 5: pink
+ EQUB 4 + 16 * 6, 32, 12, 16, 28    \ face 6: pink
+ EQUB 4 + 16 * 6, 20, 8, 12, 32    \ face 7: pink
+ EQUB 4 + 16 * 1, 20, 24, 28, 32    \ face 8: gold
 .FC_S1_D
  EQUB 4                       \ fins
  EQUB 8, &54, &01, 3, 24, 40, 64    \ fin [6, 10, 16], gold
@@ -128,20 +133,20 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Coriolis station (type 2): hues grey + gold
 .FC_S2_F
- EQUB 4 + 16 * 8, 0 AND &FF, 0 AND &FF, 61 AND &FF, 0, 12, 8, 4    \ face 0: grey
- EQUB 3 + 16 * 1, 35 AND &FF, -35 AND &FF, 35 AND &FF, 16, 12, 0    \ face 1: gold
- EQUB 3 + 16 * 1, 35 AND &FF, 35 AND &FF, 35 AND &FF, 0, 4, 20    \ face 2: gold
- EQUB 3 + 16 * 1, -35 AND &FF, 35 AND &FF, 35 AND &FF, 4, 8, 24    \ face 3: gold
- EQUB 3 + 16 * 1, -35 AND &FF, -35 AND &FF, 35 AND &FF, 12, 28, 8    \ face 4: gold
- EQUB 4 + 16 * 8, 0 AND &FF, -61 AND &FF, 0 AND &FF, 16, 44, 28, 12    \ face 5: grey
- EQUB 4 + 16 * 8, 61 AND &FF, 0 AND &FF, 0 AND &FF, 20, 32, 16, 0    \ face 6: grey
- EQUB 4 + 16 * 8, -61 AND &FF, 0 AND &FF, 0 AND &FF, 24, 8, 28, 40    \ face 7: grey
- EQUB 4 + 16 * 8, 0 AND &FF, 61 AND &FF, 0 AND &FF, 20, 4, 24, 36    \ face 8: grey
- EQUB 3 + 16 * 1, -35 AND &FF, -35 AND &FF, -35 AND &FF, 44, 40, 28    \ face 9: gold
- EQUB 3 + 16 * 1, 35 AND &FF, -35 AND &FF, -35 AND &FF, 32, 44, 16    \ face 10: gold
- EQUB 3 + 16 * 1, 35 AND &FF, 35 AND &FF, -35 AND &FF, 20, 36, 32    \ face 11: gold
- EQUB 3 + 16 * 1, -35 AND &FF, 35 AND &FF, -35 AND &FF, 36, 24, 40    \ face 12: gold
- EQUB 4 + 16 * 8, 0 AND &FF, 0 AND &FF, -61 AND &FF, 32, 36, 40, 44    \ face 13: grey
+ EQUB 4 + 16 * 8, 0, 12, 8, 4    \ face 0: grey
+ EQUB 3 + 16 * 1, 16, 12, 0    \ face 1: gold
+ EQUB 3 + 16 * 1, 0, 4, 20    \ face 2: gold
+ EQUB 3 + 16 * 1, 4, 8, 24    \ face 3: gold
+ EQUB 3 + 16 * 1, 12, 28, 8    \ face 4: gold
+ EQUB 4 + 16 * 8, 16, 44, 28, 12    \ face 5: grey
+ EQUB 4 + 16 * 8, 20, 32, 16, 0    \ face 6: grey
+ EQUB 4 + 16 * 8, 24, 8, 28, 40    \ face 7: grey
+ EQUB 4 + 16 * 8, 20, 4, 24, 36    \ face 8: grey
+ EQUB 3 + 16 * 1, 44, 40, 28    \ face 9: gold
+ EQUB 3 + 16 * 1, 32, 44, 16    \ face 10: gold
+ EQUB 3 + 16 * 1, 20, 36, 32    \ face 11: gold
+ EQUB 3 + 16 * 1, 36, 24, 40    \ face 12: gold
+ EQUB 4 + 16 * 8, 32, 36, 40, 44    \ face 13: grey
 .FC_S2_D
  EQUB 0                       \ fins
  EQUB 1                       \ details
@@ -149,95 +154,95 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Escape pod (type 3): hues grey + red
 .FC_S3_F
- EQUB 3 + 16 * 0, 24 AND &FF, 0 AND &FF, -56 AND &FF, 12, 8, 4    \ face 0: red
- EQUB 3 + 16 * 8, 21 AND &FF, 55 AND &FF, 16 AND &FF, 12, 0, 8    \ face 1: grey
- EQUB 3 + 16 * 8, 21 AND &FF, -55 AND &FF, 16 AND &FF, 12, 4, 0    \ face 2: grey
- EQUB 3 + 16 * 0, -61 AND &FF, 0 AND &FF, 0 AND &FF, 8, 0, 4    \ face 3: red
+ EQUB 3 + 16 * 0, 12, 8, 4    \ face 0: red
+ EQUB 3 + 16 * 8, 12, 0, 8    \ face 1: grey
+ EQUB 3 + 16 * 8, 12, 4, 0    \ face 2: grey
+ EQUB 3 + 16 * 0, 8, 0, 4    \ face 3: red
 .FC_S3_D
  EQUB 0                       \ fins
  EQUB 0                       \ details
 
 \ Alloy plate (type 4): hues grey + tan
 .FC_S4_F
- EQUB 4 + 16 * 8, -31 AND &FF, 0 AND &FF, 52 AND &FF, 8, 12, 0, 4    \ face 0: grey
+ EQUB 4 + 16 * 8, 8, 12, 0, 4    \ face 0: grey
 .FC_S4_D
  EQUB 0                       \ fins
  EQUB 0                       \ details
 
 \ Cargo canister (type 5): hues gold + cyan
 .FC_S5_F
- EQUB 5 + 16 * 1, 61 AND &FF, 0 AND &FF, 0 AND &FF, 0, 16, 12, 8, 4    \ face 0: gold
- EQUB 4 + 16 * 2, 0 AND &FF, 49 AND &FF, 36 AND &FF, 0, 4, 24, 20    \ face 1: cyan
- EQUB 4 + 16 * 1, 0 AND &FF, -21 AND &FF, 57 AND &FF, 4, 8, 28, 24    \ face 2: gold
- EQUB 4 + 16 * 2, 0 AND &FF, -61 AND &FF, 0 AND &FF, 8, 12, 32, 28    \ face 3: cyan
- EQUB 4 + 16 * 1, 0 AND &FF, -21 AND &FF, -57 AND &FF, 12, 16, 36, 32    \ face 4: gold
- EQUB 4 + 16 * 2, 0 AND &FF, 49 AND &FF, -36 AND &FF, 16, 0, 20, 36    \ face 5: cyan
- EQUB 5 + 16 * 1, -61 AND &FF, 0 AND &FF, 0 AND &FF, 20, 24, 28, 32, 36    \ face 6: gold
+ EQUB 5 + 16 * 1, 0, 16, 12, 8, 4    \ face 0: gold
+ EQUB 4 + 16 * 2, 0, 4, 24, 20    \ face 1: cyan
+ EQUB 4 + 16 * 1, 4, 8, 28, 24    \ face 2: gold
+ EQUB 4 + 16 * 2, 8, 12, 32, 28    \ face 3: cyan
+ EQUB 4 + 16 * 1, 12, 16, 36, 32    \ face 4: gold
+ EQUB 4 + 16 * 2, 16, 0, 20, 36    \ face 5: cyan
+ EQUB 5 + 16 * 1, 20, 24, 28, 32, 36    \ face 6: gold
 .FC_S5_D
  EQUB 0                       \ fins
  EQUB 0                       \ details
 
 \ Boulder (type 6): hues tan + grey
 .FC_S6_F
- EQUB 3 + 16 * 8, -53 AND &FF, -11 AND &FF, 28 AND &FF, 20, 16, 0    \ face 0: grey
- EQUB 3 + 16 * 7, -13 AND &FF, 22 AND &FF, 55 AND &FF, 4, 20, 0    \ face 1: tan
- EQUB 3 + 16 * 8, 32 AND &FF, -46 AND &FF, 24 AND &FF, 8, 20, 4    \ face 2: grey
- EQUB 3 + 16 * 8, -5 AND &FF, -60 AND &FF, -11 AND &FF, 8, 12, 20    \ face 3: grey
- EQUB 3 + 16 * 7, -47 AND &FF, -38 AND &FF, -9 AND &FF, 12, 16, 20    \ face 4: tan
- EQUB 3 + 16 * 8, 31 AND &FF, 53 AND &FF, 5 AND &FF, 4, 0, 24    \ face 5: grey
- EQUB 3 + 16 * 7, 59 AND &FF, 11 AND &FF, -11 AND &FF, 24, 8, 4    \ face 6: tan
- EQUB 3 + 16 * 7, 40 AND &FF, -18 AND &FF, -43 AND &FF, 24, 12, 8    \ face 7: tan
- EQUB 3 + 16 * 8, 9 AND &FF, 23 AND &FF, -56 AND &FF, 24, 16, 12    \ face 8: grey
- EQUB 3 + 16 * 7, 20 AND &FF, 55 AND &FF, -19 AND &FF, 0, 16, 24    \ face 9: tan
+ EQUB 3 + 16 * 8, 20, 16, 0    \ face 0: grey
+ EQUB 3 + 16 * 7, 4, 20, 0    \ face 1: tan
+ EQUB 3 + 16 * 8, 8, 20, 4    \ face 2: grey
+ EQUB 3 + 16 * 8, 8, 12, 20    \ face 3: grey
+ EQUB 3 + 16 * 7, 12, 16, 20    \ face 4: tan
+ EQUB 3 + 16 * 8, 4, 0, 24    \ face 5: grey
+ EQUB 3 + 16 * 7, 24, 8, 4    \ face 6: tan
+ EQUB 3 + 16 * 7, 24, 12, 8    \ face 7: tan
+ EQUB 3 + 16 * 8, 24, 16, 12    \ face 8: grey
+ EQUB 3 + 16 * 7, 0, 16, 24    \ face 9: tan
 .FC_S6_D
  EQUB 0                       \ fins
  EQUB 0                       \ details
 
 \ Asteroid (type 7): hues tan + grey
 .FC_S7_F
- EQUB 3 + 16 * 7, 5 AND &FF, 38 AND &FF, 47 AND &FF, 20, 24, 0    \ face 0: tan
- EQUB 3 + 16 * 8, 5 AND &FF, -38 AND &FF, 47 AND &FF, 20, 8, 24    \ face 1: grey
- EQUB 3 + 16 * 8, -43 AND &FF, 39 AND &FF, 19 AND &FF, 24, 4, 0    \ face 2: grey
- EQUB 3 + 16 * 7, -36 AND &FF, -41 AND &FF, 27 AND &FF, 8, 4, 24    \ face 3: tan
- EQUB 3 + 16 * 7, 25 AND &FF, -43 AND &FF, 35 AND &FF, 12, 8, 20    \ face 4: tan
- EQUB 3 + 16 * 7, 59 AND &FF, 7 AND &FF, 15 AND &FF, 16, 12, 20    \ face 5: tan
- EQUB 3 + 16 * 8, 21 AND &FF, 42 AND &FF, 39 AND &FF, 16, 20, 0    \ face 6: grey
- EQUB 3 + 16 * 7, -42 AND &FF, 37 AND &FF, -25 AND &FF, 0, 4, 28    \ face 7: tan
- EQUB 3 + 16 * 8, -39 AND &FF, -9 AND &FF, -46 AND &FF, 28, 4, 32    \ face 8: grey
- EQUB 3 + 16 * 7, 40 AND &FF, -8 AND &FF, -45 AND &FF, 28, 32, 12    \ face 9: tan
- EQUB 3 + 16 * 7, -38 AND &FF, -43 AND &FF, -21 AND &FF, 32, 4, 8    \ face 10: tan
- EQUB 3 + 16 * 8, 28 AND &FF, -49 AND &FF, -24 AND &FF, 12, 32, 8    \ face 11: grey
- EQUB 3 + 16 * 8, 47 AND &FF, 5 AND &FF, -39 AND &FF, 16, 28, 12    \ face 12: grey
- EQUB 3 + 16 * 7, 23 AND &FF, 47 AND &FF, -31 AND &FF, 16, 0, 28    \ face 13: tan
+ EQUB 3 + 16 * 7, 20, 24, 0    \ face 0: tan
+ EQUB 3 + 16 * 8, 20, 8, 24    \ face 1: grey
+ EQUB 3 + 16 * 8, 24, 4, 0    \ face 2: grey
+ EQUB 3 + 16 * 7, 8, 4, 24    \ face 3: tan
+ EQUB 3 + 16 * 7, 12, 8, 20    \ face 4: tan
+ EQUB 3 + 16 * 7, 16, 12, 20    \ face 5: tan
+ EQUB 3 + 16 * 8, 16, 20, 0    \ face 6: grey
+ EQUB 3 + 16 * 7, 0, 4, 28    \ face 7: tan
+ EQUB 3 + 16 * 8, 28, 4, 32    \ face 8: grey
+ EQUB 3 + 16 * 7, 28, 32, 12    \ face 9: tan
+ EQUB 3 + 16 * 7, 32, 4, 8    \ face 10: tan
+ EQUB 3 + 16 * 8, 12, 32, 8    \ face 11: grey
+ EQUB 3 + 16 * 8, 16, 28, 12    \ face 12: grey
+ EQUB 3 + 16 * 7, 16, 0, 28    \ face 13: tan
 .FC_S7_D
  EQUB 0                       \ fins
  EQUB 0                       \ details
 
 \ Splinter (type 8): hues tan + grey
 .FC_S8_F
- EQUB 3 + 16 * 8, -61 AND &FF, 0 AND &FF, 0 AND &FF, 12, 8, 4    \ face 0: grey
- EQUB 3 + 16 * 7, 19 AND &FF, 57 AND &FF, -11 AND &FF, 12, 0, 8    \ face 1: tan
- EQUB 3 + 16 * 8, 3 AND &FF, 3 AND &FF, 61 AND &FF, 4, 0, 12    \ face 2: grey
- EQUB 3 + 16 * 7, 0 AND &FF, 56 AND &FF, -23 AND &FF, 8, 0, 4    \ face 3: tan
+ EQUB 3 + 16 * 7, 12, 4, 8    \ face 0: tan
+ EQUB 3 + 16 * 7, 8, 0, 12    \ face 1: tan
+ EQUB 3 + 16 * 8, 12, 0, 4    \ face 2: grey
+ EQUB 3 + 16 * 8, 8, 4, 0    \ face 3: grey
 .FC_S8_D
  EQUB 0                       \ fins
  EQUB 0                       \ details
 
 \ Shuttle (type 9): hues blue + gold
 .FC_S9_F
- EQUB 3 + 16 * 1, -38 AND &FF, -38 AND &FF, 28 AND &FF, 0, 4, 48    \ face 0: gold
- EQUB 3 + 16 * 1, 0 AND &FF, -61 AND &FF, 3 AND &FF, 28, 16, 0    \ face 1: gold
- EQUB 3 + 16 * 3, -41 AND &FF, -41 AND &FF, 19 AND &FF, 0, 16, 4    \ face 2: blue
- EQUB 3 + 16 * 1, -61 AND &FF, 0 AND &FF, 3 AND &FF, 20, 4, 16    \ face 3: gold
- EQUB 3 + 16 * 3, -41 AND &FF, 41 AND &FF, 19 AND &FF, 8, 4, 20    \ face 4: blue
- EQUB 3 + 16 * 1, 0 AND &FF, 61 AND &FF, 3 AND &FF, 24, 8, 20    \ face 5: gold
- EQUB 3 + 16 * 3, 41 AND &FF, 41 AND &FF, 19 AND &FF, 12, 8, 24    \ face 6: blue
- EQUB 3 + 16 * 1, 61 AND &FF, 0 AND &FF, 3 AND &FF, 24, 28, 12    \ face 7: gold
- EQUB 3 + 16 * 3, 41 AND &FF, -41 AND &FF, 19 AND &FF, 28, 0, 12    \ face 8: blue
- EQUB 4 + 16 * 3, 0 AND &FF, 0 AND &FF, -61 AND &FF, 28, 24, 20, 16    \ face 9: blue
- EQUB 3 + 16 * 3, -23 AND &FF, 23 AND &FF, 51 AND &FF, 48, 4, 8    \ face 10: blue
- EQUB 3 + 16 * 1, 23 AND &FF, 23 AND &FF, 51 AND &FF, 12, 48, 8    \ face 11: gold
- EQUB 3 + 16 * 3, 38 AND &FF, -38 AND &FF, 28 AND &FF, 12, 0, 48    \ face 12: blue
+ EQUB 3 + 16 * 1, 0, 4, 48    \ face 0: gold
+ EQUB 3 + 16 * 1, 28, 16, 0    \ face 1: gold
+ EQUB 3 + 16 * 3, 0, 16, 4    \ face 2: blue
+ EQUB 3 + 16 * 1, 20, 4, 16    \ face 3: gold
+ EQUB 3 + 16 * 3, 8, 4, 20    \ face 4: blue
+ EQUB 3 + 16 * 1, 24, 8, 20    \ face 5: gold
+ EQUB 3 + 16 * 3, 12, 8, 24    \ face 6: blue
+ EQUB 3 + 16 * 1, 24, 28, 12    \ face 7: gold
+ EQUB 3 + 16 * 3, 28, 0, 12    \ face 8: blue
+ EQUB 4 + 16 * 3, 28, 24, 20, 16    \ face 9: blue
+ EQUB 3 + 16 * 3, 48, 4, 8    \ face 10: blue
+ EQUB 3 + 16 * 1, 12, 48, 8    \ face 11: gold
+ EQUB 3 + 16 * 3, 12, 0, 48    \ face 12: blue
 .FC_S9_D
  EQUB 0                       \ fins
  EQUB 2                       \ details
@@ -246,20 +251,20 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Transporter (type 10): hues cyan + tan
 .FC_S10_F
- EQUB 7 + 16 * 7, 0 AND &FF, 0 AND &FF, -61 AND &FF, 16, 20, 24, 0, 4, 8, 12    \ face 0: tan
- EQUB 4 + 16 * 7, -56 AND &FF, 24 AND &FF, -4 AND &FF, 32, 36, 8, 4    \ face 1: tan
- EQUB 3 + 16 * 2, -52 AND &FF, -31 AND &FF, -10 AND &FF, 12, 8, 36    \ face 2: cyan
- EQUB 6 + 16 * 7, 0 AND &FF, -61 AND &FF, 0 AND &FF, 56, 40, 16, 12, 36, 52    \ face 3: tan
- EQUB 3 + 16 * 2, 52 AND &FF, -31 AND &FF, -10 AND &FF, 20, 16, 40    \ face 4: cyan
- EQUB 4 + 16 * 7, 56 AND &FF, 24 AND &FF, -4 AND &FF, 44, 24, 20, 40    \ face 5: tan
- EQUB 4 + 16 * 2, 15 AND &FF, 59 AND &FF, 6 AND &FF, 24, 44, 28, 0    \ face 6: cyan
- EQUB 4 + 16 * 2, -15 AND &FF, 59 AND &FF, 6 AND &FF, 28, 32, 4, 0    \ face 7: cyan
- EQUB 3 + 16 * 7, -13 AND &FF, 57 AND &FF, 18 AND &FF, 48, 32, 28    \ face 8: tan
- EQUB 4 + 16 * 2, -40 AND &FF, 17 AND &FF, 42 AND &FF, 48, 52, 36, 32    \ face 9: cyan
- EQUB 4 + 16 * 2, 40 AND &FF, 17 AND &FF, 42 AND &FF, 40, 56, 60, 44    \ face 10: cyan
- EQUB 3 + 16 * 7, 13 AND &FF, 57 AND &FF, 18 AND &FF, 44, 60, 28    \ face 11: tan
- EQUB 3 + 16 * 2, 0 AND &FF, 56 AND &FF, 25 AND &FF, 60, 48, 28    \ face 12: cyan
- EQUB 4 + 16 * 7, 0 AND &FF, 0 AND &FF, 61 AND &FF, 60, 56, 52, 48    \ face 13: tan
+ EQUB 7 + 16 * 7, 16, 20, 24, 0, 4, 8, 12    \ face 0: tan
+ EQUB 4 + 16 * 7, 32, 36, 8, 4    \ face 1: tan
+ EQUB 3 + 16 * 2, 12, 8, 36    \ face 2: cyan
+ EQUB 6 + 16 * 7, 56, 40, 16, 12, 36, 52    \ face 3: tan
+ EQUB 3 + 16 * 2, 20, 16, 40    \ face 4: cyan
+ EQUB 4 + 16 * 7, 44, 24, 20, 40    \ face 5: tan
+ EQUB 4 + 16 * 2, 24, 44, 28, 0    \ face 6: cyan
+ EQUB 4 + 16 * 2, 28, 32, 4, 0    \ face 7: cyan
+ EQUB 3 + 16 * 7, 48, 32, 28    \ face 8: tan
+ EQUB 4 + 16 * 2, 48, 52, 36, 32    \ face 9: cyan
+ EQUB 4 + 16 * 2, 40, 56, 60, 44    \ face 10: cyan
+ EQUB 3 + 16 * 7, 44, 60, 28    \ face 11: tan
+ EQUB 3 + 16 * 2, 60, 48, 28    \ face 12: cyan
+ EQUB 4 + 16 * 7, 60, 56, 52, 48    \ face 13: tan
 .FC_S10_D
  EQUB 0                       \ fins
  EQUB 13                       \ details
@@ -279,19 +284,19 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Cobra Mk III (type 11): hues tan + blue
 .FC_S11_F
- EQUB 3 + 16 * 3, 0 AND &FF, 55 AND &FF, 27 AND &FF, 0, 4, 8    \ face 0: blue
- EQUB 3 + 16 * 7, -18 AND &FF, 56 AND &FF, 16 AND &FF, 8, 4, 20    \ face 1: tan
- EQUB 3 + 16 * 7, 18 AND &FF, 56 AND &FF, 16 AND &FF, 0, 8, 24    \ face 2: tan
- EQUB 3 + 16 * 7, -17 AND &FF, 56 AND &FF, 15 AND &FF, 4, 12, 20    \ face 3: tan
- EQUB 3 + 16 * 7, 17 AND &FF, 56 AND &FF, 15 AND &FF, 16, 0, 24    \ face 4: tan
- EQUB 3 + 16 * 3, -17 AND &FF, 58 AND &FF, 0 AND &FF, 36, 8, 20    \ face 5: blue
- EQUB 3 + 16 * 3, 17 AND &FF, 58 AND &FF, 0 AND &FF, 24, 8, 36    \ face 6: blue
- EQUB 3 + 16 * 3, -31 AND &FF, 52 AND &FF, 0 AND &FF, 20, 12, 32    \ face 7: blue
- EQUB 3 + 16 * 3, 31 AND &FF, 52 AND &FF, 0 AND &FF, 28, 16, 24    \ face 8: blue
- EQUB 7 + 16 * 7, 0 AND &FF, 0 AND &FF, -61 AND &FF, 44, 28, 24, 36, 20, 32, 40    \ face 9: tan
- EQUB 4 + 16 * 3, -10 AND &FF, -59 AND &FF, 13 AND &FF, 40, 32, 12, 4    \ face 10: blue
- EQUB 4 + 16 * 7, 0 AND &FF, -60 AND &FF, 12 AND &FF, 0, 44, 40, 4    \ face 11: tan
- EQUB 4 + 16 * 3, 10 AND &FF, -59 AND &FF, 13 AND &FF, 16, 28, 44, 0    \ face 12: blue
+ EQUB 3 + 16 * 3, 0, 4, 8    \ face 0: blue
+ EQUB 3 + 16 * 7, 8, 4, 20    \ face 1: tan
+ EQUB 3 + 16 * 7, 0, 8, 24    \ face 2: tan
+ EQUB 3 + 16 * 7, 4, 12, 20    \ face 3: tan
+ EQUB 3 + 16 * 7, 16, 0, 24    \ face 4: tan
+ EQUB 3 + 16 * 3, 36, 8, 20    \ face 5: blue
+ EQUB 3 + 16 * 3, 24, 8, 36    \ face 6: blue
+ EQUB 3 + 16 * 3, 20, 12, 32    \ face 7: blue
+ EQUB 3 + 16 * 3, 28, 16, 24    \ face 8: blue
+ EQUB 7 + 16 * 7, 44, 28, 24, 36, 20, 32, 40    \ face 9: tan
+ EQUB 4 + 16 * 3, 40, 32, 12, 4    \ face 10: blue
+ EQUB 4 + 16 * 7, 0, 44, 40, 4    \ face 11: tan
+ EQUB 4 + 16 * 3, 16, 28, 44, 0    \ face 12: blue
 .FC_S11_D
  EQUB 0                       \ fins
  EQUB 5                       \ details
@@ -303,19 +308,19 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Python (type 12): hues purple + tan
 .FC_S12_F
- EQUB 3 + 16 * 5, -33 AND &FF, 49 AND &FF, 14 AND &FF, 4, 0, 12    \ face 0: purple
- EQUB 3 + 16 * 5, 33 AND &FF, 49 AND &FF, 14 AND &FF, 0, 4, 8    \ face 1: purple
- EQUB 3 + 16 * 5, -33 AND &FF, -49 AND &FF, 14 AND &FF, 32, 12, 0    \ face 2: purple
- EQUB 3 + 16 * 5, 33 AND &FF, -49 AND &FF, 14 AND &FF, 8, 32, 0    \ face 3: purple
- EQUB 3 + 16 * 7, -27 AND &FF, 55 AND &FF, 0 AND &FF, 4, 12, 16    \ face 4: tan
- EQUB 3 + 16 * 7, 27 AND &FF, 55 AND &FF, 0 AND &FF, 8, 4, 16    \ face 5: tan
- EQUB 3 + 16 * 7, -27 AND &FF, -55 AND &FF, 0 AND &FF, 36, 12, 32    \ face 6: tan
- EQUB 3 + 16 * 7, 27 AND &FF, -55 AND &FF, 0 AND &FF, 8, 36, 32    \ face 7: tan
- EQUB 4 + 16 * 5, -33 AND &FF, 49 AND &FF, -15 AND &FF, 20, 16, 12, 24    \ face 8: purple
- EQUB 4 + 16 * 5, 33 AND &FF, 49 AND &FF, -15 AND &FF, 8, 16, 20, 28    \ face 9: purple
- EQUB 4 + 16 * 5, 33 AND &FF, -49 AND &FF, -15 AND &FF, 28, 40, 36, 8    \ face 10: purple
- EQUB 4 + 16 * 5, -33 AND &FF, -49 AND &FF, -15 AND &FF, 36, 40, 24, 12    \ face 11: purple
- EQUB 4 + 16 * 7, 0 AND &FF, 0 AND &FF, -61 AND &FF, 28, 20, 24, 40    \ face 12: tan
+ EQUB 3 + 16 * 5, 4, 0, 12    \ face 0: purple
+ EQUB 3 + 16 * 5, 0, 4, 8    \ face 1: purple
+ EQUB 3 + 16 * 5, 32, 12, 0    \ face 2: purple
+ EQUB 3 + 16 * 5, 8, 32, 0    \ face 3: purple
+ EQUB 3 + 16 * 7, 4, 12, 16    \ face 4: tan
+ EQUB 3 + 16 * 7, 8, 4, 16    \ face 5: tan
+ EQUB 3 + 16 * 7, 36, 12, 32    \ face 6: tan
+ EQUB 3 + 16 * 7, 8, 36, 32    \ face 7: tan
+ EQUB 4 + 16 * 5, 20, 16, 12, 24    \ face 8: purple
+ EQUB 4 + 16 * 5, 8, 16, 20, 28    \ face 9: purple
+ EQUB 4 + 16 * 5, 28, 40, 36, 8    \ face 10: purple
+ EQUB 4 + 16 * 5, 36, 40, 24, 12    \ face 11: purple
+ EQUB 4 + 16 * 7, 28, 20, 24, 40    \ face 12: tan
 .FC_S12_D
  EQUB 0                       \ fins
  EQUB 4                       \ details
@@ -326,50 +331,50 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Boa (type 13): hues green + grey
 .FC_S13_F
- EQUB 6 + 16 * 8, 32 AND &FF, 27 AND &FF, -44 AND &FF, 24, 20, 4, 40, 44, 8    \ face 0: grey
- EQUB 6 + 16 * 8, 0 AND &FF, -28 AND &FF, -54 AND &FF, 28, 8, 44, 48, 12, 32    \ face 1: grey
- EQUB 6 + 16 * 8, -32 AND &FF, 27 AND &FF, -44 AND &FF, 48, 40, 4, 16, 36, 12    \ face 2: grey
- EQUB 3 + 16 * 4, 0 AND &FF, 61 AND &FF, 0 AND &FF, 20, 16, 4    \ face 3: green
- EQUB 3 + 16 * 4, 52 AND &FF, -27 AND &FF, -17 AND &FF, 24, 8, 28    \ face 4: green
- EQUB 3 + 16 * 4, -52 AND &FF, -27 AND &FF, -17 AND &FF, 12, 36, 32    \ face 5: green
- EQUB 3 + 16 * 8, 0 AND &FF, 59 AND &FF, 15 AND &FF, 20, 0, 16    \ face 6: grey
- EQUB 3 + 16 * 8, -49 AND &FF, -32 AND &FF, 19 AND &FF, 32, 36, 0    \ face 7: grey
- EQUB 3 + 16 * 8, 49 AND &FF, -32 AND &FF, 19 AND &FF, 24, 28, 0    \ face 8: grey
- EQUB 3 + 16 * 4, -52 AND &FF, 26 AND &FF, 20 AND &FF, 0, 36, 16    \ face 9: green
- EQUB 3 + 16 * 4, 0 AND &FF, -57 AND &FF, 22 AND &FF, 28, 32, 0    \ face 10: green
- EQUB 3 + 16 * 4, 52 AND &FF, 26 AND &FF, 20 AND &FF, 24, 0, 20    \ face 11: green
- EQUB 3 + 16 * 4, 0 AND &FF, 0 AND &FF, -61 AND &FF, 44, 40, 48    \ face 12: green
+ EQUB 6 + 16 * 8, 24, 20, 4, 40, 44, 8    \ face 0: grey
+ EQUB 6 + 16 * 8, 28, 8, 44, 48, 12, 32    \ face 1: grey
+ EQUB 6 + 16 * 8, 48, 40, 4, 16, 36, 12    \ face 2: grey
+ EQUB 3 + 16 * 4, 20, 16, 4    \ face 3: green
+ EQUB 3 + 16 * 4, 24, 8, 28    \ face 4: green
+ EQUB 3 + 16 * 4, 12, 36, 32    \ face 5: green
+ EQUB 3 + 16 * 8, 20, 0, 16    \ face 6: grey
+ EQUB 3 + 16 * 8, 32, 36, 0    \ face 7: grey
+ EQUB 3 + 16 * 8, 24, 28, 0    \ face 8: grey
+ EQUB 3 + 16 * 4, 0, 36, 16    \ face 9: green
+ EQUB 3 + 16 * 4, 28, 32, 0    \ face 10: green
+ EQUB 3 + 16 * 4, 24, 0, 20    \ face 11: green
+ EQUB 3 + 16 * 4, 44, 40, 48    \ face 12: green
 .FC_S13_D
  EQUB 0                       \ fins
  EQUB 0                       \ details
 
 \ Anaconda (type 14): hues blue + green
 .FC_S14_F
- EQUB 5 + 16 * 4, 0 AND &FF, -44 AND &FF, -42 AND &FF, 12, 16, 0, 4, 8    \ face 0: green
- EQUB 5 + 16 * 3, -30 AND &FF, 11 AND &FF, -52 AND &FF, 0, 20, 40, 24, 4    \ face 1: blue
- EQUB 5 + 16 * 3, -48 AND &FF, -36 AND &FF, -12 AND &FF, 8, 4, 24, 44, 28    \ face 2: blue
- EQUB 5 + 16 * 4, 0 AND &FF, -60 AND &FF, 11 AND &FF, 32, 12, 8, 28, 48    \ face 3: green
- EQUB 5 + 16 * 3, 48 AND &FF, -36 AND &FF, -12 AND &FF, 52, 36, 16, 12, 32    \ face 4: blue
- EQUB 5 + 16 * 3, 30 AND &FF, 11 AND &FF, -52 AND &FF, 36, 56, 20, 0, 16    \ face 5: blue
- EQUB 3 + 16 * 4, 0 AND &FF, 60 AND &FF, -11 AND &FF, 56, 40, 20    \ face 6: green
- EQUB 4 + 16 * 4, -48 AND &FF, 36 AND &FF, 12 AND &FF, 48, 44, 24, 40    \ face 7: green
- EQUB 3 + 16 * 3, -50 AND &FF, -31 AND &FF, 16 AND &FF, 28, 44, 48    \ face 8: blue
- EQUB 3 + 16 * 3, 50 AND &FF, -31 AND &FF, 16 AND &FF, 52, 32, 48    \ face 9: blue
- EQUB 4 + 16 * 4, 48 AND &FF, 36 AND &FF, 12 AND &FF, 36, 52, 48, 56    \ face 10: green
- EQUB 3 + 16 * 3, 0 AND &FF, 60 AND &FF, 11 AND &FF, 56, 48, 40    \ face 11: blue
+ EQUB 5 + 16 * 4, 12, 16, 0, 4, 8    \ face 0: green
+ EQUB 5 + 16 * 3, 0, 20, 40, 24, 4    \ face 1: blue
+ EQUB 5 + 16 * 3, 8, 4, 24, 44, 28    \ face 2: blue
+ EQUB 5 + 16 * 4, 32, 12, 8, 28, 48    \ face 3: green
+ EQUB 5 + 16 * 3, 52, 36, 16, 12, 32    \ face 4: blue
+ EQUB 5 + 16 * 3, 36, 56, 20, 0, 16    \ face 5: blue
+ EQUB 3 + 16 * 4, 56, 40, 20    \ face 6: green
+ EQUB 4 + 16 * 4, 48, 44, 24, 40    \ face 7: green
+ EQUB 3 + 16 * 3, 28, 44, 48    \ face 8: blue
+ EQUB 3 + 16 * 3, 52, 32, 48    \ face 9: blue
+ EQUB 4 + 16 * 4, 36, 52, 48, 56    \ face 10: green
+ EQUB 3 + 16 * 3, 56, 48, 40    \ face 11: blue
 .FC_S14_D
  EQUB 0                       \ fins
  EQUB 0                       \ details
 
 \ Viper (type 16): hues cyan + blue
 .FC_S16_F
- EQUB 3 + 16 * 3, 0 AND &FF, 61 AND &FF, 0 AND &FF, 28, 4, 32    \ face 0: blue
- EQUB 4 + 16 * 2, -33 AND &FF, 49 AND &FF, 16 AND &FF, 4, 0, 16, 32    \ face 1: cyan
- EQUB 4 + 16 * 2, 33 AND &FF, 49 AND &FF, 16 AND &FF, 12, 0, 4, 28    \ face 2: cyan
- EQUB 4 + 16 * 2, -33 AND &FF, -49 AND &FF, 16 AND &FF, 8, 24, 16, 0    \ face 3: cyan
- EQUB 4 + 16 * 2, 33 AND &FF, -49 AND &FF, 16 AND &FF, 12, 20, 8, 0    \ face 4: cyan
- EQUB 3 + 16 * 3, 0 AND &FF, -61 AND &FF, 0 AND &FF, 20, 24, 8    \ face 5: blue
- EQUB 6 + 16 * 3, 0 AND &FF, 0 AND &FF, -61 AND &FF, 20, 12, 28, 32, 16, 24    \ face 6: blue
+ EQUB 3 + 16 * 3, 28, 4, 32    \ face 0: blue
+ EQUB 4 + 16 * 2, 4, 0, 16, 32    \ face 1: cyan
+ EQUB 4 + 16 * 2, 12, 0, 4, 28    \ face 2: cyan
+ EQUB 4 + 16 * 2, 8, 24, 16, 0    \ face 3: cyan
+ EQUB 4 + 16 * 2, 12, 20, 8, 0    \ face 4: cyan
+ EQUB 3 + 16 * 3, 20, 24, 8    \ face 5: blue
+ EQUB 6 + 16 * 3, 20, 12, 28, 32, 16, 24    \ face 6: blue
 .FC_S16_D
  EQUB 0                       \ fins
  EQUB 2                       \ details
@@ -378,13 +383,13 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Sidewinder (type 17): hues red + gold
 .FC_S17_F
- EQUB 3 + 16 * 1, 0 AND &FF, 59 AND &FF, 15 AND &FF, 4, 0, 16    \ face 0: gold
- EQUB 3 + 16 * 0, -15 AND &FF, 59 AND &FF, 7 AND &FF, 0, 12, 16    \ face 1: red
- EQUB 3 + 16 * 0, 15 AND &FF, 59 AND &FF, 7 AND &FF, 8, 4, 16    \ face 2: red
- EQUB 4 + 16 * 1, 0 AND &FF, 0 AND &FF, -61 AND &FF, 8, 16, 12, 20    \ face 3: gold
- EQUB 3 + 16 * 0, -15 AND &FF, -59 AND &FF, 7 AND &FF, 20, 12, 0    \ face 4: red
- EQUB 3 + 16 * 1, 0 AND &FF, -59 AND &FF, 15 AND &FF, 4, 20, 0    \ face 5: gold
- EQUB 3 + 16 * 0, 15 AND &FF, -59 AND &FF, 7 AND &FF, 8, 20, 4    \ face 6: red
+ EQUB 3 + 16 * 1, 4, 0, 16    \ face 0: gold
+ EQUB 3 + 16 * 0, 0, 12, 16    \ face 1: red
+ EQUB 3 + 16 * 0, 8, 4, 16    \ face 2: red
+ EQUB 4 + 16 * 1, 8, 16, 12, 20    \ face 3: gold
+ EQUB 3 + 16 * 0, 20, 12, 0    \ face 4: red
+ EQUB 3 + 16 * 1, 4, 20, 0    \ face 5: gold
+ EQUB 3 + 16 * 0, 8, 20, 4    \ face 6: red
 .FC_S17_D
  EQUB 0                       \ fins
  EQUB 1                       \ details
@@ -392,11 +397,11 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Mamba (type 18): hues green + gold
 .FC_S18_F
- EQUB 3 + 16 * 4, 0 AND &FF, -61 AND &FF, 5 AND &FF, 16, 4, 0    \ face 0: green
- EQUB 3 + 16 * 4, 0 AND &FF, 61 AND &FF, 5 AND &FF, 12, 0, 8    \ face 1: green
- EQUB 3 + 16 * 1, -27 AND &FF, 53 AND &FF, 13 AND &FF, 0, 4, 8    \ face 2: gold
- EQUB 3 + 16 * 1, 27 AND &FF, 53 AND &FF, 13 AND &FF, 16, 0, 12    \ face 3: gold
- EQUB 4 + 16 * 1, 0 AND &FF, 0 AND &FF, -61 AND &FF, 16, 12, 8, 4    \ face 4: gold
+ EQUB 3 + 16 * 4, 16, 4, 0    \ face 0: green
+ EQUB 3 + 16 * 4, 12, 0, 8    \ face 1: green
+ EQUB 3 + 16 * 1, 0, 4, 8    \ face 2: gold
+ EQUB 3 + 16 * 1, 16, 0, 12    \ face 3: gold
+ EQUB 4 + 16 * 1, 16, 12, 8, 4    \ face 4: gold
 .FC_S18_D
  EQUB 0                       \ fins
  EQUB 6                       \ details
@@ -409,12 +414,12 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Krait (type 19): hues red + purple
 .FC_S19_F
- EQUB 3 + 16 * 0, 8 AND &FF, 60 AND &FF, 8 AND &FF, 12, 0, 4    \ face 0: red
- EQUB 3 + 16 * 5, 8 AND &FF, -60 AND &FF, 8 AND &FF, 12, 8, 0    \ face 1: purple
- EQUB 3 + 16 * 5, -8 AND &FF, -60 AND &FF, 8 AND &FF, 8, 16, 0    \ face 2: purple
- EQUB 3 + 16 * 0, -8 AND &FF, 60 AND &FF, 8 AND &FF, 0, 16, 4    \ face 3: red
- EQUB 3 + 16 * 5, 27 AND &FF, 0 AND &FF, -55 AND &FF, 12, 4, 8    \ face 4: purple
- EQUB 3 + 16 * 5, -27 AND &FF, 0 AND &FF, -55 AND &FF, 4, 16, 8    \ face 5: purple
+ EQUB 3 + 16 * 0, 12, 0, 4    \ face 0: red
+ EQUB 3 + 16 * 5, 12, 8, 0    \ face 1: purple
+ EQUB 3 + 16 * 5, 8, 16, 0    \ face 2: purple
+ EQUB 3 + 16 * 0, 0, 16, 4    \ face 3: red
+ EQUB 3 + 16 * 5, 12, 4, 8    \ face 4: purple
+ EQUB 3 + 16 * 5, 4, 16, 8    \ face 5: purple
 .FC_S19_D
  EQUB 0                       \ fins
  EQUB 8                       \ details
@@ -429,21 +434,21 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Adder (type 20): hues gold + blue
 .FC_S20_F
- EQUB 4 + 16 * 3, 0 AND &FF, 59 AND &FF, 15 AND &FF, 44, 4, 0, 40    \ face 0: blue
- EQUB 4 + 16 * 1, 0 AND &FF, -59 AND &FF, 15 AND &FF, 4, 52, 48, 0    \ face 1: gold
- EQUB 3 + 16 * 1, 49 AND &FF, 35 AND &FF, 9 AND &FF, 4, 44, 8    \ face 2: gold
- EQUB 3 + 16 * 3, 49 AND &FF, -35 AND &FF, 9 AND &FF, 8, 52, 4    \ face 3: blue
- EQUB 4 + 16 * 3, 30 AND &FF, 53 AND &FF, 0 AND &FF, 12, 8, 44, 36    \ face 4: blue
- EQUB 4 + 16 * 1, 30 AND &FF, -53 AND &FF, 0 AND &FF, 8, 12, 16, 52    \ face 5: gold
- EQUB 6 + 16 * 1, 0 AND &FF, 0 AND &FF, -61 AND &FF, 16, 12, 36, 32, 24, 20    \ face 6: gold
- EQUB 0 + 16 * 3, 0 AND &FF, 0 AND &FF, -61 AND &FF    \ face 7: blue
- EQUB 0 + 16 * 1, 0 AND &FF, 0 AND &FF, -61 AND &FF    \ face 8: gold
- EQUB 4 + 16 * 3, -30 AND &FF, 53 AND &FF, 0 AND &FF, 32, 40, 28, 24    \ face 9: blue
- EQUB 4 + 16 * 1, -30 AND &FF, -53 AND &FF, 0 AND &FF, 20, 24, 28, 48    \ face 10: gold
- EQUB 3 + 16 * 1, -49 AND &FF, 35 AND &FF, 9 AND &FF, 40, 0, 28    \ face 11: gold
- EQUB 3 + 16 * 3, -49 AND &FF, -35 AND &FF, 9 AND &FF, 48, 28, 0    \ face 12: blue
- EQUB 4 + 16 * 1, 0 AND &FF, 61 AND &FF, 0 AND &FF, 36, 44, 40, 32    \ face 13: gold
- EQUB 4 + 16 * 3, 0 AND &FF, -61 AND &FF, 0 AND &FF, 52, 16, 20, 48    \ face 14: blue
+ EQUB 4 + 16 * 3, 44, 4, 0, 40    \ face 0: blue
+ EQUB 4 + 16 * 1, 4, 52, 48, 0    \ face 1: gold
+ EQUB 3 + 16 * 1, 4, 44, 8    \ face 2: gold
+ EQUB 3 + 16 * 3, 8, 52, 4    \ face 3: blue
+ EQUB 4 + 16 * 3, 12, 8, 44, 36    \ face 4: blue
+ EQUB 4 + 16 * 1, 8, 12, 16, 52    \ face 5: gold
+ EQUB 6 + 16 * 1, 16, 12, 36, 32, 24, 20    \ face 6: gold
+ EQUB 0 + 16 * 3    \ face 7: blue
+ EQUB 0 + 16 * 1    \ face 8: gold
+ EQUB 4 + 16 * 3, 32, 40, 28, 24    \ face 9: blue
+ EQUB 4 + 16 * 1, 20, 24, 28, 48    \ face 10: gold
+ EQUB 3 + 16 * 1, 40, 0, 28    \ face 11: gold
+ EQUB 3 + 16 * 3, 48, 28, 0    \ face 12: blue
+ EQUB 4 + 16 * 1, 36, 44, 40, 32    \ face 13: gold
+ EQUB 4 + 16 * 3, 52, 16, 20, 48    \ face 14: blue
 .FC_S20_D
  EQUB 0                       \ fins
  EQUB 1                       \ details
@@ -451,15 +456,15 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Gecko (type 21): hues green + red
 .FC_S21_F
- EQUB 4 + 16 * 0, 0 AND &FF, 60 AND &FF, 10 AND &FF, 12, 4, 0, 8    \ face 0: red
- EQUB 3 + 16 * 4, 5 AND &FF, 60 AND &FF, 11 AND &FF, 20, 4, 12    \ face 1: green
- EQUB 3 + 16 * 0, 14 AND &FF, -59 AND &FF, 10 AND &FF, 20, 28, 4    \ face 2: red
- EQUB 4 + 16 * 4, 0 AND &FF, -60 AND &FF, 9 AND &FF, 4, 28, 24, 0    \ face 3: green
- EQUB 3 + 16 * 0, -14 AND &FF, -59 AND &FF, 10 AND &FF, 24, 16, 0    \ face 4: red
- EQUB 3 + 16 * 4, -5 AND &FF, 60 AND &FF, 11 AND &FF, 0, 16, 8    \ face 5: green
- EQUB 3 + 16 * 4, -23 AND &FF, 4 AND &FF, -56 AND &FF, 8, 16, 24    \ face 6: green
- EQUB 4 + 16 * 0, 0 AND &FF, 0 AND &FF, -61 AND &FF, 28, 12, 8, 24    \ face 7: red
- EQUB 3 + 16 * 4, 23 AND &FF, 4 AND &FF, -56 AND &FF, 20, 12, 28    \ face 8: green
+ EQUB 4 + 16 * 0, 12, 4, 0, 8    \ face 0: red
+ EQUB 3 + 16 * 4, 20, 4, 12    \ face 1: green
+ EQUB 3 + 16 * 0, 20, 28, 4    \ face 2: red
+ EQUB 4 + 16 * 4, 4, 28, 24, 0    \ face 3: green
+ EQUB 3 + 16 * 0, 24, 16, 0    \ face 4: red
+ EQUB 3 + 16 * 4, 0, 16, 8    \ face 5: green
+ EQUB 3 + 16 * 4, 8, 16, 24    \ face 6: green
+ EQUB 4 + 16 * 0, 28, 12, 8, 24    \ face 7: red
+ EQUB 3 + 16 * 4, 20, 12, 28    \ face 8: green
 .FC_S21_D
  EQUB 0                       \ fins
  EQUB 2                       \ details
@@ -468,16 +473,16 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Cobra Mk I (type 22): hues blue + pink
 .FC_S22_F
- EQUB 3 + 16 * 6, 0 AND &FF, 59 AND &FF, 14 AND &FF, 4, 0, 32    \ face 0: pink
- EQUB 4 + 16 * 6, 0 AND &FF, -61 AND &FF, 7 AND &FF, 4, 28, 24, 0    \ face 1: pink
- EQUB 4 + 16 * 3, -10 AND &FF, 59 AND &FF, 10 AND &FF, 32, 0, 8, 16    \ face 2: blue
- EQUB 3 + 16 * 3, -12 AND &FF, -58 AND &FF, 12 AND &FF, 24, 8, 0    \ face 3: blue
- EQUB 4 + 16 * 3, 10 AND &FF, 59 AND &FF, 10 AND &FF, 12, 4, 32, 20    \ face 4: blue
- EQUB 3 + 16 * 3, 12 AND &FF, -58 AND &FF, 12 AND &FF, 12, 28, 4    \ face 5: blue
- EQUB 3 + 16 * 6, 0 AND &FF, 61 AND &FF, 0 AND &FF, 20, 32, 16    \ face 6: pink
- EQUB 4 + 16 * 3, 0 AND &FF, 0 AND &FF, -61 AND &FF, 28, 20, 16, 24    \ face 7: blue
- EQUB 3 + 16 * 6, -42 AND &FF, 39 AND &FF, -22 AND &FF, 16, 8, 24    \ face 8: pink
- EQUB 3 + 16 * 6, 42 AND &FF, 39 AND &FF, -22 AND &FF, 12, 20, 28    \ face 9: pink
+ EQUB 3 + 16 * 6, 4, 0, 32    \ face 0: pink
+ EQUB 4 + 16 * 6, 4, 28, 24, 0    \ face 1: pink
+ EQUB 4 + 16 * 3, 32, 0, 8, 16    \ face 2: blue
+ EQUB 3 + 16 * 3, 24, 8, 0    \ face 3: blue
+ EQUB 4 + 16 * 3, 12, 4, 32, 20    \ face 4: blue
+ EQUB 3 + 16 * 3, 12, 28, 4    \ face 5: blue
+ EQUB 3 + 16 * 6, 20, 32, 16    \ face 6: pink
+ EQUB 4 + 16 * 3, 28, 20, 16, 24    \ face 7: blue
+ EQUB 3 + 16 * 6, 16, 8, 24    \ face 8: pink
+ EQUB 3 + 16 * 6, 12, 20, 28    \ face 9: pink
 .FC_S22_D
  EQUB 0                       \ fins
  EQUB 1                       \ details
@@ -485,33 +490,33 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Worm (type 23): hues pink + green
 .FC_S23_F
- EQUB 4 + 16 * 4, 0 AND &FF, 48 AND &FF, 38 AND &FF, 8, 0, 4, 12    \ face 0: green
- EQUB 4 + 16 * 6, 0 AND &FF, 60 AND &FF, 12 AND &FF, 32, 8, 12, 36    \ face 1: pink
- EQUB 3 + 16 * 6, 42 AND &FF, 39 AND &FF, 21 AND &FF, 16, 0, 8    \ face 2: pink
- EQUB 3 + 16 * 6, -42 AND &FF, 39 AND &FF, 21 AND &FF, 4, 20, 12    \ face 3: pink
- EQUB 4 + 16 * 4, 48 AND &FF, 37 AND &FF, 10 AND &FF, 24, 16, 8, 32    \ face 4: green
- EQUB 4 + 16 * 4, -48 AND &FF, 37 AND &FF, 10 AND &FF, 12, 20, 28, 36    \ face 5: green
- EQUB 4 + 16 * 6, 0 AND &FF, 0 AND &FF, -61 AND &FF, 24, 32, 36, 28    \ face 6: pink
- EQUB 6 + 16 * 6, 0 AND &FF, -61 AND &FF, 0 AND &FF, 0, 16, 24, 28, 20, 4    \ face 7: pink
+ EQUB 4 + 16 * 4, 8, 0, 4, 12    \ face 0: green
+ EQUB 4 + 16 * 6, 32, 8, 12, 36    \ face 1: pink
+ EQUB 3 + 16 * 6, 16, 0, 8    \ face 2: pink
+ EQUB 3 + 16 * 6, 4, 20, 12    \ face 3: pink
+ EQUB 4 + 16 * 4, 24, 16, 8, 32    \ face 4: green
+ EQUB 4 + 16 * 4, 12, 20, 28, 36    \ face 5: green
+ EQUB 4 + 16 * 6, 24, 32, 36, 28    \ face 6: pink
+ EQUB 6 + 16 * 6, 0, 16, 24, 28, 20, 4    \ face 7: pink
 .FC_S23_D
  EQUB 0                       \ fins
  EQUB 0                       \ details
 
 \ Cobra Mk III (pirate) (type 24): hues pink + grey
 .FC_S24_F
- EQUB 3 + 16 * 8, 0 AND &FF, 55 AND &FF, 27 AND &FF, 0, 4, 8    \ face 0: grey
- EQUB 3 + 16 * 6, -18 AND &FF, 56 AND &FF, 16 AND &FF, 8, 4, 20    \ face 1: pink
- EQUB 3 + 16 * 6, 18 AND &FF, 56 AND &FF, 16 AND &FF, 0, 8, 24    \ face 2: pink
- EQUB 3 + 16 * 8, -17 AND &FF, 56 AND &FF, 15 AND &FF, 4, 12, 20    \ face 3: grey
- EQUB 3 + 16 * 8, 17 AND &FF, 56 AND &FF, 15 AND &FF, 16, 0, 24    \ face 4: grey
- EQUB 3 + 16 * 8, -17 AND &FF, 58 AND &FF, 0 AND &FF, 36, 8, 20    \ face 5: grey
- EQUB 3 + 16 * 8, 17 AND &FF, 58 AND &FF, 0 AND &FF, 24, 8, 36    \ face 6: grey
- EQUB 3 + 16 * 6, -31 AND &FF, 52 AND &FF, 0 AND &FF, 20, 12, 32    \ face 7: pink
- EQUB 3 + 16 * 6, 31 AND &FF, 52 AND &FF, 0 AND &FF, 28, 16, 24    \ face 8: pink
- EQUB 7 + 16 * 6, 0 AND &FF, 0 AND &FF, -61 AND &FF, 44, 28, 24, 36, 20, 32, 40    \ face 9: pink
- EQUB 4 + 16 * 8, -10 AND &FF, -59 AND &FF, 13 AND &FF, 40, 32, 12, 4    \ face 10: grey
- EQUB 4 + 16 * 6, 0 AND &FF, -60 AND &FF, 12 AND &FF, 0, 44, 40, 4    \ face 11: pink
- EQUB 4 + 16 * 8, 10 AND &FF, -59 AND &FF, 13 AND &FF, 16, 28, 44, 0    \ face 12: grey
+ EQUB 3 + 16 * 8, 0, 4, 8    \ face 0: grey
+ EQUB 3 + 16 * 6, 8, 4, 20    \ face 1: pink
+ EQUB 3 + 16 * 6, 0, 8, 24    \ face 2: pink
+ EQUB 3 + 16 * 8, 4, 12, 20    \ face 3: grey
+ EQUB 3 + 16 * 8, 16, 0, 24    \ face 4: grey
+ EQUB 3 + 16 * 8, 36, 8, 20    \ face 5: grey
+ EQUB 3 + 16 * 8, 24, 8, 36    \ face 6: grey
+ EQUB 3 + 16 * 6, 20, 12, 32    \ face 7: pink
+ EQUB 3 + 16 * 6, 28, 16, 24    \ face 8: pink
+ EQUB 7 + 16 * 6, 44, 28, 24, 36, 20, 32, 40    \ face 9: pink
+ EQUB 4 + 16 * 8, 40, 32, 12, 4    \ face 10: grey
+ EQUB 4 + 16 * 6, 0, 44, 40, 4    \ face 11: pink
+ EQUB 4 + 16 * 8, 16, 28, 44, 0    \ face 12: grey
 .FC_S24_D
  EQUB 0                       \ fins
  EQUB 5                       \ details
@@ -523,18 +528,18 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Asp Mk II (type 25): hues purple + cyan
 .FC_S25_F
- EQUB 5 + 16 * 5, 0 AND &FF, -60 AND &FF, 9 AND &FF, 32, 16, 0, 28, 36    \ face 0: purple
- EQUB 5 + 16 * 5, 12 AND &FF, -59 AND &FF, -11 AND &FF, 12, 8, 4, 0, 16    \ face 1: purple
- EQUB 5 + 16 * 5, -12 AND &FF, -59 AND &FF, -11 AND &FF, 0, 4, 20, 24, 28    \ face 2: purple
- EQUB 3 + 16 * 5, 0 AND &FF, 61 AND &FF, -3 AND &FF, 40, 44, 48    \ face 3: purple
- EQUB 4 + 16 * 2, 0 AND &FF, 56 AND &FF, 25 AND &FF, 40, 32, 36, 44    \ face 4: cyan
- EQUB 4 + 16 * 2, -13 AND &FF, 60 AND &FF, -4 AND &FF, 48, 44, 24, 20    \ face 5: cyan
- EQUB 4 + 16 * 2, 13 AND &FF, 60 AND &FF, -4 AND &FF, 12, 40, 48, 8    \ face 6: cyan
- EQUB 3 + 16 * 2, 39 AND &FF, -42 AND &FF, 20 AND &FF, 12, 16, 32    \ face 7: cyan
- EQUB 3 + 16 * 2, -39 AND &FF, -42 AND &FF, 20 AND &FF, 28, 24, 36    \ face 8: cyan
- EQUB 3 + 16 * 5, 46 AND &FF, 27 AND &FF, 29 AND &FF, 32, 40, 12    \ face 9: purple
- EQUB 3 + 16 * 5, -46 AND &FF, 27 AND &FF, 29 AND &FF, 44, 36, 24    \ face 10: purple
- EQUB 4 + 16 * 5, 0 AND &FF, 0 AND &FF, -61 AND &FF, 8, 48, 20, 4    \ face 11: purple
+ EQUB 5 + 16 * 5, 32, 16, 0, 28, 36    \ face 0: purple
+ EQUB 5 + 16 * 5, 12, 8, 4, 0, 16    \ face 1: purple
+ EQUB 5 + 16 * 5, 0, 4, 20, 24, 28    \ face 2: purple
+ EQUB 3 + 16 * 5, 40, 44, 48    \ face 3: purple
+ EQUB 4 + 16 * 2, 40, 32, 36, 44    \ face 4: cyan
+ EQUB 4 + 16 * 2, 48, 44, 24, 20    \ face 5: cyan
+ EQUB 4 + 16 * 2, 12, 40, 48, 8    \ face 6: cyan
+ EQUB 3 + 16 * 2, 12, 16, 32    \ face 7: cyan
+ EQUB 3 + 16 * 2, 28, 24, 36    \ face 8: cyan
+ EQUB 3 + 16 * 5, 32, 40, 12    \ face 9: purple
+ EQUB 3 + 16 * 5, 44, 36, 24    \ face 10: purple
+ EQUB 4 + 16 * 5, 8, 48, 20, 4    \ face 11: purple
 .FC_S25_D
  EQUB 0                       \ fins
  EQUB 2                       \ details
@@ -543,19 +548,19 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Python (pirate) (type 26): hues red + tan
 .FC_S26_F
- EQUB 3 + 16 * 0, -33 AND &FF, 49 AND &FF, 14 AND &FF, 4, 0, 12    \ face 0: red
- EQUB 3 + 16 * 0, 33 AND &FF, 49 AND &FF, 14 AND &FF, 0, 4, 8    \ face 1: red
- EQUB 3 + 16 * 0, -33 AND &FF, -49 AND &FF, 14 AND &FF, 32, 12, 0    \ face 2: red
- EQUB 3 + 16 * 0, 33 AND &FF, -49 AND &FF, 14 AND &FF, 8, 32, 0    \ face 3: red
- EQUB 3 + 16 * 7, -27 AND &FF, 55 AND &FF, 0 AND &FF, 4, 12, 16    \ face 4: tan
- EQUB 3 + 16 * 7, 27 AND &FF, 55 AND &FF, 0 AND &FF, 8, 4, 16    \ face 5: tan
- EQUB 3 + 16 * 7, -27 AND &FF, -55 AND &FF, 0 AND &FF, 36, 12, 32    \ face 6: tan
- EQUB 3 + 16 * 7, 27 AND &FF, -55 AND &FF, 0 AND &FF, 8, 36, 32    \ face 7: tan
- EQUB 4 + 16 * 0, -33 AND &FF, 49 AND &FF, -15 AND &FF, 20, 16, 12, 24    \ face 8: red
- EQUB 4 + 16 * 0, 33 AND &FF, 49 AND &FF, -15 AND &FF, 8, 16, 20, 28    \ face 9: red
- EQUB 4 + 16 * 0, 33 AND &FF, -49 AND &FF, -15 AND &FF, 28, 40, 36, 8    \ face 10: red
- EQUB 4 + 16 * 0, -33 AND &FF, -49 AND &FF, -15 AND &FF, 36, 40, 24, 12    \ face 11: red
- EQUB 4 + 16 * 7, 0 AND &FF, 0 AND &FF, -61 AND &FF, 28, 20, 24, 40    \ face 12: tan
+ EQUB 3 + 16 * 0, 4, 0, 12    \ face 0: red
+ EQUB 3 + 16 * 0, 0, 4, 8    \ face 1: red
+ EQUB 3 + 16 * 0, 32, 12, 0    \ face 2: red
+ EQUB 3 + 16 * 0, 8, 32, 0    \ face 3: red
+ EQUB 3 + 16 * 7, 4, 12, 16    \ face 4: tan
+ EQUB 3 + 16 * 7, 8, 4, 16    \ face 5: tan
+ EQUB 3 + 16 * 7, 36, 12, 32    \ face 6: tan
+ EQUB 3 + 16 * 7, 8, 36, 32    \ face 7: tan
+ EQUB 4 + 16 * 0, 20, 16, 12, 24    \ face 8: red
+ EQUB 4 + 16 * 0, 8, 16, 20, 28    \ face 9: red
+ EQUB 4 + 16 * 0, 28, 40, 36, 8    \ face 10: red
+ EQUB 4 + 16 * 0, 36, 40, 24, 12    \ face 11: red
+ EQUB 4 + 16 * 7, 28, 20, 24, 40    \ face 12: tan
 .FC_S26_D
  EQUB 0                       \ fins
  EQUB 4                       \ details
@@ -566,16 +571,16 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Fer-de-lance (type 27): hues gold + purple
 .FC_S27_F
- EQUB 4 + 16 * 1, 0 AND &FF, 59 AND &FF, 15 AND &FF, 32, 0, 20, 36    \ face 0: gold
- EQUB 3 + 16 * 5, -58 AND &FF, 0 AND &FF, 20 AND &FF, 20, 0, 4    \ face 1: purple
- EQUB 4 + 16 * 1, -53 AND &FF, 0 AND &FF, -31 AND &FF, 8, 24, 20, 4    \ face 2: gold
- EQUB 4 + 16 * 5, 0 AND &FF, 0 AND &FF, -61 AND &FF, 12, 28, 24, 8    \ face 3: purple
- EQUB 4 + 16 * 1, 53 AND &FF, 0 AND &FF, -31 AND &FF, 16, 32, 28, 12    \ face 4: gold
- EQUB 3 + 16 * 5, 58 AND &FF, 0 AND &FF, 20 AND &FF, 32, 16, 0    \ face 5: purple
- EQUB 3 + 16 * 5, -14 AND &FF, 55 AND &FF, -23 AND &FF, 36, 20, 24    \ face 6: purple
- EQUB 3 + 16 * 1, 0 AND &FF, 55 AND &FF, -27 AND &FF, 28, 36, 24    \ face 7: gold
- EQUB 3 + 16 * 5, 14 AND &FF, 55 AND &FF, -23 AND &FF, 32, 36, 28    \ face 8: purple
- EQUB 5 + 16 * 1, 0 AND &FF, -61 AND &FF, 0 AND &FF, 16, 12, 8, 4, 0    \ face 9: gold
+ EQUB 4 + 16 * 1, 32, 0, 20, 36    \ face 0: gold
+ EQUB 3 + 16 * 5, 20, 0, 4    \ face 1: purple
+ EQUB 4 + 16 * 1, 8, 24, 20, 4    \ face 2: gold
+ EQUB 4 + 16 * 5, 12, 28, 24, 8    \ face 3: purple
+ EQUB 4 + 16 * 1, 16, 32, 28, 12    \ face 4: gold
+ EQUB 3 + 16 * 5, 32, 16, 0    \ face 5: purple
+ EQUB 3 + 16 * 5, 36, 20, 24    \ face 6: purple
+ EQUB 3 + 16 * 1, 28, 36, 24    \ face 7: gold
+ EQUB 3 + 16 * 5, 32, 36, 28    \ face 8: purple
+ EQUB 5 + 16 * 1, 16, 12, 8, 4, 0    \ face 9: gold
 .FC_S27_D
  EQUB 0                       \ fins
  EQUB 3                       \ details
@@ -585,15 +590,15 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Moray (type 28): hues cyan + pink
 .FC_S28_F
- EQUB 3 + 16 * 6, 0 AND &FF, 60 AND &FF, 10 AND &FF, 0, 4, 8    \ face 0: pink
- EQUB 3 + 16 * 2, -12 AND &FF, 59 AND &FF, 8 AND &FF, 4, 12, 8    \ face 1: cyan
- EQUB 3 + 16 * 2, 12 AND &FF, 59 AND &FF, 8 AND &FF, 16, 0, 8    \ face 2: cyan
- EQUB 3 + 16 * 2, -30 AND &FF, -14 AND &FF, -51 AND &FF, 8, 12, 24    \ face 3: cyan
- EQUB 3 + 16 * 6, 0 AND &FF, -34 AND &FF, -51 AND &FF, 20, 8, 24    \ face 4: pink
- EQUB 3 + 16 * 2, 30 AND &FF, -14 AND &FF, -51 AND &FF, 16, 8, 20    \ face 5: cyan
- EQUB 3 + 16 * 6, -33 AND &FF, -46 AND &FF, 23 AND &FF, 24, 12, 4    \ face 6: pink
- EQUB 4 + 16 * 2, 0 AND &FF, -57 AND &FF, 21 AND &FF, 0, 20, 24, 4    \ face 7: cyan
- EQUB 3 + 16 * 6, 33 AND &FF, -46 AND &FF, 23 AND &FF, 16, 20, 0    \ face 8: pink
+ EQUB 3 + 16 * 6, 0, 4, 8    \ face 0: pink
+ EQUB 3 + 16 * 2, 4, 12, 8    \ face 1: cyan
+ EQUB 3 + 16 * 2, 16, 0, 8    \ face 2: cyan
+ EQUB 3 + 16 * 2, 8, 12, 24    \ face 3: cyan
+ EQUB 3 + 16 * 6, 20, 8, 24    \ face 4: pink
+ EQUB 3 + 16 * 2, 16, 8, 20    \ face 5: cyan
+ EQUB 3 + 16 * 6, 24, 12, 4    \ face 6: pink
+ EQUB 4 + 16 * 2, 0, 20, 24, 4    \ face 7: cyan
+ EQUB 3 + 16 * 6, 16, 20, 0    \ face 8: pink
 .FC_S28_D
  EQUB 0                       \ fins
  EQUB 3                       \ details
@@ -603,16 +608,16 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Thargoid (type 29): hues green + purple
 .FC_S29_F
- EQUB 4 + 16 * 5, 52 AND &FF, -30 AND &FF, 13 AND &FF, 0, 4, 36, 32    \ face 0: purple
- EQUB 4 + 16 * 5, 52 AND &FF, -30 AND &FF, -13 AND &FF, 4, 8, 40, 36    \ face 1: purple
- EQUB 4 + 16 * 5, 52 AND &FF, -13 AND &FF, -30 AND &FF, 8, 12, 44, 40    \ face 2: purple
- EQUB 4 + 16 * 5, 52 AND &FF, 13 AND &FF, -30 AND &FF, 12, 16, 48, 44    \ face 3: purple
- EQUB 8 + 16 * 4, 61 AND &FF, 0 AND &FF, 0 AND &FF, 24, 20, 16, 12, 8, 4, 0, 28    \ face 4: green
- EQUB 4 + 16 * 5, 52 AND &FF, 30 AND &FF, -13 AND &FF, 16, 20, 52, 48    \ face 5: purple
- EQUB 4 + 16 * 5, 52 AND &FF, 30 AND &FF, 13 AND &FF, 20, 24, 56, 52    \ face 6: purple
- EQUB 4 + 16 * 5, 52 AND &FF, 13 AND &FF, 30 AND &FF, 24, 28, 60, 56    \ face 7: purple
- EQUB 4 + 16 * 5, 52 AND &FF, -13 AND &FF, 30 AND &FF, 28, 0, 32, 60    \ face 8: purple
- EQUB 8 + 16 * 4, -61 AND &FF, 0 AND &FF, 0 AND &FF, 48, 52, 56, 60, 32, 36, 40, 44    \ face 9: green
+ EQUB 4 + 16 * 5, 0, 4, 36, 32    \ face 0: purple
+ EQUB 4 + 16 * 5, 4, 8, 40, 36    \ face 1: purple
+ EQUB 4 + 16 * 5, 8, 12, 44, 40    \ face 2: purple
+ EQUB 4 + 16 * 5, 12, 16, 48, 44    \ face 3: purple
+ EQUB 8 + 16 * 4, 24, 20, 16, 12, 8, 4, 0, 28    \ face 4: green
+ EQUB 4 + 16 * 5, 16, 20, 52, 48    \ face 5: purple
+ EQUB 4 + 16 * 5, 20, 24, 56, 52    \ face 6: purple
+ EQUB 4 + 16 * 5, 24, 28, 60, 56    \ face 7: purple
+ EQUB 4 + 16 * 5, 28, 0, 32, 60    \ face 8: purple
+ EQUB 8 + 16 * 4, 48, 52, 56, 60, 32, 36, 40, 44    \ face 9: green
 .FC_S29_D
  EQUB 0                       \ fins
  EQUB 2                       \ details
@@ -621,29 +626,29 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Thargon (type 30): hues green + purple
 .FC_S30_F
- EQUB 5 + 16 * 4, -61 AND &FF, 0 AND &FF, 0 AND &FF, 12, 16, 0, 4, 8    \ face 0: green
- EQUB 4 + 16 * 5, 56 AND &FF, -14 AND &FF, 20 AND &FF, 20, 24, 4, 0    \ face 1: purple
- EQUB 4 + 16 * 5, 44 AND &FF, -40 AND &FF, -13 AND &FF, 24, 28, 8, 4    \ face 2: purple
- EQUB 4 + 16 * 5, 20 AND &FF, 0 AND &FF, -58 AND &FF, 28, 32, 12, 8    \ face 3: purple
- EQUB 4 + 16 * 5, 44 AND &FF, 40 AND &FF, -13 AND &FF, 32, 36, 16, 12    \ face 4: purple
- EQUB 4 + 16 * 5, 56 AND &FF, 14 AND &FF, 20 AND &FF, 16, 36, 20, 0    \ face 5: purple
- EQUB 5 + 16 * 4, 61 AND &FF, 0 AND &FF, 0 AND &FF, 36, 32, 28, 24, 20    \ face 6: green
+ EQUB 5 + 16 * 4, 12, 16, 0, 4, 8    \ face 0: green
+ EQUB 4 + 16 * 5, 20, 24, 4, 0    \ face 1: purple
+ EQUB 4 + 16 * 5, 24, 28, 8, 4    \ face 2: purple
+ EQUB 4 + 16 * 5, 28, 32, 12, 8    \ face 3: purple
+ EQUB 4 + 16 * 5, 32, 36, 16, 12    \ face 4: purple
+ EQUB 4 + 16 * 5, 16, 36, 20, 0    \ face 5: purple
+ EQUB 5 + 16 * 4, 36, 32, 28, 24, 20    \ face 6: green
 .FC_S30_D
  EQUB 0                       \ fins
  EQUB 0                       \ details
 
 \ Constrictor (type 31): hues red + grey
 .FC_S31_F
- EQUB 4 + 16 * 8, 0 AND &FF, 59 AND &FF, 16 AND &FF, 32, 0, 4, 36    \ face 0: grey
- EQUB 3 + 16 * 0, -18 AND &FF, 56 AND &FF, 15 AND &FF, 4, 8, 36    \ face 1: red
- EQUB 3 + 16 * 0, 18 AND &FF, 56 AND &FF, 15 AND &FF, 28, 0, 32    \ face 2: red
- EQUB 3 + 16 * 8, 31 AND &FF, 53 AND &FF, 0 AND &FF, 28, 32, 24    \ face 3: grey
- EQUB 3 + 16 * 8, -31 AND &FF, 53 AND &FF, 0 AND &FF, 36, 8, 12    \ face 4: grey
- EQUB 3 + 16 * 0, -31 AND &FF, 53 AND &FF, 0 AND &FF, 16, 36, 12    \ face 5: red
- EQUB 4 + 16 * 8, 0 AND &FF, 61 AND &FF, 0 AND &FF, 20, 32, 36, 16    \ face 6: grey
- EQUB 3 + 16 * 0, 31 AND &FF, 53 AND &FF, 0 AND &FF, 24, 32, 20    \ face 7: red
- EQUB 4 + 16 * 8, 0 AND &FF, 0 AND &FF, -61 AND &FF, 24, 20, 16, 12    \ face 8: grey
- EQUB 6 + 16 * 0, 0 AND &FF, -61 AND &FF, 0 AND &FF, 0, 28, 24, 12, 8, 4    \ face 9: red
+ EQUB 4 + 16 * 8, 32, 0, 4, 36    \ face 0: grey
+ EQUB 3 + 16 * 0, 4, 8, 36    \ face 1: red
+ EQUB 3 + 16 * 0, 28, 0, 32    \ face 2: red
+ EQUB 3 + 16 * 8, 28, 32, 24    \ face 3: grey
+ EQUB 3 + 16 * 8, 36, 8, 12    \ face 4: grey
+ EQUB 3 + 16 * 0, 16, 36, 12    \ face 5: red
+ EQUB 4 + 16 * 8, 20, 32, 36, 16    \ face 6: grey
+ EQUB 3 + 16 * 0, 24, 32, 20    \ face 7: red
+ EQUB 4 + 16 * 8, 24, 20, 16, 12    \ face 8: grey
+ EQUB 6 + 16 * 0, 0, 28, 24, 12, 8, 4    \ face 9: red
 .FC_S31_D
  EQUB 0                       \ fins
  EQUB 2                       \ details
@@ -652,18 +657,18 @@ FC_PLANE = &05 : FC_PLANO = &5A
 
 \ Dodecahedron station (type 32): hues grey + blue
 .FC_S32_F
- EQUB 5 + 16 * 8, 0 AND &FF, 0 AND &FF, 61 AND &FF, 4, 8, 12, 16, 0    \ face 0: grey
- EQUB 5 + 16 * 3, 32 AND &FF, 44 AND &FF, 27 AND &FF, 24, 4, 0, 20, 40    \ face 1: blue
- EQUB 5 + 16 * 8, 52 AND &FF, -17 AND &FF, 27 AND &FF, 24, 44, 28, 8, 4    \ face 2: grey
- EQUB 5 + 16 * 3, 0 AND &FF, -55 AND &FF, 27 AND &FF, 8, 28, 48, 32, 12    \ face 3: blue
- EQUB 5 + 16 * 8, -52 AND &FF, -17 AND &FF, 27 AND &FF, 12, 32, 52, 36, 16    \ face 4: grey
- EQUB 5 + 16 * 3, -32 AND &FF, 44 AND &FF, 27 AND &FF, 20, 0, 16, 36, 56    \ face 5: blue
- EQUB 5 + 16 * 8, 0 AND &FF, 55 AND &FF, -27 AND &FF, 60, 40, 20, 56, 76    \ face 6: grey
- EQUB 5 + 16 * 3, 52 AND &FF, 17 AND &FF, -27 AND &FF, 44, 24, 40, 60, 64    \ face 7: blue
- EQUB 5 + 16 * 8, 32 AND &FF, -44 AND &FF, -27 AND &FF, 44, 64, 68, 48, 28    \ face 8: grey
- EQUB 5 + 16 * 8, -32 AND &FF, -44 AND &FF, -27 AND &FF, 48, 68, 72, 52, 32    \ face 9: grey
- EQUB 5 + 16 * 3, -52 AND &FF, 17 AND &FF, -27 AND &FF, 76, 56, 36, 52, 72    \ face 10: blue
- EQUB 5 + 16 * 3, 0 AND &FF, 0 AND &FF, -61 AND &FF, 64, 60, 76, 72, 68    \ face 11: blue
+ EQUB 5 + 16 * 8, 4, 8, 12, 16, 0    \ face 0: grey
+ EQUB 5 + 16 * 3, 24, 4, 0, 20, 40    \ face 1: blue
+ EQUB 5 + 16 * 8, 24, 44, 28, 8, 4    \ face 2: grey
+ EQUB 5 + 16 * 3, 8, 28, 48, 32, 12    \ face 3: blue
+ EQUB 5 + 16 * 8, 12, 32, 52, 36, 16    \ face 4: grey
+ EQUB 5 + 16 * 3, 20, 0, 16, 36, 56    \ face 5: blue
+ EQUB 5 + 16 * 8, 60, 40, 20, 56, 76    \ face 6: grey
+ EQUB 5 + 16 * 3, 44, 24, 40, 60, 64    \ face 7: blue
+ EQUB 5 + 16 * 8, 44, 64, 68, 48, 28    \ face 8: grey
+ EQUB 5 + 16 * 8, 48, 68, 72, 52, 32    \ face 9: grey
+ EQUB 5 + 16 * 3, 76, 56, 36, 52, 72    \ face 10: blue
+ EQUB 5 + 16 * 3, 64, 60, 76, 72, 68    \ face 11: blue
 .FC_S32_D
  EQUB 0                       \ fins
  EQUB 1                       \ details
@@ -677,6 +682,10 @@ FC_PLANE = &05 : FC_PLANO = &5A
  EQUB &1F, &1F, &1F, &1F, &14, &1F, &1F, &1F, &1F, &10, &13, &1F, &1F, &16, &1E, &1F
  EQUB &1E, &1F, &1E, &1F, &1F, &1F, &14, &1F, &1F, &16, &1F, &0F, &11, &1F, &1F, &1F
  EQUB &1F
+.FC_DOTZ                       \ by type: z_hi from which the dot is drawn under the faces
+ EQUB &04, &04, &35, &04, &04, &04, &07, &18, &04, &06, &04, &08, &10, &11, &10, &04
+ EQUB &05, &05, &04, &06, &04, &04, &04, &04, &08, &05, &10, &05, &07, &09, &04, &04
+ EQUB &41
 .FC_DOTE                      \ by type: distant-dot colour, even rows
  EQUB &00, &50, &AF, &AF, &AF, &FF, &5F, &5F, &5F, &A5, &0F, &5F, &F0, &5F, &A5, &00
  EQUB &0F, &50, &5F, &50, &FF, &5F, &A5, &50, &50, &F0, &50, &FF, &0F, &5F, &5F, &50
@@ -686,4 +695,4 @@ FC_PLANE = &05 : FC_PLANO = &5A
  EQUB &0F, &FA, &AF, &FA, &FF, &AF, &5A, &FA, &FA, &5A, &FA, &FF, &0F, &AF, &AF, &FA
  EQUB &5A
 
-\ 3091 bytes in all
+\ 2212 bytes in all

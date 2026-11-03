@@ -2,23 +2,24 @@
 \
 \ gfx-glue.asm - the main RAM glue of the filled renderer (docs/renderer.md)
 \
-\ Port (Model B): assembled at GLUE% (elite-map.asm), in the resident block
-\ A's spare room, so that it is visible whatever bank is paged: the
-\ trampolines into bank R, the rasteriser (gfx-rtramp.asm, which the frame
-\ layer calls), and GCALL, through which the game calls the frame layer in
-\ bank F. Bank F is built against these addresses (gfx-bank6.asm), and
-\ writes GLUE.bin; the resident block is to INCLUDE this file at GLUE% when
-\ the game starts calling the renderer (nothing does yet).
+\ Port (Model B): assembled at GLUE% (elite-map.asm), at the end of the
+\ resident block A, which INCLUDEs it, so that it is visible whatever bank is
+\ paged: the trampolines into bank 5, the rasteriser (gfx-rtramp.asm, which
+\ the frame layer calls), and GCALL, through which the game calls the frame
+\ layer in bank 6. Bank 6 is built against these addresses (gfx-bank6.asm,
+\ which writes GLUE.bin for 6-harness/test_frame.py).
 \
-\ GCALL: X = an entry's number (FG_*, below), A and Y its inputs: pages bank
-\ F in (BANK6), enters it through its dispatcher at FJT (the top of bank F),
-\ and pages the caller's bank (whatever was in &F4) back in, returning A
-\ and Y as the entry left them (every entry keeps Y). The flags and X are
-\ not kept. Not re-entrant: interrupt handlers must not call it.
+\ GCALL: X = an entry's number (FG_*, elite-map.asm), A and Y its inputs (and
+\ C, which reaches the entry): pages bank 6 in (BANK6), enters it through
+\ its dispatcher at FJT (the top of bank 6), and pages the caller's bank
+\ (whatever was in &F4) back in, returning A and Y as the entry left them
+\ (every entry keeps Y, but F_GUN, which returns one). The flags and X are
+\ not kept. It may be called again while an entry runs (the frame's runs of
+\ game code reach F_PDOT through it), but not from an interrupt.
 \
 \ ******************************************************************************
 
-FJT = &BFC0             \ bank F's dispatcher (gfx-bank6.asm)
+FJT = &BFC0             \ bank 6's dispatcher (gfx-bank6.asm)
 
 \ (the entries' numbers, FG_*, are in elite-map.asm, for the game's hooks)
 
@@ -28,7 +29,7 @@ FJT = &BFC0             \ bank F's dispatcher (gfx-bank6.asm)
  STA GA                 \ keep A while the bank is paged
  LDA &F4                \ the caller's bank, to page back after
  PHA
- LDA BANK6              \ page bank F in (&F4 first, as elite-far.asm)
+ LDA BANK6              \ page bank 6 in (&F4 first, as elite-far.asm)
  STA &F4
  STA &FE30
  JSR FJT                \ the entry X, with A = GA, and Y as it was

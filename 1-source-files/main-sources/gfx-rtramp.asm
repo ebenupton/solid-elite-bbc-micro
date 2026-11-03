@@ -1,11 +1,11 @@
 \ ******************************************************************************
 \
-\ gfx-rtramp.asm - the trampolines into bank R, the rasteriser (main RAM)
+\ gfx-rtramp.asm - the trampolines into bank 5, the rasteriser (main RAM)
 \
 \ Port (Model B): to be INCLUDEd in the resident block A (elite-resident.asm),
-\ after gfx-rws.asm's constants. The frame layer, in bank F, calls T_INIT,
-\ T_POLY and so on: each pages bank R in (BANK5, elite-far.asm), calls the
-\ routine through bank R's jump table, RJT, and pages the caller's bank back
+\ after gfx-rws.asm's constants. The frame layer, in bank 6, calls T_INIT,
+\ T_POLY and so on: each pages bank 5 in (BANK5, elite-far.asm), calls the
+\ routine through bank 5's jump table, RJT, and pages the caller's bank back
 \ (whatever was in &F4: so any bank may call them). Port: each T_n is four
 \ bytes, a JSR to the shared body, rtgo, and the low byte of RJT's entry. A, X and Y are passed
 \ through to the routine; nothing is returned in them (results, if any, are
@@ -32,7 +32,7 @@
  LDA &FFFF,X            \ (the address is set above)
  STA rtj+1              \ the JSR below calls RJT's entry (whose low byte this
                         \ is: RJT is in one page)
- LDA &F4                \ keep the caller's bank on the stack and page bank R
+ LDA &F4                \ keep the caller's bank on the stack and page bank 5
  PHA                    \ in
  LDA BANK5
  STA &F4
@@ -56,7 +56,7 @@ MACRO RTRAMP n
  EQUB LO(RJT) + 3 * n   \ (the low byte of RJT's entry n)
 ENDMACRO
 
-.T_INIT       RTRAMP 0  \ (RJT's order, gfx-bankr.asm)
+.T_INIT       RTRAMP 0  \ (RJT's order, gfx-bank5.asm)
 .T_SETBUF     RTRAMP 1
 .T_RESETBUF   RTRAMP 2
 .T_REPAIR     RTRAMP 3

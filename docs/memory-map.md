@@ -140,8 +140,8 @@ order:
   that image is while `PCLI` stages the bank 4 image, and `PCLI` copies it
   to `PROGM%` each time it loads the program;
 * the hot pass's bank 4 container (`hot`), from `S%` at `&8000` (`HOME%`)
-  to the main RAM part's image, then the quarter squares (in the flight
-  code) and the blueprint slot;
+  to the main RAM part's image, then the quarter squares (`QSL`, `QSH`, in
+  both programs: the lighting's `L_REC` reads them) and the blueprint slot;
 * the cold pass, bank 7 from `&8000`, then the text tokens `QQ18`, below
   `DFSSAVE%`.
 
@@ -296,7 +296,7 @@ see the history of this file).
 |---|---|---|
 | Zero page, stack | `&0000-&00E1`, `&0100-&01FF` | as in the original; the rasteriser uses `&06-&27` and the frame layer `&D2-&E1` during a frame, and put the game's bytes back |
 | `UP` | `&0300-&03CF` | as in the original |
-| Resident block A | `&0400-&07BF` | the port's (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin` and `dfsout`, `WRCHR`, `BRKR`, the last saved commander and the break handler (`S1%`, `NA%`, `CHK2`, `CHK`, `BRBR1`, block B's in the original), the interrupt handler `IRQG` (the rupture and the flip), and at `GLUE%` = `&0724` the renderer's glue (`GCALL` and the trampolines into bank R); the dashboard's workspace at `&07BD-&07BF` |
+| Resident block A | `&0400-&07BF` | the port's (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin` and `dfsout`, `WRCHR`, `BRKR`, the last saved commander and the break handler (`S1%`, `NA%`, `CHK2`, `CHK`, `BRBR1`, block B's in the original), the interrupt handler `IRQG` (the rupture and the flip), and at `GLUE%` = `&0724` the renderer's glue (`GCALL` and the trampolines into bank 5); the dashboard's workspace at `&07BD-&07BF` |
 | `SNE`, `ACT` | `&07C0-&07FF` | as in the original |
 | `QQ16` | `&0880-&08BF` | as in the original |
 | `K%` and the line heaps | `&0900-&0CFF` | as in the original (the loader's `LOAD` runs at `&0B00-&0CFF` before the game starts) |
@@ -309,18 +309,22 @@ see the history of this file).
 | The shared variables | `&7EA0-&7EAF` | `GVARS`: the renderer's state that the game's hooks, the interrupt and the frame layer share (the last, `GDL`, the disc layer's: which buffers have its disc) |
 | The high resident block | `&7EB0-&7EF0` | `RESH%` (`elite-resident-high.asm`): the palette and the rupture's register routine and tables |
 | The missile's blueprint | `&7F00-&7F9F` | as in the original, without its edges; then the programs' main RAM part, `PROGM%` (`&7FA0-&7FFD`); `VEC` at `&7FFE` |
-| Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`; in the flight code, the quarter squares at `&B500-&B8FF` (`QSL`, `QSH`); the blueprint set at `&B900` |
+| Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`, with the lighting (`gfx-light.asm`: `L_REC`, and in the flight code `L_SUN`) and the faces' normals (`gfx-normals.asm`); the quarter squares at `&B500-&B8FF` (`QSL`, `QSH`); the blueprint set at `&B900` |
 | Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000`, then `QQ18`; in the flight code, then the renderer's window (`WIN7%`: the disc layer, `gfx-dlayer.asm`); `DFSSAVE%` at `&BF00` |
-| Bank R | ROMSEL `BANK5` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), the jump table `RJT` |
-| Bank F | ROMSEL `BANK6` | the frame layer, from `F.BANK`: its code with the lens flare and the hangar's background (`&8000-&9B0E`), the faces' and lighting tables, its state (`&AA00-&B8FF`), the dispatcher `FJT` |
+| Bank 5 | ROMSEL `BANK5` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), the jump table `RJT` |
+| Bank 6 | ROMSEL `BANK6` | the frame layer, from `F.BANK`: its code with the lens flare, the screens drawn directly and the hangar's background (`&8000-&A091`), the face lists and the lighting's ramps (`&A092-&ABCF`), its state (`&ABD0-&B3FF`), the dispatcher `FJT` (`&BFC0`) |
 
-Free space now: 230 bytes in the flight code's home bank, 1,492 in its
-cold bank (the disc layer took 6,066: [renderer.md](renderer.md), "The disc
-layer"), 4,484 in the docked code's home bank (below its blueprints) and
-5,756 in its cold bank, 13 in resident block A and 3 in the glue, 15 in the
-high resident block, 1,728 in bank F, and in bank R 6 in its low region
-(&8000-&8FFF), none in its high region (&9000-&BFBF) and 229 after R_LINE's
-cold part and the disc layer's two entries (&989B-&997F). The flight code's banks are what the frames can
+Free space now: 60 bytes in the flight code's home bank (the lighting and
+the faces' normals take 1,956 there, for which `DEATH`, `LASLI`, `PU1`,
+`TIDY` and its routines, `MAS1`, `PIXEL`, `LL145`'s first part and `ARCTAN`
+moved to the cold bank: [renderer.md](renderer.md), "The hooks"), 320 in
+its cold bank (the disc layer took 6,066: [renderer.md](renderer.md), "The
+disc layer"), 3,386 in the docked code's home bank (below `QSL`) and 18
+after its blueprints, 5,568 in its cold bank, 1 in resident block A and 3
+in the glue, 17 in the high resident block, 78 in each program's main RAM
+part, 3,008 in bank 6, and in bank 5 43 in its low region (`&8000-&8FFF`),
+180 in its high region (`&9600-&BFBF`) and 272 after `R_LINE`'s cold part,
+`R_RESETBUF` and `r_wq`. The flight code's banks are what the frames can
 use; the docked code's are free only while docked.
 
 ## What is not in the original's order

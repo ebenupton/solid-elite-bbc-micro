@@ -86,6 +86,15 @@ def _sets():
         yield os.path.basename(f)[:-4], mem
 
 
+# Ships whose blueprint normals are not their faces': the face list takes
+# each face's outward normal from its vertices instead. The splinter's faces
+# data offset is 24 bytes out (SHIP_SPLINTER, as released), so LL9 reads its
+# four normals from the shuttle's header and vertex 0 (39 to 88 degrees off);
+# H_SPL (gfx-hooks.asm) makes LL9 show all four faces, and the frame layer
+# culls them by their winding, so these normals only order the polygons and
+# light them.
+GEOM_NORMALS = {8: 'its normals are whatever bytes follow it in its set: S_SHIP shows all its faces (SPLV)'}
+
 def _geom(s):
     return repr([(v['x'], v['y'], v['z'], v['vis'], v['faces']) for v in s['verts']] + s['edges'] +
                 [f['vis'] for f in s['faces']])
@@ -118,9 +127,33 @@ def load_ships():
                 e['f1'], e['f2'] = 0, 15
         for v, fl in PATCH.get(t, {}).items():
             s['verts'][v]['faces'] = fl
+        if t in GEOM_NORMALS:
+            _geom_normals(s, GEOM_NORMALS[t])
         out.append((t, s))
     return out
 
+
+
+
+def _geom_normals(s, why):
+    """Each face's normal from its vertices (those whose face lists name it):
+    the plane through them, pointing away from the ship's centre, of
+    magnitude 64 (rounded). For a convex ship only."""
+    V = [(v['x'], v['y'], v['z']) for v in s['verts']]
+    c = [sum(p[i] for p in V) / len(V) for i in range(3)]
+    for f, face in enumerate(s['faces']):
+        vs = [i for i, v in enumerate(s['verts']) if f in v['faces']]
+        assert len(vs) >= 3, (f, vs)
+        a, b, d = (V[i] for i in vs[:3])
+        n = [(b[1] - a[1]) * (d[2] - a[2]) - (b[2] - a[2]) * (d[1] - a[1]),
+             (b[2] - a[2]) * (d[0] - a[0]) - (b[0] - a[0]) * (d[2] - a[2]),
+             (b[0] - a[0]) * (d[1] - a[1]) - (b[1] - a[1]) * (d[0] - a[0])]
+        if sum(n[i] * (a[i] - c[i]) for i in range(3)) < 0:
+            n = [-x for x in n]
+        m = math.sqrt(sum(x * x for x in n))
+        old = face['n']
+        face['n'] = tuple(int(round(x * 64 / m)) for x in n)
+        s.setdefault('notes0', []).append(f'face {f}: normal {old} -> {face["n"]} from its vertices {vs} ({why})')
 
 # ---------------------------------------------------------------------------
 # Face reconstruction
@@ -1038,9 +1071,9 @@ def emit(ships, path):
           '\\ 0..32 (type 0 is a dummy, and a type no blueprint set has, FC_SNONE).',
           '\\',
           '\\ FC_FACETAB -> per face f, in blueprint order: n + 16 * its hue ramp (0..8',
-          '\\   in the shared pool, gfx-light6.asm), its unit normal (x, y, z: signed',
-          '\\   bytes of magnitude 61; the lighting picks the ramp entry), then n XX3',
-          '\\   offsets (4 * vertex).  Polygons are',
+          '\\   in the shared pool, gfx-light6.asm), then n XX3 offsets (4 * vertex)',
+          '\\   (its unit normal, which the lighting uses to pick the ramp entry, is',
+          '\\   in gfx-normals.asm, in the game\'s bank 4).  Polygons are',
           '\\   convex and CLOCKWISE ON SCREEN (x right, y down) when the face is',
           '\\   front-facing, for every orientation with det -1, i.e. as set by ZINF',
           '\\   and kept by TIDY (sidev = nosev x roofv).  The station (NWSPS negates',
@@ -1056,13 +1089,18 @@ def emit(ships, path):
           '\\   with XX2 = 255: cull by its winding, as its face).',
           '\\   Fins (n = 3, two-sided, zero thickness, standing on the body edge',
           '\\   between face1 and face2): k = number of face1, face2 visible; draw',
-          '\\   k = 0 before the faces (behind the body), k = 1 after the details,',
-          '\\   then k = 2 (the fin nearest the viewer) last.',
+          '\\   k = 1 after the details, then k = 2 (the fin nearest the viewer)',
+          '\\   last; not k = 0 (behind the body: LL9 does not project a vertex on',
+          '\\   the body edge that lists only face1 and face2).',
           '\\   An unlit polygon detail (the docking slots: black) has 4 * its fill',
           '\\   visibility added to its colour byte: if XX4 > that, some vertices',
           '\\   are unprojected, and f_poly2 draws only its side from vertex 0 to 1.',
           '\\ FC_MINVIS[type]: if XX4 > it, a polygon vertex may not have been',
           '\\   projected (vertex visibility distance < XX4): do not fill that ship.',
+          '\\ FC_DOTZ[type]: from z_hi = it out, the distant dot is drawn under the',
+          '\\   faces (f_sdot): nearer, the polygon vertices\' thinnest half-extent',
+          '\\   (of their bounding box, x, y or z) is 3 pixels or more (z_hi <',
+          '\\   half-extent / 3), and the faces cover the dot; at least 4.',
           '\\ FC_DOTE/FC_DOTO[type]: colour of the ship drawn as a distant dot.',
           '']
     L.append('FC_NTYPES = %d' % NTYPES)
@@ -1091,10 +1129,10 @@ def emit(ships, path):
             c = LR.hue_byte(s['fam'][f])
             nx, ny, nz = s['n63'][f]
             assert len(p) < 16
-            vals = [len(p) + 16 * c, nx & 255, ny & 255, nz & 255] + [4 * v for v in p]
+            vals = [len(p) + 16 * c] + [4 * v for v in p]
             nbytes += len(vals)
-            L.append(' EQUB %d + 16 * %d, %d AND &FF, %d AND &FF, %d AND &FF%s    \\ face %d: %s' % (
-                len(p), c, nx, ny, nz, ''.join(', %d' % (4 * v) for v in p), f, s['fam'][f]))
+            L.append(' EQUB %d + 16 * %d%s    \\ face %d: %s' % (
+                len(p), c, ''.join(', %d' % (4 * v) for v in p), f, s['fam'][f]))
         L.append('.FC_S%d_D' % t)
 
         def item(d, what):
@@ -1131,6 +1169,14 @@ def emit(ships, path):
     mv = [31] + [min([have[t]['verts'][v]['vis'] for p in have[t]['polys'] for v in p] + [31]) if t in have else 31
                  for t in range(1, NTYPES + 1)]
     eb(mv)
+    L.append('.FC_DOTZ                       \\ by type: z_hi from which the dot is drawn under the faces')
+    def dotz(s):
+        pv = {v for p in s['polys'] for v in p}
+        if not pv:
+            return 4
+        he = min((max(s['verts'][v][c] for v in pv) - min(s['verts'][v][c] for v in pv)) / 2 for c in 'xyz')
+        return max(4, int(he // 3))
+    eb([4] + [dotz(have[t]) if t in have else 4 for t in range(1, NTYPES + 1)])
     dots = [dither_bytes(BLACK)] + [dither_bytes(have[t]['dot']) if t in have else dither_bytes(BLACK)
                                     for t in range(1, NTYPES + 1)]
     L.append('.FC_DOTE                      \\ by type: distant-dot colour, even rows')
@@ -1143,11 +1189,47 @@ def emit(ships, path):
     return nbytes
 
 
+def emit_normals(ships, path):
+    """gfx-normals.asm: each face's unit normal, for the lighting's L_REC
+    (gfx-light.asm), which runs in the game's bank 4 with the quarter
+    squares: the only copy of the normals (the face lists in bank 6 have
+    none)"""
+    L = ['\\ gfx-normals.asm -- generated by faces.py (see docs/renderer.md); do not edit.',
+         '\\',
+         '\\ The ships\' faces\' unit normals, for the lighting (gfx-light.asm\'s L_REC,',
+         '\\ in the game\'s bank 4, INCLUDEd in the block L_REC of each program).',
+         '\\ FC_NORMTAB -> per type 0..%d, per face f in blueprint order (as' % NTYPES,
+         '\\   gfx-faces.asm\'s face lists): x, y, z, signed bytes, magnitude 61.',
+         '']
+    nbytes = 0
+    have = dict(ships)
+    L.append('.FC_NORMTAB')
+    L.append('%-30s\\ type 0: unused' % ' EQUW 0')
+    nbytes += 2
+    for t in range(1, NTYPES + 1):
+        if t in have:
+            L.append(('%-30s' % (' EQUW FC_S%d_N' % t)) + '\\ type %d: %s' % (t, have[t]['name']))
+        else:
+            L.append(('%-30s' % ' EQUW 0') + '\\ type %d: in no set' % t)
+        nbytes += 2
+    L.append('')
+    for t, s in ships:
+        L.append('.FC_S%d_N                     \\ %s' % (t, s['name']))
+        for f in range(len(s['faces'])):
+            nx, ny, nz = s['n63'][f]
+            L.append(' EQUB %d AND &FF, %d AND &FF, %d AND &FF    \\ face %d' % (nx, ny, nz, f))
+            nbytes += 3
+    L.append('')
+    L.append('\\ %d bytes in all' % nbytes)
+    open(path, 'w').write('\n'.join(L) + '\n')
+    return nbytes
+
+
 def report(ships):
     out = []
     for t, s in ships:
         out.append('%d %s: hues %s + %s' % ((t, s['name']) + SHIP_HUES[t]))
-        for n in s['notes']:
+        for n in s.get('notes0', []) + s['notes']:
             out.append('   ' + n)
         for n in s['notes2']:
             out.append('   ' + n)
@@ -1166,9 +1248,10 @@ def main():
     for t, s in ships:
         LR.annotate(t, s)
     n = emit(ships, os.path.join(SRC, 'gfx-faces.asm'))
+    nn = emit_normals(ships, os.path.join(SRC, 'gfx-normals.asm'))
     LR.emit_light(os.path.join(SRC, 'gfx-light6.asm'))
     print('\n'.join(report(ships)))
-    print('gfx-faces.asm: %d bytes of tables' % n)
+    print('gfx-faces.asm: %d bytes of tables, gfx-normals.asm: %d' % (n, nn))
 
 
 if __name__ == '__main__':

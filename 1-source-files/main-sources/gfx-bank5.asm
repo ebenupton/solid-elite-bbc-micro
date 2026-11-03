@@ -18,8 +18,8 @@
 \                the spans, R_DOT, R_MARKDIRTY, the per-x tables at &9C00,
 \                the 24 row runs at &A000 (with the stars' records and
 \                variables in their tails), the stars, r_lput2 and the row
-\                pages; R_LINE's cold part and R_RESETBUF in the room below
-\                the per-x tables; R_INIT
+\                pages; R_LINE's cold part, R_RESETBUF and the frame layer's
+\                query (r_wq) in the room below the per-x tables; R_INIT
 \   &BFC0        RJT, the jump table
 \
 \ The row runs are assembled for buffer 1 (SCREEN%, &4000); r_pgfix moves a
@@ -57,6 +57,7 @@
  ORG r_tfree             \ R_LINE's cold part and the private state, then
  INCLUDE "1-source-files/main-sources/gfx-raster_lcold.asm"
  INCLUDE "1-source-files/main-sources/gfx-raster_reset.asm"
+ INCLUDE "1-source-files/main-sources/gfx-raster_wq.asm"
 .R_GAPEND
  ASSERT R_GAPEND <= r_tables
 
@@ -83,6 +84,6 @@
  JMP R_DRAINQ           \ RJT + 39
 .RJT_END
 
- PRINT "Bank 5 (rasteriser): &8000-", ~R_LOEND-1, " (free ", &9000-R_LOEND, "), &9600-", ~R_HIEND-1, " (free ", RJT-R_HIEND, "), R_LINE's cold part and R_RESETBUF to ", ~R_GAPEND-1, " (free ", r_tables-R_GAPEND, "), the jump table &", ~RJT, "-", ~RJT_END-1
+ PRINT "Bank 5 (rasteriser): &8000-", ~R_LOEND-1, " (free ", &9000-R_LOEND, "), &9600-", ~R_HIEND-1, " (free ", RJT-R_HIEND, "), R_LINE's cold part, R_RESETBUF and r_wq to ", ~R_GAPEND-1, " (free ", r_tables-R_GAPEND, "), the jump table &", ~RJT, "-", ~RJT_END-1
 
  SAVE "3-assembled-output/BANK5.bin", &8000, &C000, &8000

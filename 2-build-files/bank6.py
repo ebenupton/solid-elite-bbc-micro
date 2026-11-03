@@ -6,14 +6,16 @@
 Port (Model B): run after the flight program is assembled. The frame layer
 reads the game's variables where the flight program has them (its zero page
 and main RAM workspace, the same in the docked program, which this checks)
-and calls bank R through the trampolines in main RAM, which page the bank
-whose number the loader keeps in BANK5 (likewise GCALL and BANK6): so this
-writes those addresses, and the game's constants it uses, into
+and calls bank 5 through the trampolines in main RAM, which page the bank
+whose number the loader keeps in BANK5 (likewise GCALL and BANK6), and the
+game's code through the far calls (farC for the disc layer in bank 7, farH
+for the entries at S% + 16 and S% + 19 in bank 4): so this writes those
+addresses, and the game's constants it uses, into
 3-assembled-output/bank6-game.asm, from flight-symbols.txt,
 docked-symbols.txt, loader-symbols.txt and elite-source-flight.asm, then
 assembles gfx-bank6.asm. Writes 3-assembled-output/BANK6.bin (16K, at &8000),
 GLUE.bin (the main RAM glue, at GLUE%) and bank6-symbols.txt, prints bank
-F's usage and appends the assembly's report to compile.txt.
+6's usage and appends the assembly's report to compile.txt.
 """
 import os, re, subprocess, sys
 
@@ -24,10 +26,11 @@ MS = '1-source-files/main-sources'
 OUT = '3-assembled-output'
 
 # the game's variables the frame layer reads (all in main RAM)
-VARS = ['INWK', 'XX2', 'XX3', 'XX4', 'K', 'K3', 'K4', 'K5', 'K6', 'TYPE', 'X1', 'Y1', 'X2', 'Y2',
-        'ZZ', 'QQ11', 'FRIN', 'K%', 'ALPHA', 'BETA', 'LASX', 'LASY', 'XC', 'YC', 'VIEW']
+VARS = ['INWK', 'XX2', 'XX3', 'XX4', 'XX16', 'XX0', 'XX19', 'XX20', 'INF', 'XSAV', 'RAND', 'Q', 'U',
+        'TGT', 'CNT', 'V', 'K', 'K3', 'K4', 'K5', 'K6', 'TYPE', 'X1', 'Y1', 'X2', 'Y2', 'ZZ', 'QQ11',
+        'FRIN', 'K%', 'LASX', 'LASY', 'XC', 'YC', 'VIEW']
 # and its constants
-CONSTS = ['NOST', 'NI%', 'SST', 'PLT']
+CONSTS = ['NOST', 'NOSH', 'NI%', 'SST', 'PLT', 'X', 'Y']
 
 
 def symbols(name):
@@ -44,7 +47,7 @@ for v in VARS:
     L.append('%-8s = &%04X' % (v, a))
 for c in ('DL_FRAME',):   # the disc layer, in the flight code's cold bank
     L.append('%-8s = &%04X' % (c, flight[c]))
-for b in ('BANK5', 'BANK6', 'farC'):
+for b in ('BANK5', 'BANK6', 'farC', 'farH'):
     L.append('%-8s = &%04X' % (b, loader[b]))
 src = open(os.path.join(MS, 'elite-source-flight.asm'), encoding='latin-1').read()
 for c in CONSTS:

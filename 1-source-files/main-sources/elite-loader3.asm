@@ -782,8 +782,8 @@ ENDIF
  BPL rhl
 
                         \ Port: load the renderer's two banks, the rasteriser
-                        \ R.BANK into bank R and the frame layer F.BANK into
-                        \ bank F, each to STAGE% and then into its bank, as
+                        \ R.BANK into bank 5 and the frame layer F.BANK into
+                        \ bank 6, each to STAGE% and then into its bank, as
                         \ PCLI loads a program's images (before the first disc
                         \ command through PCLI, so that DFS's workspace at
                         \ &1000 is still DFS's own)
@@ -797,13 +797,13 @@ ENDIF
  DEX
  BPL lbk1
 
- JSR pload              \ Load R.BANK to STAGE% and copy it into bank R
+ JSR pload              \ Load R.BANK to STAGE% and copy it into bank 5
  LDA BANK5
  LDX #64
  LDY #&80
  JSR bcopy
 
- LDA #'F'               \ Load F.BANK to STAGE% and copy it into bank F
+ LDA #'F'               \ Load F.BANK to STAGE% and copy it into bank 6
  STA pcbuf+2
  JSR pload
  LDA BANK6

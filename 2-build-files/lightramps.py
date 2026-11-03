@@ -310,7 +310,7 @@ def emit_light(path6):
             '\\   m << 4 OR m: row byte = H[a] EOR H[c] EOR HL[b], H = HL AND &F0.',
             '\\ LT_FIX[k] (with the last ramp): the unlit colours (black, cyan, magenta, yellow) as',
             '\\   MODE 1 bytes.',
-            '\\ (The unit face normals, magnitude %d, are in gfx-faces.asm\'s face lists.)' % NSC,
+            '\\ (The unit face normals, magnitude %d, are in gfx-normals.asm, in the game\'s bank 4.)' % NSC,
             '']
 
     def eb(L, vals, per=16):

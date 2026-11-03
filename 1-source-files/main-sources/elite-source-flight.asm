@@ -1982,6 +1982,15 @@
                         \ program, and copies the part from there to PROGM%
                         \ (elite-layout-*.asm)
 
+ ASSERT P% = S% + 16    \ Port: the game code that the renderer's frame layer
+                        \ runs (bank 6, through the far call farH), at the same
+ JMP LL42F              \ place in both programs: LL9's part 6 on, for a ship
+                        \ the frame is drawing (f_proj)
+
+ JMP PTCLR              \ Port: PTCLS's drawing of
+                        \ an explosion cloud, which the frame runs (bank 6's
+                        \ f_dots, through the far call farH)
+
  PRINT "S% workspace (flight) from ", ~S%, "to ", ~P%-1, "inclusive"
 
 \ ******************************************************************************
@@ -5849,7 +5858,7 @@ ENDIF
  JSR RECM               \ Port: in record mode, record the point for the
  BNE bld                \ renderer (K6, K5+2), which joins it to the curve's
  LDA TYPE               \ last (a crater's for the disc layer, DL_POINT, the
- CMP #128               \ meridians' and equator's for bank F), and return
+ CMP #128               \ meridians' and equator's for bank 6), and return
  BEQ bld1               \ as BLINE does, with FLAG = 0 and CNT stepped on
  JSR dlpoint            \ (the clipping and the ball line heap are only ever
  JMP bld2               \ the drawing's)
@@ -7018,6 +7027,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Maths (Geometry)
 \    Summary: Add an orientation vector coordinate to an INWK coordinate
+\       Area: cold
 \  Deep dive: The space station safe zone
 \
 \ ------------------------------------------------------------------------------
@@ -9533,10 +9543,8 @@ ENDIF
 
  JSR MVEIT              \ Call MVEIT to move the Cobra in space
 
- JSR LL9                \ Call LL9 to draw the Cobra on-screen
-
- LDX #FG_FRAME          \ Port: and draw the frame
- JSR GCALL
+ JSR LL9F               \ Call LL9 to draw the Cobra on-screen, then render
+                        \ the frame (Port: LL9F)
 
  DEC INWK+32            \ Decrement the counter in byte #32
 
@@ -13784,6 +13792,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (A ?) = (-X * A + (S R)) / 96
+\       Area: cold
 \  Deep dive: Shift-and-subtract division
 \
 \ ------------------------------------------------------------------------------
@@ -14525,6 +14534,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Geometry)
 \    Summary: Calculate A = arctan(P / Q)
+\       Area: cold
 \  Deep dive: The sine, cosine and arctan tables
 \
 \ ------------------------------------------------------------------------------
@@ -14663,6 +14673,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw the laser lines for when we fire our lasers
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -19461,8 +19472,9 @@ ENDMACRO
  BEQ P%+5               \ explosion cloud to remove, so skip the following
                         \ instruction
 
- JSR PTCLSE             \ Call PTCLS to remove the existing cloud by drawing it
-                        \ again (Port: through PTCLSE, which records nothing)
+ JSR H_PTCLSE           \ Call PTCLS to remove the existing cloud by drawing it
+                        \ again (Port: through H_PTCLSE: in record mode, only
+                        \ what the game keeps of PTCLS)
 
  LDA INWK+6             \ Set T = z_lo
  STA T
@@ -19581,6 +19593,12 @@ ENDMACRO
  STA INWK+31
 
 .PTCLS
+
+ JSR H_PTCLS            \ Port: in record mode, note the cloud for the frame,
+                        \ which draws it, and do only what the game keeps of
+                        \ PTCLS (H_PTCLS)
+
+.PTCLR
 
                         \ This part of the routine actually draws the explosion
                         \ cloud
@@ -19735,9 +19753,9 @@ ENDMACRO
 
  LDA Y1                 \ Set A = our random y-coordinate within the cloud
 
- JSR HDOT               \ Draw a point at screen coordinate (X, A) with the
-                        \ point size determined by the distance in ZZ (Port:
-                        \ in record mode, record it, HDOT)
+ JSR H_DOT              \ Draw a point at screen coordinate (X, A) with the
+                        \ distance in ZZ (Port: in record mode, the frame's
+                        \ particle, H_DOT)
 
 .EX4
 
@@ -22281,7 +22299,7 @@ ENDMACRO
  JSR RECM               \ Port: in record mode, start a new curve for the
  BNE pls22c             \ renderer (BLINE records its points): a crater's
  LDA TYPE               \ for the disc layer (DL_CURVE), the meridians' and
- CMP #128               \ equator's for bank F
+ CMP #128               \ equator's for bank 6
  BEQ pls22b
  JSR dlcurve
  JMP pls22c
@@ -26331,10 +26349,30 @@ ENDIF
 
 \ ******************************************************************************
 \
+\       Name: DPLT
+\       Type: Subroutine
+\   Category: Start and end
+\    Summary: Port: DEATH's read of the blueprint table, in the home bank
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: DEATH is in the cold bank, for room, and the blueprint table XX21 is
+\ in the home bank: this does DEATH's LDA XX21-1+2*PLT there (with its flags).
+\
+\ ******************************************************************************
+
+.DPLT
+
+ LDA XX21-1+2*PLT
+ RTS
+
+\ ******************************************************************************
+\
 \       Name: DEATH
 \       Type: Subroutine
 \   Category: Start and end
 \    Summary: Display the death screen
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -26418,7 +26456,7 @@ ENDIF
 
  LDX #OIL               \ Set X to #OIL, the ship type for a cargo canister
 
- LDA XX21-1+2*PLT       \ Fetch the byte from location XX21 - 1 + 2 * PLT, which
+ JSR DPLT               \ Fetch the byte from location XX21 - 1 + 2 * PLT, which
                         \ equates to XX21 + 7 (the high byte of the address of
                         \ SHIP_PLATE), which seems a bit odd. It might make more
                         \ sense to do LDA (XX21-2+2*PLT) as this would fetch the
@@ -27076,6 +27114,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Maths (Geometry)
 \    Summary: Normalise the three-coordinate vector in XX15
+\       Area: cold
 \  Deep dive: Tidying orthonormal vectors
 \             Orientation vectors
 \
@@ -27470,6 +27509,11 @@ ENDIF
 
  LSR A                  \ Set EV, the extra vessels spawning counter, to 0
  STA EV                 \ (the LSR produces a 0 as A was previously 1)
+
+ LDA #%10000000         \ Port: tell the renderer that LOOK1's TT66 is this
+ STA GWARP              \ jump's, so it keeps the double-buffered space view on
+                        \ show instead of blanking it (gfx-frame_cold.asm's
+                        \ F_DIRECT)
 
  LDX VIEW               \ Set X to the current view (front, rear, left or right)
  JMP LOOK1              \ and jump to LOOK1 to initialise that view, returning
@@ -28983,6 +29027,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Geometry)
 \    Summary: Orthonormalise the orientation vectors for a ship
+\       Area: cold
 \  Deep dive: Tidying orthonormal vectors
 \             Orientation vectors
 \
@@ -29152,6 +29197,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate A = A / Q
+\       Area: cold
 \  Deep dive: Shift-and-subtract division
 \
 \ ------------------------------------------------------------------------------
@@ -29254,6 +29300,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate -(nosev_1 * roofv_1 + nosev_2 * roofv_2) / nosev_3
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -29329,6 +29376,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (P+1 A) = (A P) / Q
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -29465,17 +29513,12 @@ ENDMACRO
  ORA XX1+31             \ have now drawn something on-screen for this ship
  STA XX1+31
 
- JSR RECM               \ Port: in record mode, record the dot for the
- BNE P%+7               \ renderer (K3, K4, TYPE); LL155 then draws nothing
- LDX #FG_SHPPT
- JSR GCALL
+ LDX #FG_SHPPT          \ Port: record the dot for the renderer (K3, K4, TYPE)
+ JSR GCALL              \ (SHPPT runs only in record mode, in a space view)
 
- LDA #8                 \ Set A = 8 so when we call LL18+2 next, byte #0 of the
-                        \ heap gets set to 8, for the 8 bytes we just stuck on
-                        \ the heap
-
- JMP LL81+2             \ Call LL81+2 to draw the ship's dot, returning from the
-                        \ subroutine using a tail call
+ JMP LL155              \ Port: return as LL155 does (C set): the ship's dot is
+                        \ not drawn directly, so LL81+2's setting of the heap's
+                        \ byte #0 and the drawing of the heap are gone
 
  PLA                    \ Pull the return address from the stack, so the RTS
  PLA                    \ below actually returns from the subroutine that called
@@ -30041,7 +30084,7 @@ ENDMACRO
 \ ------------------------------------------------------------------------------
 \
 \ Port: in a space view (QQ11 = 0) the game's drawing is recorded for the
-\ filled renderer (bank F, docs/renderer.md) instead of drawn, unless GFORCE
+\ filled renderer (bank 6, docs/renderer.md) instead of drawn, unless GFORCE
 \ is set (the launch and hyperspace rings, which are drawn directly). RECM
 \ returns A = QQ11 OR GFORCE: Z set in record mode. X and Y are kept.
 \
@@ -30072,25 +30115,59 @@ ENDMACRO
 \
 \ Port: calls M%, then the renderer's F_FRAME, which draws what the iteration
 \ recorded into the buffer not on show and asks the interrupt to show it (in
-\ a view that is not a space view it only empties the records). A, X, Y and
-\ the flags are kept as M% leaves them (the main loop's DORND reads C).
+\ a view that is not a space view it only empties the records). In a space
+\ view L_SUN first works out the light for the next iteration's ships
+\ (gfx-light.asm, in this bank, with the quarter squares). A, X, Y and the
+\ flags are kept as M% leaves them (the main loop's DORND reads C).
+\
+\ ------------------------------------------------------------------------------
+\
+\ Other entry points:
+\
+\   hframe              The frame alone (LL9F), keeping A, X, Y and the flags
 \
 \ ******************************************************************************
 
 .MFRAME
 
  JSR M%
+
+.hframe
+
  PHP
  PHA
  TXA
  PHA
- LDX #FG_FRAME          \ (GCALL keeps Y)
+ TYA
+ PHA
+ LDA QQ11               \ In a space view, the light for the next iteration's
+ BNE P%+5               \ ships first
+ JSR L_SUN
+ LDX #FG_FRAME
  JSR GCALL
+ PLA
+ TAY
  PLA
  TAX
  PLA
  PLP
  RTS
+
+\ ******************************************************************************
+\
+\       Name: LL9F
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: draw a ship with LL9, then the frame (the escape pod)
+\
+\ ******************************************************************************
+
+.LL9F
+
+ JSR LL9                \ Draw the ship (recorded for the renderer when QQ11 = 0)
+
+ JMP hframe             \ Render the frame, returning from the subroutine using
+                        \ a tail call
 
 \ ******************************************************************************
 \
@@ -30132,67 +30209,219 @@ ENDMACRO
 
 \ ******************************************************************************
 \
-\       Name: PTCLSE
+\       Name: H_PTCLS
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Port: run PTCLS to remove an explosion cloud, recording nothing
+\    Summary: Port: the explosion cloud in record mode: noted for the frame,
+\             which draws it from the ship line heap
 \
 \ ------------------------------------------------------------------------------
 \
-\ Port: DOEXP removes the old cloud by drawing it again; PTCLS still runs
-\ (for its random numbers), with GDRAWON = 0, so that HDOT records none of
-\ its particles.
+\ Port: called at the start of PTCLS (DOEXP falls into it to draw the
+\ cloud). In record mode the cloud is noted for the frame and what the game
+\ keeps of PTCLS is done (F_CLOUD with C set, gfx-frame.asm), returning from
+\ PTCLS; the frame draws the cloud with PTCLS itself from the ship line heap
+\ (f_dots, entering at PTCLR, after this call, through S% + 19). Outside
+\ record mode PTCLS draws the cloud itself.
 \
 \ ******************************************************************************
 
-.PTCLSE
+.H_PTCLS
 
- LDA #0
- STA GDRAWON
- JSR PTCLS
- LDA #&FF
- STA GDRAWON
+ JSR RECM
+ BNE hpt9
+ SEC
+ LDX #FG_CLOUD
+ JSR GCALL
+ PLA
+ PLA
+
+.hpt9
+
  RTS
 
 \ ******************************************************************************
 \
-\       Name: HDOT
+\       Name: H_PTCLSE
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Port: PIXEL for an explosion particle: in record mode, record it
+\    Summary: Port: DOEXP removing the old explosion cloud
 \
 \ ------------------------------------------------------------------------------
 \
-\ Port: PTCLS's particles: X = x, A = y, ZZ the distance. In record mode the
-\ dot is recorded for the renderer (F_DOT, unless GDRAWON is 0) and Y kept;
-\ otherwise PIXEL draws it.
+\ Port: in record mode nothing is on the screen to remove: only what the
+\ game keeps of PTCLS is done (F_CLOUD with C clear). Outside record mode
+\ PTCLS draws the cloud again, which removes it.
 \
 \ ******************************************************************************
 
-.HDOT
+.H_PTCLSE
+
+ JSR RECM
+ BNE hpe9
+ CLC
+ LDX #FG_CLOUD
+ JMP GCALL
+
+.hpe9
+
+ JMP PTCLR
+
+\ ******************************************************************************
+\
+\       Name: H_DOT
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: PIXEL for an explosion particle: in record mode, the
+\             frame's
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: PTCLS's particles: X = x, A = y (as in Y1), ZZ the distance. In
+\ record mode only the frame's PTCLS reaches here (f_dots: the game's PTCLS
+\ returns at once, H_PTCLS), whose particles the frame plots (F_PDOT, which
+\ keeps Y, PTCLS's count); otherwise PIXEL draws the particle.
+\
+\ ******************************************************************************
+
+.H_DOT
 
  PHA
  JSR RECM
  BNE hdt8
- LDA GDRAWON
- BEQ hdt9
- STY T1
- TXA
- TAY
  PLA
- LDX #FG_DOT
- JSR GCALL
- LDY T1
- RTS
+ TXA
+ LDX #FG_PDOT
+ JMP GCALL
 
 .hdt8
 
  PLA
  JMP PIXEL
 
-.hdt9
+\ ******************************************************************************
+\
+\       Name: LL42F
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: LL9's part 6 on, for the renderer's frame
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the frame layer (bank 6's f_proj) projects each ship as it draws it:
+\ it sets up what part 6 on reads from the ship's record (INWK 0-8, XX16,
+\ XX0, XX4, the faces' levels as XX2) and calls this through S% + 16 (the
+\ far call farH), with GPRJ set so that H_EE31 returns at once.
+\
+\ ******************************************************************************
 
+.LL42F
+
+ DEC GPRJ
+ JSR LL42P
+ INC GPRJ
+ RTS
+
+.GPRJ
+
+ EQUB 0                 \ Bit 7: the frame is running part 6 on (H_EE31)
+
+\ ******************************************************************************
+\
+\       Name: H_LL42
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: record the ship as LL9's part 6 starts
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: LL9's part 6 (LL42, which calls this first) is about to work out
+\ which vertices are visible and project them. A ship that is not exploding
+\ is recorded here (S_SHIP), before its vertices are projected: the frame
+\ projects them (LL42F, from bank 6's f_proj, when it draws the ship, after
+\ those further away), so LL9 goes on to H_EE31 at once, or, if the ship is
+\ firing at us, after part 6 has projected just the gun vertex for the beam
+\ (F_GUN sets part 6's loop on that one vertex, LL48). Part 6 on changes
+\ nothing the game reads but XX3, which only DOEXP (an exploding ship: its
+\ cloud's vertices, all projected) and H_EE31 (the beam: the gun vertex)
+\ read.
+\
+\ ******************************************************************************
+
+.H_LL42
+
+ LDA XX1+31             \ Exploding: DOEXP takes the vertices
+ AND #%00100000
+ BNE hll9
+
+ LDY #12                \ GNF = the faces, byte #12 / 4
+ LDA (XX0),Y
+ LSR A
+ LSR A
+ STA GNF
+
+ JSR S_SHIP             \ Record it, lit, with its handedness (and the
+                        \ splinter's faces all shown: SPLV)
+
+ PLA                    \ (LL9 goes on from here, not LL42)
  PLA
+
+ BIT XX1+31             \ Not firing at us: on to H_EE31 (as LL72)
+ BVC H_EE31
+
+ LDY #6                 \ Firing: its gun vertex (byte #6: 4 * its number)
+ LDA (XX0),Y            \ alone, through part 6's loop (F_GUN: LL42P's matrix
+ LDX #FG_GUN            \ and the loop's set-up for it, returning Y = its
+ JSR GCALL              \ offset in the vertex data)
+ JMP LL48
+
+.hll9
+
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: H_EE31
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: return from LL9 as parts 9 to 12 would, with the ship's
+\             laser beam if it is firing at us
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: LL9 is done (part 9, EE31, which jumps here; at once from H_LL42 for
+\ a ship it has recorded and not projected): the ship's laser beam, if it is
+\ firing at us (HEE31), and return from LL9. What LL9's parts 9 to 12 left
+\ that the game reads is set as they would: bit 3 of byte #31 (on screen),
+\ and bit 6 cleared if it fired; and it returns as LL155 does (C set). The
+\ ship line heap is not written (only the explosion clouds use it, DOEXP).
+\ Run by the frame (LL42F, GPRJ set), it returns at once.
+\
+\ ******************************************************************************
+
+.H_EE31
+
+ BIT GPRJ               \ Run by the frame: return at once
+ BMI hee9
+
+ LDA #%00001000         \ The ship is now on screen (as EE31)
+ ORA XX1+31
+ STA XX1+31
+
+ BIT XX1+31             \ Firing its lasers at us? (as EE31): the beam, from
+ BVC hee8               \ the gun vertex, byte #6
+ LDY #6
+ LDA (XX0),Y
+ STA T
+ JSR HEE31
+
+.hee8
+
+ SEC                    \ Return with C set, as LL155 does after drawing the
+                        \ ship's lines
+
+.hee9
+
  RTS
 
 \ ******************************************************************************
@@ -30200,72 +30429,31 @@ ENDMACRO
 \       Name: HEE31
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Port: record the ship that LL9 is drawing, and its laser beam
+\    Summary: Port: record the laser beam of a ship firing at us
 \       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
-\ Port: LL9's part 9 (EE31) jumps here in record mode, with GNF = the faces,
-\ GNV = byte #8 of the blueprint (6 times the vertices) and T = byte #6 (4
-\ times the laser's vertex). The ship is recorded for the renderer, lit from
-\ its orientation (F_SHIP), with GTYPE = TYPE, or 32 for the dodecahedron
-\ station (in the station's slot, with 24 vertices), and if it is firing at
-\ us, its beam, clipped as EE31 clips it (F_LINE). The game's state is left
-\ as EE31 leaves it: bit 3 of byte #31 set (the ship is on the screen) and
-\ bit 6 clear if it fired. The ship line heap is not built: only LL155 reads
-\ it, and in record mode LL155 draws nothing.
+\ Port: from H_EE31, with T = byte #6 of the blueprint (4 times the laser's
+\ vertex): byte #31's bit 6 cleared, as EE31 clears it, and the beam
+\ recorded for the renderer (F_LINE), clipped as EE31 clips it.
 \
 \ ******************************************************************************
 
 .HEE31
 
- LDA #%00001000         \ Set bit 3 of the ship's byte #31, as EE31 does: the
- ORA XX1+31             \ ship is on the screen
- STA XX1+31
-
- LDA GNV                \ GNV = byte #8 / 6, the number of vertices
- LDX #0
-
-.hee1
-
- CMP #6
- BCC hee2
- SBC #6
- INX
- BNE hee1
-
-.hee2
-
- STX GNV
-
- LDA TYPE               \ GTYPE = TYPE, or 32 for a station with 24 vertices
- CMP #SST               \ (the dodecahedron)
- BNE hee3
- CPX #24
- BNE hee3
- LDA #32
-
-.hee3
-
- STA GTYPE
-
- LDX #FG_SHIP           \ Record the ship
- JSR GCALL
-
- BIT XX1+31             \ If the ship is firing its laser at us, clear bit 6 of
- BVC hee9               \ its byte #31 and record its beam, clipped as EE31
- LDA XX1+31             \ clips it (F_LINE, in the enemy lasers' colour)
+ LDA XX1+31
  AND #%10111111
  STA XX1+31
  LDY T
  LDX XX3,Y
  STX XX15
  INX
- BEQ hee9
+ BEQ hb9
  LDX XX3+1,Y
  STX XX15+1
  INX
- BEQ hee9
+ BEQ hb9
  LDX XX3+2,Y
  STX XX15+2
  LDX XX3+3,Y
@@ -30280,16 +30468,292 @@ ENDMACRO
  BPL P%+4
  DEC XX15+4
  JSR LL145
- BCS hee9
- LDA #FC_ELASER
- STA GLCOL
+ BCS hb9
  LDX #FG_LINE
+ JMP GCALL
+
+.hb9
+
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: S_SHIP
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: record the ship for the renderer, lit, with its handedness
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: called from H_LL42, at the start of LL9's part 6, to record the ship
+\ (F_SHIP). The splinter's faces are all shown first (SPLV). If the ship has
+\ a face that LL9 showed without testing its normal (XX2 = 255: a face beyond
+\ its visibility distance, or the splinter's), the renderer culls it by its
+\ winding on screen, and the face lists' windings are those of ZINF's
+\ handedness (sidev = nosev x roofv): first set GHAND to the ship's
+\ handedness (SHAND), as TIDY gives a ship the other one (sidev = roofv x
+\ nosev). GTYPE is the ship's type, or 32 for the dodecahedron station (a
+\ type SST with 24 vertices, whose faces are type 32's, gfx-faces.asm); the
+\ alloy plate's one face, which has no normal and which LL9 never marks
+\ visible, is filled from both sides (no winding cull). Then L_REC lights
+\ the faces (gfx-light.asm: their levels in XX2), the ship is recorded
+\ (F_SHIP), and for the splinter the XX2 that part 5 left is put back
+\ (SPLV).
+\
+\ ******************************************************************************
+
+.S_SHIP
+
+ LDA TYPE               \ The splinter's faces are shown, and put back once
+ CMP #SPL               \ the renderer has them (SPLV, which returns A = 255:
+ BNE ssh0               \ faces to cull by their winding)
+ JSR SPLV
+ STA GFAR
+
+.ssh0
+
+ LDA GFAR               \ A face to cull by its winding: GHAND = the ship's
+ BEQ ssh1               \ handedness
+ LDA #0
+ STA GFAR
+ JSR SHAND
+ STA GHAND
+
+.ssh1
+
+ LDX TYPE               \ GTYPE = TYPE, or 32 for a station with 24 vertices
+ CPX #SST
+ BNE ssh2
+ LDY #8
+ LDA (XX0),Y
+ CMP #24 * 6
+ BNE ssh2
+ LDX #32
+
+.ssh2
+
+ STX GTYPE
+ CPX #PLT               \ The alloy plate: its face shown, from both sides
+ BNE ssh3
+ LDA #1
+ STA XX2
+
+.ssh3
+
+ JSR L_REC              \ The faces' levels into XX2 (gfx-light.asm)
+
+ LDX #FG_SHIP           \ Record the ship
  JSR GCALL
 
-.hee9
+ LDA TYPE               \ The splinter: put back part 5's XX2 for its faces
+ CMP #SPL               \ (SPLR)
+ BNE ssh9
+ JMP SPLR
 
- SEC                    \ Return with C set, as LL155 does after drawing the
- RTS                    \ ship's lines
+.ssh9
+
+ RTS
+
+.GFAR
+
+ EQUB 0                 \ Non-zero: LL9 has shown a face of the ship it is
+                        \ drawing without testing its normal (part 5)
+
+\ ******************************************************************************
+\
+\       Name: SPLV
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: show all the splinter's faces for LL9's vertices and the
+\             renderer
+\       Area: cold
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: called by S_SHIP, as LL9's part 6 starts, for the splinter. Its
+\ blueprint's face normals are not its own (faces.py), so part 5 tested its
+\ faces against the wrong normals, and part 6 would skip each vertex whose
+\ faces those hid: the renderer would be given faces it should not show,
+\ with stale vertices, and not the faces it should. Instead all four faces
+\ are shown (XX2 = 255, as for a face too far away to test) in the ship's
+\ record, so the frame's part 6 projects all four vertices and the renderer
+\ culls the faces by their winding (gfx-faces.asm holds the splinter's own
+\ normals and windings). Part 5's XX2 is kept in GSPLV, and S_SHIP puts it
+\ back (SPLR) once the renderer has its copy: the game's state is as the
+\ original leaves it. Returns A = 255.
+\
+\ ******************************************************************************
+
+.SPLV
+
+ LDX #3                 \ Keep XX2 for the four faces in GSPLV, and show them
+
+.spv1
+
+ LDA XX2,X
+ STA GSPLV,X
+ LDA #255
+ STA XX2,X
+ DEX
+ BPL spv1
+
+ RTS                    \ (A = 255: faces to cull by their winding, GFAR)
+
+.SPLR
+
+ LDX #3                 \ Put back part 5's XX2 for the splinter's faces
+
+.spr1
+
+ LDA GSPLV,X
+ STA XX2,X
+ DEX
+ BPL spr1
+
+ RTS
+
+.GSPLV
+
+ SKIP 4                 \ Part 5's XX2 for the splinter's faces
+
+
+\ ******************************************************************************
+\
+\       Name: SHAND
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: the handedness of the ship's orientation vectors
+\       Area: cold
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: return A = %01000000 if sidev = nosev x roofv (as ZINF sets them up),
+\ or %01100000 if sidev = roofv x nosev (as TIDY leaves them), for the ship
+\ in INWK: S_SHIP sets GHAND (gfx-light.asm) to it. It is in the cold bank,
+\ for room: most ships' faces are all tested by their normals, so it runs
+\ only for a few kinds of ship, and only when they are far away. The lighting puts GHAND into a face's level
+\ when the face is culled by its winding, and bit 5 reverses the winding
+\ test (f_winding, gfx-frame.asm).
+\
+\ The vectors are orthonormal, so sidev is one cross product or the other:
+\ the sign of the component i of sidev that is largest (at least 1 / sqrt 3)
+\ is compared with that of (nosev x roofv)_i = n_j r_k - n_k r_j, worked out
+\ from the high bytes (96 = 1): its two products are at most 36 / 256, and
+\ the difference at least 20, well clear of FMLTU's rounding.
+\
+\ ******************************************************************************
+
+.shdj
+
+ EQUB 2, 0, 4, 0, 0     \ For i = x, y, z (X = 0, 2, 4): the offset of j (y, z, x)
+
+.shdk
+
+ EQUB 4, 0, 0, 0, 2     \ and of k (z, x, y)
+
+.SHAND
+
+ LDX #0                 \ Set X = 2 * i for the largest |sidev_i|
+ LDA INWK+22
+ AND #%01111111
+ STA T
+ LDA INWK+24
+ AND #%01111111
+ CMP T
+ BCC shd1
+ STA T
+ LDX #2
+
+.shd1
+
+ LDA INWK+26
+ AND #%01111111
+ CMP T
+ BCC shd2
+ LDX #4
+
+.shd2
+
+ LDY shdj,X             \ GSHT = n_j * r_k
+ LDA INWK+10,Y
+ STA GSHT+1
+ LDY shdk,X
+ LDA INWK+16,Y
+ JSR shdm
+ STA GSHT
+
+ LDY shdk,X             \ A = n_k * r_j
+ LDA INWK+10,Y
+ STA GSHT+1
+ LDY shdj,X
+ LDA INWK+16,Y
+ JSR shdm
+
+ EOR #&FF               \ A = GSHT - A = (nosev x roofv)_i
+ SEC
+ ADC GSHT
+
+ EOR INWK+22,X          \ Bit 7 set if its sign is not sidev_i's
+ AND #%10000000
+
+ LSR A                  \ A = %01000000, or %01100000 if bit 7 was set
+ LSR A
+ ORA #%01000000
+
+ RTS
+
+.shdm
+
+                        \ A = GSHT+1 * A / 256 as a signed byte, for the
+                        \ sign-magnitude high bytes A and GSHT+1 (X is kept)
+
+ STA GSHT+2
+ EOR GSHT+1             \ Bit 7 of GSHT+3 = the product's sign
+ STA GSHT+3
+ LDA GSHT+1
+ AND #%01111111
+ STA Q
+ LDA GSHT+2
+ AND #%01111111
+ JSR FMLTU              \ A = |GSHT+1| * |A| / 256
+ BIT GSHT+3
+ BPL shm1
+ EOR #&FF
+ CLC
+ ADC #1
+
+.shm1
+
+ RTS
+
+.GSHT
+
+ SKIP 4                 \ SHAND's workspace
+
+\ ******************************************************************************
+\
+\       Name: L_REC
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: the renderer's lighting: the light (L_SUN) and each face's
+\             level (L_REC), and the faces' unit normals
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the filled renderer's lighting (gfx-light.asm, docs/renderer.md,
+\ "Lighting"), in this bank as it multiplies with the quarter squares (QSL,
+\ QSH): L_SUN keeps the light for the next iteration's ships (from MFRAME),
+\ and L_REC turns each face's visibility in XX2 into its level for the ship
+\ being recorded, from the faces' unit normals (FC_NORMTAB, gfx-normals.asm,
+\ which faces.py generates).
+\
+\ ******************************************************************************
+
+LIGHT_SUN = TRUE
+
+ INCLUDE "1-source-files/main-sources/gfx-light.asm"
+
+ INCLUDE "1-source-files/main-sources/gfx-normals.asm"
 
 \ ******************************************************************************
 \
@@ -30930,6 +31394,9 @@ ENDMACRO
  LDA #255               \ Set the X-th byte of XX2 to 255 to denote that this
  STA XX2,X              \ face is visible
 
+ STA GFAR               \ Port: the renderer culls such a face by its winding,
+                        \ for which S_SHIP works out the ship's handedness
+
  TYA                    \ Set Y = Y + 4 to point to the next face
  ADC #4
  TAY
@@ -31240,6 +31707,13 @@ ENDMACRO
 \ ******************************************************************************
 
 .LL42
+
+ JSR H_LL42             \ Port: record the ship for the renderer, which runs
+                        \ the rest of LL9 from here (LL42P) when it draws the
+                        \ ship; LL9 goes on only for a ship that is exploding
+                        \ or firing at us (H_LL42)
+
+.LL42P
 
                         \ The first task is to set up the inverse matrix, ready
                         \ for us to send to the dot product routine at LL51.
@@ -32126,21 +32600,14 @@ ENDMACRO
 
 .EE31
 
- JSR RECM               \ Port: in record mode, record the ship (and its laser
- BNE ee31d              \ beam) for the renderer and return from LL9 (HEE31,
-                        \ in the cold bank, given what it cannot read from the
- LDY #12                \ blueprint: GNF = byte #12 / 4, GNV = byte #8, T =
- LDA (XX0),Y            \ byte #6); the ship line heap is not built, as
- LSR A                  \ nothing draws from it
- LSR A
- STA GNF
- LDY #8
- LDA (XX0),Y
- STA GNV
- LDY #6
- LDA (XX0),Y
- STA T
- JMP HEE31
+ JMP H_EE31             \ Port: return from LL9 as parts 9 to 12 would, with
+                        \ the ship's laser beam if it is firing at us (H_EE31):
+                        \ every LL9 records its ship for the renderer (H_LL42),
+                        \ so the rest of this part, which drew the beam and put
+                        \ it on the ship line heap, and parts 10 to 12 are not
+                        \ assembled (below)
+
+\ ******************************************************************************
 
 .ee31d
 
@@ -32290,6 +32757,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the visibility of each of the ship's edges
+\       Area: none
 \  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
@@ -32449,6 +32917,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Clip line: Work out which end-points are on-screen, if any
+\       Area: cold
 \  Deep dive: Line-clipping
 \             Extended screen coordinates
 \
@@ -32984,6 +33453,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Add all visible edges to the ship line heap
+\       Area: none
 \  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
@@ -33084,10 +33554,26 @@ ENDMACRO
 
 .LL155
 
- JSR RECM               \ Port: in record mode nothing is drawn from the heap:
- BNE P%+4               \ return at once, with C set (as LL155 leaves it after
- SEC                    \ drawing a heap of lines; LL9's kill path reads C,
- RTS                    \ in DORND)
+ SEC                    \ Port: nothing is drawn from the heap, as no ship is
+ RTS                    \ drawn directly (H_LL42): return at once, with C set
+                        \ (as LL155 leaves it after drawing a heap of lines;
+                        \ LL9's kill path reads C, in DORND)
+
+\ ******************************************************************************
+\
+\       Name: LL9 (Part 12 of 12), drawing
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: the rest of part 12, which nothing reaches: the drawing of
+\             the ship line heap
+\       Area: none
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: no ship is drawn directly (H_LL42), so this is not assembled (the BBC
+\ Master port removes it).
+\
+\ ******************************************************************************
 
  LDY #0                 \ Fetch the first byte from the ship line heap into A,
  LDA (XX19),Y           \ which contains the number of bytes in the heap
@@ -35033,6 +35519,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Flip the coordinate axes for the four different views
+\       Area: cold
 \  Deep dive: Flipping axes between space views
 \
 \ ------------------------------------------------------------------------------
@@ -35342,9 +35829,10 @@ ENDMACRO
 .TTX66
 
  LDX #FG_DIRECT         \ Port: the renderer goes to direct mode, with buffer 1
- JSR GCALL              \ (SCREEN%) on show, and the explosion particles'
- LDA #FC_PART           \ colour is set for the next frames
- STA GDCOL
+ JSR GCALL              \ (SCREEN%) on show; but for an in-system jump in space
+                        \ mode (GWARP, WARP) it keeps the frames going, and the
+                        \ screen is neither cleared nor given its border here
+                        \ (GMODE bit 7 still set)
 
  LDA #%10000000         \ Set bit 7 of QQ17 to switch to Sentence Case
  STA QQ17
@@ -35361,6 +35849,9 @@ ENDMACRO
  STA de                 \ Clear de, the flag that appends " DESTROYED" to the
                         \ end of the next text token, so that it doesn't
 
+ BIT GMODE              \ Port: the frames kept going (an in-system jump): no
+ BMI BOL2               \ screen clear
+
  LDX #HI(SCREEN%)       \ Set X to the screen memory page for the top row of the
                         \ screen (as screen memory starts at &6000)
 
@@ -35376,6 +35867,8 @@ ENDMACRO
  BNE BOL1               \ page of the space view part of the screen (the top
                         \ part; Port: on the four-colour screen, its 48 pages
                         \ from SCREEN%, &4000 to &6FFF)
+
+.BOL2
 
  LDX QQ22+1             \ Fetch into X the number that's shown on-screen during
                         \ the hyperspace countdown
@@ -35429,6 +35922,10 @@ ENDMACRO
 
  DEX                    \ Set X2 = 255
  STX X2
+
+ BIT GMODE              \ Port: the frames kept going (an in-system jump): the
+ BPL P%+3               \ border is there, so return
+ RTS
 
  JSR HLOIN              \ Draw a horizontal line from (X1, Y1) to (X2, Y1), so
                         \ that's (0, 0) to (255, 0), along the very top of the

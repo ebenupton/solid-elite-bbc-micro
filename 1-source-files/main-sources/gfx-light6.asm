@@ -11,7 +11,7 @@
 \   m << 4 OR m: row byte = H[a] EOR H[c] EOR HL[b], H = HL AND &F0.
 \ LT_FIX[k] (with the last ramp): the unlit colours (black, cyan, magenta, yellow) as
 \   MODE 1 bytes.
-\ (The unit face normals, magnitude 61, are in gfx-faces.asm's face lists.)
+\ (The unit face normals, magnitude 61, are in gfx-normals.asm, in the game's bank 4.)
 
 .LT_RL
  EQUB LO(LT_P0), LO(LT_P1), LO(LT_P2), LO(LT_P3), LO(LT_P4), LO(LT_P5), LO(LT_P6), LO(LT_P7), LO(LT_P8)

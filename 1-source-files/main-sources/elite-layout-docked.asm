@@ -36,8 +36,8 @@
  INCLUDE "3-assembled-output/resident.asm"              \ The loader's resident
                                                         \ addresses
 
- HOT_END% = BPSLOT%     \ (bank 4: the hot pass and the main RAM part's image,
-                        \ then the blueprint slot)
+ HOT_END% = QSL         \ (bank 4: the hot pass and the main RAM part's image,
+                        \ then the quarter squares and the blueprint slot)
 
  INCLUDE "3-assembled-output/elite-docked-config.asm"
 
@@ -67,6 +67,22 @@
  PRINT "Docked bank 4: &8000-", ~HOME_END%-1, " (the hot pass), free ", HOT_END%-HOME_END%
  PRINT "Docked main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%
  ASSERT HOME_END% <= HOT_END%
+
+                        \ Port: the quarter squares, QSL and QSH, in bank 4 just
+                        \ below the blueprint slot, as in the flight code: the
+                        \ docked code's lighting multiplies with them (L_REC)
+
+ ORG QSL
+
+ FOR I%, 0, 511
+  EQUB LO(I% * I% DIV 4)
+ NEXT
+
+ FOR I%, 0, 511
+  EQUB HI(I% * I% DIV 4)
+ NEXT
+
+ ASSERT QSH = QSL + &200 AND P% = BPSLOT%
 
  ORG BPSLOT%
 

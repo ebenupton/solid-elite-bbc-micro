@@ -1,51 +1,74 @@
 \ ******************************************************************************
 \
-\ gfx-light.asm - flat-shaded lighting of the ships (docs/renderer.md)
+\ gfx-light.asm - flat-shaded lighting of the ships (docs/renderer.md,
+\ "Lighting")
 \
 \ Port (Model B): the BBC Master port's gfx-light.asm (from the Demonstration
-\ Disc port's shade7.asm), written for the NMOS 6502, in bank F with the
-\ frame layer, which calls it (L_SUN from F_FRAME, L_REC from F_SHIP). Its
-\ quarter squares are bank F's own, F_QSL/F_QSH (n = 0 to 255), as main
-\ RAM's are under the second screen buffer. The model is lightramps.py: a
-\ face's light is I = 0.5 + 0.5 max(0, n.L) for its unit normal n and L the
-\ unit vector towards the light, entry round(31 max(0, n.L)) of its hue's
-\ 32-entry ramp of 4x4 dithers (gfx-light6.asm).
+\ Disc port's shade7.asm, branch lighting), in NMOS 6502 code, INCLUDEd in
+\ the hot pass of each program (bank 4: the game's context, where the game's
+\ quarter squares QSL/QSH are, the only copy), from the block L_REC of
+\ elite-source-flight.asm (with L_SUN: LIGHT_SUN = TRUE) and
+\ elite-source-docked.asm (without). The model is lightramps.py: a face's
+\ light is I = 0.5 + 0.5 max(0, n.L) for its unit normal n and L the unit
+\ vector towards the light, entry round(31 max(0, n.L)) of its hue's
+\ 32-entry ramp of 4x4 dithers (one pool of nine hue ramps shared by every
+\ ship, each from 50% to 100% of the hue's own full brightness:
+\ gfx-light6.asm, bank 6). The frame layer's f_col (gfx-frame.asm, bank 6)
+\ turns a level into the four row bytes at drawing time.
 \
-\ L_SUN (once per frame) keeps LV, the unit vector towards the sun in view
-\ space (x right, y up, z in; 16-bit signed, 1 = &4000), and LLT = LV * 41.3
-\ (signed bytes) for the next iteration's ships:
+\ L_SUN (MFRAME, once per main-loop iteration in a space view, before the
+\ frame) keeps LV, the unit vector towards the sun in view space (x right, y
+\ up, z in; 16-bit signed, 1 = &4000), and LLT = LV * 41.3 (signed bytes)
+\ for the next iteration's ships:
 \   * slot 1 (FRIN+1) is the sun (type 129): LV = the sun's position,
 \     normalised, when it has just appeared and every 32nd iteration; on the
 \     others LV is rotated by our roll and pitch as MV40 rotates the planet
-\     and sun;
-\   * slot 1 is the space station (the safe zone): LV keeps being rotated,
-\     and is re-seeded from the sun when it is back;
-\   * slot 1 is empty: the fixed light (1, 1, -1) / sqrt 3.
+\     and sun (the sun is so far away that our own movement does not turn it);
+\   * slot 1 is the space station (the safe zone: the station has replaced
+\     the sun): LV keeps being rotated, so the light stays continuous, and is
+\     re-seeded from the sun when it is back;
+\   * slot 1 is empty (no local universe): the fixed light (1, 1, -1) /
+\     sqrt 3, from the top right into the screen. The docked code's light
+\     (the title, the hangar, the briefings) is always this one.
 \
-\ L_REC (F_SHIP, once the ship's XX2 is copied into its record): the light
-\ in the ship's own coordinates, Ls[a] = (a . LLT + 16) >> 5 for the
+\ L_REC (S_SHIP, as LL9's part 6 starts, before the ship is recorded): the
+\ light in the ship's own coordinates, Ls[a] = (a . LLT + 16) >> 5 for the
 \ orientation vectors a = sidev, roofv, nosev (their high bytes halved: 48 =
-\ 1), then for each visible face d = (n . Ls + 16) >> 5 for its unit normal
-\ n (magnitude 61, from FC_FACETAB), and its level min(31, (d + d / 16 + 2)
-\ / 4), or 0 if n . Ls < 0. The level replaces the face's byte in the
-\ record's XX2 copy:
+\ 1), |Ls| <= 64, 62 for a unit vector; then for each visible face, d = (n .
+\ Ls + 16) >> 5 for its unit normal n in blueprint coordinates (magnitude 61,
+\ FC_NORMTAB, gfx-normals.asm, from faces.py) is about 118 (n . L), and its
+\ level is min(31, (d + d / 16 + 2) / 4), or 0 if n . Ls < 0 (a ship vertex
+\ v is v_x sidev + v_y roofv + v_z nosev in view space, and so is a normal,
+\ whether the orientation is a rotation or, as the station's until its
+\ first TIDY, a reflection). The level replaces the face's byte in XX2,
+\ which the frame layer's F_SHIP then copies into the ship's record:
 \   0                    hidden (as before)
 \   &80 + level          visible
 \   &C0 + level          visible, XX2 was 255 (Elite skipped the normal
-\                        test: the frame layer culls it by its winding)
+\                        test: the frame layer culls it by its winding),
+\                        plus &20 if the ship is mirrored from the face
+\                        lists' handedness (GHAND: TIDY's, not ZINF's)
+\ so a face stays visible (non-zero) or hidden (zero) for LL9's part 6, and
+\ a hidden face's level is 0 (ambient), which the fins standing on it take.
 \
 \ Products are exact: a * b = QS(|a + b|) - QS(|a - b|) for the quarter
-\ squares QS(n) = n^2 / 4 (rounded down: the roundings cancel).
+\ squares QS(n) = n^2 / 4 (QSL/QSH, rounded down: the roundings cancel, as
+\ a + b and a - b have the same parity), summed in 16 bits and rounded once.
+\
+\ Only the lighting's own variables (below) and XX2 (a drawing temporary,
+\ written by LL9's part 5 before every use) are written: none of it is game
+\ state.
 \
 \ ******************************************************************************
 
+IF LIGHT_SUN            \ (the flight code only: the docked code's light is fixed)
 \ ------------------------------------------------------------------------------
 \ L_SUN
 \ ------------------------------------------------------------------------------
 
 .L_SUN
  LDA FRIN+1
- BEQ ls_fix             \ no slot 1: the fixed light
+ BEQ ls_fix             \ no slot 1 (title screen): the fixed light
  CMP #129
  BNE ls_rot             \ the station: keep rotating LV
  BIT lv_ok              \ the sun: seed LV from it when it has just appeared
@@ -71,19 +94,19 @@
  JSR lv_rot
  JMP lv_ll
 .ls_fix
- LDA #0
- STA lv_ok
+ STA lv_ok              \ (NMOS: A = 0, FRIN+1)
  LDA #24
  STA LLT
  STA LLT+1
  LDA #&E8               \ -24
  STA LLT+2
  RTS
+
+.lv_x3   EQUB 0, 3, 6   \ (lse9)
 .lv_defl EQUB LO(&24F3), LO(&24F3), LO(-&24F3)    \ &4000 / sqrt 3
 .lv_defh EQUB HI(&24F3), HI(&24F3), HI(-&24F3)
+
 .ls_seed                \ LV = the sun's position (K% + NI%), normalised
- LDA #0
- STA lv_cnt
  LDX #8                 \ |x|, |y|, |z| as 24-bit (lo, hi, top) in lv_w,
 .lse1                   \ their signs in lv_sg
  LDA K%+NI%,X
@@ -102,7 +125,8 @@
  DEY
  DEX
  BPL lsa
- LDA #0                 \ all zero? keep LV
+ LDA #0                 \ all zero (the sun here)? keep LV
+ STA lv_cnt             \ (NMOS: here, with A = 0, for STZ at ls_seed)
  LDX #8
 .lsz
  ORA lv_w,X
@@ -125,54 +149,48 @@
  DEX
  DEX
  BPL lse4
- JMP lse2
+ BMI lse2
 .lse3
- LDA #0                 \ S = QS(x) + QS(y) + QS(z) for the top bytes t
- STA l7_s               \ (0..127; one of them 64 or more)
- STA l7_t
+ INY                    \ (NMOS: Y = &FF, lsa's end, so Y = 0 for STZ; and
+ STY lv_s               \ lv_l's 0 below, here)
+ STY lv_t               \ S = QS(x) + QS(y) + QS(z) for the top bytes t
+ STY lv_l               \ (0..127; one of them 64 or more)
  LDX #6
 .lsq
  LDY lv_w+2,X
- LDA F_QSL,Y
+ LDA QSL,Y              \ bankcheck: ok
  CLC
- ADC l7_t
- STA l7_t
- LDA F_QSH,Y
- ADC l7_s
- STA l7_s
+ ADC lv_t
+ STA lv_t
+ LDA QSH,Y              \ bankcheck: ok
+ ADC lv_s
+ STA lv_s
  DEX
  DEX
  DEX
  BPL lsq
- LDA #0                 \ the length, sqrt(x^2 + y^2 + z^2) in units of t
- STA lv_l               \ (64..220): the smallest n with QS(n) >= S, by a
- LDA #&80               \ binary search for the largest with QS(n) < S
- STA lv_m
-.lsb
+ LDA #&80               \ the length, sqrt(x^2 + y^2 + z^2) in units of t
+ STA lv_m               \ (64..220, lv_l): the smallest n with QS(n) >= S,
+.lsb                    \ by a binary search for the largest with QS(n) < S
  LDA lv_l
  ORA lv_m
  TAX
- LDA F_QSL,X            \ QS(n) - S
- CMP l7_t
- LDA F_QSH,X
- SBC l7_s
- BCS lsb1
+ LDA QSL,X              \ QS(n) - S (bankcheck: ok)
+ CMP lv_t
+ LDA QSH,X              \ bankcheck: ok
+ SBC lv_s
+ BCS P%+5
  STX lv_l
-.lsb1
  LSR lv_m
  BNE lsb
  INC lv_l               \ (>= the largest t, so 128 t / length <= 128)
  LDX #2                 \ LV = +/- (128 t / length) * 128
 .lse9
- TXA
- STA l7_t
- ASL A
- ADC l7_t
- TAY
+ LDY #0                 \ (NMOS: Y = 0 for STZ)
+ STY lv_a
+ LDY lv_x3,X            \ (3 X: NMOS, a table, making up for the bytes)
  LDA lv_w+2,Y           \ t: the dividend 128 t is (t >> 1, (t AND 1) << 7)
  LSR A
- LDY #0
- STY lv_a
  ROR lv_a
  LDY #8
 .lsd
@@ -187,7 +205,7 @@
 .lsd2
  DEY
  BNE lsd
- LDA #0                 \ (lv_a+1 A) = quotient * 128
+ TYA                    \ (lv_a+1 A) = quotient * 128 (NMOS: Y = 0)
  LSR lv_a
  ROR A
  STA lv_a+1
@@ -210,18 +228,19 @@
  BPL lse9
  LDA #&C0
  STA lv_ok
+
 .lv_ll                  \ LLT = LV * 41 / &4000 = (h >> 1) + (h >> 3) + (h >> 6)
  LDX #2                 \ for h = LV's high byte (arithmetic shifts)
 .lvl1
  LDA LVH,X
  CMP #&80
  ROR A                  \ h >> 1
- STA l7_t
+ STA lv_t
  CMP #&80
  ROR A
  CMP #&80
  ROR A                  \ h >> 3
- STA l7_s
+ STA lv_s
  CMP #&80
  ROR A
  CMP #&80
@@ -229,9 +248,9 @@
  CMP #&80
  ROR A                  \ h >> 6
  CLC
- ADC l7_s
+ ADC lv_s
  CLC
- ADC l7_t
+ ADC lv_t
  STA LLT,X
  DEX
  BPL lvl1
@@ -291,25 +310,25 @@
 \ X = &FF; A = a, sign-magnitude), truncated towards zero
 
 .lv_mul
- STA l7_s               \ the sign of the product in bit 7, then of v
+ STA lv_s               \ sign of the product in bit 7, then of v
  AND #&7F
  STA lv_m
  CPX #&FF
  BNE lvm1
  LDA lv_k2
  LDY lv_k2+1
- JMP lvm2
+ BCS lvm2               \ (NMOS: C = 1, X = &FF)
 .lvm1
  LDA LVL,X
  LDY LVH,X
 .lvm2
  STA lv_u
  STY lv_u+1
- LDA #0
- STA lv_u+2
+ LDX #0                 \ (NMOS: X = 0 for STZ)
+ STX lv_u+2
  TYA
- EOR l7_s
- STA l7_s
+ EOR lv_s
+ STA lv_s
  TYA
  BPL lvm3
  SEC                    \ |v|
@@ -320,13 +339,12 @@
  SBC lv_u+1
  STA lv_u+1
 .lvm3
- LDA #0
- STA lv_a
- STA lv_a+1
- STA lv_a+2
+ STX lv_a
+ STX lv_a+1
+ STX lv_a+2
 .lvm4
- LSR lv_m
- BCC lvm5
+ LSR lv_m               \ (NMOS: its Z for lv_m = 0 when the bit is clear,
+ BCC lvm5               \ making up for LDX #0 above)
  CLC
  LDA lv_a
  ADC lv_u
@@ -337,21 +355,20 @@
  LDA lv_a+2
  ADC lv_u+2
  STA lv_a+2
-.lvm5
  LDA lv_m
+.lvm5
  BEQ lvm6
  ASL lv_u
  ROL lv_u+1
  ROL lv_u+2
- JMP lvm4
+ BCC lvm4               \ (NMOS: |v| << 6 at most: C = 0)
 .lvm6
  LDA lv_a+1             \ (X A) = acc / 256, signed
  LDX lv_a+2
- BIT l7_s
+ BIT lv_s
  BPL lvm7
  EOR #&FF
- CLC
- ADC #1
+ ADC #1                 \ (C = 0: the accumulator's last ADC, or BCC lvm5)
  PHA
  TXA
  EOR #&FF
@@ -361,18 +378,48 @@
 .lvm7
  RTS
 
+
+\ L_SUN's variables (renderer state, not game state; LLT, its result, which
+\ L_REC reads, is in the glue area: gfx-gvars.asm)
+.LVL     SKIP 3         \ LV: the unit vector towards the sun (16-bit, 1 = &4000)
+.LVH     SKIP 3
+.lv_ok   EQUB 0         \ bit 7: LV is set up; bit 6: from the sun
+.lv_cnt  SKIP 1         \ iterations since LV was last seeded from the sun
+.lv_t    SKIP 1
+.lv_s    SKIP 1
+.lv_w    SKIP 9         \ L_SUN: the sun's |x|, |y|, |z| (24-bit each)
+.lv_sg   SKIP 3         \ and their signs (bit 7)
+.lv_l    SKIP 1         \ the length, in units of the top byte
+.lv_m    SKIP 1         \ lv_mul: multiplier magnitude (and the search's bit)
+.lv_u    SKIP 3         \ lv_mul: |v|, shifted
+.lv_a    SKIP 3         \ lv_mul: accumulator
+.lv_k2   SKIP 2         \ MV40's K2
+ENDIF
+
 \ ------------------------------------------------------------------------------
-\ L_REC (F_SHIP, with ship record F_NSHIP's XX2 copy written; Y is kept)
+\ L_REC (EE31, before the ship is recorded: GTYPE, GNF, XX2 as LL9's part 5
+\ left it; A, X and Y are not kept)
 \ ------------------------------------------------------------------------------
 
-.l7_off EQUB 22, 16, 10 \ INWK offset of the x high byte: sidev, roofv, nosev
+.LLT
+
+ EQUB 24, 24, &E8       \ the light towards the sun, x, y, z (* 41.3): L_SUN
+                        \ writes it, L_REC reads it; the fixed light until L_SUN
+                        \ first runs, and always in the docked code
+
+.GHAND
+
+ EQUB %01000000         \ the ship's handedness (SHAND): %01000000 as ZINF's,
+                        \ %01100000 as TIDY's (L_REC puts it in a face's level
+                        \ when the face is culled by its winding, f_winding)
+
+.l7_off EQUB 26, 20, 14 \ INWK offset of the z high byte: sidev, roofv, nosev
+                        \ (NMOS: z, the loop runs z to x)
 
 .L_REC
  LDA GNF
- BNE lr_go
+ BNE P%+3
  RTS
-.lr_go
- STY lr_y
  LDX #2                 \ lr_b = LLT
 .lr0
  LDA LLT,X
@@ -383,24 +430,22 @@
 .lr1
  STY l7_s
  LDX l7_off,Y
- LDY #0
+ LDY #2
 .lr2
  LDA INWK,X             \ high byte (sign-magnitude, 96 = 1) / 2, signed
- PHP
- AND #&7F
- LSR A
- PLP
- BPL lr2a
- EOR #&FF
- CLC
+ BPL lr2a               \ (NMOS: m >> 1 for m >= 0, else (1 - m) >> 1 =
+ EOR #&7F               \ -(m >> 1), arithmetic: -1 - m + 2, with SEC for
+ SEC                    \ C = 1)
  ADC #1
 .lr2a
+ CMP #&80
+ ROR A
  STA lr_a,Y
- INX
- INX
- INY
- CPY #3
- BCC lr2
+ DEX
+ DEX
+ DEY
+ BPL lr2
+ INY                    \ (Y = 0: l_dot)
  JSR l_dot              \ Ls = (h . LLT + 16) >> 5
  JSR l_r32
  LDY l7_s
@@ -413,33 +458,27 @@
  STA lr_b,X
  DEX
  BPL lr3
- LDX F_NSHIP            \ the record's XX2 copy
- LDA F_SPL,X
- STA lrv+1
- STA lrw+1
- LDA F_SPH,X
- STA lrv+2
- STA lrw+2
- LDA GTYPE              \ the face list
- ASL A
- TAX
- LDA FC_FACETAB,X
- STA lrn+1
+
+ LDA GTYPE              \ the type's unit normals (FC_NORMTAB, gfx-normals.asm:
+ ASL A                  \ three bytes a face), less one (the loop below reads
+ TAX                    \ bytes 1 to 3)
+ LDA FC_NORMTAB,X
+ SEC
+ SBC #1
  STA lrf+1
- LDA FC_FACETAB+1,X
- STA lrn+2
+ LDA FC_NORMTAB+1,X
+ SBC #0
  STA lrf+2
  LDX #0
 .lf1
  STX lr_f
-.lrv
- LDA &FFFF,X            \ patched: XX2 (0 hidden)
+ LDA XX2,X              \ XX2: 0 hidden
  BEQ lf9
  STA lr_r
- LDY #3                 \ the face's unit normal (bytes 1..3 of its entry)
+ LDY #3                 \ the face's unit normal
 .lf2
 .lrf
- LDA &FFFF,Y            \ patched
+ LDA &FFFF,Y            \ (patched)
  STA lr_a-1,Y
  DEY
  BNE lf2
@@ -449,14 +488,13 @@
  BMI lf4                \ n . Ls < 0: level 0
  JSR l_r32              \ d
  STA lr_c
- LSR A                  \ (d + d / 16 + 2) / 4 (<= 136 before the division)
+ LSR A                  \ d + d / 16 + 2 (<= 136)
  LSR A
  LSR A
  LSR A
  SEC
  ADC lr_c
- CLC
- ADC #1
+ ADC #1                 \ (NMOS: C = 0)
  LSR A
  LSR A
  CMP #32
@@ -466,79 +504,68 @@
  ORA #&80               \ visible
  LDY lr_r
  INY
- BNE lf5
- ORA #&40               \ XX2 = 255: cull by winding
-.lf5
+ BNE P%+5
+ ORA GHAND              \ XX2 = 255: cull by winding (bit 6), and bit 5 if
+                        \ the ship is mirrored (GHAND, set by S_SHIP)
  LDX lr_f
-.lrw
- STA &FFFF,X            \ patched
+ STA XX2,X              \ the level, in place of the face's visibility
 .lf9
-.lrn
- LDA &FFFF              \ patched: the next face entry, n + 4 bytes on
- AND #15
- SEC
- ADC #3
+ LDA lrf+1              \ (X = lr_f) the next face's normal: 3 bytes on
  CLC
- ADC lrn+1
- STA lrn+1
+ ADC #3
  STA lrf+1
- BCC lf8
- INC lrn+2
+ BCC P%+5
  INC lrf+2
-.lf8
- LDX lr_f
  INX
  CPX GNF
  BCC lf1
- LDY lr_y
  RTS
 
-\ l_dot: (lr_sh lr_sl) = lr_a . lr_b (signed bytes, |a +/- b| < 128)
+\ l_dot: (lr_sh lr_sl) = lr_a . lr_b (signed bytes, |a +/- b| < 128; NMOS:
+\ Y = 0)
 
 .l_dot
- LDA #0
- STA lr_sl
- STA lr_sh
+ STY lr_sl
+ STY lr_sh
  LDX #2
 .ld1
  LDA lr_a,X
  CLC
  ADC lr_b,X
+ TAY                    \ (NMOS: Y = |a + b| by TAY, or by EOR, TAY, INY)
  BPL ld2
  EOR #&FF
- CLC
- ADC #1
-.ld2
  TAY
+ INY
+.ld2
  LDA lr_sl
  CLC
- ADC F_QSL,Y
+ ADC QSL,Y              \ bankcheck: ok
  STA lr_sl
  LDA lr_sh
- ADC F_QSH,Y
+ ADC QSH,Y              \ bankcheck: ok
  STA lr_sh
  LDA lr_a,X
  SEC
  SBC lr_b,X
+ TAY                    \ (NMOS: as above)
  BPL ld3
  EOR #&FF
- CLC
- ADC #1
-.ld3
  TAY
+ INY
+.ld3
  LDA lr_sl
  SEC
- SBC F_QSL,Y
+ SBC QSL,Y              \ bankcheck: ok
  STA lr_sl
  LDA lr_sh
- SBC F_QSH,Y
+ SBC QSH,Y              \ bankcheck: ok
  STA lr_sh
  DEX
  BPL ld1
  RTS
 
-\ l_r32: A = (lr_sh lr_sl + 16) >> 5 (the low byte of it; it fits a signed
-\ byte)
+\ l_r32: A = (lr_sh lr_sl + 16) >> 5 (the low byte of it; it fits a signed byte)
 
 .l_r32
  LDA lr_sl
@@ -555,25 +582,9 @@
  ROL A
  RTS
 
-\ ------------------------------------------------------------------------------
-\ Variables (renderer state, not game state)
-\ ------------------------------------------------------------------------------
 
-.LLT     EQUB 24, 24, &E8 \ the light towards the sun, x, y, z (* 41.3): the
-                        \ fixed light until L_SUN first runs
-.LVL     SKIP 3         \ LV: the unit vector towards the sun (16-bit, 1 = &4000)
-.LVH     SKIP 3
-.lv_ok   EQUB 0         \ bit 7: LV is set up; bit 6: from the sun
-.lv_cnt  SKIP 1         \ iterations since LV was last seeded from the sun
-.l7_t    SKIP 1
+\ L_REC's variables (renderer state, not game state)
 .l7_s    SKIP 1
-.lv_w    SKIP 9         \ L_SUN: the sun's |x|, |y|, |z| (24-bit each)
-.lv_sg   SKIP 3         \ and their signs (bit 7)
-.lv_l    SKIP 1         \ the length, in units of the top byte
-.lv_m    SKIP 1         \ lv_mul: multiplier magnitude (and the search's bit)
-.lv_u    SKIP 3         \ lv_mul: |v|, shifted
-.lv_a    SKIP 3         \ lv_mul: accumulator
-.lv_k2   SKIP 2         \ MV40's K2
 .lr_a    SKIP 3         \ l_dot's operands
 .lr_b    SKIP 3
 .lr_c    SKIP 3         \ L_REC: Ls, then d
@@ -581,4 +592,3 @@
 .lr_sh   SKIP 1
 .lr_f    SKIP 1         \ L_REC: the face
 .lr_r    SKIP 1         \ L_REC: its XX2
-.lr_y    SKIP 1

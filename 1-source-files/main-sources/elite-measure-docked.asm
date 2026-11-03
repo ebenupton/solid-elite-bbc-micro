@@ -14,7 +14,7 @@
  INCLUDE "1-source-files/main-sources/elite-map.asm"
  INCLUDE "3-assembled-output/resident.asm"
 
- HOT_END% = BPSLOT%
+ HOT_END% = QSL
 
  INCLUDE "3-assembled-output/elite-docked-config.asm"
 

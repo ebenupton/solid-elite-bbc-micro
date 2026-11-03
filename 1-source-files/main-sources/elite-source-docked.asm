@@ -1988,6 +1988,15 @@
                         \ program, and copies the part from there to PROGM%
                         \ (elite-layout-*.asm)
 
+ ASSERT P% = S% + 16    \ Port: the game code that the renderer's frame layer
+                        \ runs (bank 6, through the far call farH), at the same
+ JMP LL42F              \ place in both programs: LL9's part 6 on, for a ship
+                        \ the frame is drawing (f_proj)
+
+ JMP DOEXP              \ Port: nothing: the docked code
+                        \ draws no explosion cloud (its DOEXP returns at once),
+                        \ but the frame layer is the flight code's too
+
  PRINT "S% workspace (docked) from ", ~S%, "to ", ~P%-1, "inclusive"
 
 \ ******************************************************************************
@@ -9606,8 +9615,27 @@ ENDIF
                         \ shape due to the imprecise nature of trigonometry
                         \ in assembly language
 
- JMP LL9                \ Jump to LL9 to display the ship and return from the
-                        \ subroutine using a tail call
+ LDA TYPE               \ Port: LL9 records the ship's faces by TYPE, which
+ PHA                    \ HAS1 does not set (it sets only XX0), so set TYPE
+ LDX #0                 \ to the type whose XX21 entry is XX0 while LL9
+.hasty                  \ records the ship, and put it back afterwards, as the
+ INX                    \ original leaves it (XX15+2, the type HAS1 was
+ INX                    \ given, is gone: TIDY uses XX15)
+ LDA XX21-2,X
+ CMP XX0
+ BNE hasty
+ LDA XX21-1,X
+ CMP XX0+1
+ BNE hasty
+ TXA
+ LSR A
+ STA TYPE
+
+ JSR LL9                \ Call LL9 to display the ship
+
+ PLA                    \ Put TYPE back and return from the subroutine
+ STA TYPE
+ RTS
 
 \ ******************************************************************************
 \
@@ -11992,7 +12020,8 @@ ENDIF
  LDA #1                 \ Clear the top part of the screen, draw a border box,
  JSR TT66               \ and set the current view type in QQ11 to 1
 
- JSR LL9                \ Draw the ship on screen to redisplay it
+ JSR LL9B               \ Draw the ship on screen to redisplay it (Port: one
+                        \ frame of the renderer, LL9B)
 
                         \ Fall through into MT23 to move to row 10, switch to
                         \ white text, and switch to lower case when printing
@@ -22010,10 +22039,8 @@ ENDIF
 
  STA INWK+3             \ Set y_lo = 0, so the ship remains in the screen centre
 
- JSR LL9                \ Call LL9 to display the ship
-
- LDX #FG_FRAME          \ Port: and draw the frame (QQ11 = 0: the ship is
- JSR GCALL              \ recorded, filled)
+ JSR LL9F               \ Call LL9 to display the ship (Port: recorded, as QQ11
+                        \ = 0, then drawn as a frame of the renderer, LL9F)
 
  DEC MCNT               \ Decrement the main loop counter
 
@@ -24937,12 +24964,12 @@ ENDMACRO
  ORA XX1+31             \ have now drawn something on-screen for this ship
  STA XX1+31
 
- LDA #8                 \ Set A = 8 so when we call LL18+2 next, byte #0 of the
-                        \ heap gets set to 8, for the 8 bytes we just stuck on
-                        \ the heap
+ LDX #FG_SHPPT          \ Port: record the dot for the renderer (K3, K4, TYPE)
+ JSR GCALL              \ (every LL9 records: H_LL42)
 
- JMP LL81+2             \ Call LL81+2 to draw the ship's dot, returning from the
-                        \ subroutine using a tail call
+ JMP LL155              \ Port: return as LL155 does (C set): the ship's dot is
+                        \ not drawn directly, so LL81+2's setting of the heap's
+                        \ byte #0 and the drawing of the heap are gone
 
  PLA                    \ Pull the return address from the stack, so the RTS
  PLA                    \ below actually returns from the subroutine that called
@@ -25425,7 +25452,7 @@ ENDMACRO
 \ ------------------------------------------------------------------------------
 \
 \ Port: with QQ11 = 0 (the title, the hangar, the briefings' frames) the
-\ docked code's ships are recorded for the filled renderer (bank F) instead
+\ docked code's ships are recorded for the filled renderer (bank 6) instead
 \ of drawn, unless GFORCE is set. RECM returns A = QQ11 OR GFORCE: Z set in
 \ record mode. X and Y are kept.
 \
@@ -25474,23 +25501,191 @@ ENDMACRO
 \
 \ ------------------------------------------------------------------------------
 \
-\ Port: the briefings show their ship with QQ11 = 1; LL9B sets QQ11 = 0 for
-\ LL9, which records the ship, and for the frame (F_FRAME), and puts QQ11
-\ back.
+\ Port: the briefings show their ship with QQ11 = 1 (BRIEF, PAUSE, PAS1);
+\ LL9B sets QQ11 = 0 for LL9, which records the ship, and for the frame
+\ (LL9F), and puts QQ11 back, so QQ11 is the original's whenever game code
+\ reads it. The briefing's text, which is printed outside record mode while
+\ the frames run, goes into the text map, and the frames draw it.
+\
+\ ------------------------------------------------------------------------------
+\
+\ Returns:
+\
+\   C flag, X, Y        As LL9 leaves them (hframe keeps them)
 \
 \ ******************************************************************************
 
 .LL9B
 
- LDA QQ11
- PHA
+ LDA QQ11               \ Set QQ11 = 0 for the frame, keeping the view type on
+ PHA                    \ the stack
  LDA #0
  STA QQ11
- JSR LL9
- LDX #FG_FRAME
+
+ JSR LL9F               \ Record the ship and render the frame
+
+ PLA                    \ Put the view type back
+ STA QQ11
+
+ RTS                    \ Return from the subroutine
+
+\ ******************************************************************************
+\
+\       Name: LL9F
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: draw a ship with LL9, then the frame (the title, the
+\             briefings)
+\
+\ ------------------------------------------------------------------------------
+\
+\ Other entry points:
+\
+\   hframe              The frame alone, keeping A, X, Y and the flags
+\
+\ ******************************************************************************
+
+.LL9F
+
+ JSR LL9                \ Draw the ship (recorded for the renderer when QQ11 = 0)
+
+.hframe
+
+ PHP                    \ Render the frame (the docked code's light is fixed:
+ PHA                    \ no L_SUN), keeping A, X, Y and the flags
+ TXA
+ PHA
+ LDX #FG_FRAME          \ (GCALL keeps Y)
  JSR GCALL
  PLA
- STA QQ11
+ TAX
+ PLA
+ PLP
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: LL42F
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: LL9's part 6 on, for the renderer's frame
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the frame layer (bank 6's f_proj) projects each ship as it draws it:
+\ it sets up what part 6 on reads from the ship's record (INWK 0-8, XX16,
+\ XX0, XX4, the faces' levels as XX2) and calls this through S% + 16 (the
+\ far call farH), with GPRJ set so that H_EE31 returns at once.
+\
+\ ******************************************************************************
+
+.LL42F
+
+ DEC GPRJ
+ JSR LL42P
+ INC GPRJ
+ RTS
+
+.GPRJ
+
+ EQUB 0                 \ Bit 7: the frame is running part 6 on (H_EE31)
+
+\ ******************************************************************************
+\
+\       Name: H_LL42
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: record the ship as LL9's part 6 starts
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: LL9's part 6 (LL42, which calls this first) is about to work out
+\ which vertices are visible and project them. A ship that is not exploding
+\ is recorded here (S_SHIP), before its vertices are projected: the frame
+\ projects them (LL42F, from bank 6's f_proj, when it draws the ship, after
+\ those further away), so LL9 goes on to H_EE31 at once, or, if the ship is
+\ firing at us, after part 6 has projected just the gun vertex for the beam
+\ (F_GUN sets part 6's loop on that one vertex, LL48). Part 6 on changes
+\ nothing the game reads but XX3, which only DOEXP (an exploding ship: its
+\ cloud's vertices, all projected) and H_EE31 (the beam: the gun vertex)
+\ read.
+\
+\ ******************************************************************************
+
+.H_LL42
+
+ LDA XX1+31             \ Exploding: DOEXP takes the vertices
+ AND #%00100000
+ BNE hll9
+
+ LDY #12                \ GNF = the faces, byte #12 / 4
+ LDA (XX0),Y
+ LSR A
+ LSR A
+ STA GNF
+
+ JSR S_SHIP             \ Record it, lit, with its handedness (and the
+                        \ splinter's faces all shown: SPLV)
+
+ PLA                    \ (LL9 goes on from here, not LL42)
+ PLA
+
+ BIT XX1+31             \ Not firing at us: on to H_EE31 (as LL72)
+ BVC H_EE31
+
+ LDY #6                 \ Firing: its gun vertex (byte #6: 4 * its number)
+ LDA (XX0),Y            \ alone, through part 6's loop (F_GUN: LL42P's matrix
+ LDX #FG_GUN            \ and the loop's set-up for it, returning Y = its
+ JSR GCALL              \ offset in the vertex data)
+ JMP LL48
+
+.hll9
+
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: H_EE31
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: return from LL9 as parts 9 to 12 would, with the ship's
+\             laser beam if it is firing at us
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: LL9 is done (part 9, EE31, which jumps here; at once from H_LL42 for
+\ a ship it has recorded and not projected): the ship's laser beam, if it is
+\ firing at us (HEE31), and return from LL9. What LL9's parts 9 to 12 left
+\ that the game reads is set as they would: bit 3 of byte #31 (on screen),
+\ and bit 6 cleared if it fired; and it returns as LL155 does (C set). The
+\ ship line heap is not written (only the explosion clouds use it, DOEXP).
+\ Run by the frame (LL42F, GPRJ set), it returns at once.
+\
+\ ******************************************************************************
+
+.H_EE31
+
+ BIT GPRJ               \ Run by the frame: return at once
+ BMI hee9
+
+ LDA #%00001000         \ The ship is now on screen (as EE31)
+ ORA XX1+31
+ STA XX1+31
+
+ BIT XX1+31             \ Firing its lasers at us? (as EE31): the beam, from
+ BVC hee8               \ the gun vertex, byte #6
+ LDY #6
+ LDA (XX0),Y
+ STA T
+ JSR HEE31
+
+.hee8
+
+ SEC                    \ Return with C set, as LL155 does after drawing the
+                        \ ship's lines
+
+.hee9
+
  RTS
 
 \ ******************************************************************************
@@ -25498,68 +25693,31 @@ ENDMACRO
 \       Name: HEE31
 \       Type: Subroutine
 \   Category: Drawing ships
-\    Summary: Port: record the ship that LL9 is drawing, and its laser beam
+\    Summary: Port: record the laser beam of a ship firing at us
 \       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
-\ Port: as the flight code's HEE31: LL9's part 9 (EE31) jumps here in record
-\ mode, with GNF = the faces, GNV = byte #8 of the blueprint and T = byte #6.
-\ The ship is recorded for the renderer (F_SHIP), with GTYPE = TYPE, or 32
-\ for the dodecahedron station, and if it is firing, its beam (F_LINE).
-\ Byte #31 is left as EE31 leaves it.
+\ Port: from H_EE31, with T = byte #6 of the blueprint (4 times the laser's
+\ vertex): byte #31's bit 6 cleared, as EE31 clears it, and the beam
+\ recorded for the renderer (F_LINE), clipped as EE31 clips it.
 \
 \ ******************************************************************************
 
 .HEE31
 
- LDA #%00001000         \ Set bit 3 of the ship's byte #31, as EE31 does: the
- ORA XX1+31             \ ship is on the screen
- STA XX1+31
-
- LDA GNV                \ GNV = byte #8 / 6, the number of vertices
- LDX #0
-
-.hee1
-
- CMP #6
- BCC hee2
- SBC #6
- INX
- BNE hee1
-
-.hee2
-
- STX GNV
-
- LDA TYPE               \ GTYPE = TYPE, or 32 for a station with 24 vertices
- CMP #SST               \ (the dodecahedron)
- BNE hee3
- CPX #24
- BNE hee3
- LDA #32
-
-.hee3
-
- STA GTYPE
-
- LDX #FG_SHIP           \ Record the ship
- JSR GCALL
-
- BIT XX1+31             \ If the ship is firing its laser, clear bit 6 of its
- BVC hee9               \ byte #31 and record its beam, clipped as EE31 clips
- LDA XX1+31             \ it
+ LDA XX1+31
  AND #%10111111
  STA XX1+31
  LDY T
  LDX XX3,Y
  STX XX15
  INX
- BEQ hee9
+ BEQ hb9
  LDX XX3+1,Y
  STX XX15+1
  INX
- BEQ hee9
+ BEQ hb9
  LDX XX3+2,Y
  STX XX15+2
  LDX XX3+3,Y
@@ -25574,16 +25732,280 @@ ENDMACRO
  BPL P%+4
  DEC XX15+4
  JSR LL145
- BCS hee9
- LDA #FC_ELASER
- STA GLCOL
+ BCS hb9
  LDX #FG_LINE
+ JMP GCALL
+
+.hb9
+
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: S_SHIP
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: record the ship for the renderer, lit, with its handedness
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: called from H_LL42, at the start of LL9's part 6, to record the ship
+\ (F_SHIP). The splinter's faces are all shown first (SPLV). If the ship has
+\ a face that LL9 showed without testing its normal (XX2 = 255: a face beyond
+\ its visibility distance, or the splinter's), the renderer culls it by its
+\ winding on screen, and the face lists' windings are those of ZINF's
+\ handedness (sidev = nosev x roofv): first set GHAND to the ship's
+\ handedness (SHAND), as TIDY gives a ship the other one (sidev = roofv x
+\ nosev). GTYPE is the ship's type, or 32 for the dodecahedron station (a
+\ type SST with 24 vertices, whose faces are type 32's, gfx-faces.asm); the
+\ alloy plate's one face, which has no normal and which LL9 never marks
+\ visible, is filled from both sides (no winding cull). Then L_REC lights
+\ the faces (gfx-light.asm: their levels in XX2), the ship is recorded
+\ (F_SHIP), and for the splinter the XX2 that part 5 left is put back
+\ (SPLV).
+\
+\ ******************************************************************************
+
+.S_SHIP
+
+ LDA TYPE               \ The splinter's faces are shown, and put back once
+ CMP #SPL               \ the renderer has them (SPLV)
+ BNE P%+5
+ JSR SPLV
+
+ LDA GFAR               \ A face to cull by its winding: GHAND = the ship's
+ BEQ ssh1               \ handedness
+ LDA #0
+ STA GFAR
+ JSR SHAND
+
+.ssh1
+
+ LDX TYPE               \ GTYPE = TYPE, or 32 for a station with 24 vertices
+ CPX #SST
+ BNE ssh2
+ LDY #8
+ LDA (XX0),Y
+ CMP #24 * 6
+ BNE ssh2
+ LDX #32
+
+.ssh2
+
+ STX GTYPE
+ CPX #PLT               \ The alloy plate: its face shown, from both sides
+ BNE ssh3
+ LDA #1
+ STA XX2
+
+.ssh3
+
+ JSR L_REC              \ The faces' levels into XX2 (gfx-light.asm)
+
+ LDX #FG_SHIP           \ Record the ship
  JSR GCALL
 
-.hee9
+ LDA TYPE               \ The splinter: put back part 5's XX2 for its faces
+ CMP #SPL
+ BNE ssh9
+ LDX #3
 
- SEC                    \ Return with C set, as LL155 does after drawing the
- RTS                    \ ship's lines
+.ssh4
+
+ LDA GSPLV,X
+ STA XX2,X
+ DEX
+ BPL ssh4
+
+.ssh9
+
+ RTS
+
+.GFAR
+
+ EQUB 0                 \ Non-zero: LL9 has shown a face of the ship it is
+                        \ drawing without testing its normal (part 5)
+
+.GSPLV
+
+ SKIP 4                 \ Part 5's XX2 for the splinter's faces (SPLV)
+
+\ ******************************************************************************
+\
+\       Name: SPLV
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: show all the splinter's faces for LL9's vertices and the
+\             renderer
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: called by S_SHIP, as LL9's part 6 starts, for the splinter. Its
+\ blueprint's face normals are not its own (faces.py), so part 5 tested its
+\ faces against the wrong normals, and part 6 would skip each vertex whose
+\ faces those hid: the renderer would be given faces it should not show,
+\ with stale vertices, and not the faces it should. Instead all four faces
+\ are shown (XX2 = 255, as for a face too far away to test) in the ship's
+\ record, so the frame's part 6 projects all four vertices and the renderer
+\ culls the faces by their winding (gfx-faces.asm holds the splinter's own
+\ normals and windings). Part 5's XX2 is kept in GSPLV, and S_SHIP puts it
+\ back once the renderer has its copy: the game's state is as the original
+\ leaves it.
+\
+\ ******************************************************************************
+
+.SPLV
+
+ LDX #3                 \ Keep XX2 for the four faces in GSPLV, and show them
+
+.spv1
+
+ LDA XX2,X
+ STA GSPLV,X
+ LDA #255
+ STA XX2,X
+ DEX
+ BPL spv1
+
+ STA GFAR               \ Faces to cull by their winding (A = 255)
+
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: SHAND
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: the handedness of the ship's orientation vectors
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: set GHAND (gfx-light.asm) to %01000000 if sidev = nosev x roofv (as
+\ ZINF sets them up), or %01100000 if sidev = roofv x nosev (as TIDY leaves
+\ them), for the ship in INWK. The lighting puts GHAND into a face's level
+\ when the face is culled by its winding, and bit 5 reverses the winding
+\ test (f_winding, gfx-frame.asm).
+\
+\ The vectors are orthonormal, so sidev is one cross product or the other:
+\ the sign of the component i of sidev that is largest (at least 1 / sqrt 3)
+\ is compared with that of (nosev x roofv)_i = n_j r_k - n_k r_j, worked out
+\ from the high bytes (96 = 1): its two products are at most 36 / 256, and
+\ the difference at least 20, well clear of FMLTU's rounding.
+\
+\ ******************************************************************************
+
+.shdj
+
+ EQUB 2, 0, 4, 0, 0     \ For i = x, y, z (X = 0, 2, 4): the offset of j (y, z, x)
+
+.shdk
+
+ EQUB 4, 0, 0, 0, 2     \ and of k (z, x, y)
+
+.SHAND
+
+ LDX #0                 \ Set X = 2 * i for the largest |sidev_i|
+ LDA INWK+22
+ AND #%01111111
+ STA T
+ LDA INWK+24
+ AND #%01111111
+ CMP T
+ BCC shd1
+ STA T
+ LDX #2
+
+.shd1
+
+ LDA INWK+26
+ AND #%01111111
+ CMP T
+ BCC shd2
+ LDX #4
+
+.shd2
+
+ LDY shdj,X             \ GSHT = n_j * r_k
+ LDA INWK+10,Y
+ STA GSHT+1
+ LDY shdk,X
+ LDA INWK+16,Y
+ JSR shdm
+ STA GSHT
+
+ LDY shdk,X             \ A = n_k * r_j
+ LDA INWK+10,Y
+ STA GSHT+1
+ LDY shdj,X
+ LDA INWK+16,Y
+ JSR shdm
+
+ EOR #&FF               \ A = GSHT - A = (nosev x roofv)_i
+ SEC
+ ADC GSHT
+
+ EOR INWK+22,X          \ Bit 7 set if its sign is not sidev_i's
+ AND #%10000000
+
+ LSR A                  \ GHAND = %01000000, or %01100000 if bit 7 was set
+ LSR A
+ ORA #%01000000
+ STA GHAND
+
+ RTS
+
+.shdm
+
+                        \ A = GSHT+1 * A / 256 as a signed byte, for the
+                        \ sign-magnitude high bytes A and GSHT+1 (X is kept)
+
+ STA GSHT+2
+ EOR GSHT+1             \ Bit 7 of GSHT+3 = the product's sign
+ STA GSHT+3
+ LDA GSHT+1
+ AND #%01111111
+ STA Q
+ LDA GSHT+2
+ AND #%01111111
+ JSR FMLTU              \ A = |GSHT+1| * |A| / 256
+ BIT GSHT+3
+ BPL shm1
+ EOR #&FF
+ CLC
+ ADC #1
+
+.shm1
+
+ RTS
+
+.GSHT
+
+ SKIP 4                 \ SHAND's workspace
+
+\ ******************************************************************************
+\
+\       Name: L_REC
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: the renderer's lighting: each face's level (L_REC), and the
+\             faces' unit normals
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the filled renderer's lighting (gfx-light.asm, docs/renderer.md,
+\ "Lighting"), in this bank as it multiplies with the quarter squares (QSL,
+\ QSH, which the docked code has for it alone; its light is fixed, LLT):
+\ L_REC turns each face's visibility in XX2 into its level for the ship
+\ being recorded, from the faces' unit normals (FC_NORMTAB, gfx-normals.asm,
+\ which faces.py generates).
+\
+\ ******************************************************************************
+
+LIGHT_SUN = FALSE
+
+ INCLUDE "1-source-files/main-sources/gfx-light.asm"
+
+ INCLUDE "1-source-files/main-sources/gfx-normals.asm"
 
 \ ******************************************************************************
 \
@@ -26212,6 +26634,9 @@ ENDMACRO
  LDA #255               \ Set the X-th byte of XX2 to 255 to denote that this
  STA XX2,X              \ face is visible
 
+ STA GFAR               \ Port: the renderer culls such a face by its winding,
+                        \ for which S_SHIP works out the ship's handedness
+
  TYA                    \ Set Y = Y + 4 to point to the next face
  ADC #4
  TAY
@@ -26522,6 +26947,13 @@ ENDMACRO
 \ ******************************************************************************
 
 .LL42
+
+ JSR H_LL42             \ Port: record the ship for the renderer, which runs
+                        \ the rest of LL9 from here (LL42P) when it draws the
+                        \ ship; LL9 goes on only for a ship that is exploding
+                        \ or firing at us (H_LL42)
+
+.LL42P
 
                         \ The first task is to set up the inverse matrix, ready
                         \ for us to send to the dot product routine at LL51.
@@ -27408,21 +27840,29 @@ ENDMACRO
 
 .EE31
 
- JSR RECM               \ Port: in record mode (the title, the hangar and the
- BNE ee31d              \ briefings: QQ11 = 0), record the ship for the
-                        \ renderer and return from LL9 (HEE31, in the cold
- LDY #12                \ bank, given what it cannot read from the blueprint:
- LDA (XX0),Y            \ GNF = byte #12 / 4, GNV = byte #8, T = byte #6);
- LSR A                  \ the ship line heap is not built, as nothing draws
- LSR A                  \ from it
- STA GNF
- LDY #8
- LDA (XX0),Y
- STA GNV
- LDY #6
- LDA (XX0),Y
- STA T
- JMP HEE31
+ JMP H_EE31             \ Port: return from LL9 as parts 9 to 12 would, with
+                        \ the ship's laser beam if it is firing at us (H_EE31):
+                        \ every LL9 records its ship for the renderer (H_LL42),
+                        \ so the rest of this part, which drew the beam and put
+                        \ it on the ship line heap, and parts 10 to 12 are not
+                        \ assembled (below)
+
+\ ******************************************************************************
+\
+\       Name: LL9 (Part 9 of 12), drawing
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: the rest of part 9, which nothing reaches: the edge loop's
+\             set-up and the ship's laser beam on the ship line heap
+\       Area: none
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: every LL9 records its ship for the renderer (H_LL42), so this part of
+\ the original's part 9, like parts 10 to 12, is not assembled (the BBC
+\ Master port removes it).
+\
+\ ******************************************************************************
 
 .ee31d
 
@@ -27572,6 +28012,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Calculate the visibility of each of the ship's edges
+\       Area: none
 \  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
@@ -28247,6 +28688,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw ship: Add all visible edges to the ship line heap
+\       Area: none
 \  Deep dive: Drawing ships
 \
 \ ------------------------------------------------------------------------------
@@ -28347,10 +28789,26 @@ ENDMACRO
 
 .LL155
 
- JSR RECM               \ Port: in record mode nothing is drawn from the heap:
- BNE P%+4               \ return at once, with C set (as LL155 leaves it after
- SEC                    \ drawing a heap of lines)
- RTS
+ SEC                    \ Port: nothing is drawn from the heap, as no ship is
+ RTS                    \ drawn directly (H_LL42): return at once, with C set
+                        \ (as LL155 leaves it after drawing a heap of lines;
+                        \ LL9's kill path reads C, in DORND)
+
+\ ******************************************************************************
+\
+\       Name: LL9 (Part 12 of 12), drawing
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: the rest of part 12, which nothing reaches: the drawing of
+\             the ship line heap
+\       Area: none
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: no ship is drawn directly (H_LL42), so this is not assembled (the BBC
+\ Master port removes it).
+\
+\ ******************************************************************************
 
  LDY #0                 \ Fetch the first byte from the ship line heap into A,
  LDA (XX19),Y           \ which contains the number of bytes in the heap

@@ -815,7 +815,7 @@ ENDIF
  LDA GFLIP              \ buffer GPEND from the next frame A on, and note that
  BEQ irq3               \ it is done: the buffer that was on show is no longer
  LDA rflip              \ read from here on, as frame B shows the dashboard
- BNE irq3               \ (docs/renderer.md, "The frame layer's bank F"); but
+ BNE irq3               \ (docs/renderer.md, "The buffers and the flip"); but
  LDA GPEND              \ not in the field after a flip (rflip), so that a
  STA GFRONT             \ frame is on show for two fields at least: 25 frames a
  STX GFLIP              \ second at most, as the BBC Master port's
@@ -885,8 +885,8 @@ pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
 \ ******************************************************************************
 \
 \ Port: the renderer's glue (gfx-glue.asm): GCALL, which the game calls bank
-\ F's entries through, and the trampolines that bank F calls bank R through,
-\ at GLUE% (which bank F is built against, 2-build-files/bank6.py)
+\ 6's entries through, and the trampolines that bank 6 calls bank 5 through,
+\ at GLUE% (which bank 6 is built against, 2-build-files/bank6.py)
 \
 \ ******************************************************************************
 

@@ -60,11 +60,13 @@
  QSH = QSL + &200       \ to 511: their low bytes at QSL and high bytes at QSH,
                         \ two pages each, page aligned (their users index them
                         \ by an operand's low byte and pick the page by its
-                        \ high bit), in the flight code's home bank, just
-                        \ below its blueprint slot (elite-layout-flight.asm
-                        \ assembles them there): only the flight code's home
-                        \ code uses them, and main RAM below the screen is
-                        \ the renderer's second buffer (BUF0)
+                        \ high bit), in each program's home bank, just below
+                        \ its blueprint slot (elite-layout-*.asm assemble
+                        \ them there): only home code uses them (the game's
+                        \ multiplications, and the renderer's lighting,
+                        \ gfx-light.asm, which the docked code has them for),
+                        \ and main RAM below the screen is the renderer's
+                        \ second buffer (BUF0)
 
  SCREEN% = &4000        \ The screen: 256 x 192 pixels in four colours (MODE 1's
                         \ format, 64-byte rows), then the dashboard's 256 x 56
@@ -86,8 +88,8 @@
 
  BUF0 = &1000           \ The filled renderer's second screen buffer, buffer 0
                         \ (&1000-&3FFF; buffer 1 is SCREEN%), which the
-                        \ rasteriser (bank R, gfx-rws.asm) draws into; not
-                        \ yet shown or used by the game; it covers DFS's
+                        \ rasteriser (bank 5, gfx-rws.asm) draws into; it
+                        \ covers DFS's
                         \ static workspace at &1000-&10FF, which PCLI keeps in
                         \ DFSSAVE% between disc commands
 
@@ -98,9 +100,9 @@
  GVARS = &7EA0          \ The filled renderer's shared variables (&7EA0-&7EFF,
                         \ after the mailbox), which the game's hooks, the
                         \ vertical sync interrupt and the frame layer (bank
-                        \ F, gfx-frame.asm) all read or write; none of them
+                        \ 6, gfx-frame.asm) all read or write; none of them
                         \ is game state (docs/renderer.md, "The frame layer's
-                        \ bank F"):
+                        \ bank 6"):
 
  GMODE = GVARS          \ Bit 7 set: space mode (double buffered: the drawing
                         \ hooks record, F_FRAME draws); clear: direct mode
@@ -110,35 +112,34 @@
  GPEND = GVARS + 3      \ sync (the interrupt sets GFRONT = GPEND and GFLIP =
                         \ 0); F_FRAME sets them, and waits for GFLIP = 0
                         \ before drawing into a buffer
- GDRAWON = GVARS + 4    \ For the hooks: 0 while the game is erasing (an
-                        \ erasing call is not recorded)
+ GWARP = GVARS + 4      \ Bit 7 set: TT66 is an in-system jump's (WARP sets it,
+                        \ F_DIRECT clears it): in space mode the frames go on
  GFORCE = GVARS + 5     \ For the hooks: non-zero to draw directly even in a
                         \ space view
  GSIGHT = GVARS + 6     \ Non-zero: F_FRAME draws the laser sights
  GLASV = GVARS + 7      \ Non-zero: F_FRAME draws our laser beams (from LASX,
                         \ LASY; cleared after each frame)
- GLCOL = GVARS + 8      \ F_LINE's colour (a fixed colour index, FC_*)
- GDCOL = GVARS + 9      \ F_DOT's colour (a fixed colour index, FC_*)
- GNF = GVARS + 10       \ F_SHIP's inputs: the ship's number of faces and
- GNV = GVARS + 11       \ vertices, and its type (TYPE, or 32 for the
- GTYPE = GVARS + 12     \ dodecahedron station: a type 2 with 24 vertices)
- GSTASH = GVARS + 13    \ Bit 7 set: something else used the screen buffers
-                        \ (a disc load): F_FRAME blanks both before drawing
+ GNF = GVARS + 10       \ F_SHIP's and L_REC's inputs: the ship's number of
+ GTYPE = GVARS + 12     \ faces and its type (TYPE, or 32 for the dodecahedron
+                        \ station: a type 2 with 24 vertices); GVARS + 8, + 9
+                        \ and + 11 are free
+ GSTASH = GVARS + 13    \ Bit 7 set: a disc command has used buffer 0 (PCLI):
+                        \ the next frame starts it afresh (f_b0new)
  GA = GVARS + 14        \ GCALL's A across the paging (gfx-glue.asm)
  GDL = GVARS + 15       \ The disc layer (gfx-dlayer.asm): bit 0 set if buffer
-                        \ 0 has the layer's disc on it, bit 1 buffer 1 (F_FRAME
-                        \ clears both when it blanks the buffers)
+                        \ 0 has the layer's disc on it, bit 1 buffer 1 (the
+                        \ frame layer clears a buffer's when it is cleared)
 
                         \ The frame layer's entries, as the game calls them
                         \ (LDX #FG_xxx : JSR GCALL, gfx-glue.asm), in the order
-                        \ of bank F's dispatcher (gfx-bank6.asm)
+                        \ of bank 6's dispatcher (gfx-bank6.asm)
 
  FG_INIT     = 0         \ the entries, in fjt_lo's order (gfx-bank6.asm)
  FG_DIRECT   = 1
  FG_FRAME    = 2
  FG_SHIP     = 3
  FG_LINE     = 4
- FG_DOT      = 5
+ FG_PDOT     = 5
  FG_PLANET   = 6
  FG_SHPPT    = 7
  FG_PCURVE   = 8
@@ -146,13 +147,14 @@
  FG_CHAR     = 10
  FG_DELCHAR  = 11
  FG_CLRTEXT  = 12
- FG_BOMB     = 13
+ FG_GUN      = 13
  FG_HANG0    = 14
  FG_HANGAR   = 15
- FG_N        = 16
+ FG_CLOUD    = 16
+ FG_N        = 17
 
                         \ The fixed colours of the frame layer's lines and dots
-                        \ (GLCOL and GDCOL hold these indices, gfx-frame.asm)
+                        \ (indices into its F_CPE, gfx-frame.asm)
 
  FC_BLACK = 0
  FC_LASER = 1            \ our laser beams
@@ -180,9 +182,9 @@
                         \ sync's interrupt writes
 
  GLUE% = &0724          \ The glue the game calls the frame layer through, and
-                        \ the trampolines into bank R (gfx-glue.asm): at a
+                        \ the trampolines into bank 5 (gfx-glue.asm): at a
                         \ fixed address at the end of the resident block A
-                        \ (&0724-&07BC), which includes it there, so that bank F
+                        \ (&0724-&07BC), which includes it there, so that bank 6
                         \ can be built against it
 
  DTMP = &07BD          \ Workspace for the dashboard's drawing routines, at

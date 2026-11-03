@@ -1,39 +1,46 @@
 #!/usr/bin/env python3
-"""Smoke test for bank F, the filled renderer's frame layer (docs/renderer.md).
+"""The test of bank 6, the filled renderer's frame layer (docs/renderer.md).
 
     python3 6-harness/test_frame.py [--png DIR] [--nobuild]
 
-Port (Model B): builds banks R and F (2-build-files/bankr.py and bank6.py;
-the game must have been built, for the symbols they read) and runs them on
-py65's NMOS 6502 (the Model B's) with:
+Port (Model B): builds banks 5 and 6 (2-build-files/bank5.py and bank6.py;
+the game must have been built, for the symbols they read and the flight
+code's images) and runs them on py65's NMOS 6502 (the Model B's) with:
 
-  * main RAM: the glue (GLUE.bin at GLUE%: the trampolines and GCALL), the
-    loader's bank numbers (BANK5, BANK6) and the game's variables that the
-    records read (at the flight program's addresses);
-  * &8000-&BFFF paged by writes to ROMSEL (&FE30): the game's home bank
-    (empty), bank R or bank F; the MOS ROM (its font) at &C000;
-  * every entry called as the game will call it, LDX #n : JSR GCALL from main
-    RAM with the home bank paged.
+  * main RAM: the resident block A (the far calls, from the loader's
+    image), the glue (GLUE.bin at GLUE%: the trampolines and GCALL), the
+    loader's bank numbers and the game's variables;
+  * &8000-&BFFF paged by writes to ROMSEL (&FE30): the flight code's home
+    bank (D.CODEH, with a blueprint set, D.MOx, in its slot), bank 5,
+    bank 6, or the flight code's cold bank (D.CODEC, with the disc layer);
+    the MOS ROM (its font) at &C000;
+  * the ships recorded by the game's own LL9 (H_LL42, S_SHIP, L_REC:
+    F_SHIP), and every other entry called as the game calls it, LDX #n :
+    JSR GCALL from main RAM with the home bank paged; the frame runs LL9's
+    part 6 on (LL42F) and PTCLS (PTCLR) in the home bank through farH.
 
-It records synthetic frames (ships with their real faces, projected here
-from the blueprints that faces.py reads; the sun and the planet as discs,
-a planet curve, lines, dots, a distant ship, stars, text, the sights and
-our laser beams) and checks that:
+It records synthetic frames (ships placed and turned, one firing at us and
+one exploding; the sun and the planet as discs, a meridian, a distant ship,
+stars, text, the sights and our laser beams) and checks that:
 
-  * every call writes nothing but the renderer's zero page (&06-&27, the
-    frame layer's &D2-&E1), the stack page, the screen buffers, the mailbox
-    and the shared variables (&7E00-&7EFF), the glue's own two bytes, &F4,
-    ROMSEL and banks R and F; that the zero page is as it was after every
-    call; and that the caller's bank is paged back;
-  * the first frame blanks both buffers' windows, keeps buffer 1's border and
-    copies it to buffer 0, draws into buffer 0 (buffer 1 on show) and queues
-    the flip (GFLIP, GPEND); the next draws into buffer 1;
-  * the frame drew what was recorded: the sun's and the planet's colours at
-    their centres, every ship's centre filled, the text's glyphs, the sights,
-    nothing outside the window;
-  * a buffer's next frame repairs it exactly: buffer 0 after scene A then
+  * every bank 6 entry writes nothing but the renderer's zero page (&06-&27,
+    the frame layer's &D2-&E1), the stack page, the screen buffers, the
+    mailbox and the shared variables (&7E00-&7EFF), the glue's and the far
+    calls' own bytes, &F4, ROMSEL and banks 5 and 6 (and F_FRAME, which runs
+    game code, also the game's zero page and page 1, XX3); that the zero
+    page is as it was after every call, but for the drawing's temporaries
+    after F_FRAME (the frame keeps the rest: f_zsv, f_gkeep); that Y is kept
+    and the caller's bank paged back;
+  * the first frame enters space mode, copies buffer 1's border to buffer 0
+    and draws buffer 0 (buffer 1 on show), and queues the flip; the next
+    draws buffer 1;
+  * the frame drew what was recorded: the sun's colour at its centre, every
+    ship's centre filled, the last ship's vertices projected where they
+    should be, the text's glyphs, the sights, the explosion's particles;
+  * a buffer's next frame repairs it exactly: buffer 0 after scene A, then
     scene C is byte for byte buffer 0 after scene C alone (on a fresh
-    machine).
+    machine), the text included (the text map, incremental per buffer);
+  * the disc layer (gfx-dlayer.asm) against a model of it.
 
 Writes frame PNGs (4x, CMYK) to --png DIR (default 3-assembled-output) to be
 looked at. Exit status 0 only if every check passes.
@@ -49,9 +56,18 @@ sys.path.insert(0, os.path.join(REPO, '2-build-files'))
 
 HOME = 4                                         # the banks (the loader finds
 RBANK, FBANK, COLD = 5, 6, 7                     # them; any distinct numbers)
+BPSLOT = 0xB900                                  # (elite-map.asm)
 STUB = 0x7FC0                                    # where the test's caller runs
-FG = ['F_INIT', 'F_DIRECT', 'F_FRAME', 'F_SHIP', 'F_LINE', 'F_DOT', 'F_PLANET', 'F_SHPPT',
-      'F_PCURVE', 'F_PPOINT', 'F_CHAR', 'F_DELCHAR', 'F_CLRTEXT', 'F_BOMB']
+FG = ['F_INIT', 'F_DIRECT', 'F_FRAME', 'F_SHIP', 'F_LINE', 'F_PDOT', 'F_PLANET', 'F_SHPPT',
+      'F_PCURVE', 'F_PPOINT', 'F_CHAR', 'F_DELCHAR', 'F_CLRTEXT', 'F_GUN', 'F_HANG0', 'F_HANGAR',
+      'F_CLOUD']
+# the drawing's temporaries, which game code the frame runs may leave changed
+# (blib.mjs's DRAW_EXCLUDE): name, length
+DRAWTMP = [('SC', 2), ('T1', 1), ('P', 3), ('Q', 1), ('R', 1), ('S', 1), ('T', 1), ('U', 1), ('XX15', 6),
+           ('XX12', 6), ('K', 4), ('K2', 4), ('K3', 14), ('K4', 2), ('K5', 4), ('K6', 5), ('XX16', 18),
+           ('XX0', 2), ('XX', 2), ('YY', 2), ('XSAV', 1), ('YSAV', 1), ('XX17', 1), ('XX13', 1), ('CNT', 1),
+           ('CNT2', 1), ('STP', 1), ('XX4', 1), ('XX20', 1), ('ZZ', 1), ('V', 2), ('XX14', 1), ('SWAP', 1),
+           ('XX18', 4), ('XX19', 2)]
 FAILS = []
 
 
@@ -101,12 +117,14 @@ class Mem:
     def __init__(self, S):
         self.main = bytearray(0x10000)
         cold = open(os.path.join(OUT, 'D.CODEC.bin'), 'rb').read()
-        self.banks = {HOME: bytearray(0x4000),
+        self.banks = {HOME: bytearray(open(os.path.join(OUT, 'D.CODEH.bin'), 'rb').read()),
                       RBANK: bytearray(open(os.path.join(OUT, 'BANK5.bin'), 'rb').read()),
                       FBANK: bytearray(open(os.path.join(OUT, 'BANK6.bin'), 'rb').read()),
                       COLD: bytearray(cold + bytes(0x4000 - len(cold)))}
         os_rom = os.path.join(HERE, 'node_modules', 'jsbeeb', 'public', 'roms', 'os.rom')
         self.main[0xC000:0x10000] = open(os_rom, 'rb').read()[:0x4000]
+        miss = open(os.path.join(OUT, 'MISSILE.bin'), 'rb').read()
+        self.main[0x7F00:0x7F00 + len(miss)] = miss
         self.sel = HOME
         ld = S['loader']                         # the resident block A (the far
         lb = open(os.path.join(OUT, 'ELITE4.bin'), 'rb').read()   # calls), as the loader
@@ -116,10 +134,20 @@ class Mem:
         ok = bytearray(0x10000)                  # the write guard's allowed bytes
         for lo, hi in ((0x06, 0x28), (0xD2, 0xE2), (0xF4, 0xF5), (0x100, 0x200), (0x1000, 0x7000),
                        (0x7E00, 0x7F00), (S['rtA'], S['rtA'] + 3), (S['rtl'] + 1, S['rtl'] + 3), (S['rtj'] + 1, S['rtj'] + 2),
-                       (ld['fA'], ld['fA'] + 5), (ld['fpc'] + 1, ld['fpc'] + 3)):
+                       (ld['fA'], ld['fA'] + 5), (ld['fpc'] + 1, ld['fpc'] + 3), (ld['fpj'] + 1, ld['fpj'] + 3)):
             ok[lo:hi] = b'\1' * (hi - lo)
         self.ok = ok
+        game = bytearray(ok)                     # game code (LL9, and what the
+        for lo, hi in ((0, 0x100), (0x300, 0x400), (0x900, 0xD00)):   # frame runs) also writes
+            game[lo:hi] = b'\1' * (hi - lo)     # the game's zero page, UP and K%
+        self.okgame = game
+        self.guard = ok
         self.bad = []
+
+    def blueprints(self, name):
+        """the blueprint set D.MOx into the home bank's slot"""
+        d = open(os.path.join(OUT, 'D.MO%s.bin' % name), 'rb').read()
+        self.banks[HOME][BPSLOT - 0x8000:BPSLOT - 0x8000 + len(d)] = d
 
     def __getitem__(self, a):
         if 0x8000 <= a < 0xC000:
@@ -128,14 +156,12 @@ class Mem:
 
     def __setitem__(self, a, v):
         if 0x8000 <= a < 0xC000:
-            if self.sel == HOME:
-                self.bad.append(a)
             self.banks[self.sel][a - 0x8000] = v
             return
         if a == 0xFE30:
             self.sel = v & 15
             return
-        if not self.ok[a]:
+        if not self.guard[a]:
             self.bad.append(a)
         if a < 0xC000:
             self.main[a] = v
@@ -152,6 +178,10 @@ class Machine:
         S, m = self.S, self.mem.main
         m[S['BANK5']], m[S['BANK6']] = RBANK, FBANK
         m[S['loader']['BANK7']] = COLD
+        m[S['loader']['BANK4']] = HOME
+        self.tmp = set()                         # the drawing's temporaries
+        for n, k in DRAWTMP:
+            self.tmp.update(range(self.F[n], self.F[n] + k))
         m[0xF4] = HOME
         self.mpu = MPU(memory=self.mem)
         self.cycles = {}
@@ -178,6 +208,7 @@ class Machine:
         mem.main[STUB:STUB + 5] = bytes(code)
         zp = bytes(mem.main[0:0x100])
         mem.bad = []
+        mem.guard = mem.okgame if entry == 'F_FRAME' else mem.ok
         mpu.a, mpu.x, mpu.y, mpu.p, mpu.sp = a & 255, 0x55, y & 255, 0x24, 0xFF
         mpu.pc = STUB
         c0 = mpu.processorCycles
@@ -192,7 +223,8 @@ class Machine:
         if mem.bad:
             FAILS.append('%s wrote outside its areas: %s' % (entry, ' '.join('&%04X' % b for b in sorted(set(mem.bad))[:12])))
             print('  FAIL', FAILS[-1])
-        zd = [i for i in range(256) if mem.main[i] != zp[i] and i not in (0xF4,)]
+        zd = [i for i in range(256) if mem.main[i] != zp[i] and i not in (0xF4,) and
+              not (entry == 'F_FRAME' and i in self.tmp)]
         if zd:
             FAILS.append('%s left zero page changed: %s' % (entry, ' '.join('&%02X' % i for i in zd[:12])))
             print('  FAIL', FAILS[-1])
@@ -204,6 +236,28 @@ class Machine:
             print('  FAIL', FAILS[-1])
         return cyc
 
+    def gcall(self, addr, maxcyc=2_000_000):
+        """JSR addr (game code in the home bank) from main RAM, the home bank
+        paged, with the game's write guard; returns the cycles"""
+        mpu, mem = self.mpu, self.mem
+        mem.main[STUB:STUB + 3] = bytes([0x20, addr & 255, addr >> 8])
+        mem.bad = []
+        mem.guard = mem.okgame
+        mpu.p, mpu.sp = 0x24, 0xFF
+        mpu.pc = STUB
+        c0 = mpu.processorCycles
+        while mpu.pc != STUB + 3:
+            mpu.step()
+            if mpu.processorCycles - c0 > maxcyc:
+                raise RuntimeError('runaway in &%04X at &%04X' % (addr, mpu.pc))
+        if mem.bad:
+            FAILS.append('game code &%04X wrote outside its areas: %s' % (addr, ' '.join('&%04X' % b for b in sorted(set(mem.bad))[:12])))
+            print('  FAIL', FAILS[-1])
+        if mem.sel != HOME or mem.main[0xF4] != HOME:
+            FAILS.append('game code &%04X did not page the home bank back' % addr)
+            print('  FAIL', FAILS[-1])
+        return mpu.processorCycles - c0
+
     def dcall(self, entry):
         """JSR farC : EQUW entry (the disc layer's records, in the flight
         code's cold bank) from main RAM, the home bank paged, as the hooks'
@@ -214,6 +268,7 @@ class Machine:
         mem.main[STUB:STUB + 3] = bytes([0x20, s8 & 255, s8 >> 8])
         mem.main[s8:s8 + 5] = bytes([0x20, f & 255, f >> 8, t & 255, t >> 8])
         mem.bad = []
+        mem.guard = mem.ok
         mpu.a, mpu.x, mpu.y, mpu.p, mpu.sp = 0x12, 0x34, 0x56, 0x24, 0xFF
         mpu.pc = STUB
         c0 = mpu.processorCycles
@@ -278,14 +333,15 @@ def png(buf, path, scale=4):
 
 
 def border(m):
-    """what TT66 leaves on buffer 1: the border (line 0, pixels 0-1 and 254-255
-    of every line) and some text in the window; buffer 0 holds garbage"""
+    """what TTX66 leaves on buffer 1: its window black, its border (line 0,
+    pixels 0-1 and 254-255 of every line); buffer 0 holds garbage (a disc
+    command has used it: F_INIT marks it so)"""
     import random
     rnd = random.Random(7)
     base0, base1 = m.S['BUF0'], m.S['SCREEN%']
     for a in range(0x3000):
         m.mem.main[base0 + a] = rnd.randrange(256)
-        m.mem.main[base1 + a] = rnd.randrange(256) if (a // 8) % 7 == 3 else 0
+        m.mem.main[base1 + a] = 0
     for x in range(64):
         m.mem.main[base1 + addr(4 * x, 0)] = 0xFF
     for y in range(192):
@@ -320,45 +376,48 @@ def ships():
     return SHIPS
 
 
-def record_ship(m, gtype, pos, angles, winding=False, xx4=0):
-    """F_SHIP for blueprint gtype at view position pos, orientation from
-    angles (sidev, roofv, nosev = R x, R y, -R z: det -1, as ZINF's), XX2 as
-    LL9 sets it (31 if the normal faces us, else 0), or 255 for every face
-    (winding: a far ship, culled by its winding)"""
-    s = ships()[gtype]
+HEAP = 0x0A00                                    # the slots' ship line heaps (K%)
+
+
+def record_ship(m, gtype, pos, angles, slot, fire=False, explode=False):
+    """LL9 for blueprint gtype (32: the dodecahedron station, type 2) in slot
+    slot, at view position pos, orientation from angles (sidev, roofv, nosev
+    = R x, R y, -R z: det -1, as ZINF's); firing at us (fire) or just killed
+    (explode: LL9 starts its explosion cloud); the ship's data copied back to
+    its slot afterwards, as the main loop does"""
     r = rot(*angles)
     side, roof, nose = col(r, 0), col(r, 1), [-c for c in col(r, 2)]
-    S = m.S
+    S, F = m.S, m.F
+    inwk = bytearray(37)
+    for i, v in enumerate(pos):                  # x, y, z: sign-magnitude, 24-bit
+        q = int(v)
+        inwk[3 * i], inwk[3 * i + 1], inwk[3 * i + 2] = abs(q) & 255, (abs(q) >> 8) & 255, 0x80 if q < 0 else 0
     for k, v in enumerate((nose, roof, side)):      # INWK+9.. nosev, roofv, sidev
         for i in range(3):
             q = int(round(v[i] * 0x6000))
             mag = min(abs(q), 0x7FFF)
-            a = S['INWK'] + 9 + 6 * k + 2 * i
-            m.poke(a, mag & 255)
-            m.poke(a + 1, (mag >> 8) | (0x80 if q < 0 else 0))
-    z = int(pos[2])
-    m.poke(S['INWK'] + 6, z & 255)
-    m.poke(S['INWK'] + 7, z >> 8)
-    view = lambda b: [pos[i] + b[0] * side[i] + b[1] * roof[i] + b[2] * nose[i] for i in range(3)]
-    for vi, v in enumerate(s['verts']):
-        p = view((v['x'], v['y'], v['z']))
-        sx = int(round(128 + 256 * p[0] / p[2]))
-        sy = int(round(96 - 256 * p[1] / p[2]))
-        a = S['XX3'] + 4 * vi
-        for k, w in enumerate((sx & 255, (sx >> 8) & 255, sy & 255, (sy >> 8) & 255)):
-            m.poke(a + k, w)
-    for fi, f in enumerate(s['faces']):
-        n = f['n']
-        nv = [n[0] * side[i] + n[1] * roof[i] + n[2] * nose[i] for i in range(3)]
-        on = [v for v in s['verts'] if fi in v['faces']]     # a vertex on the face
-        v = on[0] if on else {'x': 0, 'y': 0, 'z': 0}
-        p = view((v['x'], v['y'], v['z']))
-        vis = sum(nv[i] * p[i] for i in range(3)) < 0
-        m.poke(S['XX2'] + fi, 255 if winding else (31 if vis else 0))
-    m['GNF'], m['GNV'], m['GTYPE'] = len(s['faces']), len(s['verts']), gtype
-    m['XX4'] = xx4
-    m.call('F_SHIP', y=0x77)
-    return [(sx_sy(m, vi)) for vi in range(len(s['verts']))]
+            inwk[9 + 6 * k + 2 * i] = mag & 255
+            inwk[10 + 6 * k + 2 * i] = (mag >> 8) | (0x80 if q < 0 else 0)
+    inwk[31] = 0x40 if fire else 0x80 if explode else 0
+    heap = HEAP + 0x40 * slot
+    inwk[33], inwk[34] = heap & 255, heap >> 8
+    inwk[35] = 0x80
+    for i in range(37):
+        m.poke(F['INWK'] + i, inwk[i])
+    t = 2 if gtype == 32 else gtype
+    bp = m.mem.banks[HOME][BPSLOT - 0x8000 + 2 * (t - 1):][:2]
+    m.poke(F['XX0'], bp[0])
+    m.poke(F['XX0'] + 1, bp[1])
+    m.poke(F['TYPE'], t)
+    inf = F['K%'] + slot * S['NI%']
+    m.poke(F['INF'], inf & 255)
+    m.poke(F['INF'] + 1, inf >> 8)
+    m.poke(F['XSAV'], slot)
+    m.poke(F['FRIN'] + slot, t)
+    m['QQ11'] = 0
+    m.gcall(F['LL9'])
+    for i in range(37):                          # (MA15's copy back to the slot)
+        m.poke(inf + i, m.mem.main[F['INWK'] + i])
 
 
 def sx_sy(m, vi):
@@ -405,23 +464,25 @@ def scene(m, k):
         m.point()
     look['ships'] = []
     if k == 0:
-        ships_rec = [(11, (-40, 10, 700), (0.4, 0.7, 0.2), False),     # Cobra Mk III
-                     (2, (200, -40, 1400), (0.3, 0.5, 0.1), False),    # Coriolis station
-                     (29, (90, 60, 900), (1.2, 0.3, 0.4), True)]       # Thargoid, far
+        m.mem.blueprints('C')
+        ships_rec = [(11, (-40, 10, 700), (0.4, 0.7, 0.2), dict(fire=True)),    # Cobra Mk III, firing
+                     (2, (200, -40, 1400), (0.3, 0.5, 0.1), {}),               # Coriolis station
+                     (13, (90, 60, 2600), (1.2, 0.3, 0.4), {}),                # Boa, far (winding)
+                     (16, (-120, -60, 1000), (0.2, 0.9, 0.6), dict(explode=True))]   # Viper, exploding
     else:
-        ships_rec = [(32, (-60, 30, 1500), (0.5, 0.2, 0.3), False),    # Dodecahedron station
-                     (20, (60, -20, 500), (0.2, 2.6, 0.5), False),     # Adder
-                     (4, (0, 50, 400), (0.7, 0.2, 0.1), False)]        # Alloy plate
-    for t, pos, ang, w in ships_rec:
-        record_ship(m, t, pos, ang, winding=w)
-        look['ships'].append((int(128 + 256 * pos[0] / pos[2]), int(96 - 256 * pos[1] / pos[2]), t))
-    m['GLCOL'] = 2                               # an enemy laser
-    m['X1'], m['Y1'], m['X2'], m['Y2'] = 20, 20, 120, 90
+        m.mem.blueprints('B')
+        ships_rec = [(32, (-60, 30, 1500), (0.5, 0.2, 0.3), {}),    # Dodecahedron station
+                     (20, (60, -20, 500), (0.2, 2.6, 0.5), {}),     # Adder
+                     (4, (0, 50, 400), (0.7, 0.2, 0.1), {})]        # Alloy plate
+    for slot, (ty, pos, ang, kw) in enumerate(ships_rec):
+        record_ship(m, ty, pos, ang, slot + 2, **kw)
+        if not kw.get('explode'):
+            look['ships'].append((int(128 + 256 * pos[0] / pos[2]), int(96 - 256 * pos[1] / pos[2]), ty))
+        else:
+            look['cloud'] = (int(128 + 256 * pos[0] / pos[2]), int(96 - 256 * pos[1] / pos[2]))
+    look['last'] = min(ships_rec, key=lambda s: s[1][2])[:3]
+    m['X1'], m['Y1'], m['X2'], m['Y2'] = 20, 20, 120, 90     # an enemy laser
     m.call('F_LINE')
-    m['GDCOL'] = 4                               # particles
-    for i in range(8):
-        m['ZZ'] = 60 + 10 * i
-        m.call('F_DOT', a=150 + 3 * i, y=30 + 7 * i)
     m['TYPE'] = 11                               # a distant ship
     m.put16('K3', 240)
     m.put16('K4', 170)
@@ -592,10 +653,11 @@ def disc_scene(m, discs, ships_rec=(), lines=()):
                 m.put16('K6', x & 0xFFFF)
                 m.put16('K5', y & 0xFFFF, 2)
                 m.point()
-    for t, pos, ang in ships_rec:
-        record_ship(m, t, pos, ang)
+    if ships_rec:
+        m.mem.blueprints('C')
+    for i, (t, pos, ang) in enumerate(ships_rec):
+        record_ship(m, t, pos, ang, i + 2)
     for x1, y1, x2, y2 in lines:
-        m['GLCOL'] = 2
         m['X1'], m['Y1'], m['X2'], m['Y2'] = x1, y1, x2, y2
         m.call('F_LINE')
     for i in range(1, S['NOST'] + 1):
@@ -701,6 +763,10 @@ def main():
     b1_before = m.buffer(1)
     m.call('F_DIRECT')
     check(m['GMODE'] == 0 and m['GFRONT'] == 1, 'F_DIRECT: direct mode, buffer 1 on show')
+    m['QQ11'] = 1                                # text drawn directly: noted (the
+    text(m, '15', 1, 1)                          # first three), then given to the
+    text(m, 'DIRECT', 4, 3)                      # cells buffer 0 may show
+    m.call('F_DIRECT')
     m.mem.main[S['FRIN'] + 1] = 129              # the sun in slot 1, up and to the right
     for i, v in enumerate((0, 0x40, 0, 0, 0x30, 0, 0, 0x60, 0)):
         m.poke(S['K%'] + S['NI%'] + i, v)
@@ -714,8 +780,21 @@ def main():
         all(buf0[addr(0, y)] & 0xCC == b1_before[addr(0, y)] & 0xCC and
             buf0[addr(252, y)] & 0x33 == b1_before[addr(252, y)] & 0x33 for y in range(192))
     check(border_ok, "buffer 1's border copied to buffer 0")
-    check(all(buf1[addr(x, y)] == (b1_before[addr(x, y)] & (0xCC if x < 4 else 0x33 if x >= 252 else 0))
-              for y in range(1, 192) for x in range(0, 256, 4)), "buffer 1's window blanked, its border kept")
+    check(buf1 == b1_before, "buffer 1 (TTX66's) left as it was")
+    cx, cy = look['cloud']
+    check(sum(pixel(buf0, x, y) == 3 for x in range(max(cx - 24, 2), min(cx + 24, 253))
+              for y in range(max(cy - 24, 1), min(cy + 24, 191))) >= 8, "the explosion's particles drawn")
+    ty, pos, ang = look['last']                  # the nearest ship, projected last
+    s = ships()[ty]
+    r = rot(*ang)
+    side, roof, nose = col(r, 0), col(r, 1), [-c for c in col(r, 2)]
+    near = 0
+    for vi, v in enumerate(s['verts']):
+        p3 = [pos[i] + v['x'] * side[i] + v['y'] * roof[i] + v['z'] * nose[i] for i in range(3)]
+        ex, ey = 128 + 256 * p3[0] / p3[2], 96 - 256 * p3[1] / p3[2]
+        gx, gy = sx_sy(m, vi)
+        near += abs(gx - ex) <= 4 and abs(gy - ey) <= 4
+    check(near >= len(s['verts']) // 3, 'the frame projected the nearest ship (%d of %d vertices where they should be)' % (near, len(s['verts'])))
     check(all(pixel(buf0, x, y) == 0 for y in range(1, 192) for x in (0, 1, 254, 255)
               if pixel(b1_before, x, y) == 0), 'nothing drawn on the border')
     sx, sy = look['sun']
@@ -784,9 +863,8 @@ def main():
 
     disc_tests(png_dir)
 
-    print('cycles: F_FRAME %s (frame 1 includes blanking both buffers); F_SHIP %s; F_CHAR %d' % (
-        ', '.join(str(c) for c in (cyc1, cyc2, cyc3, cyc5)),
-        '..'.join(str(f(m.cycles['F_SHIP'])) for f in (min, max)), max(m.cycles['F_CHAR'])))
+    print('cycles: F_FRAME %s (frame 1 includes clearing buffer 0); F_CHAR %d' % (
+        ', '.join(str(c) for c in (cyc1, cyc2, cyc3, cyc5)), max(m.cycles['F_CHAR'])))
     print('PNGs in %s: frame-1.png, frame-2.png, frame-3.png' % png_dir)
     if FAILS:
         print('%d check(s) failed' % len(FAILS))
