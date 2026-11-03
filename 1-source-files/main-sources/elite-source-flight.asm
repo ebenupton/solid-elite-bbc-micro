@@ -13239,7 +13239,8 @@ ENDMACRO
 .fmli
  SBC #0                 \ (patched above)
 
- JMP fmlc               \ Jump to fmlc to finish off
+ BCS fmlc               \ Jump to fmlc to finish off (C is set: the quarter
+                        \ square difference is the product, so it cannot borrow)
 
 \ ******************************************************************************
 \
