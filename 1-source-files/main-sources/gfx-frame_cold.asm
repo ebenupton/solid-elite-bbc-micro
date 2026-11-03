@@ -270,8 +270,7 @@ ENDIF
  BCS fdl8
  TXA
  PHA
- LDA f_dly,X
- TAY
+ LDY f_dly,X
  LDA f_dlk,X
  PHA
  LDA f_dlx,X
