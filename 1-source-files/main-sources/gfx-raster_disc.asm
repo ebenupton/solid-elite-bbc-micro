@@ -1490,8 +1490,7 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   LDA r_nR
   CMP r_nL
   BCC whole
-  LDA r_nR
-  CMP r_ba
+  CMP r_ba                \ (A still r_nR)
   BCC whole
   LDA r_bb
   CMP r_nL
