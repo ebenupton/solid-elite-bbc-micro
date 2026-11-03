@@ -8045,20 +8045,21 @@ ENDIF
 
 .TT30
 
- LDA #11                \ Set A to 11, the maximum number of digits allowed
+ LDA #12                \ Set A to 12, the maximum number of digits allowed
+                        \ plus 1
 
  SEC                    \ Set the C flag so we can do subtraction without the
                         \ C flag affecting the result
 
- STA XX17               \ Store the maximum number of digits allowed (11) in
-                        \ XX17
+ STX XX17               \ Store the maximum number of digits allowed (11) in
+                        \ XX17 (X is still 11 from the start of the routine)
 
- SBC U                  \ Set U = 11 - U + 1, so U now contains the maximum
- STA U                  \ number of digits minus the number of digits we want
- INC U                  \ to display, plus 1 (so this is the number of digits
-                        \ we should skip before starting to print the number
-                        \ itself, and the plus 1 is there to ensure we print at
-                        \ least one digit)
+ SBC U                  \ Set U = 12 - U, i.e. 11 - U + 1, so U now contains
+ STA U                  \ the maximum number of digits minus the number of
+                        \ digits we want to display, plus 1 (so this is the
+                        \ number of digits we should skip before starting to
+                        \ print the number itself, and the plus 1 is there to
+                        \ ensure we print at least one digit)
 
  LDY #0                 \ In the main loop below, we use Y to count the number
                         \ of times we subtract 10 billion to get the leftmost
