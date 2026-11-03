@@ -1224,12 +1224,11 @@ ASSERT (HI(r_run0) AND 31) = 0   \ (the repair: the row's run page is Y DIV 8 OR
   LDX RZ_SA
   LDA RZ_SB
   ORA RZ_SB+1
-  BNE ms2
+  BNE mp                  \ (RZ_SB is already stored)
   RTS
-.ms2
-  LDA RZ_SB
 .mset
   STA RZ_SB
+.mp
   TYA                     \ RZ_PP = byte of (X, Y)
   AND #7
   ORA r_xo,X
