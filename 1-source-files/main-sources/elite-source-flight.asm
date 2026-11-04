@@ -14065,9 +14065,8 @@ ENDMACRO
  LDA #0
  STA P
 
- TYA                    \ Set Y = Y + 8
- CLC
- ADC #8
+ TYA                    \ Set Y = Y + 8 (C is clear here, as the BCC above
+ ADC #8                 \ was taken)
  TAY
 
  PLA                    \ Set A to the new high byte (and Z if it is 0)
