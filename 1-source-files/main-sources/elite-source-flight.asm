@@ -3739,8 +3739,9 @@ ENDIF
                         \ the planet
 
  STA R                  \ We are getting close to the planet, so we need to
- LDA #0                 \ Port: Q = 0 (the original leaves in Q whatever ran
- STA Q                  \ last, usually LOIN; the gate's reference is patched
+ STY Q                  \ Port: Q = 0 (Y = 0 here, as set by INY above and kept by
+                        \ m, MAS3 and SQUA2; the original leaves in Q whatever ran
+                        \ last, usually LOIN; the gate's reference is patched
                         \ the same way, 6-harness/blib.mjs, REF_PATCHES)
  JSR LL5                \ work out how close. We know from the above that A
                         \ contains our altitude squared, so we store A in R
