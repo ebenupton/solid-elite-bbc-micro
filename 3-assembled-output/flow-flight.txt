@@ -1,4 +1,4 @@
-hot &8000-&A8FF: 46 units, 10496 bytes, 0 free
+hot &8000-&A8FF: 47 units, 10496 bytes, 0 free
   &8000    22 S%
   &8016   519 Main flight loop (Part 1 of 16)..Main flight loop (Part 8 of 16)
   &821D   204 Main flight loop (Part 11 of 16)..Main flight loop (Part 12 of 16)
@@ -22,8 +22,9 @@ hot &8000-&A8FF: 46 units, 10496 bytes, 0 free
   &90D1   180 DVID3B2
   &9185   409 BUMP2..DOEXP
   &931E    86 DOT..CPIX2
-  &9374   177 NWSHP
-  &9425   136 PROJ..PL9 (Part 3 of 3)
+  &9374   176 NWSHP
+  &9424   136 PROJ..PL9 (Part 3 of 3)
+  &94AC     1 PLS2
   &94AD   128 PLS22..CIRCLE2
   &952D    98 CHKON..PLS6
   &958F    78 TT17
@@ -81,13 +82,12 @@ hotm &79B2-&7DFF: 35 units, 1102 bytes, 0 free
   &7D7C    11 LL42F
   &7D87    68 H_LL42..H_EE31
   &7DCB    53 MVT6
-hotx &7FA0-&7FFD: 9 units, 37 bytes, 57 free
+hotx &7FA0-&7FFD: 8 units, 36 bytes, 58 free
   &7FA0     5 MU6
   &7FA5    10 DET1
-  &7FAF     1 PLS2
-  &7FB0     7 MAS4
-  &7FB7     4 SHCOL
-  &7FBB     6 RECM
-  &7FC1     1 LL9 (Part 11 of 12)
-  &7FC2     2 LL9 (Part 12 of 12)
-  &7FC4     1 LL9 (Part 12 of 12), drawing
+  &7FAF     7 MAS4
+  &7FB6     4 SHCOL
+  &7FBA     6 RECM
+  &7FC0     1 LL9 (Part 11 of 12)
+  &7FC1     2 LL9 (Part 12 of 12)
+  &7FC3     1 LL9 (Part 12 of 12), drawing

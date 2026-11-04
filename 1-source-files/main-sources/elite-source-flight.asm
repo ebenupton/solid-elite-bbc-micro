@@ -21057,9 +21057,8 @@ ENDMACRO
 
 .NW8
 
- TAY                    \ Restore the ship type (A still holds it from NW2)
-
- LDA E%-1,Y             \ Fetch the E% byte for this ship to get the default
+ LDA E%-1,X             \ Fetch the E% byte for this ship (X still holds the
+                        \ ship type from NW2) to get the default
                         \ settings for the ship's NEWB flags
 
  AND #%01101111         \ Zero bits 4 and 7 (so the new ship is not docking, has
