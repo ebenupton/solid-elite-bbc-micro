@@ -20705,15 +20705,13 @@ ENDMACRO
  LDA K%+1,X             \ Copy x_hi into K3+X
  STA K3,X
 
- LDA K%+2,X             \ Set A = Y = x_sign
- TAY
+ LDA K%+2,X             \ Set A = x_sign
 
  AND #%01111111         \ Set K3+1 = |x_sign|
  STA K3+1,X
 
- TYA                    \ Set K3+2 = the sign of x_sign
- AND #%10000000
- STA K3+2,X
+ EOR K%+2,X             \ Set K3+2 = the sign of x_sign (A EOR x_sign leaves
+ STA K3+2,X             \ just bit 7 of x_sign, as bits 0-6 cancel)
 
  RTS                    \ Return from the subroutine
 
