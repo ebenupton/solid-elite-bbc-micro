@@ -31999,10 +31999,9 @@ LIGHT_SUN = TRUE
  EOR #%11111111         \ Otherwise we need to negate the result using two's
  STA XX15+4             \ complement, so first we flip the bits of the high byte
 
- LDA XX15+3             \ And then flip the bits of the low byte and add 1
- EOR #%11111111
- ADC #1
- STA XX15+3
+ LDA #1                 \ And then negate the low byte: the carry is clear here
+ SBC XX15+3             \ (BCS LL55 was not taken), so this calculates 1 - lo - 1
+ STA XX15+3             \ = -lo, with carry set only if lo = 0, as ADC #1 did
 
  LDA XX15+5             \ And now we flip the sign of the result to get the
  EOR #%10000000         \ correct result
