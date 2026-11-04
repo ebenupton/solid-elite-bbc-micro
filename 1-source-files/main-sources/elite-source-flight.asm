@@ -30634,18 +30634,19 @@ ENDIF
 .shdm
 
                         \ A = GSHT+1 * A / 256 as a signed byte, for the
-                        \ sign-magnitude high bytes A and GSHT+1 (X is kept)
+                        \ sign-magnitude high bytes A and GSHT+1 (X is kept,
+                        \ Y is not)
 
+ TAY                    \ Keep A in Y
+ EOR GSHT+1             \ Bit 7 of GSHT+2 = the product's sign
  STA GSHT+2
- EOR GSHT+1             \ Bit 7 of GSHT+3 = the product's sign
- STA GSHT+3
  LDA GSHT+1
  AND #%01111111
  STA Q
- LDA GSHT+2
+ TYA
  AND #%01111111
  JSR FMLTU              \ A = |GSHT+1| * |A| / 256
- BIT GSHT+3
+ BIT GSHT+2
  BPL shm1
  EOR #&FF
  CLC
@@ -30657,7 +30658,7 @@ ENDIF
 
 .GSHT
 
- SKIP 4                 \ SHAND's workspace
+ SKIP 3                 \ SHAND's workspace
 
 \ ******************************************************************************
 \
