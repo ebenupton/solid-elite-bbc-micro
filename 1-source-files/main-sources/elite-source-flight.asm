@@ -6857,13 +6857,13 @@ ENDIF
 
  ASL P                  \ Double (A P), store the top byte in A and set the C
  ROL A                  \ flag to bit 7 of the original A, so this does:
- STA T                  \
-                        \   (T P) = (A P) << 1
+                        \
+                        \   (A P) = (A P) << 1
                         \         = 2 * (-beta * y / 256) ^ 2
 
- LDA #0                 \ Set bit 7 in A to the sign bit from the A in the
- ROR A                  \ calculation above and apply it to T, so we now have:
- ORA T                  \
+ BCC P%+4               \ Set bit 7 in A to the sign bit from the A in the
+ ORA #%10000000         \ calculation above (now in C), so we now have:
+                        \
                         \   (A P) = -2 * (beta * y / 256) ^ 2
                         \
                         \ with the doubling retaining the sign of (A P)
