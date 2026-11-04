@@ -13705,9 +13705,10 @@ ENDMACRO
  LDX R                  \ P = T1 = T = 0, which returns (A X) = (S R) with
  LDA S                  \ C = 0 too unless |S| = 0, so return that directly
  BPL mad3               \ when S is positive or |S| <> 0
- CMP #%10000000
- BEQ MU8
- LDA S                  \ (Set N and Z from S again)
+ ASL A                  \ S is negative: shift out bit 7 (C = 1), so Z is set
+ BEQ MU8                \ if and only if S = &80, in which case jump to MU8
+ ROR A                  \ Restore A = S (the C flag shifts back into bit 7),
+                        \ with N set and Z clear
 
 .mad3
 

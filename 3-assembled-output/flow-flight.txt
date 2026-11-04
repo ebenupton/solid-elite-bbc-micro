@@ -1,4 +1,4 @@
-hot &8000-&A8FF: 46 units, 10496 bytes, 0 free
+hot &8000-&A8FF: 47 units, 10496 bytes, 0 free
   &8000    22 S%
   &8016   519 Main flight loop (Part 1 of 16)..Main flight loop (Part 8 of 16)
   &821D   204 Main flight loop (Part 11 of 16)..Main flight loop (Part 12 of 16)
@@ -18,28 +18,29 @@ hot &8000-&A8FF: 46 units, 10496 bytes, 0 free
   &8E9E   100 SQUA..MU11
   &8F02   246 FMLTU2..MLTU2
   &8FF8    81 MUT2..MULT1
-  &9049   133 TAS3..ADD
-  &90CE   181 DVID3B2
-  &9183   409 BUMP2..DOEXP
-  &931C    86 DOT..CPIX2
-  &9372   177 NWSHP
-  &9423   136 PROJ..PL9 (Part 3 of 3)
-  &94AB   130 PLS22..CIRCLE2
-  &952D    98 CHKON..PLS6
-  &958F    78 TT17
-  &95DD   327 KS3..SFX
-  &9724   202 ZINF..Main game loop (Part 6 of 6)
-  &97EE   165 TT102
-  &9893   101 RDKEY
-  &98F8   123 ECMOF..KYTB
-  &9973   332 DKJ1..DK4
-  &9ABF   110 LL28
-  &9B2D    87 LL51
-  &9B84   100 H_CIRC
-  &9BE8    89 S_SHIP
-  &9C41   958 L_REC
-  &9FFF  1196 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
-  &A4AB   128 None..LL9 (Part 10 of 12)
+  &9049   131 TAS3..ADD
+  &90CC   181 DVID3B2
+  &9181   409 BUMP2..DOEXP
+  &931A    86 DOT..CPIX2
+  &9370   177 NWSHP
+  &9421   136 PROJ..PL9 (Part 3 of 3)
+  &94A9   130 PLS22..CIRCLE2
+  &952B    98 CHKON..PLS6
+  &958D    78 TT17
+  &95DB   327 KS3..SFX
+  &9722   202 ZINF..Main game loop (Part 6 of 6)
+  &97EC   165 TT102
+  &9891   101 RDKEY
+  &98F6   123 ECMOF..KYTB
+  &9971   332 DKJ1..DK4
+  &9ABD   110 LL28
+  &9B2B    87 LL51
+  &9B82   100 H_CIRC
+  &9BE6    89 S_SHIP
+  &9C3F   958 L_REC
+  &9FFD  1196 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
+  &A4A9   128 None..LL9 (Part 10 of 12)
+  &A529     2 LL9 (Part 12 of 12)
   &A52B   305 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
   &A65C   115 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
   &A6CF    87 MVT1
@@ -80,7 +81,7 @@ hotm &79B2-&7DFF: 34 units, 1102 bytes, 0 free
   &7D7C    11 LL42F
   &7D87    68 H_LL42..H_EE31
   &7DCB    53 MVT6
-hotx &7FA0-&7FFD: 10 units, 44 bytes, 50 free
+hotx &7FA0-&7FFD: 9 units, 42 bytes, 52 free
   &7FA0     3 DEEOR
   &7FA3     5 MU6
   &7FA8    10 MULT12
@@ -89,5 +90,4 @@ hotx &7FA0-&7FFD: 10 units, 44 bytes, 50 free
   &7FBD     7 MAS4
   &7FC4     4 SHCOL
   &7FC8     1 LL9 (Part 11 of 12)
-  &7FC9     2 LL9 (Part 12 of 12)
-  &7FCB     1 LL9 (Part 12 of 12), drawing
+  &7FC9     1 LL9 (Part 12 of 12), drawing
