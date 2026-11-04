@@ -23302,7 +23302,8 @@ ENDMACRO
 
  INY                    \ Increment the loop counter to point to the next point
 
- JMP WPL1               \ Loop back to WPL1 for the next point in the heap
+ BNE WPL1               \ Loop back to WPL1 for the next point in the heap (this
+                        \ BNE is effectively a JMP as Y is never zero here)
 
 \ ******************************************************************************
 \
