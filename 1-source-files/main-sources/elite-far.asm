@@ -139,12 +139,11 @@
  STA &103,X
  PLA
  PLA
- LDX #1
+ LDX #2                 \ Copy the EQUW's two bytes, high byte first
 .fpj
  LDA &FFFF,X
  STA ft-1,X
- INX
- CPX #3
+ DEX
  BNE fpj
  LDA fB
  STA &F4
