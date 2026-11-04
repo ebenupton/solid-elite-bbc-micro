@@ -8581,8 +8581,7 @@ ENDIF
  LDA QQ11
  ORA GFORCE
  BEQ RR4
- TYA
- CLC
+ TYA                    \ (YC is below 24, so the ASL A below clears the C flag)
 
                         \ A contains the value of YC - the screen row where we
                         \ want to print this character - so now we need to
