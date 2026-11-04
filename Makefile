@@ -25,9 +25,9 @@ PYTHON?=python
 #
 #   verify=no           Do not compare the game binaries with the originals
 #
-#   circles=on          Draw the planet's surface (the circle engine's game
-#                       part at the end of the flight code's bank 4, which it
-#                       does not yet fit: the build reports by how much)
+#   circles=off         Draw the planets as plain discs, without their surfaces
+#                       (the beach ball and the craters: the circle engine's
+#                       game part at the end of the flight code's bank 4)
 #
 #   ssun=off            Leave out the sun near the planet (S_SUN, in bank 6)
 #
@@ -81,10 +81,10 @@ else
   interlace-fix=FALSE
 endif
 
-ifeq ($(circles), on)
-  circles-on=TRUE
-else
+ifeq ($(circles), off)
   circles-on=FALSE
+else
+  circles-on=TRUE
 endif
 
 ifeq ($(ssun), off)

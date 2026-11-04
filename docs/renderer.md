@@ -561,18 +561,19 @@ and the frame's runs of game code leave everything as the original does.
 
 ## Speed
 
-The gate's run, 10,000 iterations: 153,097 cycles per flight iteration,
-13.06 flight iterations per second, against the original's 168,749 and
-11.85 (1.102 times), of which the dashboard's clock switches take about
-1,350 cycles ([video-timing.md](video-timing.md)). The planets are plain
-discs in this build (no `_CIRCLES`); the sun near the planet is drawn
-(`S_SUN`).
+The gate's run, 10,000 iterations: 271,014 cycles per flight iteration,
+7.38 flight iterations per second, against the original's 168,749 and
+11.85 (0.623 times). The build has the planets' surfaces (`_CIRCLES`,
+the default) and the sun near the planet (`S_SUN`). With plain discs
+(`make circles=off`) it is 153,097 cycles, 13.06 it/s (1.102 times), of
+which the dashboard's clock switches take about 1,350 cycles
+([video-timing.md](video-timing.md)).
 By scene (`6-harness/bscenes.mjs` records each iteration's time and the
 planet's, the station's and the ships' positions in a build's run;
 `6-harness/scenes.py` compares two such runs, counting a flight iteration
 in the front view that both put in the same scene, the first of these that
-fits), without and with `_CIRCLES` (`make circles=on`: the beach ball and
-the craters):
+fits), without `_CIRCLES` (`make circles=off`: plain discs) and with it
+(the default: the beach ball and the craters):
 
 | Scene | Iterations | The original | The port | Against the original | With `_CIRCLES` | Against the original |
 |---|---:|---:|---:|---:|---:|---:|
@@ -584,8 +585,7 @@ the craters):
 | Ships about (the rest, with other ships in the bubble) | 745 | 137,912, 14.50 | 110,727, 18.06 | 1.25 | 186,966, 10.70 | 0.74 |
 | The first system's front view (Lave, a beach ball, combat after launch) | 586 | 252,929, 7.91 | 126,960, 15.75 | 1.99 | 421,480, 4.75 | 0.60 |
 
-With `_CIRCLES` the gate's run is 271,014 cycles per flight iteration, 7.38
-it/s (0.62 of the original): the surface's rows are worked out from the
+With `_CIRCLES` the surface's rows are worked out from the
 circles and painted in every frame the planet turns.
 
 The disc layer keeps both discs on each buffer and writes only what
