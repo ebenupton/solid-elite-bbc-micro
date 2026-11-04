@@ -12632,8 +12632,9 @@ ENDMACRO
  ADC #0                 \ result's magnitude, as the original leaves it
  STA T
 
- LDX #0                 \ Set X = 0 and clear the C flag, as the original's
- CLC                    \ loop leaves them
+ LDX #0                 \ Set X = 0; the C flag is already clear, as the last
+                        \ ADC cannot carry (h3 < 64), as the original's loop
+                        \ leaves it
 
  LDA R                  \ Fetch the sign byte from the original (A P+1 P)
                         \ argument that we stored in R
