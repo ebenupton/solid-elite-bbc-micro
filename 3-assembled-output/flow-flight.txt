@@ -62,18 +62,18 @@ hotm &79B2-&7DFF: 35 units, 1102 bytes, 0 free
   &7AFD    16 SHD..DENGY
   &7B0D    18 SPS3
   &7B1F    19 GINF
-  &7B32    30 PLS1
-  &7B50    75 WPLS2..WP1
-  &7B9B    51 WPLS
-  &7BCE    13 FAROF..FAROF2
-  &7BDB    14 DPLT
-  &7BE9    76 SPS1..TAS2
-  &7C35    51 DKS1..DKS2
-  &7C68    23 DKS3
-  &7C7F    73 SHPPT
-  &7CC8    60 LL5
-  &7D04    32 LL38
-  &7D24     4 SHCOL
+  &7B32    28 PLS1
+  &7B4E    75 WPLS2..WP1
+  &7B99    51 WPLS
+  &7BCC    13 FAROF..FAROF2
+  &7BD9    14 DPLT
+  &7BE7    76 SPS1..TAS2
+  &7C33    51 DKS1..DKS2
+  &7C66    23 DKS3
+  &7C7D    73 SHPPT
+  &7CC6    60 LL5
+  &7D02    32 LL38
+  &7D22     6 RECM
   &7D28    29 MFRAME
   &7D45    11 LL9F
   &7D50    14 H_PTCLS
@@ -82,12 +82,12 @@ hotm &79B2-&7DFF: 35 units, 1102 bytes, 0 free
   &7D7D    11 LL42F
   &7D88    67 H_LL42..H_EE31
   &7DCB    53 MVT6
-hotx &7FA0-&7FFD: 8 units, 31 bytes, 63 free
+hotx &7FA0-&7FFD: 8 units, 29 bytes, 65 free
   &7FA0     3 DEEOR
   &7FA3    10 DET1
   &7FAD     1 PLS2
   &7FAE     7 MAS4
-  &7FB5     6 RECM
-  &7FBB     1 LL9 (Part 11 of 12)
-  &7FBC     2 LL9 (Part 12 of 12)
-  &7FBE     1 LL9 (Part 12 of 12), drawing
+  &7FB5     4 SHCOL
+  &7FB9     1 LL9 (Part 11 of 12)
+  &7FBA     2 LL9 (Part 12 of 12)
+  &7FBC     1 LL9 (Part 12 of 12), drawing

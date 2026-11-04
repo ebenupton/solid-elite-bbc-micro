@@ -22039,8 +22039,8 @@ ENDMACRO
  AND #%01111111
  STA P+1
 
- LDA INWK+1,X           \ Set A = sign bit of nosev_x_lo
- AND #%10000000
+ EOR INWK+1,X           \ Set A = sign bit of nosev_x_hi, as A = |nosev_x_hi|
+                        \ and so A EOR nosev_x_hi is just bit 7
 
  JSR DVID3B2            \ Call DVID3B2 to calculate:
                         \
