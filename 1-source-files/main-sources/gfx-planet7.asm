@@ -300,17 +300,14 @@ ENDIF
  ADC pft_x
  TAX
  LDA INWK+1,X
- PHA
- AND #&7F
- LSR A
- STA pft_r+1
+ CMP #&80               \ C = its sign
+ ROR A                  \ sign kept, magnitude halved (bit 6, the sign again,
+ AND #&BF               \ cleared; C = the magnitude's bit 0)
+ STA pcv+1,Y
  LDA INWK,X
  ROR A
  STA pcv,Y
- PLA
- AND #&80
- ORA pft_r+1
- JMP pft5
+ JMP pft6
 .pft2
  LDA #0                 \ (NMOS: pft_r = 0 here only: the vector alone does
  STA pft_r              \ not use it)
@@ -337,12 +334,10 @@ ENDIF
  SBC pft_r+1
  ORA #&80
 .pft4a
- TAX
+ STA pcv+1,Y            \ A = the high byte on both ways in
  LDA pft_r
  STA pcv,Y
- TXA
-.pft5
- STA pcv+1,Y
+.pft6
  DEY
  DEY
  BPL pft1
