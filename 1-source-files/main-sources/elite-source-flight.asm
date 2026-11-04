@@ -26652,15 +26652,14 @@ ENDIF
  JSR CATD               \ load the file to STAGE%
  JSR pload
 
- LDA #LO(STAGE%)        \ Copy it into the region, OVL% to OVL_END%
- STA &90
+ LDY #0                 \ Copy it into the region, OVL% to OVL_END% (STAGE%
+ STY &90                \ is page-aligned, so its low byte is 0)
  LDA #HI(STAGE%)
  STA &91
  LDA #LO(OVL%)
  STA &92
  LDA #HI(OVL%)
  STA &93
- LDY #0
 
 .ovl4
 
