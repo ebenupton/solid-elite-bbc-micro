@@ -6464,7 +6464,8 @@ ENDIF
  STA SZ,Y               \ z_hi so the new particle starts in the far distance
  STA ZZ
 
- JMP STC1               \ Jump up to STC1 to draw this new particle
+ BMI STC1               \ Jump up to STC1 to draw this new particle (always
+                        \ taken, as the ORA #144 left bit 7 of A set)
 
 .stl_pat
 

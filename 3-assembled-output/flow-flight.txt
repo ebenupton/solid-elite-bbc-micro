@@ -1,4 +1,4 @@
-hot &8000-&A8FF: 46 units, 10496 bytes, 0 free
+hot &8000-&A8FF: 47 units, 10496 bytes, 0 free
   &8000    22 S%
   &8016   519 Main flight loop (Part 1 of 16)..Main flight loop (Part 8 of 16)
   &821D   204 Main flight loop (Part 11 of 16)..Main flight loop (Part 12 of 16)
@@ -6,24 +6,25 @@ hot &8000-&A8FF: 46 units, 10496 bytes, 0 free
   &8443    26 UNIV
   &845D   122 PIX1..PIXEL2
   &84D7   146 BLINE
-  &8569   470 STARS..STARS1
-  &873F   261 STARS6
-  &8844    92 MVT3
-  &88A0   156 MVS5
-  &893C   579 TACTICS (Part 1 of 7)..TACTICS (Part 7 of 7)
-  &8B7F   189 DOCKIT
-  &8C3C    85 HITCH
-  &8C91   255 STARS2..QSMUL
-  &8D90   267 MU5..MULT3
-  &8E9B   100 SQUA..MU11
-  &8EFF   247 FMLTU2..MLTU2
-  &8FF6    81 MUT2..MULT1
-  &9047   133 TAS3..ADD
-  &90CC   183 DVID3B2
-  &9183   409 BUMP2..DOEXP
-  &931C    86 DOT..CPIX2
-  &9372   177 NWSHP
-  &9423   136 PROJ..PL9 (Part 3 of 3)
+  &8569   469 STARS..STARS1
+  &873E   261 STARS6
+  &8843    92 MVT3
+  &889F   156 MVS5
+  &893B   579 TACTICS (Part 1 of 7)..TACTICS (Part 7 of 7)
+  &8B7E   189 DOCKIT
+  &8C3B    85 HITCH
+  &8C90   255 STARS2..QSMUL
+  &8D8F   267 MU5..MULT3
+  &8E9A   100 SQUA..MU11
+  &8EFE   247 FMLTU2..MLTU2
+  &8FF5    81 MUT2..MULT1
+  &9046   133 TAS3..ADD
+  &90CB   183 DVID3B2
+  &9182   409 BUMP2..DOEXP
+  &931B    86 DOT..CPIX2
+  &9371   177 NWSHP
+  &9422   136 PROJ..PL9 (Part 3 of 3)
+  &94AA     1 PLS2
   &94AB   130 PLS22..CIRCLE2
   &952D    98 CHKON..PLS6
   &958F    78 TT17
@@ -79,15 +80,14 @@ hotm &79B2-&7DFF: 33 units, 1102 bytes, 0 free
   &7D85    68 H_LL42..H_EE31
   &7DC9     2 LL9 (Part 12 of 12)
   &7DCB    53 MVT6
-hotx &7FA0-&7FFD: 11 units, 58 bytes, 36 free
+hotx &7FA0-&7FFD: 10 units, 57 bytes, 37 free
   &7FA0     3 DEEOR
   &7FA3    10 CTWOS
   &7FAD     5 MU6
   &7FB2    10 MULT12
   &7FBC    10 DET1
-  &7FC6     1 PLS2
-  &7FC7     7 MAS4
-  &7FCE     4 SHCOL
-  &7FD2     6 RECM
-  &7FD8     1 LL9 (Part 11 of 12)
-  &7FD9     1 LL9 (Part 12 of 12), drawing
+  &7FC6     7 MAS4
+  &7FCD     4 SHCOL
+  &7FD1     6 RECM
+  &7FD7     1 LL9 (Part 11 of 12)
+  &7FD8     1 LL9 (Part 12 of 12), drawing
