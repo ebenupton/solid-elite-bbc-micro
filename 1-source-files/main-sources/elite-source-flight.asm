@@ -30336,8 +30336,9 @@ ENDIF
  ORA XX1+31
  STA XX1+31
 
- BIT XX1+31             \ Firing its lasers at us? (as EE31): the beam, from
- BVC hee8               \ the gun vertex, byte #6
+ ASL A                  \ Firing its lasers at us? (as EE31): A is byte #31, so
+ BPL hee8               \ bit 6 is now N: if clear, no beam; else the beam, from
+                        \ the gun vertex, byte #6
  LDY #6
  LDA (XX0),Y
  STA T
