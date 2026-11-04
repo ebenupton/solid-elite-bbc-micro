@@ -18,29 +18,29 @@ hot &8000-&A8FF: 47 units, 10496 bytes, 0 free
   &8EDE   246 FMLTU2..MLTU2
   &8FD4    81 MUT2..MULT1
   &9025   133 TAS3..ADD
-  &90AA   183 DVID3B2
-  &9161   409 BUMP2..DOEXP
-  &92FA    86 DOT..CPIX2
-  &9350   177 NWSHP
-  &9401   136 PROJ..PL9 (Part 3 of 3)
-  &9489   130 PLS22..CIRCLE2
-  &950B    98 CHKON..PLS6
-  &956D    78 TT17
-  &95BB   327 KS3..SFX
-  &9702   202 ZINF..Main game loop (Part 6 of 6)
-  &97CC   165 TT102
-  &9871   101 RDKEY
-  &98D6   123 ECMOF..KYTB
-  &9951   332 DKJ1..DK4
-  &9A9D   110 LL28
-  &9B0B    32 LL38
-  &9B2B    87 LL51
-  &9B82   100 H_CIRC
-  &9BE6    89 S_SHIP
-  &9C3F   958 L_REC
-  &9FFD  1196 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
-  &A4A9   128 None..LL9 (Part 10 of 12)
-  &A529     2 LL9 (Part 12 of 12)
+  &90AA   181 DVID3B2
+  &915F   409 BUMP2..DOEXP
+  &92F8    86 DOT..CPIX2
+  &934E   177 NWSHP
+  &93FF   136 PROJ..PL9 (Part 3 of 3)
+  &9487   130 PLS22..CIRCLE2
+  &9509    98 CHKON..PLS6
+  &956B    78 TT17
+  &95B9   327 KS3..SFX
+  &9700   202 ZINF..Main game loop (Part 6 of 6)
+  &97CA   165 TT102
+  &986F   101 RDKEY
+  &98D4   123 ECMOF..KYTB
+  &994F   332 DKJ1..DK4
+  &9A9B   110 LL28
+  &9B09    32 LL38
+  &9B29    87 LL51
+  &9B80     4 SHCOL
+  &9B84   100 H_CIRC
+  &9BE8    89 S_SHIP
+  &9C41   958 L_REC
+  &9FFF  1196 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
+  &A4AB   128 None..LL9 (Part 10 of 12)
   &A52B   305 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
   &A65C   115 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
   &A6CF    87 MVT1
@@ -81,13 +81,13 @@ hotm &79B2-&7DFF: 34 units, 1102 bytes, 0 free
   &7D7C    11 LL42F
   &7D87    68 H_LL42..H_EE31
   &7DCB    53 MVT6
-hotx &7FA0-&7FFD: 9 units, 50 bytes, 44 free
+hotx &7FA0-&7FFD: 9 units, 48 bytes, 46 free
   &7FA0     3 DEEOR
   &7FA3    10 CTWOS
   &7FAD     5 MU6
   &7FB2    10 MULT12
   &7FBC    10 DET1
-  &7FC6     4 SHCOL
-  &7FCA     6 RECM
-  &7FD0     1 LL9 (Part 11 of 12)
-  &7FD1     1 LL9 (Part 12 of 12), drawing
+  &7FC6     6 RECM
+  &7FCC     1 LL9 (Part 11 of 12)
+  &7FCD     2 LL9 (Part 12 of 12)
+  &7FCF     1 LL9 (Part 12 of 12), drawing

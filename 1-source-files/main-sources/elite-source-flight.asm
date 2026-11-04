@@ -14110,13 +14110,8 @@ ENDMACRO
                         \ the numerator in P(2 1 0)
 
  LDA S                  \ Set A = |S|
- AND #%01111111
-
- BMI DV9                \ If bit 7 of A is set, jump down to DV9 to skip the
-                        \ left-shifting of the denominator (though this branch
-                        \ instruction has no effect as bit 7 of the above AND
-                        \ can never be set, which is why this instruction was
-                        \ removed from later versions)
+ AND #%01111111        \ (the original BMI DV9 here could never be taken, as
+                        \ the AND clears bit 7, so it has been removed)
 
 .dvb6
 
