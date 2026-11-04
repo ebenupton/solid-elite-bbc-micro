@@ -9228,15 +9228,17 @@ ENDIF
  PHA                    \ Store the mask byte on the stack while we use the
                         \ accumulator for a bit
 
- LDA #0                 \ Change the mask so no bits are set, so the characters
- STA R                  \ after the one we're about to draw will be all blank
-
  LDA #99                \ Set Q to a high number (99, why not) so we will keep
  STA Q                  \ drawing blank characters until we reach the end of
                         \ the indicator row
 
  PLA                    \ Restore the mask byte from the stack so we can use it
                         \ to draw the end cap of the indicator
+
+ INC R                  \ Change the mask so no bits are set, so the characters
+                        \ after the one we're about to draw will be all blank
+                        \ (R is &FF here, so incrementing it gives 0; INC leaves
+                        \ A and the C flag alone)
 
  JMP DL5                \ Jump back up to DL5 to draw the mask byte on-screen
 
