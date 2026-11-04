@@ -17750,7 +17750,10 @@ ENDMACRO
 
  ADC QQ19+2             \ Add QQ19+2 to A
 
- JMP TT153              \ Loop back to TT153 to do another addition
+ BCC TT153              \ Loop back to TT153 to do another addition (this BCC
+                        \ is effectively a JMP as the C flag is clear, because
+                        \ economy <= 7 and |economic_factor| <= 31 means the
+                        \ sum never exceeds 217)
 
 .TT154
 
