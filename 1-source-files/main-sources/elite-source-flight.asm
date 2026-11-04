@@ -10794,14 +10794,14 @@ ENDIF
 
  LDA XX15+1             \ Set A = +2 or -2, giving it the same sign as ship_y,
  ASL A                  \ and store it in byte #30, the pitch counter, so that
- LDA #2                 \ the ship pitches towards the station
+ TAY                    \ the ship pitches towards the station; keep ship_y * 2
+ LDA #2                 \ in Y for the range check below
  ROR A
  STA INWK+30
 
- LDA XX15+1             \ If |ship_y * 2| >= 12, i.e. |ship_y| >= 6, then jump
- ASL A                  \ to PH22 to slow right down and return from the
- CMP #12                \ subroutine, as the station is not in our sights
- BCS PH22
+ CPY #12                \ If |ship_y * 2| >= 12, i.e. |ship_y| >= 6, then jump
+ BCS PH22               \ to PH22 to slow right down and return from the
+                        \ subroutine, as the station is not in our sights
 
 .PH32
 
