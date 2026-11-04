@@ -11008,10 +11008,6 @@ ENDIF
                         \   K(3 2 1) = (x_sign x_hi x_lo) + K(3 2 1)
                         \            = (x_sign x_hi x_lo) - coordinate in V(1 0)
 
- LDY U                  \ Restore the index into Y, though this instruction has
-                        \ no effect, as Y is not used again, either here or
-                        \ following calls to this routine
-
  STA K3+2,X             \ Store K(3 2 1) in K3+X(2 1 0), starting with the sign
                         \ byte
 
