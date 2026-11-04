@@ -66,7 +66,8 @@
  PHP
  STA fA
  LDA BANK7
- JMP farc
+ BNE farc               \ Jump to farc (BANK7 is never 0: it is the highest of
+                        \ the four slots found, so at least 3)
 
 .farH
  PHP
