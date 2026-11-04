@@ -31093,8 +31093,9 @@ LIGHT_SUN = TRUE
                         \
                         \   * XX18(8 7 6) = (z_sign z_hi z_lo)
 
- LDA #255               \ Set the 15th byte of XX2 to 255, so that face 15 is
- STA XX2+15             \ always visible. No ship definitions actually have this
+ STX XX2+15             \ Set the 15th byte of XX2 to 255 (X = 255 as the ll91 loop
+                        \ has just counted down past 0), so that face 15 is
+                        \ always visible. No ship definitions actually have this
                         \ number of faces, but this allows us to force a vertex
                         \ to always be visible by associating it with face 15
                         \ (see the ship blueprints for the Cobra Mk III at
