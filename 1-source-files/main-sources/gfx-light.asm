@@ -474,7 +474,6 @@ ENDIF
  STX lr_f
  LDA XX2,X              \ XX2: 0 hidden
  BEQ lf9
- STA lr_r
  LDY #3                 \ the face's unit normal
 .lf2
 .lrf
@@ -502,12 +501,12 @@ ENDIF
  LDA #31
 .lf4
  ORA #&80               \ visible
- LDY lr_r
+ LDX lr_f
+ LDY XX2,X              \ XX2 again (still the visibility)
  INY
  BNE P%+5
  ORA GHAND              \ XX2 = 255: cull by winding (bit 6), and bit 5 if
                         \ the ship is mirrored (GHAND, set by S_SHIP)
- LDX lr_f
  STA XX2,X              \ the level, in place of the face's visibility
 .lf9
  LDA lrf+1              \ (X = lr_f) the next face's normal: 3 bytes on
@@ -591,4 +590,3 @@ ENDIF
 .lr_sl   SKIP 1         \ l_dot's result
 .lr_sh   SKIP 1
 .lr_f    SKIP 1         \ L_REC: the face
-.lr_r    SKIP 1         \ L_REC: its XX2

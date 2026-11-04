@@ -1,4 +1,4 @@
-hot &8000-&A8FF: 47 units, 10496 bytes, 0 free
+hot &8000-&A8FF: 46 units, 10496 bytes, 0 free
   &8000    22 S%
   &8016   519 Main flight loop (Part 1 of 16)..Main flight loop (Part 8 of 16)
   &821D   204 Main flight loop (Part 11 of 16)..Main flight loop (Part 12 of 16)
@@ -15,79 +15,79 @@ hot &8000-&A8FF: 47 units, 10496 bytes, 0 free
   &8C6F   255 STARS2..QSMUL
   &8D6E   266 MU5..MULT3
   &8E78   100 SQUA..MU11
-  &8EDC     5 MU6
-  &8EE1   246 FMLTU2..MLTU2
-  &8FD7    81 MUT2..MULT1
-  &9028   131 TAS3..ADD
-  &90AB    43 DV42..DVID4
-  &90D6   180 DVID3B2
-  &918A   409 BUMP2..DOEXP
-  &9323    86 DOT..CPIX2
-  &9379   176 NWSHP
-  &9429   136 PROJ..PL9 (Part 3 of 3)
-  &94B1   128 PLS22..CIRCLE2
-  &9531    98 CHKON..PLS6
-  &9593    78 TT17
-  &95E1   327 KS3..SFX
-  &9728   202 ZINF..Main game loop (Part 6 of 6)
-  &97F2   165 TT102
-  &9897   101 RDKEY
-  &98FC   123 ECMOF..KYTB
-  &9977   332 DKJ1..DK4
-  &9AC3   110 LL28
-  &9B31    87 LL51
-  &9B88   100 H_CIRC
-  &9BEC    89 S_SHIP
-  &9C45   958 L_REC
-  &A003  1192 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
-  &A4AB   128 None..LL9 (Part 10 of 12)
-  &A52B   305 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
-  &A65C   115 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
-  &A6CF    87 MVT1
-  &A726   103 MVS4
+  &8EDC   246 FMLTU2..MLTU2
+  &8FD2    81 MUT2..MULT1
+  &9023   131 TAS3..ADD
+  &90A6   180 DVID3B2
+  &915A   409 BUMP2..DOEXP
+  &92F3    86 DOT..CPIX2
+  &9349   176 NWSHP
+  &93F9   136 PROJ..PL9 (Part 3 of 3)
+  &9481   128 PLS22..CIRCLE2
+  &9501    98 CHKON..PLS6
+  &9563    78 TT17
+  &95B1   327 KS3..SFX
+  &96F8   202 ZINF..Main game loop (Part 6 of 6)
+  &97C2   165 TT102
+  &9867   101 RDKEY
+  &98CC   123 ECMOF..KYTB
+  &9947   332 DKJ1..DK4
+  &9A93   110 LL28
+  &9B01    87 LL51
+  &9B58   100 H_CIRC
+  &9BBC    89 S_SHIP
+  &9C15   953 L_REC
+  &9FCE  1192 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
+  &A476   128 None..LL9 (Part 10 of 12)
+  &A4F6   305 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
+  &A627   115 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
+  &A69A    87 MVT1
+  &A6F1   103 MVS4
+  &A758    53 MVT6
   &A78D   371 MV40..SCAN
-hotm &79B2-&7DFF: 35 units, 1102 bytes, 0 free
+hotm &79B2-&7DFF: 37 units, 1102 bytes, 0 free
   &79B2    16 INBAY..LTLI
-  &79C2    20 DOENTRY..DEATH2
-  &79D6    26 UNIV
-  &79F0    10 CTWOS
-  &79FA    15 HLOIN2
-  &7A09    14 MAS2
-  &7A17    38 MAS3
-  &7A3D    59 VCSU1..TAS1
-  &7A78    24 TAS6
-  &7A90    76 MLS2..MLS1
-  &7ADC    10 MULT12
-  &7AE6    23 cntr
-  &7AFD    10 DET1
-  &7B07    16 SHD..DENGY
-  &7B17    18 SPS3
-  &7B29    19 GINF
-  &7B3C    24 PLS1
-  &7B54    75 WPLS2..WP1
-  &7B9F    51 WPLS
-  &7BD2    13 FAROF..FAROF2
-  &7BDF    14 DPLT
-  &7BED    76 SPS1..TAS2
-  &7C39    51 DKS1..DKS2
-  &7C6C    23 DKS3
-  &7C83    73 SHPPT
-  &7CCC    60 LL5
-  &7D08    32 LL38
-  &7D28    29 MFRAME
-  &7D45    11 LL9F
-  &7D50    14 H_PTCLS
-  &7D5E    14 H_PTCLSE
-  &7D6C    17 H_DOT
-  &7D7D    11 LL42F
-  &7D88    67 H_LL42..H_EE31
-  &7DCB    53 MVT6
-hotx &7FA0-&7FFD: 8 units, 25 bytes, 69 free
-  &7FA0     3 DEEOR
-  &7FA3     1 PLS2
-  &7FA4     7 MAS4
-  &7FAB     4 SHCOL
-  &7FAF     6 RECM
-  &7FB5     1 LL9 (Part 11 of 12)
-  &7FB6     2 LL9 (Part 12 of 12)
-  &7FB8     1 LL9 (Part 12 of 12), drawing
+  &79C2     3 DEEOR
+  &79C5    20 DOENTRY..DEATH2
+  &79D9    26 UNIV
+  &79F3    10 CTWOS
+  &79FD    15 HLOIN2
+  &7A0C    14 MAS2
+  &7A1A    38 MAS3
+  &7A40    59 VCSU1..TAS1
+  &7A7B    24 TAS6
+  &7A93    76 MLS2..MLS1
+  &7ADF    10 MULT12
+  &7AE9    43 DV42..DVID4
+  &7B14    23 cntr
+  &7B2B    10 DET1
+  &7B35    16 SHD..DENGY
+  &7B45    18 SPS3
+  &7B57    19 GINF
+  &7B6A    24 PLS1
+  &7B82    75 WPLS2..WP1
+  &7BCD    51 WPLS
+  &7C00    13 FAROF..FAROF2
+  &7C0D     7 MAS4
+  &7C14    14 DPLT
+  &7C22    76 SPS1..TAS2
+  &7C6E    51 DKS1..DKS2
+  &7CA1    23 DKS3
+  &7CB8    73 SHPPT
+  &7D01    60 LL5
+  &7D3D    32 LL38
+  &7D5D    29 MFRAME
+  &7D7A    11 LL9F
+  &7D85    14 H_PTCLS
+  &7D93    14 H_PTCLSE
+  &7DA1    17 H_DOT
+  &7DB2    11 LL42F
+  &7DBD    67 H_LL42..H_EE31
+hotx &7FA0-&7FFD: 7 units, 20 bytes, 74 free
+  &7FA0     5 MU6
+  &7FA5     1 PLS2
+  &7FA6     4 SHCOL
+  &7FAA     6 RECM
+  &7FB0     1 LL9 (Part 11 of 12)
+  &7FB1     2 LL9 (Part 12 of 12)
+  &7FB3     1 LL9 (Part 12 of 12), drawing
