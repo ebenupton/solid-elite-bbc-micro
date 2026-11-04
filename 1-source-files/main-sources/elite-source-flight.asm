@@ -18992,17 +18992,14 @@ ENDMACRO
  BCC TT74               \ to TT26 (via TT44) to print the character as is, as
                         \ we don't care about the character's case
 
- PHA                    \ Otherwise this is a letter, so store the token number
+ ROR QQ17               \ Otherwise this is a letter, so set bit 6 of QQ17 so
+                        \ the next letter after this one is printed in lower
+                        \ case (QQ17 is %10000000 here and C is set by the CMP
+                        \ above, so this rotates it into %11000000)
 
- TXA                    \ Set bit 6 in QQ17 (X contains the current QQ17)
- ORA #%1000000          \ so the next letter after this one is printed in lower
- STA QQ17               \ case
-
- PLA                    \ Restore the token number into A
-
- BNE TT44               \ Jump to TT26 (via TT44) to print the character in A
-                        \ (this BNE is effectively a JMP as A will never be
-                        \ zero)
+ BNE TT74               \ Jump to TT26 (via TT74) to print the character in A
+                        \ (this BNE is effectively a JMP as the ROR result is
+                        \ never zero)
 
 \ ******************************************************************************
 \
