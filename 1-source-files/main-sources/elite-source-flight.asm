@@ -5255,9 +5255,9 @@ ENDIF
  LSR A                  \ character blocks we need to fill - 1 (this leaves the
  STA R                  \ C flag clear, as A was a multiple of 4)
 
- LDA X1                 \ Set X = X1 mod 4, which is the horizontal pixel number
- AND #3                 \ within the character block where the line starts
- TAX
+ TXA                    \ Set X = X1 mod 4, which is the horizontal pixel number
+ AND #3                 \ within the character block where the line starts (X
+ TAX                    \ still holds X1 from the start of HLOIN)
 
  LDA TWFR,X             \ Fetch a ready-made byte with the pixels from X to the
  AND LCOL               \ right end of the block filled, in the colour in LCOL,
