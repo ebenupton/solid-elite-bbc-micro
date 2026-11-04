@@ -6527,8 +6527,8 @@ ENDIF
 
 .mlqr
 
- TXA                    \ |A| < q: call MLU2 with A = |A| (as a tail call)
- JMP MLU2
+ JMP MLU2               \ |A| < q: call MLU2 with A = |A| (the AND above left
+                        \ it in A; as a tail call)
 
 .MLSB
 
