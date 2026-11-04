@@ -9179,10 +9179,11 @@ ENDIF
  STA (SC),Y
 
  TYA                    \ Add 6 to Y, so Y is now 8 more than when we started
- CLC                    \ this loop iteration, so Y now points to the address
- ADC #6                 \ of the first line of the indicator bar in the next
- TAY                    \ character block (as each character is 8 bytes of
-                        \ screen memory)
+                        \ this loop iteration (C is always set here, both from
+ ADC #5                 \ the CMP/SBC on the full-block path and from the mask
+ TAY                    \ shifts on the end-cap path, so ADC #5 adds 6), so Y
+                        \ now points to the first line of the indicator bar in
+                        \ the next character block (8 bytes of screen memory)
 
  DEX                    \ Decrement the loop counter for the next character
                         \ block along in the indicator
