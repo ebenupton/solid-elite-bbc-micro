@@ -8217,7 +8217,9 @@ ENDIF
                         \ number, so increment Y, which is where we are keeping
                         \ a count of the number of subtractions so far
 
- JMP TT36               \ Jump back to TT36 to subtract the next 10 billion
+ BNE TT36               \ Jump back to TT36 to subtract the next 10 billion (this
+                        \ BNE is effectively a JMP as Y is at most 10 here, so
+                        \ the INY cannot have made it zero)
 
 .TT37
 
