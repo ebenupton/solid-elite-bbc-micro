@@ -22056,13 +22056,9 @@ ENDMACRO
                         \ into one byte, so set A = 254 as our maximum one-byte
                         \ value to return
 
- LDY K+3                \ Fetch the sign of the result from K+3 into Y
-
- INX                    \ Add 2 to X so the index points to the next coordinate
- INX                    \ in this orientation vector (so consecutive calls to
-                        \ the routine will start with x, then move onto y and z)
-
- RTS                    \ Return from the subroutine
+ RTS                    \ Return from the subroutine (Port: the only live caller,
+                        \ H_CIRC, reads just A, so Y = the sign and X + 2, which
+                        \ the Area: none parts used, are no longer returned)
 
 \ ******************************************************************************
 \
