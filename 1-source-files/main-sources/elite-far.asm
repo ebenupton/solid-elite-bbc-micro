@@ -121,7 +121,7 @@
  PHP
  STA fA
  LDA BANK7
- JMP farj
+ BNE farj               \ Jump to farj (BANK7 is never 0, as in farC)
 
 .farHj
  PHP
