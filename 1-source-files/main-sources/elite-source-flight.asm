@@ -12088,9 +12088,9 @@ ENDIF
 .HFL1
 
  LDA XX4                \ Set K to the ring number in XX4 (0-7) + 8, so K has
- AND #7                 \ a value of 8 to 15, which we will use as the starting
- ORA #8                 \ radius for our next set of rings (A is 0-7, so ORA
- STA K                  \ #8 is the same as adding 8)
+ ORA #8                 \ a value of 8 to 15, which we will use as the starting
+ STA K                  \ radius for our next set of rings (A is 0-7, so ORA
+                        \ #8 is the same as adding 8)
 
 .HFL2
 
