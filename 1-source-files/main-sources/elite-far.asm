@@ -86,12 +86,11 @@
  LDA &F4
  STA &103,X
  PLA
- LDX #1
+ LDX #2                 \ Copy the EQUW's two bytes, high byte first
 .fpc
  LDA &FFFF,X            \ (patched) the EQUW after the JSR, read while the
  STA ft-1,X             \ caller's bank is still paged in
- INX
- CPX #3
+ DEX
  BNE fpc
  LDA fB
  STA &F4
