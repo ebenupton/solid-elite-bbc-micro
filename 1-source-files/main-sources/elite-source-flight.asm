@@ -13182,8 +13182,8 @@ ENDMACRO
 
  LDX #0                 \ Restore X (the value is patched above)
 
- BIT P                  \ Set Z and clear N (as P = 0), and set C, as the
- SEC                    \ original's loop leaves them
+ BIT P                  \ Set Z and clear N (as P = 0); C is already set,
+                        \ as the quarter square difference cannot borrow
 
  RTS                    \ Return from the subroutine
 

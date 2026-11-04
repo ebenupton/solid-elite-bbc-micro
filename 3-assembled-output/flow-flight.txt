@@ -15,32 +15,32 @@ hot &8000-&A8FF: 47 units, 10496 bytes, 0 free
   &8C71   255 STARS2..QSMUL
   &8D70   266 MU5..MULT3
   &8E7A   100 SQUA..MU11
-  &8EDE   247 FMLTU2..MLTU2
-  &8FD5    81 MUT2..MULT1
-  &9026   133 TAS3..ADD
-  &90AB   183 DVID3B2
-  &9162   409 BUMP2..DOEXP
-  &92FB    86 DOT..CPIX2
-  &9351   177 NWSHP
-  &9402   136 PROJ..PL9 (Part 3 of 3)
-  &948A     1 PLS2
-  &948B   130 PLS22..CIRCLE2
-  &950D    98 CHKON..PLS6
-  &956F    78 TT17
-  &95BD   327 KS3..SFX
-  &9704   202 ZINF..Main game loop (Part 6 of 6)
-  &97CE   165 TT102
-  &9873   101 RDKEY
-  &98D8   123 ECMOF..KYTB
-  &9953   332 DKJ1..DK4
-  &9A9F   110 LL28
-  &9B0D    32 LL38
-  &9B2D    87 LL51
-  &9B84   100 H_CIRC
-  &9BE8    89 S_SHIP
-  &9C41   958 L_REC
-  &9FFF  1196 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
-  &A4AB   128 None..LL9 (Part 10 of 12)
+  &8EDE   246 FMLTU2..MLTU2
+  &8FD4    81 MUT2..MULT1
+  &9025   133 TAS3..ADD
+  &90AA   183 DVID3B2
+  &9161   409 BUMP2..DOEXP
+  &92FA    86 DOT..CPIX2
+  &9350   177 NWSHP
+  &9401   136 PROJ..PL9 (Part 3 of 3)
+  &9489   130 PLS22..CIRCLE2
+  &950B    98 CHKON..PLS6
+  &956D    78 TT17
+  &95BB   327 KS3..SFX
+  &9702   202 ZINF..Main game loop (Part 6 of 6)
+  &97CC   165 TT102
+  &9871   101 RDKEY
+  &98D6   123 ECMOF..KYTB
+  &9951   332 DKJ1..DK4
+  &9A9D   110 LL28
+  &9B0B    32 LL38
+  &9B2B    87 LL51
+  &9B82   100 H_CIRC
+  &9BE6    89 S_SHIP
+  &9C3F   958 L_REC
+  &9FFD  1196 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
+  &A4A9   128 None..LL9 (Part 10 of 12)
+  &A529     2 LL9 (Part 12 of 12)
   &A52B   305 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
   &A65C   115 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
   &A6CF    87 MVT1
@@ -62,26 +62,26 @@ hotm &79B2-&7DFF: 34 units, 1102 bytes, 0 free
   &7B26    19 SPS3
   &7B39    19 GINF
   &7B4C    30 PLS1
-  &7B6A    76 WPLS2..WP1
-  &7BB6    51 WPLS
-  &7BE9    13 FAROF..FAROF2
-  &7BF6     7 MAS4
-  &7BFD    14 DPLT
-  &7C0B    76 SPS1..TAS2
-  &7C57    51 DKS1..DKS2
-  &7C8A    23 DKS3
-  &7CA1    73 SHPPT
-  &7CEA    60 LL5
-  &7D26    29 MFRAME
-  &7D43    11 LL9F
-  &7D4E    14 H_PTCLS
-  &7D5C    14 H_PTCLSE
-  &7D6A    17 H_DOT
-  &7D7B    11 LL42F
-  &7D86    68 H_LL42..H_EE31
-  &7DCA     1 LL9 (Part 11 of 12)
+  &7B6A     1 PLS2
+  &7B6B    76 WPLS2..WP1
+  &7BB7    51 WPLS
+  &7BEA    13 FAROF..FAROF2
+  &7BF7     7 MAS4
+  &7BFE    14 DPLT
+  &7C0C    76 SPS1..TAS2
+  &7C58    51 DKS1..DKS2
+  &7C8B    23 DKS3
+  &7CA2    73 SHPPT
+  &7CEB    60 LL5
+  &7D27    29 MFRAME
+  &7D44    11 LL9F
+  &7D4F    14 H_PTCLS
+  &7D5D    14 H_PTCLSE
+  &7D6B    17 H_DOT
+  &7D7C    11 LL42F
+  &7D87    68 H_LL42..H_EE31
   &7DCB    53 MVT6
-hotx &7FA0-&7FFD: 9 units, 51 bytes, 43 free
+hotx &7FA0-&7FFD: 9 units, 50 bytes, 44 free
   &7FA0     3 DEEOR
   &7FA3    10 CTWOS
   &7FAD     5 MU6
@@ -89,5 +89,5 @@ hotx &7FA0-&7FFD: 9 units, 51 bytes, 43 free
   &7FBC    10 DET1
   &7FC6     4 SHCOL
   &7FCA     6 RECM
-  &7FD0     2 LL9 (Part 12 of 12)
-  &7FD2     1 LL9 (Part 12 of 12), drawing
+  &7FD0     1 LL9 (Part 11 of 12)
+  &7FD1     1 LL9 (Part 12 of 12), drawing
