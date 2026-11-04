@@ -1,4 +1,4 @@
-hot &8000-&AE11: 118 units, 8726 bytes, 3068 free
+hot &8000-&AE11: 118 units, 8720 bytes, 3074 free
   &8000    22 S%
   &8016    15 INBAY
   &8025    20 DEEOR
@@ -106,16 +106,16 @@ hot &8000-&AE11: 118 units, 8726 bytes, 3068 free
   &991A    79 S_SHIP
   &9969    18 SPLV
   &997B   136 SHAND
-  &9A03   311 L_REC
-  &9B3A  1199 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
-  &9FE9     1 LL9 (Part 9 of 12), drawing
-  &9FEA     1 LL9 (Part 10 of 12)
-  &9FEB   294 LL145 (Part 1 of 4)..LL145 (Part 4 of 4)
-  &A111     1 LL9 (Part 11 of 12)
-  &A112     2 LL9 (Part 12 of 12)
-  &A114     1 LL9 (Part 12 of 12), drawing
-  &A115   122 LL118
-  &A18F   107 LL120..LL123
-  &A1FA    28 LL129
+  &9A03   305 L_REC
+  &9B34  1199 LL9 (Part 1 of 12)..LL9 (Part 9 of 12)
+  &9FE3     1 LL9 (Part 9 of 12), drawing
+  &9FE4     1 LL9 (Part 10 of 12)
+  &9FE5   294 LL145 (Part 1 of 4)..LL145 (Part 4 of 4)
+  &A10B     1 LL9 (Part 11 of 12)
+  &A10C     2 LL9 (Part 12 of 12)
+  &A10E     1 LL9 (Part 12 of 12), drawing
+  &A10F   122 LL118
+  &A189   107 LL120..LL123
+  &A1F4    28 LL129
 hotm &7980-&7DFF: 0 units, 0 bytes, 1152 free
 hotx &7FA0-&7FFD: 0 units, 0 bytes, 94 free

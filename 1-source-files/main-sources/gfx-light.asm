@@ -567,18 +567,15 @@ ENDIF
 \ l_r32: A = (lr_sh lr_sl + 16) >> 5 (the low byte of it; it fits a signed byte)
 
 .l_r32
- LDA lr_sl
- CLC
- ADC #16
- STA lr_sl
- LDA lr_sh
+ LDA lr_sh              \ shift sh:sl left 3, then add the rounding bit
+ ASL lr_sl              \ (bit 4 of sl) as a fourth ASL's carry, as
+ ROL A                  \ (v + 16) >> 5 = (v >> 5) + bit 4 of v
+ ASL lr_sl
+ ROL A
+ ASL lr_sl
+ ROL A
+ ASL lr_sl              \ C = bit 4 of the original lr_sl
  ADC #0
- ASL lr_sl
- ROL A
- ASL lr_sl
- ROL A
- ASL lr_sl
- ROL A
  RTS
 
 
