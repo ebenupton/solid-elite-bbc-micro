@@ -23202,11 +23202,14 @@ ENDMACRO
  TXA                    \ This is the top half of the circle, so we want to
  EOR #%11111111         \ flip the sign of the y-coordinate in (T X) using two's
  ADC #0                 \ complement, so we start with the low byte in X (the
- TAX                    \ ADC adds 1 as we know the C flag is set)
+ TAX                    \ ADC adds 1 as we know the C flag is set), and C is
+                        \ now set only if X was 0
 
- LDA #&FF               \ And then we flip the high byte in T, so we have
- ADC #0                 \ now negated the y-coordinate in (T X)
- STA T
+ BCS P%+4               \ If X was 0 the negated high byte is 0, so T is already
+                        \ correct, so skip the next instruction
+
+ DEC T                  \ Otherwise the negated high byte is &FF, so set T = &FF
+                        \ (T is 0 here), so (T X) is now negated
 
  CLC                    \ Clear the C flag so the addition at the start of BLINE
                         \ will work
