@@ -58,6 +58,8 @@
  INCLUDE "1-source-files/main-sources/gfx-raster_lcold.asm"
  INCLUDE "1-source-files/main-sources/gfx-raster_reset.asm"
  INCLUDE "1-source-files/main-sources/gfx-raster_wq.asm"
+PLANET7_PART = 2        \ (pf_tilt, which the flight code's PF_HOOK calls
+ INCLUDE "1-source-files/main-sources/gfx-planet7.asm"  \ through T_TILT)
 .R_GAPEND
  ASSERT R_GAPEND <= r_tables
 
@@ -81,6 +83,7 @@
  JMP R_STARPLOT         \ RJT + 30
  JMP R_MARKBOX          \ RJT + 33
  JMP R_GETW             \ RJT + 36 (the disc layer's and the text's, gfx-raster_dq.asm)
+ JMP pf_tilt            \ RJT + 39 (the planet's surface's, gfx-planet7.asm)
 .RJT_END
 
  PRINT "Bank 5 (rasteriser): &8000-", ~R_LOEND-1, " (free ", &9000-R_LOEND, "), &9600-", ~R_HIEND-1, " (free ", RJT-R_HIEND, "), R_LINE's cold part, R_RESETBUF and r_wq to ", ~R_GAPEND-1, " (free ", r_tables-R_GAPEND, "), the jump table &", ~RJT, "-", ~RJT_END-1

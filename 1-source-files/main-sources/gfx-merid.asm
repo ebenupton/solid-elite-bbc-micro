@@ -1901,8 +1901,7 @@ ENDIF                   \ (MERID_PART = 2)
 IF MERID_PART = 1
 
  PFV_P% = P%
- ORG PFVH%
-.pm_zsave SKIP 23       \ Elite's &10-&26 while PF_HOOK uses them
+ ORG PFVH_C%            \ (after gfx-planet7.asm's)
 .pv                     \ pc_circ's 16-bit operands (pc_mul: offsets O_ from pv)
 .pv_m   SKIP 6          \ |mx|, |my|, |mz| >> 2
 .pv_hx  SKIP 2          \ the unit axis' x and y (0.8)
@@ -1957,14 +1956,13 @@ O_RC = pv_rc - pv
                         \ each slot's into PC_TU, for the frame's f_hrec)
  ASSERT P% <= GLUE%
  ORG PFVS_C%            \ (in the home bank's last bytes, after gfx-planet7.asm's)
+.pm_zsave SKIP 23       \ Elite's &10-&26 while PF_HOOK uses them
 .wr     SKIP RSZ        \ the record being made
 .pcbx   SKIP 2          \ the body: its centre and radius
 .pcby   SKIP 2
 .pcr    SKIP 1
-.pcv    SKIP 6          \ the axis (three sign-magnitude words: pf_tilt)
 .pcc    SKIP 1          \ the circle's cosine (0.8) and its sign (bit 7)
 .pcneg  SKIP 1
-.pcn    SKIP 2          \ 2^24 / the axis' nominal length (>> 3)
  ASSERT P% <= &C000
  ORG PFV_P%
 

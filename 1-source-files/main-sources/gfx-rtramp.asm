@@ -49,7 +49,7 @@
  LDA rtA
  RTS
 
- ASSERT HI(RJT) = HI(RJT + 3 * 12)
+ ASSERT HI(RJT) = HI(RJT + 3 * 13)
 
 MACRO RTRAMP n
  JSR rtgo
@@ -69,4 +69,6 @@ ENDMACRO
 .T_STARPLOT   RTRAMP 10
 .T_MARKBOX    RTRAMP 11
 .T_GETW       RTRAMP 12 \ (the disc layer's and the text's, gfx-raster_dq.asm)
+.T_TILT       RTRAMP 13 \ (the planet's surface's pf_tilt, gfx-planet7.asm: from
+                        \ the game's PF_HOOK, in the home bank)
 .rtramp_end

@@ -870,6 +870,26 @@ def pmath_tests(quick=False):
         if m.mpu.a != f or zp[0x20] | zp[0x21] << 8 != n - f * f:
             bad.append(n)
     check(not bad, 'pm_isqrt: every n (%.0f cycles)%s' % (sum(cy) / len(cy), ' (wrong for %r)' % bad[:6] if bad else ''))
+    if 'pcv' in F:                               # pf_tilt (in bank 5, through T_TILT)
+        cy, bad = [], []
+        for i in range(600):
+            for o in range(9, 27):                  # (vectors as Elite's: sign-magnitude,
+                zp[F['INWK'] + o] = rnd.getrandbits(8)  # no negative zero)
+            for o in range(9, 27, 2):
+                if zp[F['INWK'] + o] | (zp[F['INWK'] + o + 1] & 0x7F) == 0:
+                    zp[F['INWK'] + o + 1] = 0
+            x = rnd.choice((9, 15, 21))
+            y = 0 if i % 3 == 0 else rnd.choice([v for v in (9, 15, 21) if v != x])
+            f = 0 if not y else rnd.getrandbits(4)
+            mem.main[STUB:STUB + 9] = bytes([0xA9, f, 0xA2, x, 0xA0, y, 0x20, m.S['loader']['T_TILT'] & 255, m.S['loader']['T_TILT'] >> 8])
+            cy.append(m.gcall_at(STUB, 9))
+            inwk = [zp[F['INWK'] + k] for k in range(36)]
+            want = PCM.pf_tilt(inwk, x, y, f)
+            got = [(zp[F['pcv'] + 2 * j], zp[F['pcv'] + 2 * j + 1]) for j in range(3)]
+            kn = zp[F['pcn']] | zp[F['pcn'] + 1] << 8
+            if got != want or kn != PCM.pf_kn(y, f):
+                bad.append((x, y, f, got, want))
+        check(not bad, 'pf_tilt against planet_caps.pf_tilt (%.0f cycles)%s' % (sum(cy) / len(cy), ' (wrong for %r)' % bad[:2] if bad else ''))
     P = F['pm_P']
     cy, bad = [], []
     for i in range(1200):

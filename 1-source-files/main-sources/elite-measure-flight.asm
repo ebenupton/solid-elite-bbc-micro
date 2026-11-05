@@ -47,6 +47,7 @@ IF _CIRCLES             \ (the planet's surface at the hot pass's end, as the
  _PLANET_RINGS = FALSE
  _PLANET_BANDS = FALSE
  MERID_PART = 1
+ PLANET7_PART = 1
  INCLUDE "1-source-files/main-sources/gfx-planet7.asm"
  INCLUDE "1-source-files/main-sources/gfx-merid.asm"
 ENDIF

@@ -44,6 +44,10 @@
 \
 \ ******************************************************************************
 
+IF PLANET7_PART = 1     \ (the home bank's part; bank 5's, pf_tilt, below)
+
+pf_tilt = T_TILT        \ (bank 5's, through the glue's trampoline)
+
  IF _PLANET_MOON AND _PLANET_RINGS
 .pfh9                   \ (NMOS: here with moon=on and rings=on, where the
  PLA                    \ early exits reach it: X and Y restored at the end
@@ -275,6 +279,12 @@ IF _PLANET_BANDS        \ (make bands=on)
 
 ENDIF
 
+ENDIF                   \ (PLANET7_PART = 1)
+
+IF PLANET7_PART = 2     \ (bank 5's part, gfx-bank5.asm: pf_tilt, which reads
+                        \ only the game's INWK and writes the main RAM's pcv
+INWK = PF_INWK          \ and pcn, so that the home bank has the room)
+
 \ pf_tilt: pcv = (+/- vector X) / 2 + (+/- vector Y) / 2^(k+1), as
 \ sign-magnitude words (X, Y = 9 nosev, 15 roofv, 21 sidev; Y = 0: none), A
 \ bits 0-3: bit 0 the first's sign, bit 1 the second's, bit 2 k = 2, else
@@ -405,6 +415,10 @@ ENDIF
  SBC pft_s+1
  STA pft_r+1
  RTS
+
+ENDIF                   \ (PLANET7_PART = 2)
+
+IF PLANET7_PART = 1
 
 \ ******************************************************************************
 \
@@ -1229,13 +1243,22 @@ IF _PLANET_MOON OR _PLANET_RINGS
 .pf_r  SKIP 1
 .pf_h  SKIP 1           \ h, the system's moon and ring (PF_HOOK)
 ENDIF
-.pft_f SKIP 1           \ pf_tilt's
-.pft_x SKIP 1
-.pft_y SKIP 1
-.pft_k SKIP 1
-.pft_k2 SKIP 1
-.pft_n SKIP 1
-.pft_r SKIP 2
-.pft_s SKIP 2
  PFVS_C% = P%           \ (gfx-merid.asm's follow)
  ORG PFV_Q%
+
+ENDIF                   \ (PLANET7_PART = 1)
+
+ PFV_R% = P%            \ (both parts': pf_tilt's, in main RAM at PFVH%; bank
+ ORG PFVH%              \ 5's assembly and the flight code's give them the same
+.pcv    SKIP 6          \ the axis (three sign-magnitude words: pf_tilt)
+.pcn    SKIP 2          \ 2^24 / the axis' nominal length (>> 3)
+.pft_f  SKIP 1          \ pf_tilt's own
+.pft_x  SKIP 1
+.pft_y  SKIP 1
+.pft_k  SKIP 1
+.pft_k2 SKIP 1
+.pft_n  SKIP 1
+.pft_r  SKIP 2
+.pft_s  SKIP 2
+ PFVH_C% = P%           \ (gfx-merid.asm's follow)
+ ORG PFV_R%

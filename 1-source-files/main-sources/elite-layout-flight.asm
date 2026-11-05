@@ -98,6 +98,8 @@ IF _CIRCLES
  _PLANET_RINGS = FALSE
  _PLANET_BANDS = FALSE
  MERID_PART = 1
+ PLANET7_PART = 1
+ ASSERT PF_INWK = INWK
  INCLUDE "1-source-files/main-sources/gfx-planet7.asm"
  INCLUDE "1-source-files/main-sources/gfx-merid.asm"
 ENDIF

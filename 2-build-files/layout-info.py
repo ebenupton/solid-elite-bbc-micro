@@ -36,7 +36,7 @@ WINDOW7 = {"flight": ("gfx-window7.asm", "gfx-raster_disc.asm", "gfx-raster_stri
                       "gfx-raster_disc2.asm", "gfx-raster_dpatch.asm")}   # (bank 7's renderer window: elite-layout-flight.asm)
 NAMES = ("farC", "farCj", "farH", "farHj", "BANK4", "BANK7", "BANK5", "BANK6", "PCLI",
          "IRQG", "NA%", "CHK2", "CHK", "BRBR1", "PANR", "GCALL", "dfsin", "dfsout", "pload",
-         "T_GETW")
+         "T_GETW", "T_TILT")
 
 sy = {}
 for m in re.finditer(r"'([^']+)':(\d+)", open(OUT + "loader-symbols.txt").read()):

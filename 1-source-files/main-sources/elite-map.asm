@@ -279,6 +279,10 @@
                         \ file loads over (LOMOD) between iterations
  ASSERT PFVA% + 62 = GLUE%
 
+ PF_INWK = &46          \ INWK, for bank 5's part of the planet's surface
+                        \ (gfx-planet7.asm's pf_tilt), which is built before the
+                        \ flight code (elite-layout-flight.asm checks it)
+
  LCOL = &A8             \ The colour of the next lines, pixels and characters
                         \ that the drawing routines draw on the space view: a
                         \ byte of four pixels of the colour (&0F cyan, &F0
