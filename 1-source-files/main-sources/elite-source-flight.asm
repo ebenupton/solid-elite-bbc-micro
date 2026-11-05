@@ -2005,11 +2005,24 @@
 
 .INBAY
 
+ LDA #HI(INBAYJ%-1)     \ Port: push the address of the docked code's JMP SCRAM,
+ PHA                    \ in its INBAY (INBAYJ%, in the home bank), less one, as
+ LDA #LO(INBAYJ%-1)     \ the return address of the OSCLI below: PCLI's "L."
+ PHA                    \ returns into the home bank, which then holds the
+                        \ docked code, and so to SCRAM, where the original's
+                        \ JSR OSCLI returned (its docked code had loaded over
+                        \ the instruction after the JSR, the docked INBAY's
+                        \ JMP SCRAM). So this INBAY can be anywhere on the
+                        \ flight code's side: the flow puts it in main RAM in
+                        \ a build with _CIRCLES, where the docked code's main
+                        \ RAM part loads over it
+
  LDX #LO(LTLI)          \ Set (Y X) to point to LTLI ("L.T.CODE", which gets
  LDY #HI(LTLI)          \ modified to "R.T.CODE" in the DOENTRY routine)
 
- JSR OSCLI              \ Call OSCLI to run the OS command in LTLI, which *RUNs
-                        \ the main docked code in T.CODE
+ JMP OSCLI              \ Call OSCLI to run the OS command in LTLI, which *RUNs
+                        \ the main docked code in T.CODE (Port: a JMP, with
+                        \ the return address pushed above)
                         \
                         \ Note that this is a JSR rather than a JMP, so if LTLI
                         \ is still set to "L.T.CODE" (rather than "R.T.CODE"),

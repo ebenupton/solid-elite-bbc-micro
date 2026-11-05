@@ -121,6 +121,8 @@
  ASSERT P% = BPSLOT_END%
 
  ORG PROGI%             \ the main RAM part's image, below the quarter squares
+ ASSERT INBAYJ = INBAYJ%   \ (the flight code's INBAY returns there: elite-map.asm)
+
  COPYBLOCK PROGM%, PROGM_END%, PROGI%
  COPYBLOCK PROGX%, PROGX_END%, PROGI% + PROGM_END% - PROGM%
 

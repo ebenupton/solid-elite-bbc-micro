@@ -65,7 +65,8 @@ HOME = 4                                         # the banks (the loader finds
 RBANK, FBANK, COLD = 5, 6, 7                     # them; any distinct numbers)
 BPSLOT = 0xB700                                  # (elite-map.asm)
 STUB = None                                      # where the test's caller runs: after
-                                                 # the hot pass's last container (main())
+                                                 # the hot pass's last container, or in
+                                                 # page &0D (main())
 FG = ['F_INIT', 'F_DIRECT', 'F_FRAME', 'F_SHIP', 'F_LINE', 'F_PDOT', 'F_PLANET', 'F_SHPPT',
       'F_CHAR', 'F_DELCHAR', 'F_CLRTEXT', 'F_GUN', 'F_HANG0', 'F_HANGAR', 'F_CLOUD', 'F_SETLD', 'F_PFHOLD']
 # the drawing's temporaries, which game code the frame runs may leave changed
@@ -926,7 +927,11 @@ def pmath_tests(quick=False):
 def main():
     global STUB
     STUB = syms_of('flight')['PROGX_USED%']       # (main RAM no build uses)
-    assert STUB + 8 <= 0x7FFE, 'no room after the hot pass for the test\'s caller'
+    if STUB + 9 > 0x7FFE:
+        STUB = 0x0DA0                             # (or, when the hot pass leaves less than
+                                                  # the caller's 9 bytes there, page &0D
+                                                  # after CATD: DFS's NMI workspace on the
+                                                  # machine, and nothing's on py65)
     args = sys.argv[1:]
     png_dir = OUT
     if '--png' in args:

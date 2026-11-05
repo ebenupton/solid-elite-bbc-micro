@@ -31,6 +31,11 @@
                         \ game entry, +6: JMP to the WRCHV handler, +9: IRQ1's
                         \ address, +11: JMP to the BRKV handler)
 
+ INBAYJ% = HOME% + &1D  \ The docked code's JMP SCRAM, in its INBAY, where the
+                        \ flight code's INBAY returns after loading the docked
+                        \ code at a death, as the original's did (the docked
+                        \ code's layout checks it is there)
+
  PROGM% = &7970         \ Each program's main RAM part (its low pass, then the
  PROGM_END% = &7E00     \ hot pass's main RAM container), after the rupture's
                         \ code and before the mailbox, in the room that the

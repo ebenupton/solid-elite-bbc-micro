@@ -2014,6 +2014,7 @@
  LDX #0                 \ This code is never run, but it takes up the same
  LDY #0                 \ number of bytes as the INBAY routine in the flight
  JSR &8888              \ code, so if the flight code *LOADs the docked code in
+.INBAYJ
  JMP SCRAM              \ its own version of the INBAY routine, then execution
                         \ will fall through into the DOBEGIN routine below once
                         \ the docked binary has loaded
