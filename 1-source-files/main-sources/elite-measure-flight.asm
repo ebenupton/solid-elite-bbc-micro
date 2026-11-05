@@ -20,7 +20,7 @@
  INCLUDE "3-assembled-output/elite-flight-config.asm"
 
 IF _CIRCLES
- CIRCSZ = 2560
+ CIRCSZ = 2663
 ELSE
  CIRCSZ = 0
 ENDIF

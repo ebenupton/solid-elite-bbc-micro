@@ -4994,7 +4994,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Keyboard
 \    Summary: Flush the keyboard buffer
-\       Area: cold
+\       Area: none
 \
 \ ******************************************************************************
 
@@ -7532,7 +7532,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Text
 \    Summary: Print text followed by a newline and indent of 6 characters
-\       Area: cold
+\       Area: overlay 2
 \
 \ ------------------------------------------------------------------------------
 \
@@ -13310,6 +13310,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (S R) = XX(1 0) and (A P) = Q * A
+\       Area: none
 \
 \ ------------------------------------------------------------------------------
 \
@@ -15151,7 +15152,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Display "MAINLY " and jump to TT72
-\       Area: cold
+\       Area: overlay 2
 \
 \ ------------------------------------------------------------------------------
 \
@@ -15173,7 +15174,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Text
 \    Summary: Print a text token followed by a space
-\       Area: cold
+\       Area: overlay 2
 \
 \ ------------------------------------------------------------------------------
 \
@@ -18308,7 +18309,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (Y X) = P * Q * 4
-\       Area: cold
+\       Area: none
 \
 \ ------------------------------------------------------------------------------
 \
@@ -23084,6 +23085,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing circles
 \    Summary: Draw a circle (for the planet or chart)
+\       Area: cold
 \  Deep dive: Drawing circles
 \
 \ ------------------------------------------------------------------------------
@@ -24189,6 +24191,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Remove the space station and replace it with the sun
+\       Area: cold
 \
 \ ******************************************************************************
 
