@@ -140,3 +140,9 @@ writes every labelled routine each machine enters in iterations A to B, `--cut N
 FILE` writes the log cut short (a minimal repro), and `--cand build.json` tries another
 build against the same inputs. A replay refuses a header build that has changed since the
 log was recorded.
+
+`repro/` holds the input logs of the port bugs found, cut short after the finding:
+`inbay-death.jsonl` (a death at iteration 170 of a session with the sun put close: the
+candidate's BRK at `INBAY+7` and its hang in `BRBR1`), which replays with
+`replay.mjs --log 6-harness/agentplay/repro/inbay-death.jsonl --out DIR --cand
+3-assembled-output/build.json --workaround none`.
