@@ -32,7 +32,7 @@
 \ build with make moon=on, _PLANET_MOON) and the ring's dots (pf_ring:
 \ only in a build with make rings=on, _PLANET_RINGS), when the seed has
 \ them. Elite's state is not
-\ touched: Elite's zero page &10-&28 (the engine's workspace) is saved and
+\ touched: Elite's zero page &10-&26 (the engine's workspace) is saved and
 \ restored, and A, X, Y and the flags are preserved. The frame layer makes
 \ the rows with gfx-merid.asm's PC_ROWS (f_bounds, in bank 6).
 \ 6-harness/planet_caps.py models it all bit for bit.
@@ -75,18 +75,18 @@
  LDA K
  CMP #6
  BCC pfh9
- STA pcr                \ (pf_r from pfh5; NMOS: X and Y saved only here,
+ STA pcr                \ (NMOS: X and Y saved only here,
  TXA                    \ as they are kept before)
  PHA
  TYA
  PHA
- LDX #24                \ (Elite's &10-&28: the engine's workspace)
+ LDX #22                \ (Elite's &10-&26: the engine's workspace)
 .pfh0
  LDA &10,X
  STA pm_zsave,X
  DEX
  BPL pfh0
- LDA K3                 \ the centre (K3 and K4 are in &10-&28: read before
+ LDA K3                 \ the centre (K3 and K4 are in &10-&26: read before
  STA pcbx               \ the workspace is used)
  LDA K3+1
  STA pcbx+1
@@ -94,12 +94,16 @@
  STA pcby
  LDA K4+1
  STA pcby+1
+ IF _PLANET_MOON OR _PLANET_RINGS
  LDX #5                 \ (the planet's centre and radius, kept for pf_ring)
 .pfh5
  LDA pcbx-1,X
  STA pf_cx-1,X
  DEX
  BNE pfh5
+ ELSE
+ LDX #0
+ ENDIF
  STX pc_inv             \ (NMOS: X = 0; PC_N zeroed here, not on entry: the
  STX PC_N               \ frame reads it only with PF_CLS bit 7 set)
  LDA PF_CLS
@@ -136,7 +140,7 @@
  IF _PLANET_RINGS
  JSR pf_ring
  ENDIF
- LDX #24
+ LDX #22
 .pfh1
  LDA pm_zsave,X
  STA &10,X
@@ -1208,17 +1212,21 @@ rga_y = pm_tt+1         \ engine's, which PF_HOOK saves)
 
 ENDIF                   \ (_PLANET_RINGS)
 
-.pf_cx EQUW 0           \ the planet's centre and radius (PF_HOOK)
-.pf_cy EQUW 0
-.pf_r  EQUB 0
+ PFV_Q% = P%            \ (what one call makes and uses: in the home bank's
+ ORG PFVS%              \ last bytes, PFVS%, elite-map.asm)
 IF _PLANET_MOON OR _PLANET_RINGS
-.pf_h  EQUB 0           \ h, the system's moon and ring (PF_HOOK)
+.pf_cx SKIP 2           \ the planet's centre and radius (PF_HOOK)
+.pf_cy SKIP 2
+.pf_r  SKIP 1
+.pf_h  SKIP 1           \ h, the system's moon and ring (PF_HOOK)
 ENDIF
-.pft_f EQUB 0           \ pf_tilt's
-.pft_x EQUB 0
-.pft_y EQUB 0
-.pft_k EQUB 0
-.pft_k2 EQUB 0
-.pft_n EQUB 0
-.pft_r EQUW 0
-.pft_s EQUW 0
+.pft_f SKIP 1           \ pf_tilt's
+.pft_x SKIP 1
+.pft_y SKIP 1
+.pft_k SKIP 1
+.pft_k2 SKIP 1
+.pft_n SKIP 1
+.pft_r SKIP 2
+.pft_s SKIP 2
+ PFVS_C% = P%           \ (gfx-merid.asm's follow)
+ ORG PFV_Q%

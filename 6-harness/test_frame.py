@@ -150,7 +150,8 @@ class Mem:
         game = bytearray(ok)                     # game code (LL9, and what the
         mc = map_constants()                     # frame runs) also writes the
         for lo, hi in ((0, 0x100), (0x300, 0x400), (0x900, 0xD00),   # game's zero
-                       (mc['PROGM%'], mc['PROGM_END%']), (mc['PROGX%'], mc['PROGX_END%'])):
+                       (mc['PROGM%'], mc['PROGM_END%']), (mc['PROGX%'], mc['PROGX_END%']),
+                       (mc['PFVA%'], mc['GLUE%'])):
             game[lo:hi] = b'\1' * (hi - lo)     # page, UP, K% and the main RAM part
         self.okgame = game
         self.guard = ok
@@ -252,6 +253,20 @@ class Machine:
             FAILS.append('%s did not keep Y' % entry)
             print('  FAIL', FAILS[-1])
         return cyc
+
+    def gcall_at(self, start, n, maxcyc=2_000_000):
+        """run the n bytes of code at start (main RAM), the home bank paged"""
+        mpu, mem = self.mpu, self.mem
+        mem.bad = []
+        mem.guard = mem.okgame
+        mpu.p, mpu.sp = 0x24, 0xFF
+        mpu.pc = start
+        c0 = mpu.processorCycles
+        while mpu.pc != start + n:
+            mpu.step()
+            if mpu.processorCycles - c0 > maxcyc:
+                raise RuntimeError('runaway at &%04X' % mpu.pc)
+        return mpu.processorCycles - c0
 
     def gcall(self, addr, maxcyc=2_000_000):
         """JSR addr (game code in the home bank) from main RAM, the home bank
@@ -756,6 +771,72 @@ def disc_tests(png_dir):
             png(got, os.path.join(png_dir, 'seq-%d-got.png' % f))
             png(want, os.path.join(png_dir, 'seq-%d-want.png' % f))
 
+def pmath_tests(quick=False):
+    """the circle engine's arithmetic in the flight code's bank 4 (a build
+    with _CIRCLES: gfx-merid.asm's first part) against exact models:
+    pm_isqrt for every 16-bit n (the root and the remainder), pm_fdiv against
+    planet_caps.fdiv, pm_mul16 (and pm_sq16, once the engine has it) against
+    the product, for random operands of every bit length (0 to 32 bits; 0 to
+    16 for the products)"""
+    import random
+    m = Machine()
+    F, mem = m.F, m.mem
+    if 'pm_isqrt' not in F:
+        print('pmath: no circle engine in this build')
+        return
+    print('the circle engine\'s arithmetic')
+    mem.sel = HOME
+    bk = mem.banks[HOME]
+    zp = mem.main
+
+    def put(a, v):
+        if 0x8000 <= a < 0xC000:
+            bk[a - 0x8000] = v
+        else:
+            zp[a] = v
+    rnd = random.Random(7)
+    rb = lambda n: rnd.getrandbits(n) if n else 0
+    cy, bad = [], []
+    for n in range(0, 65536, 7 if quick else 1):
+        zp[0x20], zp[0x21] = n & 255, n >> 8
+        cy.append(m.gcall(F['pm_isqrt']))
+        f = math.isqrt(n)
+        if m.mpu.a != f or zp[0x20] | zp[0x21] << 8 != n - f * f:
+            bad.append(n)
+    check(not bad, 'pm_isqrt: every n (%.0f cycles)%s' % (sum(cy) / len(cy), ' (wrong for %r)' % bad[:6] if bad else ''))
+    P = F['pm_P']
+    cy, bad = [], []
+    for i in range(1200):
+        u, v = rb(rnd.randrange(33)), rb(rnd.randrange(33))
+        if v == 0:
+            v = 1 + rb(rnd.randrange(32))
+        for k in range(4):
+            put(P + k, (u >> 8 * k) & 255)
+            put(P + 4 + k, (v >> 8 * k) & 255)
+        m.mpu.x, m.mpu.y = 0, 4
+        mem.main[STUB:STUB + 7] = bytes([0xA2, 0, 0xA0, 4, 0x20, F['pm_fdiv'] & 255, F['pm_fdiv'] >> 8])
+        c = m.gcall_at(STUB, 7)
+        cy.append(c)
+        got = sum(zp[0x18 + k] << 8 * k for k in range(4))
+        if got != PCM.fdiv(u, v):
+            bad.append((u, v, got))
+    check(not bad, 'pm_fdiv against planet_caps.fdiv (%.0f cycles)%s' % (sum(cy) / len(cy), ' (wrong for %r)' % bad[:4] if bad else ''))
+    for name, two in (('pm_mul16', True), ('pm_sq16', False)):
+        if name not in F:
+            continue
+        cy, bad = [], []
+        for i in range(3000):
+            u, v = rb(rnd.randrange(17)), rb(rnd.randrange(17))
+            if not two:
+                v = u
+            zp[0x10], zp[0x11], zp[0x14], zp[0x15] = u & 255, u >> 8, v & 255, v >> 8
+            cy.append(m.gcall(F[name]))
+            got = sum(zp[0x18 + k] << 8 * k for k in range(4))
+            if got != u * v:
+                bad.append((u, v, got))
+        check(not bad, '%s against the product (%.0f cycles)%s' % (name, sum(cy) / len(cy), ' (wrong for %r)' % bad[:4] if bad else ''))
+
+
 def main():
     args = sys.argv[1:]
     png_dir = OUT
@@ -870,6 +951,7 @@ def main():
         png(bytes(bad), os.path.join(png_dir, 'frame-5-diff.png'))
 
     disc_tests(png_dir)
+    pmath_tests('--quick' in args)
 
     print('cycles: F_FRAME %s (frame 1 includes clearing buffer 0); F_CHAR %d' % (
         ', '.join(str(c) for c in (cyc1, cyc2, cyc3, cyc5)), max(m.cycles['F_CHAR'])))

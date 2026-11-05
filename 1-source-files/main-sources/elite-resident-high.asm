@@ -45,5 +45,5 @@
   ENDIF
  NEXT
 
- PRINT "High resident block: ", ~RESH%, "-", ~P%-1, ", free ", &7F00-P%
- ASSERT P% <= &7F00
+ PRINT "High resident block: ", ~RESH%, "-", ~P%-1, ", free ", PFVH%-P%, " (then the circle engine's variables)"
+ ASSERT P% <= PFVH%

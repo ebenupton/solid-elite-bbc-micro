@@ -55,7 +55,7 @@
 \     circle's record into the next slot of PCB, from the axis pcv (pf_tilt's
 \     sign-magnitude words), its scale pcn, the cosine pcc and its sign
 \     pcneg and the body pcbx, pcby, pcr; its part of the base colour into
-\     pc_inv. It uses Elite's zero page &10-&28, which PF_HOOK saves, and
+\     pc_inv. It uses Elite's zero page &10-&26, which PF_HOOK saves, and
 \     reads main RAM only for the quarter squares (QSL, QSH);
 \
 \   * PC_ROWS (the planet's records) and PC_MROWS (the moon's), in the frame
@@ -71,8 +71,8 @@ pm_b  = &14             \ multiplicand, dividend; multiplier, divisor;
 pm_p  = &18             \ product, quotient; temporary
 pm_tt = &20
 pmi_res = &23           \ pm_isqrt's
-pmi_one = &25
-pmi_s = &27             \ (&27-&28)
+pmi_one = &24
+pmi_s = &25             \ (&25-&26)
 pc_xs = &22             \ pcl4's X (NMOS: for PHX, PLX)
 
 \ A circle's record (RSZ bytes, in its slot of PCB)
@@ -166,6 +166,9 @@ IF MERID_PART = 1
  STX pc_a9
  STX pc_a9+1
  STX pc_a9+2
+ STX pv_hx+1            \ (the 16-bit operands made of a byte: the unit axis'
+ STX pv_hy+1            \ x and y, and r; in main RAM, which no image sets)
+ STX pv_r+1
  LDA pcr                \ d = r c (8.8), and its sign once m is negated (0 if
  STA pv_r               \ d is: then only mx's sign tells the nodes' side)
  LDX pcc
@@ -1724,25 +1727,29 @@ ASSERT prk1 = prk0 + 6 AND prk3 = prk0 + 18 AND pra3 = pra0 + 18
 
 ENDIF                   \ (MERID_PART = 2)
 
-\ The engine's variables: pc_circ's in the game's bank 4 (MERID_PART = 1),
-\ PC_ROWS' in bank 6 (MERID_PART = 2), and the records' slots' offsets in
-\ both (pcb_o, five bytes)
+\ The engine's variables: pc_circ's (MERID_PART = 1) in main RAM, 64 bytes
+\ at PFVH% and 62 at PFVA%, and what one call makes and uses in the home
+\ bank's last bytes, at PFVS% (elite-map.asm), so that the code at the
+\ home bank's end has the room; PC_ROWS' in bank 6 (MERID_PART = 2); and the
+\ records' slots' offsets in both (pcb_o, five bytes)
 
 IF MERID_PART = 1
 
-.pm_eu  EQUB 0
+ PFV_P% = P%
+ ORG PFVH%
+.pm_zsave SKIP 23       \ Elite's &10-&26 while PF_HOOK uses them
 .pv                     \ pc_circ's 16-bit operands (pc_mul: offsets O_ from pv)
 .pv_m   SKIP 6          \ |mx|, |my|, |mz| >> 2
-.pv_hx  EQUW 0          \ the unit axis' x and y (0.8)
-.pv_hy  EQUW 0
-.pv_d   EQUW 0          \ d = r c (8.8)
-.pv_r   EQUW 0          \ r
-.pm_tq  EQUW 0          \ t = mz^2 / rho2, 0.16
-.pm_v   EQUW 0          \ v = mx^2 / (mx^2 + my^2), 0.16
-.pv_cn  EQUW 0          \ pcn / 2
-.pv_rc  EQUW 0          \ r^2 - (d^2 >> 16), r^2 - e2
-.pv_r2  EQUW 0          \ r^2
-.pv_dd  EQUW 0          \ d^2 >> 16
+.pv_hx  SKIP 2          \ the unit axis' x and y (0.8)
+.pv_hy  SKIP 2
+.pv_d   SKIP 2          \ d = r c (8.8)
+.pv_r   SKIP 2          \ r
+.pm_tq  SKIP 2          \ t = mz^2 / rho2, 0.16
+.pm_v   SKIP 2          \ v = mx^2 / (mx^2 + my^2), 0.16
+.pv_cn  SKIP 2          \ pcn / 2
+.pv_rc  SKIP 2          \ r^2 - (d^2 >> 16), r^2 - e2
+.pv_r2  SKIP 2          \ r^2
+.pv_dd  SKIP 2          \ d^2 >> 16
 O_M = pv_m - pv
 O_HX = pv_hx - pv
 O_HY = pv_hy - pv
@@ -1754,10 +1761,13 @@ O_CN = pv_cn - pv
 O_RC = pv_rc - pv
 .pm_sg  SKIP 6          \ their signs (by 2)
 .pm_nz  SKIP 6          \ &80 if non-zero (by 2)
-.pm_sx  EQUB 0          \ bit 7: mx < 0 (after negating m if mz < 0)
-.pm_sy  EQUB 0          \ bit 7: my' < 0
-.pm_inv EQUB 0          \ 1 if m was negated
-.pm_ulo EQUW 0
+.pm_sx  SKIP 1          \ bit 7: mx < 0 (after negating m if mz < 0)
+.pm_sy  SKIP 1          \ bit 7: my' < 0
+.pm_inv SKIP 1          \ 1 if m was negated
+ ASSERT P% <= PFVH% + 64
+ ORG PFVA%
+.pm_eu  SKIP 1
+.pm_ulo SKIP 2
 .pm_a32 SKIP 4          \ a, 16.16 signed } (in this order: the record's
 .pm_K2  SKIP 4          \ K2, 16.16       } first eight bytes)
 .pm_P                   \ 4-byte operands
@@ -1767,28 +1777,29 @@ O_RC = pv_rc - pv
 .pm_XY  SKIP 4
 .pm_R2  SKIP 4
 .pm_Q2  SKIP 4
-.pm_m8  EQUB 0
-.pm_zsave SKIP 25       \ Elite's &10-&28 while PF_HOOK uses them
-
-.pc_t   EQUB 0
-.pc_dnz EQUB 0          \ bit 7: d is not 0
-.pc_dn  EQUB 0          \ bit 7: d < 0 once m is negated (0 if d is 0)
-.pc_tb  EQUB 0          \ bit 7: the bottom in the region, bit 6: the top
-.pc_st  EQUB 0
-.pc_v   EQUW 0
+.pm_m8  SKIP 1
+.pc_t   SKIP 1
+.pc_dnz SKIP 1          \ bit 7: d is not 0
+.pc_dn  SKIP 1          \ bit 7: d < 0 once m is negated (0 if d is 0)
+.pc_tb  SKIP 1          \ bit 7: the bottom in the region, bit 6: the top
+.pc_st  SKIP 1
+.pc_v   SKIP 2
 .pc_o   SKIP 3          \ } 24-bit signed, at pc_o + X for pc_sgn: an offset
 .pc_a9  SKIP 3          \ } (16.8); A, sqrt(B) and the two nodes, in 1/512
 .pc_s9  SKIP 3          \ } pixels
 .pc_n   SKIP 6
+ ASSERT P% <= GLUE%
+ ORG PFVS_C%            \ (in the home bank's last bytes, after gfx-planet7.asm's)
 .wr     SKIP RSZ        \ the record being made
-
-.pcbx   EQUW 0          \ the body: its centre and radius
-.pcby   EQUW 0
-.pcr    EQUB 0
+.pcbx   SKIP 2          \ the body: its centre and radius
+.pcby   SKIP 2
+.pcr    SKIP 1
 .pcv    SKIP 6          \ the axis (three sign-magnitude words: pf_tilt)
-.pcc    EQUB 0          \ the circle's cosine (0.8) and its sign (bit 7)
-.pcneg  EQUB 0
-.pcn    EQUW 0          \ 2^24 / the axis' nominal length (>> 3)
+.pcc    SKIP 1          \ the circle's cosine (0.8) and its sign (bit 7)
+.pcneg  SKIP 1
+.pcn    SKIP 2          \ 2^24 / the axis' nominal length (>> 3)
+ ASSERT P% <= &C000
+ ORG PFV_P%
 
 ELSE
 

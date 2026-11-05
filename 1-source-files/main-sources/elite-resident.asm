@@ -817,8 +817,8 @@ pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
 \
 \ ******************************************************************************
 
- PRINT "Resident block A: &0400-", ~P%-1, ", free ", GLUE%-P%, " (then the renderer's glue, the hangar's workspace, SNE and ACT)"
- ASSERT P% <= GLUE% AND PROGM_END% > PROGM%
+ PRINT "Resident block A: &0400-", ~P%-1, ", free ", PFVA%-P%, " (then the circle engine's variables, the renderer's glue, the hangar's workspace, SNE and ACT)"
+ ASSERT P% <= PFVA% AND PROGM_END% > PROGM%
 
 \ ******************************************************************************
 \

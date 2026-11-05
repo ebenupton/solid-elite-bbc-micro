@@ -266,6 +266,16 @@
  DTMP2 = &07BE          \ the docked code), at the end of the resident block A
                         \ (elite-resident.asm)
 
+ PFVA% = &06E6          \ The circle engine's variables (gfx-merid.asm and
+ PFVH% = &7EC0          \ gfx-planet7.asm, the flight code's planet surface in
+ PFVS% = BPSLOT_END%    \ a build with _CIRCLES): 62 bytes at the end of the
+                        \ resident block A, before the glue, and 64 after the
+                        \ high resident block, in main RAM, and what one
+                        \ PF_HOOK call makes and uses in the home bank's last
+                        \ 94 bytes, after the blueprint slot, which a set's
+                        \ file loads over (LOMOD) between iterations
+ ASSERT PFVA% + 62 = GLUE%
+
  LCOL = &A8             \ The colour of the next lines, pixels and characters
                         \ that the drawing routines draw on the space view: a
                         \ byte of four pixels of the colour (&0F cyan, &F0
