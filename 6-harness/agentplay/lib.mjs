@@ -99,6 +99,7 @@ export class BMachine {
         add("LAS", las); add("LASN", { ...las, a: las.a + 3, sig: [] });
         // OSRDCH (the MOS's entry, whatever RDCHV points at)
         add("RDCH", { prog: null, name: "OSRDCH", a: 0xffe0, map: "m", sig: [] }, { poll: true });
+        for (const a of [0xffce, 0xffd1, 0xffd4, 0xffd7, 0xffda, 0xffdd, 0xfff7, 0xfff1]) add("FS", { prog: null, name: "FS", a, map: "m", sig: [] });
         for (const name of b.patches) for (const pt of [].concat(PATCHES[name](P.flight))) add("PATCH", { prog: P.flight, name, ...pt });
         this.hookTab = new Uint8Array(65536);
         for (const a of byPc.keys()) this.hookTab[a] = 1;
@@ -109,6 +110,7 @@ export class BMachine {
         this.offOfAddr = new Map();
         { let o = 0; for (const [a, n] of this.regions) { for (let i = 0; i < n; i++) this.offOfAddr.set(a + i, o + i); o += n; } }
         this.dirty = new Set();
+        this.stash = new Map();         // (settle()'s zeroed bytes and their values: unsettle())
         const sysWriter = () => {
             const pc = cpu.pc;
             if (pc >= 0xc000) return true;
@@ -117,7 +119,7 @@ export class BMachine {
         };
         cpu.debugWrite.add(a => {
             if (!this.inGame || !this.inRegion[a]) return false;
-            if (sysWriter()) this.dirty.add(a); else this.dirty.delete(a);
+            if (sysWriter()) this.dirty.add(a); else { this.dirty.delete(a); this.stash.delete(a); }
             return false;
         });
         this.written = new Set();
@@ -280,7 +282,14 @@ export class BMachine {
         return this.canon(out);
     }
     // the filing system's bytes above page 0 that the game has not written since: set to 0
-    settle() { for (const a of this.dirty) if (a >= 0x100) { this.ram[a] = 0; this.dirty.delete(a); } }
+    settle() { for (const a of this.dirty) if (a >= 0x100) { this.stash.set(a, this.ram[a]); this.ram[a] = 0; this.dirty.delete(a); } }
+    // a filing-system call (OSFIND, OSGBPB, OSBPUT, OSBGET, OSARGS, OSFILE, OSCLI, and
+    // OSWORD &7F, the disc controller): the bytes settle() zeroed that the game has not
+    // written since are put back, and are the filing system's again. They are DFS's
+    // catalogue (the game's WP holds it from CATD, or a load, until the game writes over
+    // it), which DFS writes back to the disc when it saves a file: zeroed, it would wipe
+    // the disc's catalogue, which the game would not have done
+    unsettle() { for (const [a, v] of this.stash) { this.ram[a] = v; this.dirty.add(a); } this.stash.clear(); }
     dirtyOffsets() { return this.dirty.size ? [...this.dirty].map(a => this.offOfAddr.get(a)) : null; }
 
     // the per-instruction hook; true stops the machine at pc (a blocked poll, or a redirect)
@@ -354,6 +363,7 @@ export class BMachine {
                 this.redirectTo = (ret + 1) & 0xffff;
                 return true;
             }
+            case "FS": if (this.stash.size && (pc !== 0xfff1 || cpu.a === 0x7f)) this.unsettle(); break;
             case "PATCH": h.apply(cpu); break;
             case "Mpc": {
                 const v = this.rb(sy.LASCT);

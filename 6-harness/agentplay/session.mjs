@@ -101,6 +101,10 @@ export class Session {
         this.rsy = this.ref.sy;
         this.cand.opts.seedFrom = this.ref;
         this.cs = compareSetup(this.rb, this.ref.regions, !cfg.strict);
+        // each disc's own files (all but directory E's commanders), to check that they stay
+        const sig = m => { const f = discFiles(m).files, o = {}; for (const [n, x] of Object.entries(f)) if (!n.startsWith("E.")) o[n] = createHash("sha1").update(x.data).digest("hex"); return o; };
+        this.discSig = m => sig(m);
+        this.disc0 = { ref: sig(this.ref), cand: sig(this.cand) };
         for (let k = 0; k < this.ref.regions.length; k++) {
             const [, n, nm] = this.ref.regions[k], c = this.cand.regions[k];
             if (!c || c[1] !== n || c[2] !== nm) throw new Error(`region ${nm} differs in size: ref ${n}, cand ${c && c[1]}`);
@@ -384,6 +388,13 @@ export class Session {
         let r, c;
         try { r = discFiles(this.ref); c = discFiles(this.cand); } catch (e) { this.finding("internal", `disc read: ${e.message}`); return; }
         this.stats.discChecks = (this.stats.discChecks || 0) + 1;
+        // the game's own files on each disc must be as they were at the start (a save that
+        // writes back a catalogue the game had overwritten would lose them)
+        for (const m of [this.ref, this.cand]) {
+            const now = this.discSig(m), was = this.disc0[m.name];
+            const lost = Object.keys(was).filter(n => now[n] !== was[n]);
+            if (lost.length) this.onceFinding(`disc0:${m.name}`, "disc-integrity", `${m.name}: ${lost.length} of the disc's own files gone or changed after a disc access (iteration ${m.iter}): ${lost.slice(0, 8).join(" ")}; the catalogue now holds ${Object.keys((m === this.ref ? r : c).files).length} files`);
+        }
         const names = new Set([...Object.keys(r.files), ...Object.keys(c.files)].filter(n => n.startsWith("E.")));
         if (final && this.stats.discSkipped) names.clear();
         for (const n of names) {
@@ -422,8 +433,9 @@ export class Session {
             if (this.stopFrame !== undefined && this.frame >= this.stopFrame) break;
             await this.step();
             if (cfg.iters && this.stats.iters >= cfg.iters) break;
-            // (a replay runs to where the session ended, or 50 reads past its last key without an end record)
-            if (cfg.replay && cfg.until === undefined && (this.logEnd ? this.ref.iter >= this.logEnd.iter : this.ref.polls > this.lastPoll + 50)) break;
+            // (a replay runs to where the session ended: past its last read, or its last
+            // iteration for a log cut short; or 50 reads past its last key without an end record)
+            if (cfg.replay && cfg.until === undefined && (this.logEnd ? (this.logEnd.polls !== undefined ? this.ref.polls > this.logEnd.polls : this.ref.iter >= this.logEnd.iter) : this.ref.polls > this.lastPoll + 50)) break;
             if (cfg.replay && cfg.until !== undefined && this.ref.iter > cfg.until + (cfg.keepGoing || 0) + 1) break;
             if (this.divShots && this.divShotFrame === undefined) { this.divShotFrame = this.frame + 3; this.ref.renderAll(); this.cand.renderAll(); }
             if (this.divShots && this.frame >= this.divShotFrame) { this.divShots = false; await this.shots(`divergence-${String(this.div.iter).padStart(6, "0")}`); }

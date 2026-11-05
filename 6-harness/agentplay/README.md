@@ -67,7 +67,10 @@ bytes: a compared byte the MOS, DFS or the NMI handler wrote is left out of the 
 until the game writes it, and is set to 0 (above page 0) at each `MLOOP` and pass of `M%`,
 and also at each call of `DIALS`: a launch draws the dashboard before the first pass of
 `M%`, its altitude from `ALTIT` (`&0FD1`, in `WP`), where the ship file's load has just left
-a byte of the disc's catalogue, another on each build's disc.
+a byte of the disc's catalogue, another on each build's disc. The bytes zeroed are kept, and
+put back at the next filing-system call (`OSFILE`, `OSCLI`, `OSFIND`, `OSGBPB`, `OSBGET`,
+`OSBPUT`, `OSARGS`, `OSWORD &7F`) if the game has not written them since: they are DFS's
+catalogue, which DFS writes back to the disc when it saves a file.
 
 **Game state.** At every `MLOOP` both machines' state is snapshotted with blib's regions
 (zero page, `UP`, the `K%` slots and line heap, `WP`, `NA%`) and compared with the gate's
@@ -92,7 +95,8 @@ dials, scanner and compass, right dials) with the character cells.
 - **Crashes:** the PC in page 0 or 1.
 - **Save files:** after every disc access (`SVE`), once both machines are past the next
   `MLOOP`, and at the end, the commander files (directory `E`) on the two discs must match,
-  catalogue and bytes.
+  catalogue and bytes, and each disc's own files (the game's) must be as they were at the
+  start (`disc-integrity`).
 - **Coverage:** whole-code coverage by program (the flight and docked programs share
   addresses), labels as `flight:NAME`, `docked:NAME`, and for the port its renderer banks,
   `bank5:NAME`, `bank6:NAME`; the routines entered (`ROUTINES`) and the features reached
@@ -146,3 +150,8 @@ log was recorded.
 candidate's BRK at `INBAY+7` and its hang in `BRBR1`), which replays with
 `replay.mjs --log 6-harness/agentplay/repro/inbay-death.jsonl --out DIR --cand
 3-assembled-output/build.json --workaround none`.
+`orig-catalogue-after-death.jsonl` is the original's, not the port's: after a death, the
+game writes over `WP` (the title screen, its workspaces), where `CATD` left DFS's catalogue, and a save before
+the next launch (whose `TT110` calls `CATD` again) writes that catalogue back, so the
+reference's disc loses its files and its next `R.D.CODE` fails with "Bad command"; the
+port's disc keeps its files (about 25 game minutes to replay).
