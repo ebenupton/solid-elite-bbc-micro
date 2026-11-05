@@ -119,7 +119,8 @@ export function loadBuild(file) {
 
 // Patches to a build's behaviour, named in its build.json ("patches"), which
 // runElite applies as hooks: the gate's reference (the original disc) has
-// one, as the port defines a value that the original leaves to chance.
+// two, where the port defines a value that the original leaves to what was
+// drawn.
 //
 //  * "ma93-q": in the main flight loop's altitude check (MA93: STA R, JSR
 //    LL5), the original takes SQRT(R Q) with Q left over from whatever ran
@@ -130,6 +131,14 @@ export function loadBuild(file) {
 //    MA93 by its bytes (STA R, JSR LL5: &85 R &20 LL5), which must be there
 //    once, or the run fails; LL5 reads R and Q first, and no register, so
 //    setting Q in memory at the JSR is the port's two instructions.
+//  * "ee51-c": when LL9 starts a killed ship's explosion, its first random
+//    number (EE55's first DORND) takes C from EE51, which removes the ship
+//    from the screen: LL155 leaves C set after drawing a heap of lines but
+//    clear after a heap of none, and EE51 leaves it as it was when the ship
+//    was not on the screen. The port draws no heap, so it sets C = 1 there
+//    (SEC after the JSR EE51); the reference gets the same: at the
+//    instruction after that JSR (JSR EE51, LDY #1, LDA #18, STA (XX19),Y,
+//    found from LL9, which must be there once, or the run fails), C = 1.
 export const PATCHES = {
     "ma93-q": (prog) => {
         const sy = prog.sy, img = prog.images.find(im => sy.MA93 >= im.base && sy.MA93 < im.base + im.data.length);
@@ -139,6 +148,15 @@ export const PATCHES = {
         if (at.length !== 1) throw new Error(`patch ma93-q: STA R, JSR LL5 found ${at.length} times after MA93`);
         const a = at[0] + 2;
         return { a, map: img.map, sig: [0x20, sy.LL5 & 255, sy.LL5 >> 8], apply: cpu => { cpu.ramRomOs[sy.Q] = 0; } };
+    },
+    "ee51-c": (prog) => {
+        const sy = prog.sy, img = prog.images.find(im => sy.LL9 >= im.base && sy.LL9 < im.base + im.data.length);
+        const want = [0x20, sy.EE51 & 255, sy.EE51 >> 8, 0xa0, 0x01, 0xa9, 0x12, 0x91, sy.XX19];
+        const at = [];
+        for (let a = sy.LL9; a < sy.LL9 + 160; a++) if (want.every((v, i) => img.data[a + i - img.base] === v)) at.push(a);
+        if (at.length !== 1) throw new Error(`patch ee51-c: JSR EE51, LDY #1 found ${at.length} times after LL9`);
+        const a = at[0] + 3;
+        return { a, map: img.map, sig: [0xa0, 0x01, 0xa9], apply: cpu => { cpu.p.c = true; } };
     },
 };
 

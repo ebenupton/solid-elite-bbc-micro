@@ -30779,6 +30779,14 @@ LIGHT_SUN = TRUE
 
  JSR EE51               \ Call EE51 to remove the ship from the screen
 
+ SEC                    \ Port: C = 1 for the explosion's first random number
+                        \ (EE55's first DORND), which the original takes from
+                        \ EE51: LL155 leaves C set after drawing a heap of
+                        \ lines, but clear for a heap of none, and EE51 leaves
+                        \ it as it was if the ship was not on the screen; the
+                        \ port draws no heap (LL155), and the gate's reference
+                        \ is patched to match (6-harness/blib.mjs's ee51-c)
+
                         \ We now need to set up a new explosion cloud. We
                         \ initialise it with a size of 18 (which gets increased
                         \ by 4 every time the cloud gets redrawn), and the
@@ -33471,8 +33479,7 @@ LIGHT_SUN = TRUE
 
  SEC                    \ Port: nothing is drawn from the heap, as no ship is
  RTS                    \ drawn directly (H_LL42): return at once, with C set
-                        \ (as LL155 leaves it after drawing a heap of lines;
-                        \ LL9's kill path reads C, in DORND)
+                        \ (as LL155 leaves it after drawing a heap of lines)
 
 \ ******************************************************************************
 \

@@ -3,5 +3,5 @@
   "flight": { "syms": "flight-symbols.txt", "images": [["D.CODE.unprot.bin", "m", "11E3"]] },
   "docked": { "syms": "docked-symbols.txt", "images": [["T.CODE.unprot.bin", "m", "11E3"]] },
   "loader": "loader-symbols.txt",
-  "patches": ["ma93-q"]
+  "patches": ["ma93-q", "ee51-c"]
 }

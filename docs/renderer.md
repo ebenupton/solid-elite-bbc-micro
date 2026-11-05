@@ -442,6 +442,15 @@ its bytes (`STA R`, `JSR LL5`, which must be there exactly once) and at
 which it sets `Q` to 0. The altitude the patched game shows can differ
 from the original's by one unit.
 
+A second: when `LL9` starts a killed ship's explosion, the explosion's
+first random number (`EE55`'s first `DORND`) takes the C flag from `EE51`,
+which removes the ship from the screen: `LL155` leaves it set after drawing
+a heap of lines but clear after a heap of none (a ship whose edges were all
+clipped away), and `EE51` leaves it as it was when the ship was not on the
+screen. The port draws no heap, so it sets C = 1 after that `JSR EE51`,
+and the reference gets the same (the named patch `ee51-c`, at the
+instruction after the `JSR`, which it finds from `LL9` by its bytes).
+
 ### The frame's records
 
 **Ships.** `LL9` records each ship that is not exploding as its part 6
@@ -490,6 +499,7 @@ particle the original draws.
 | `WPLS2` | home | the heap is reset, nothing erased |
 | `LASLI`, `LASLI2` | cold | `GLASV` is set (the frame draws the beams from `LASX`, `LASY`); nothing to draw or remove |
 | `MA93` | home | (every mode) `Q = 0` before the altitude's `JSR LL5`; the reference is patched to match |
+| `LL9` part 1 | home | (every mode) C = 1 after the kill path's `JSR EE51`, for the explosion's first random number; the reference is patched to match |
 | `SIGHT` | cold | `GSIGHT` is set to the laser power, `QQ19` as `TT15` leaves it |
 | `TTX66` | cold | (every mode) `F_DIRECT`: direct mode, buffer 1 on show, the text map cleared; for an in-system jump in space mode (`WARP` sets `GWARP`), the frames go on, and `TTX66` neither clears the screen nor draws the border |
 | `TT26` (`RR3`) | cold | (every mode) the character goes to the text map (`F_CHAR`); in record mode it is not drawn |
