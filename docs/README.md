@@ -67,6 +67,7 @@ default commander's checksum.
 | Part 3: the original's dashboard in mode 5, at the 1 MHz clock ([video-timing.md](video-timing.md)) | 13.07 | 1.103 | 153,010 |
 | Part 3: the main RAM part in the room the dashboard leaves | 13.06 | 1.102 | 153,097 |
 | Part 3: the planets' surfaces, the beach ball and the craters, by default (`make circles=off` builds the plain discs of the line above) | 7.38 | 0.623 | 271,014 |
+| Part 3: the circle engine's arithmetic, the planet's half spin and its surface remade only when it turns; against the patched original, 11.56 it/s (`make circles=off`: 13.19 it/s, 1.141 times, 151,576 cycles) | 7.70 | 0.666 | 259,643 |
 
 These are the gate's run: the pilot's mix of launches, fights, approaches to
 the station and hyperspace jumps, over 10,000 iterations. Saved commander
@@ -82,16 +83,16 @@ gate compares the game state without the drawing's temporaries and line
 heaps (`--loose`), and no longer the screen.
 
 By scene, over the same run (iterations in the front view, classified by
-the original's state; [renderer.md](renderer.md), "Speed"):
+the patched original's state; [renderer.md](renderer.md), "Speed"):
 
-| Scene | Iterations | The original, it/s | The port, it/s | Against the original |
+| Scene | Iterations | The patched original, it/s | The port, it/s | Against it |
 |---|---:|---:|---:|---:|
-| Station close (nearer than 16 x 256, ahead) | 706 | 10.67 | 6.01 | 0.56 |
-| Sun close (nearer than 1,024 x 256, ahead) | 402 | 11.82 | 9.02 | 0.76 |
-| Planet close (nearer than 128 x 256, ahead; mostly off the screen) | 1,032 | 13.70 | 11.16 | 0.81 |
-| Big planet (128 x 256 to 512 x 256, ahead) | 6,681 | 11.03 | 8.35 | 0.76 |
-| Open space (planet far, no ships, no station near) | 270 | 19.39 | 13.55 | 0.70 |
-| Ships about | 745 | 14.50 | 11.70 | 0.81 |
+| Station close (nearer than 16 x 256, ahead) | 475 | 9.10 | 5.96 | 0.66 |
+| Sun close (nearer than 1,024 x 256, ahead) | 190 | 14.87 | 15.15 | 1.02 |
+| Planet close (nearer than 128 x 256, ahead; mostly off the screen) | 482 | 11.18 | 9.44 | 0.84 |
+| Big planet (128 x 256 to 512 x 256, ahead) | 6,924 | 11.10 | 6.93 | 0.62 |
+| Open space (planet far, no ships, no station near) | 357 | 18.42 | 12.86 | 0.70 |
+| Ships about | 1,409 | 12.08 | 10.35 | 0.86 |
 
 The filled renderer is slower than the original's wireframe: every frame
 is drawn filled (all of it but the bigger disc, which is kept from frame

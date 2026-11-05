@@ -601,13 +601,14 @@ and the frame's runs of game code leave everything as the original does.
 
 ## Speed
 
-The gate's run, 10,000 iterations: 271,014 cycles per flight iteration,
-7.38 flight iterations per second, against the original's 168,749 and
-11.85 (0.623 times). The build has the planets' surfaces (`_CIRCLES`,
-the default) and the sun near the planet (`S_SUN`). With plain discs
-(`make circles=off`) it is 153,097 cycles, 13.06 it/s (1.102 times), of
-which the dashboard's clock switches take about 1,350 cycles
-([video-timing.md](video-timing.md)).
+The gate's run, 10,000 iterations: 259,643 cycles per flight iteration,
+7.70 flight iterations per second, against the patched original's 11.56
+(0.666 times; the planet's half spin makes the reference fly another run
+than the original's 11.85, 168,749 cycles). The build has the planets'
+surfaces (`_CIRCLES`, the default) and the sun near the planet (`S_SUN`).
+With plain discs (`make circles=off`) it is 151,576 cycles, 13.19 it/s
+(1.141 times), of which the dashboard's clock switches take about 1,350
+cycles ([video-timing.md](video-timing.md)).
 By scene (`6-harness/bscenes.mjs` records each iteration's time and the
 planet's, the station's and the ships' positions in a build's run;
 `6-harness/scenes.py` compares two such runs, counting a flight iteration
@@ -617,16 +618,25 @@ fits), without `_CIRCLES` (`make circles=off`: plain discs) and with it
 
 | Scene | Iterations | The original | The port | Against the original | With `_CIRCLES` | Against the original |
 |---|---:|---:|---:|---:|---:|---:|
-| Station close: the station ahead, nearer than 16 x 256 | 706 | 187,528 cycles, 10.67 it/s | 304,405 cycles, 6.57 it/s | 0.62 | 327,396, 6.11 | 0.57 |
-| Sun close: the sun ahead, nearer than 1,024 x 256 | 402 | 169,142, 11.82 | 201,544, 9.92 | 0.84 | 202,336, 9.88 | 0.84 |
-| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen) | 1,032 | 146,033, 13.70 | 142,698, 14.02 | 1.02 | 165,223, 12.10 | 0.88 |
-| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 6,681 | 181,260, 11.03 | 150,690, 13.27 | 1.20 | 307,764, 6.50 | 0.59 |
-| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 270 | 103,168, 19.39 | 95,355, 20.97 | 1.08 | 147,291, 13.58 | 0.70 |
-| Ships about (the rest, with other ships in the bubble) | 745 | 137,912, 14.50 | 110,727, 18.06 | 1.25 | 186,966, 10.70 | 0.74 |
-| The first system's front view (Lave, a beach ball, combat after launch) | 586 | 252,929, 7.91 | 126,960, 15.75 | 1.99 | 421,480, 4.75 | 0.60 |
+| Station close: the station ahead, nearer than 16 x 256 | 475 | 219,863 cycles, 9.10 it/s | 274,193 cycles, 7.29 it/s | 0.80 | 335,361, 5.96 | 0.66 |
+| Sun close: the sun ahead, nearer than 1,024 x 256 | 190 | 134,493, 14.87 | 132,138, 15.14 | 1.02 | 131,991, 15.15 | 1.02 |
+| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen) | 482 | 178,960, 11.18 | 153,919, 12.99 | 1.16 | 211,889, 9.44 | 0.84 |
+| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 6,924 | 180,116, 11.10 | 154,146, 12.97 | 1.17 | 288,463, 6.93 | 0.62 |
+| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 357 | 108,565, 18.42 | 105,511, 18.96 | 1.03 | 155,539, 12.86 | 0.70 |
+| Ships about (the rest, with other ships in the bubble) | 1,409 | 165,569, 12.08 | 152,901, 13.08 | 1.08 | 193,279, 10.35 | 0.86 |
+| The first system's front view (Lave, a beach ball, combat after launch) | 586 | 251,830, 7.94 | 126,416, 15.82 | 1.99 | 380,958, 5.25 | 0.66 |
 
-With `_CIRCLES` the surface's rows are worked out from the
-circles and painted in every frame the planet turns.
+The original here is the patched one the gate compares with (its run, with
+the planet's half spin, differs from the original's). On the same run, a
+build with the half spin but without this commit series' other changes
+(the circle engine's arithmetic as it was, the surface remade every
+iteration) has 172,992 cycles in open space (11.56 it/s), 305,368 with a
+big planet (6.55) and 395,096 at Lave (5.06).
+
+With `_CIRCLES` the surface's rows are worked out from the circles and
+painted in every frame the planet turns; the circles themselves are made
+only on the iterations the planet turns (every fourth in deep space), and
+kept, moved with the disc, on the others.
 
 The disc layer keeps both discs on each buffer and writes only what
 changed. Its batches cost, over the gate's run (`bprofile.mjs`), about 90
