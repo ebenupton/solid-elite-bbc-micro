@@ -46,6 +46,9 @@ export const COMMANDERS = {
     galaxy3: { what: "galaxy 3 at Ceerdi, mission 1 done, tally 1400, all fitted: the Thargoid plans mission", patch: patcher({ ...ALL, ...galaxy(2), QQ0: [215], QQ1: [84], LASER: [0x97, 0x8f, 0, 0], CASH: cash(20000), TALLY: [1400 & 255, 1400 >> 8], TP: [2] }) },
     // galaxy 3 at Birera (63, 72) with the Thargoid plans aboard (TP = %1010): docking debriefs
     debrief2: { what: "galaxy 3 at Birera with the Thargoid plans (TP = 10): mission 2's debriefing at Birera", patch: patcher({ ...ALL, ...galaxy(2), QQ0: [63], QQ1: [72], LASER: [0x97, 0x8f, 0, 0], CASH: cash(20000), TALLY: [1500 & 255, 1500 >> 8], TP: [10] }) },
+    // galaxy 2 at Orarra (144, 33) with the Constrictor mission under way (TP = 1): the
+    // Constrictor is there at the launch (THERE), and its kill, then the debriefing
+    orarra: { what: "galaxy 2 at Orarra with mission 1 under way (TP = 1), all fitted, military laser: the Constrictor", patch: patcher({ ...ALL, ...galaxy(1), QQ0: [144], QQ1: [33], LASER: [0x97, 0x8f, 0, 0], CASH: cash(20000), TALLY: [3000 & 255, 3000 >> 8], TP: [1] }) },
     wanted: { what: "a fugitive (legal status 80), 2000 Cr, ECM and pod", patch: patcher({ FIST: [80], CASH: cash(2000), ECM: [0xff], ESCP: [0xff] }) },
 };
 
@@ -157,8 +160,12 @@ function mulberry(a) { return () => { a |= 0; a = a + 0x6d2b79f5 | 0; let t = Ma
 export function makeChaos(spec, seed) {
     const r = mulberry(seed * 7919 + 17);
     const names = spec === "all" ? [...Object.keys(ACTIONS).filter(n => !ACTIONS[n].disc), ...Object.keys(POKES)]
-        : spec.split(",").flatMap(n => n === "disc" ? Object.keys(DISC).filter(k => k !== "dcat1") : n === "docked" ? Object.keys(DOCKED)
-            : n === "all" ? [...Object.keys(ACTIONS).filter(k => !ACTIONS[k].disc), ...Object.keys(POKES)] : [n]);
+        : spec.split(",").flatMap(n => {
+            // (a set's name takes a factor too: "disc*2" is each of its actions at twice the rate)
+            const [set, f] = n.split("*"), x = f ? "*" + f : "";
+            return set === "disc" ? Object.keys(DISC).filter(k => k !== "dcat1").map(k => k + x) : set === "docked" ? Object.keys(DOCKED).map(k => k + x)
+                : set === "all" ? [...Object.keys(ACTIONS).filter(k => !ACTIONS[k].disc), ...Object.keys(POKES)].map(k => k + x) : [n];
+        });
     const acts = names.map(n => { const [nm, f] = n.split("*"); const a = ACTIONS[nm] || POKES[nm]; if (!a) throw new Error(`unknown chaos ${nm}`); return { nm, a, rate: (+f || 1) / a.every }; });
     let seq = null, seqLeft = 0, cur = [], step = null, excl = false, discDone = 0;
     const done = {};
