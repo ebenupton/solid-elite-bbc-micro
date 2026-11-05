@@ -48,6 +48,8 @@ const PLANS = {
         ["cur-pods-s18", 30, "--seed", "18", "--mode", "curious", "--commander", "deadly", "--chaos", "pod*8,ghyp*4,ghypfill,hurt*2"],
         ["cur-orarra-s19", 40, "--seed", "19", "--mode", "curious", "--commander", "orarra", "--savediscs"],
         ["cur-orarra-s20", 40, "--seed", "20", "--mode", "curious", "--commander", "orarra", "--chaos", "missile*2,ecm"],
+        ["cur-scoop-s26", 40, "--seed", "26", "--mode", "curious", "--commander", "equipped", "--chaos", "fuel*4,sun*6,scoop*4"],
+        ["eff-scoop-s27", 30, "--seed", "27", "--commander", "equipped", "--chaos", "scoop*6,fuel*2,sun*3"],
         // phase 2: from phase 1's discs, loading the saved commander
         ["load-s21", 30, "--seed", "21", "--mode", "load,curious", "--from", "cur-jameson-s1", "--chaos", "views,docked"],
         ["load-s22", 30, "--seed", "22", "--mode", "load,curious", "--from", "cur-deadly-s3", "--chaos", "disc"],

@@ -88,17 +88,23 @@ const ACTIONS = {
     // the pause (COPY), with a configuration toggle in it sometimes (author names, X, or flashing bars, F: not CAPS LOCK, A, Y, J or K, which would change how the agent flies, or S, the sound), then DELETE to go on
     pause:   { every: 9000, when: flying, keys: () => [[K.COPY, 3], [null, 30], ...(rng() < 0.5 ? [[pick([0x42, 0x43]), 3], [null, 10]] : []), [K.DEL, 3]] },
 };
-// pokes (both machines, at an iteration boundary): drained shields and energy (a fight
-// then kills us), cabin heat near the limit, an empty tank
+// pokes (both machines, at an iteration boundary, three iterations after the reference's
+// state chose them): drained shields and energy (a fight then kills us), cabin heat near
+// the limit, an empty tank
 const POKES = {
     hurt: { every: 15000, when: flying, poke: () => [["FSH", 0, [0]], ["ASH", 0, [0]], ["ENERGY", 0, [12]]] },
     heat: { every: 20000, when: flying, poke: () => [["CABTMP", 0, [230]]] },
     fuel: { every: 20000, when: flying, poke: () => [["QQ14", 0, [3]]] },
     // a galactic hyperdrive again, so that a session can cross several galaxies
     ghypfill: { every: 12000, when: (r, sy) => flying(r, sy) && !r[sy.GHYP], poke: () => [["GHYP", 0, [0xff]]] },
-    // the sun (slot 1, when it is the sun) put just ahead: the heat, fuel scooping (with
-    // the scoops), and sometimes death by it
-    sun:     { every: 9000, when: (r, sy) => flying(r, sy) && r[sy.FRIN + 1] === 129, poke: () => [["K%", 37, [0, Math.floor(rng() * 3), Math.floor(rng() * 2) << 7, 0, Math.floor(rng() * 3), Math.floor(rng() * 2) << 7, 0, 3 + Math.floor(rng() * 8), 0]]] },
+    // a cargo canister in the bubble put just ahead and below, slow: scooped (with the scoops)
+    scoop:   { every: 2500, when: (r, sy) => flying(r, sy) && r[sy.BST] && canister(r, sy) >= 0,
+        poke: (r, sy) => [["K%", 37 * canister(r, sy), [0, 0, 0, 0x30, 0, 0x80, 0x80, 0, 0]], ["K%", 37 * canister(r, sy) + 27, [1]]] },
+    // the sun (slot 1, when it is the sun) put ahead, its centre 84 to 125 x 256 away: the
+    // cabin heats up (CABTMP is 30 plus 255 less the high byte of the distance's square),
+    // fuel scooping from 224 (with the scoops: nearer than about 125 x 256), and death by
+    // the heat when that overflows (nearer than about 86 x 256)
+    sun:     { every: 9000, when: (r, sy) => flying(r, sy) && r[sy.FRIN + 1] === 129, poke: () => [["K%", 37, [0, Math.floor(rng() * 20), Math.floor(rng() * 2) << 7, 0, Math.floor(rng() * 20), Math.floor(rng() * 2) << 7, 0, 84 + Math.floor(rng() * 42), 0]]] },
 };
 // the disc menu (disc Elite's: 1 load, 2 save, 3 catalogue, 4 delete, anything else
 // exits), while docked on the Status screen (up to three such actions a dock, and the
@@ -150,6 +156,7 @@ const DOCKED = {
 };
 for (const [nm, f] of Object.entries(DOCKED)) ACTIONS[nm] = { every: 150, disc: true, exclusive: true, when: atStatus, keys: f };
 
+function canister(r, sy) { for (let i = 2; i < 12; i++) if (r[sy.FRIN + i] === 5) return i; return -1; }
 function flying(r, sy) { return !r[sy.QQ12] && !r[sy.QQ11] && r[sy.MCNT] !== 0xff; }
 
 let rng = Math.random;
@@ -202,7 +209,7 @@ export function makeChaos(spec, seed) {
                 S.logInput({ chaos: nm, frame: S.frame, i: S.ref.iter });
                 if (a.poke) {
                     const at = S.ref.iter + 3;
-                    const pk = a.poke();
+                    const pk = a.poke(ram, sy);
                     for (const m of [S.ref, S.cand]) { (m.pokes ||= new Map()).set(at, pk); }
                     S.logInput({ poke: at, v: pk });
                     return;
