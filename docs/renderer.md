@@ -451,6 +451,19 @@ screen. The port draws no heap, so it sets C = 1 after that `JSR EE51`,
 and the reference gets the same (the named patch `ee51-c`, at the
 instruction after the `JSR`, which it finds from `LL9` by its bytes).
 
+The port also changes the game on purpose in one place: the planet spins
+at half the original's rate. `MVEIT` turns it (and the sun, whose counters
+are 0) by its own pitch and roll, part 8, only on iterations with `MCNT`
+even: part 7's last `MVS4` goes through `H_MVS4`, which on the others
+skips part 8, leaving `RAT2` = 0 as part 8 does, and goes on at `MV5`. The
+reference gets the same with the named patch `mv8-spin`: at part 8's first
+instruction (`LDA INWK+30`, `AND #&80`, `STA RAT2`, found back from `MV8`),
+for `TYPE` 128 or more with `MCNT` odd, it sets the pitch and roll counters
+(`INWK+29`, `INWK+30`) to 0, so part 8 turns nothing and leaves `RAT2` =
+0, and puts them back at `MV5`. The planet's vectors reach the game (`H_CIRC`
+leaves `K2` from `nosev_x`, which `MV40` adds into the next object's `y`),
+so the patched reference flies a different run from the original's.
+
 ### The frame's records
 
 **Ships.** `LL9` records each ship that is not exploding as its part 6
@@ -500,6 +513,7 @@ particle the original draws.
 | `LASLI`, `LASLI2` | cold | `GLASV` is set (the frame draws the beams from `LASX`, `LASY`); nothing to draw or remove |
 | `MA93` | home | (every mode) `Q = 0` before the altitude's `JSR LL5`; the reference is patched to match |
 | `LL9` part 1 | home | (every mode) C = 1 after the kill path's `JSR EE51`, for the explosion's first random number; the reference is patched to match |
+| `MVEIT` part 7 (`H_MVS4`) | home | (every mode) the planet's own pitch and roll (part 8) only on iterations with `MCNT` even: its half spin; the reference is patched to match |
 | `SIGHT` | cold | `GSIGHT` is set to the laser power, `QQ19` as `TT15` leaves it |
 | `TTX66` | cold | (every mode) `F_DIRECT`: direct mode, buffer 1 on show, the text map cleared; for an in-system jump in space mode (`WARP` sets `GWARP`), the frames go on, and `TTX66` neither clears the screen nor draws the border |
 | `TT26` (`RR3`) | cold | (every mode) the character goes to the text map (`F_CHAR`); in record mode it is not drawn |

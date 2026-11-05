@@ -118,9 +118,10 @@ export function loadBuild(file) {
 }
 
 // Patches to a build's behaviour, named in its build.json ("patches"), which
-// runElite applies as hooks: the gate's reference (the original disc) has
-// two, where the port defines a value that the original leaves to what was
-// drawn.
+// runElite applies as hooks (a patch may give several): the gate's reference
+// (the original disc) has three, where the port defines a value that the
+// original leaves to what was drawn (ma93-q, ee51-c) or changes the game on
+// purpose (mv8-spin).
 //
 //  * "ma93-q": in the main flight loop's altitude check (MA93: STA R, JSR
 //    LL5), the original takes SQRT(R Q) with Q left over from whatever ran
@@ -131,6 +132,16 @@ export function loadBuild(file) {
 //    MA93 by its bytes (STA R, JSR LL5: &85 R &20 LL5), which must be there
 //    once, or the run fails; LL5 reads R and Q first, and no register, so
 //    setting Q in memory at the JSR is the port's two instructions.
+//  * "mv8-spin": the planet's half spin. The port turns the planet (and
+//    the sun, whose counters are 0) by its own pitch and roll (MVEIT part
+//    8) only on iterations with MCNT even: H_MVS4, which part 7's last
+//    MVS4 call goes through, skips part 8 on the others, leaving RAT2 = 0
+//    as part 8 does. The original gets the same: at part 8's first
+//    instruction (LDA INWK+30, AND #&80, STA RAT2: &A5 INWK+30 &29 &80 &85
+//    RAT2, found back from MV8, which must be there once, or the run
+//    fails), for TYPE 128 or more with MCNT odd, the pitch and roll
+//    counters (INWK+29, INWK+30) are set to 0, so part 8 turns nothing and
+//    leaves RAT2 = 0, and they are put back at MV5.
 //  * "ee51-c": when LL9 starts a killed ship's explosion, its first random
 //    number (EE55's first DORND) takes C from EE51, which removes the ship
 //    from the screen: LL155 leaves C set after drawing a heap of lines but
@@ -157,6 +168,24 @@ export const PATCHES = {
         if (at.length !== 1) throw new Error(`patch ee51-c: JSR EE51, LDY #1 found ${at.length} times after LL9`);
         const a = at[0] + 3;
         return { a, map: img.map, sig: [0xa0, 0x01, 0xa9], apply: cpu => { cpu.p.c = true; } };
+    },
+    "mv8-spin": (prog) => {
+        const sy = prog.sy, img = prog.images.find(im => sy.MV8 >= im.base && sy.MV8 < im.base + im.data.length);
+        const want = [0xa5, sy.INWK + 30, 0x29, 0x80, 0x85, sy.RAT2];
+        const at = [];
+        for (let a = sy.MV8 - 6; a > sy.MV8 - 64; a--) if (want.every((v, i) => img.data[a + i - img.base] === v)) at.push(a);
+        if (at.length !== 1) throw new Error(`patch mv8-spin: MVEIT part 8 found ${at.length} times before MV8`);
+        const sig = a => [0, 1, 2].map(i => img.data[a + i - img.base]);
+        let kept = null;
+        return [
+            { a: at[0], map: img.map, sig: want.slice(0, 3), apply: cpu => {
+                const m = cpu.ramRomOs;
+                if ((m[sy.TYPE] & 0x80) && (m[sy.MCNT] & 1)) { kept = [m[sy.INWK + 29], m[sy.INWK + 30]]; m[sy.INWK + 29] = 0; m[sy.INWK + 30] = 0; }
+            } },
+            { a: sy.MV5, map: img.map, sig: sig(sy.MV5), apply: cpu => {
+                if (kept) { cpu.ramRomOs[sy.INWK + 29] = kept[0]; cpu.ramRomOs[sy.INWK + 30] = kept[1]; kept = null; }
+            } },
+        ];
     },
 };
 
@@ -357,8 +386,7 @@ export async function runElite(opts) {
     // the build's patches (PATCHES above), on the flight program
     for (const name of b.patches) {
         if (!PATCHES[name]) throw new Error(`unknown patch ${name}`);
-        const pt = PATCHES[name](P.flight);
-        add("PATCH", { prog: P.flight, name, ...pt });
+        for (const pt of [].concat(PATCHES[name](P.flight))) add("PATCH", { prog: P.flight, name, ...pt });
     }
 
     // label lookup for call sites, per program and mapping ("m": main RAM,

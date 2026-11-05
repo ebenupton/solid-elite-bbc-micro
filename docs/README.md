@@ -74,7 +74,10 @@ files are byte for byte the original's. Since the renderer's record mode
 stopped working out the original's lines, the reference is run with two
 small patches (`Q` = 0 at the altitude check, and C = 1 for an explosion's
 first random number, as the port's source has them;
-[renderer.md](renderer.md)). From the four-colour screen on, the
+[renderer.md](renderer.md)), and since the planet's half spin, a third
+(the planet turned by its own pitch and roll only on iterations with
+`MCNT` even, as `H_MVS4` has it), which makes it fly another run, with
+another speed. From the four-colour screen on, the
 gate compares the game state without the drawing's temporaries and line
 heaps (`--loose`), and no longer the screen.
 

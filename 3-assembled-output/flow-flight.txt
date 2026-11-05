@@ -47,40 +47,36 @@ hot &8000-&A898: 48 units, 10393 bytes, 0 free
   &A668    87 MVT1
   &A6BF   103 MVS4
   &A726   371 MV40..SCAN
-hotm &79B2-&7DFF: 41 units, 1102 bytes, 0 free
+hotm &79B2-&7DFF: 37 units, 1102 bytes, 0 free
   &79B2    16 INBAY..LTLI
-  &79C2     3 DEEOR
-  &79C5    20 DOENTRY..DEATH2
-  &79D9    26 UNIV
-  &79F3    10 CTWOS
-  &79FD    15 HLOIN2
-  &7A0C    14 MAS2
-  &7A1A    59 VCSU1..TAS1
-  &7A55    24 TAS6
-  &7A6D     5 MU6
-  &7A72     1 MUT2
-  &7A73    10 MULT12
-  &7A7D    43 DV42..DVID4
-  &7AA8    23 cntr
-  &7ABF    10 DET1
-  &7AC9    16 SHD..DENGY
-  &7AD9    18 SPS3
-  &7AEB    19 GINF
-  &7AFE    24 PLS1
-  &7B16    45 PLS22..CIRCLE
-  &7B43    75 WPLS2..WP1
-  &7B8E    51 WPLS
-  &7BC1    13 FAROF..FAROF2
-  &7BCE     7 MAS4
-  &7BD5    14 DPLT
-  &7BE3    76 SPS1..TAS2
-  &7C2F    51 DKS1..DKS2
-  &7C62    23 DKS3
-  &7C79    73 SHPPT
-  &7CC2    60 LL5
-  &7CFE    32 LL38
-  &7D1E     4 SHCOL
-  &7D22     6 RECM
+  &79C2    20 DOENTRY..DEATH2
+  &79D6    26 UNIV
+  &79F0    10 CTWOS
+  &79FA    15 HLOIN2
+  &7A09    14 MAS2
+  &7A17    59 VCSU1..TAS1
+  &7A52    24 TAS6
+  &7A6A    10 MULT12
+  &7A74    43 DV42..DVID4
+  &7A9F    22 H_MVS4
+  &7AB5    23 cntr
+  &7ACC    10 DET1
+  &7AD6    16 SHD..DENGY
+  &7AE6    18 SPS3
+  &7AF8    19 GINF
+  &7B0B    24 PLS1
+  &7B23    45 PLS22..CIRCLE
+  &7B50    75 WPLS2..WP1
+  &7B9B    51 WPLS
+  &7BCE    13 FAROF..FAROF2
+  &7BDB    14 DPLT
+  &7BE9    76 SPS1..TAS2
+  &7C35    51 DKS1..DKS2
+  &7C68    23 DKS3
+  &7C7F    73 SHPPT
+  &7CC8    60 LL5
+  &7D04    32 LL38
+  &7D24     4 SHCOL
   &7D28    29 MFRAME
   &7D45    11 LL9F
   &7D50    14 H_PTCLS
@@ -89,8 +85,13 @@ hotm &79B2-&7DFF: 41 units, 1102 bytes, 0 free
   &7D7D    11 LL42F
   &7D88    67 H_LL42..H_EE31
   &7DCB    53 MVT6
-hotx &7FA0-&7FFD: 4 units, 5 bytes, 89 free
-  &7FA0     1 PLS2
-  &7FA1     1 LL9 (Part 11 of 12)
-  &7FA2     2 LL9 (Part 12 of 12)
-  &7FA4     1 LL9 (Part 12 of 12), drawing
+hotx &7FA0-&7FFD: 9 units, 27 bytes, 67 free
+  &7FA0     3 DEEOR
+  &7FA3     5 MU6
+  &7FA8     1 MUT2
+  &7FA9     1 PLS2
+  &7FAA     7 MAS4
+  &7FB1     6 RECM
+  &7FB7     1 LL9 (Part 11 of 12)
+  &7FB8     2 LL9 (Part 12 of 12)
+  &7FBA     1 LL9 (Part 12 of 12), drawing

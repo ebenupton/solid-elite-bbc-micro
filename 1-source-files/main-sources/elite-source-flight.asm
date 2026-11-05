@@ -13973,6 +13973,45 @@ ENDMACRO
 
 \ ******************************************************************************
 \
+\       Name: H_MVS4
+\       Type: Subroutine
+\   Category: Moving
+\    Summary: Port: MVEIT part 7's last MVS4, then part 8 skipped for the planet
+\             on odd iterations: its half spin
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the planet (and the sun, whose counters are 0) turns by its own pitch
+\ and roll (MVEIT part 8: 1/16 radian each a step, its counters at 127) only
+\ on iterations with MCNT even, so it spins at half the original's rate. On
+\ the others part 8 is skipped, leaving RAT2 = 0 as part 8 does for counters
+\ at 127 or 0, and MVEIT goes on at MV5. The harness makes the original skip
+\ the same turns (6-harness/blib.mjs's mv8-spin), so the game states still
+\ match.
+\
+\ ******************************************************************************
+
+.H_MVS4
+
+ JSR MVS4               \ Apply our pitch and roll rotations to the sidev vector
+
+ LDA TYPE               \ The planet or the sun (TYPE 128 or more) on an
+ BPL hsp9               \ iteration with MCNT odd: part 8 skipped, returning
+ LDA MCNT               \ from MVEIT's call into part 7 to MV5
+ LSR A
+ BCC hsp9
+ LDA #0
+ STA RAT2
+ PLA
+ PLA
+ JMP MV5
+
+.hsp9
+
+ RTS
+
+\ ******************************************************************************
+\
 \       Name: DVID3B2
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
@@ -34645,7 +34684,8 @@ LIGHT_SUN = TRUE
  JSR MVS4               \ ship's roofv vector
 
  LDY #21                \ Apply our pitch and roll rotations to the current
- JSR MVS4               \ ship's sidev vector
+ JSR H_MVS4             \ ship's sidev vector (Port: then H_MVS4 skips part 8
+                        \ for the planet on odd iterations: its half spin)
 
 \ ******************************************************************************
 \
