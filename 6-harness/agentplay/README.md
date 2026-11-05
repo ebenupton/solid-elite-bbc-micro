@@ -114,6 +114,15 @@ names over-deleted) and `docked` (market, data, inventory, charts with the curso
 search, equipment, sales)); `--seed`, RAND at `TT170` and the overlay's seed. All of it goes
 through the input log, so every session replays exactly.
 
+**Workarounds.** `--workaround inbay` (candidate only, at run time; the port's source is not
+changed) plays on past the death bug of a build whose flight code has `INBAY` in main RAM:
+after a death, `INBAY`'s `*LOAD` of the docked code returns into the docked code's main RAM
+part, a BRK, and the BRK handler hangs; the workaround sends the candidate to the docked
+`INBAY`'s `JMP SCRAM` at `&801D`, where the original's `INBAY` returned. Each use is a
+`workaround` event, and `summary.json` counts them. Campaigns pass it on (`campaign.mjs
+--workaround inbay`), and replays take it from the log's header (`--workaround none` to
+turn it off).
+
 ## Files a session writes
 
 `config.json`, `inputs.jsonl` (a header with the builds and their hashes, then every read

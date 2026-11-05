@@ -4,7 +4,7 @@
 // port's campaign.mjs).
 //
 // node 6-harness/agentplay/campaign.mjs --out DIR [--jobs 2] [--plan soak|quick]
-//      [--only name,name] [--scale 1.0] [--summarise] [--cand build.json]
+//      [--only name,name] [--scale 1.0] [--summarise] [--cand build.json] [--workaround inbay]
 // Each session runs as agentplay.mjs in DIR/<name>/; a session already finished there
 // (summary.json) is not run again, so a campaign can be resumed. --scale multiplies every
 // session's length. --summarise only rewrites the summary (DIR/campaign.json, DIR/campaign.md).
@@ -15,7 +15,7 @@ import { parseArgs } from "../args.mjs";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, cpSync } from "fs";
 import { dirname, resolve } from "path";
 
-const a = parseArgs({ out: "value", jobs: "value", plan: "value", only: "value", scale: "value", summarise: "flag", cand: "value" });
+const a = parseArgs({ out: "value", jobs: "value", plan: "value", only: "value", scale: "value", summarise: "flag", cand: "value", workaround: "value" });
 if (!a.out) { console.error("--out DIR required"); process.exit(2); }
 const OUT = resolve(a.out), JOBS = +(a.jobs || 2), SCALE = +(a.scale || 1);
 const HERE = decodeURIComponent(new URL(".", import.meta.url).pathname);
@@ -81,6 +81,7 @@ function runOne([name, minutes, ...opts]) {
         if (opts[i] === "--from") { const f = `${OUT}/${opts[++i]}`; args.push("--refdisc", `${f}/ref-disc.ssd`, "--canddisc", `${f}/cand-disc.ssd`); }
         else args.push(opts[i]);
     }
+    if (a.workaround) args.push("--workaround", a.workaround);
     mkdirSync(dir, { recursive: true });
     console.log(`${new Date().toISOString().slice(11, 19)} ${name}: start (${args.slice(1).join(" ")})`);
     return new Promise(res => {
