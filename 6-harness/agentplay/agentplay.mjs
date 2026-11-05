@@ -8,6 +8,7 @@
 //      [--mode efficient,curious,fair,nosave,nomission,load]
 //      [--chaos all|ecm,bomb,...|disc|docked] [--start FRAMES] [--shots N] [--keepgoing N] [--strict] [--noobserve]
 //      [--savediscs] (write both machines' discs, with their saves, at the end: ref-disc.ssd, cand-disc.ssd)
+//      [--workaround inbay] (candidate-side runtime workaround for a known port bug, to play on past it)
 //      [--ref build.json] [--cand build.json] [--refdisc disc] [--canddisc disc] [--iters N]
 // (--refdisc/--canddisc: boot that disc instead of the build's own, e.g. one a session saved)
 // Writes DIR/{config.json, inputs.jsonl, agent.log, journal.jsonl, events.jsonl, summary.json, coverage-*.json, *.png}.
@@ -15,17 +16,18 @@
 import { Session } from "./session.mjs";
 import { parseArgs } from "../args.mjs";
 import { MODES } from "./styles.mjs";
+import { resolve } from "path";
 
-const a = parseArgs({ out: "value", minutes: "value", seed: "value", commander: "value", mode: "value", chaos: "value", start: "value", shots: "value", keepgoing: "value", strict: "flag", noobserve: "flag", savediscs: "flag", ref: "value", cand: "value", refdisc: "value", canddisc: "value", iters: "value" });
+const a = parseArgs({ out: "value", minutes: "value", seed: "value", commander: "value", mode: "value", chaos: "value", start: "value", shots: "value", keepgoing: "value", strict: "flag", noobserve: "flag", savediscs: "flag", ref: "value", cand: "value", refdisc: "value", canddisc: "value", iters: "value", workaround: "value" });
 if (!a.out) { console.error("--out DIR required"); process.exit(2); }
 const env = {};
 for (const m of String(a.mode || "efficient").split(",")) { if (!MODES[m]) { console.error(`unknown mode ${m}`); process.exit(2); } Object.assign(env, MODES[m]); }
 const cfg = {
     out: a.out, minutes: +(a.minutes || 10), seed: a.seed !== undefined ? +a.seed : undefined, commander: a.commander || "jameson",
     agentEnv: env, mode: String(a.mode || "efficient"), chaos: a.chaos || null, startFrame: +(a.start || 700), shots: +(a.shots || 0), keepGoing: +(a.keepgoing || 0),
-    strict: !!a.strict, saveDiscs: !!a.savediscs, observe: !a.noobserve, iters: a.iters ? +a.iters : undefined,
+    workarounds: a.workaround ? String(a.workaround).split(",") : [], strict: !!a.strict, saveDiscs: !!a.savediscs, observe: !a.noobserve, iters: a.iters ? +a.iters : undefined,
 };
-for (const k of ["ref", "cand", "refdisc", "canddisc"]) if (a[k]) cfg[k] = a[k];
+for (const k of ["ref", "cand", "refdisc", "canddisc"]) if (a[k]) cfg[k] = resolve(a[k]);     // (absolute, for the log's header)
 try {
     const S = new Session(cfg);
     await S.start();

@@ -7,15 +7,16 @@
 //      [--cut ITER --save FILE] [--trace FROM,TO] [--shots N] [--noobserve] [--cand build.json] [--ref build.json] [--log inputs.jsonl]
 // Defaults: the builds in DIR/inputs.jsonl's header, while they are still the builds the log
 // was recorded with (their hashes in the header; --cand swaps in another build, to test a
-// fix); --out DIR/replay. --until: stop after that iteration. --cut ITER --save FILE: write
+// fix; --workaround none turns off a workaround the session used); --out DIR/replay. --until: stop after that iteration. --cut ITER --save FILE: write
 // the log cut short after ITER (a minimal repro) and stop. Exit status as agentplay.mjs.
 import { Session } from "./session.mjs";
 import { parseArgs } from "../args.mjs";
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { createHash } from "crypto";
 import { loadBuild } from "../blib.mjs";
+import { resolve } from "path";
 
-const a = parseArgs({ run: "value", log: "value", out: "value", until: "value", keepgoing: "value", cut: "value", save: "value", trace: "value", shots: "value", noobserve: "flag", cand: "value", ref: "value" });
+const a = parseArgs({ run: "value", log: "value", out: "value", until: "value", keepgoing: "value", cut: "value", save: "value", trace: "value", shots: "value", noobserve: "flag", cand: "value", ref: "value", workaround: "value" });
 const log = a.log || `${a.run}/inputs.jsonl`;
 if (!a.run && !(a.log && (a.out || a.cut !== undefined))) { console.error("--run DIR, or --log FILE with --out DIR"); process.exit(2); }
 const h = JSON.parse(readFileSync(log, "utf8").split("\n")[0]);
@@ -42,7 +43,8 @@ for (const d of ["ref", "cand"]) {
 }
 const cfg = {
     out: a.out || `${a.run}/replay`, replay: log, seed: h.seed, commander: h.commander, startFrame: h.startFrame, strict: h.strict,
-    ref: a.ref || h.ref, cand: a.cand || h.cand, refdisc: h.refdisc, canddisc: a.cand ? undefined : h.canddisc,
+    ref: a.ref ? resolve(a.ref) : h.ref, cand: a.cand ? resolve(a.cand) : h.cand, refdisc: h.refdisc, canddisc: a.cand ? undefined : h.canddisc,
+    workarounds: a.workaround ? (a.workaround === "none" ? [] : String(a.workaround).split(",")) : (h.workarounds || []),
     trace: a.trace ? a.trace.split(",").map(Number) : undefined,
     until: a.until !== undefined ? +a.until : undefined, keepGoing: +(a.keepgoing || 0), shots: +(a.shots || 0), observe: !a.noobserve,
 };
