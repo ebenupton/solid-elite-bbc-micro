@@ -298,14 +298,28 @@ dirty rows, the second disc's pieces), is in the flight code's bank 7 with
 each buffer's state (`gfx-window7.asm`: `gfx-raster_disc.asm` with the
 strips, `gfx-raster_disc2.asm`), as bank 5 has no room for it.
 
+`PF_HOOK` makes the circles' records only on the iterations the game turns
+the planet by its own pitch and roll (`MCNT` even: `H_MVS4`), and in deep
+space (its z at least 512 x 256) only on those with `MCNT` a multiple of 4,
+as the BBC Master port does. On the others it asks the frame layer
+(`F_PFHOLD`, with the radius): if the radius, `TYPE` and `VIEW` are the
+last call's and that call was the previous iteration's, the last records
+are kept (`PF_CLS` bits 7 and 6), and the frame moves them with the disc's
+centre (`f_hrec`: their centre lines, centre rows and threshold rows, the
+thresholds clamped to the window again from the unclamped ones `pc_circ`
+leaves in `PC_TU`), exactly as if made at the new centre with the planet as
+it was. The mailbox holds the records only until the frame's batches, so
+`f_hrec` keeps each iteration's records with the disc's centre, in bank 6.
+
 * **`f_dprep`** (before the wait): which disc is the layer (`f_lay`) and
   which the second (`f_sec`); the layer's spans, clipped to the window
   (`f_sunrows`, `f_plrows`, `f_discspans`: `R_NDISCL/R`, `R_NDT`, `R_NDB`,
   with the half-width tables `F_HW`, `F_HW2` rebuilt when a radius
   changes), and the planet's boundaries (`f_bounds`: `PC_ROWS`, which reads
   the records where `PF_HOOK` left them, in the mailbox: `PCB`, `PC_N`,
-  `pc_inv`, before the frame uses the mailbox for anything else; a disc
-  command in the iteration, which takes the mailbox, drops them: `f_b0new`).
+  `pc_inv`, before the frame uses the mailbox for anything else, or where
+  `f_hrec` put back the ones kept, moved with the disc; a disc command in
+  the iteration, which takes the mailbox, drops them: `f_b0new`).
 * **`f_ddraw`** (after the wait, in place of `T_REPAIR`): the band of rows
   (the layer's on this buffer last time, `f_dlt`, `f_dlb`, and this frame's);
   `T_REPAIR` repairs the dirty rows outside it; the painter's frame
@@ -359,7 +373,9 @@ rows checked against that model's), and a sequence of 30 frames on both
 buffers (moving, growing and still discs, the sun and the planet swapping,
 the second disc coming and going, surfaces spinning and going, no disc,
 ships and lines over them), each frame's buffer byte for byte the same
-scene drawn on a fresh machine.
+scene drawn on a fresh machine; `F_PFHOLD`'s choices, and frames that keep
+the records with the disc moved, among the window's edges, byte for byte
+fresh frames of records made at the new centre.
 
 ### The lens flare
 

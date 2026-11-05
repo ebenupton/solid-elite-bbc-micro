@@ -121,7 +121,8 @@ def clamp_row(t):
 
 def circ_consts(bx, by, r, vec, c8, cneg, kn=10923):
     """pc_circ: one circle's record (None if the axis is zero): the
-    constants of its row loop, its threshold rows and inv"""
+    constants of its row loop, its threshold rows (and unclamped, TU1 and
+    TU2, as pc_circ leaves them in PC_TU for the frame's f_hrec) and inv"""
     k = setup_core(vec)
     am = k['am']
     if not any(am):
@@ -177,12 +178,13 @@ def circ_consts(bx, by, r, vec, c8, cneg, kn=10923):
             T = by - ((-n) >> 9)             # ceil: inside -> outside
         else:
             T = by + (n >> 9) + 1            # floor + 1
-        th.append((clamp_row(T), M))
+        th.append((clamp_row(T), M, T))
         st ^= M
     none = S9 == 0 and mu == md and F == 3    # (no node, both limbs in the region:
                                              # every row is, and pc_circ keeps no record)
     return dict(inv=k['inv'], a=s32(a), K0=K0, K2=k['K2'], s0=s0, L0=L0, C0=C0, Yc=s16(Yc), F=F,
-                T1=th[0][0], M1=th[0][1], T2=th[1][0], M2=th[1][1], none=none)
+                T1=th[0][0], M1=th[0][1], T2=th[1][0], M2=th[1][1], TU1=th[0][2], TU2=th[1][2],
+                none=none)
 
 
 def rec_parity(c):

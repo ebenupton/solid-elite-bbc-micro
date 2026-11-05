@@ -80,8 +80,9 @@ MBOX_END = MBOX + &A0
 \ (DB_X0 to DB_X3). Long spans the layer leaves to bank 5's row runs are
 \ queued after them (DB_Q: row, left, right, colour byte), DB_QN bytes of
 \ them. PCB, the planet's circles' records (gfx-merid.asm), PC_N
-\ and pc_inv take &00 to &49 from PF_HOOK (in the game's iteration) to the
-\ frame's f_bounds (PC_ROWS).
+\ and pc_inv take &00 to &49, and their unclamped thresholds PC_TU &52 to
+\ &5D, from PF_HOOK (in the game's iteration) to the frame's f_hrec, which
+\ keeps them, and f_bounds (PC_ROWS).
 DB_NL    = MBOX         \ (slots: 16 apart, the boundaries' between them)
 DB_NN    = MBOX + &08
 DB_NR    = MBOX + &10
@@ -99,5 +100,8 @@ DB_QN    = MBOX + &65   \ the queue's length in bytes (4 a span)
 PCB      = MBOX         \ the planet's circles' records (3 of 24 bytes)
 PC_N     = MBOX + &48   \ how many
 pc_inv   = MBOX + &49   \ the base colour
+PC_TU    = MBOX + &52   \ their thresholds T1, T2 unclamped (16-bit, 4 a record)
+PCX_END  = PC_TU + 4 * 3  \ (the frame's f_hrec keeps &00 to here)
+ ASSERT PC_TU >= R_BY1 + 1 AND PCX_END <= DB_QE
 
 RJT = &BFC0             \ the entry points' jump table

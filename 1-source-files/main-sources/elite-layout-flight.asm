@@ -48,7 +48,7 @@
  INCLUDE "3-assembled-output/elite-flight-config.asm"
 
 IF _CIRCLES
- CIRCSZ = 2663          \ Room at bank 4's end for the planet's surface (the
+ CIRCSZ = 2717          \ Room at bank 4's end for the planet's surface (the
 ELSE                    \ circle engine's game part) in a build with _CIRCLES
  CIRCSZ = 0
 ENDIF

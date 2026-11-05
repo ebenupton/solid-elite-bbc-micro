@@ -64,9 +64,10 @@ sys.path.insert(0, os.path.join(REPO, '2-build-files'))
 HOME = 4                                         # the banks (the loader finds
 RBANK, FBANK, COLD = 5, 6, 7                     # them; any distinct numbers)
 BPSLOT = 0xB700                                  # (elite-map.asm)
-STUB = 0x7FC0                                    # where the test's caller runs
+STUB = None                                      # where the test's caller runs: after
+                                                 # the hot pass's last container (main())
 FG = ['F_INIT', 'F_DIRECT', 'F_FRAME', 'F_SHIP', 'F_LINE', 'F_PDOT', 'F_PLANET', 'F_SHPPT',
-      'F_CHAR', 'F_DELCHAR', 'F_CLRTEXT', 'F_GUN', 'F_HANG0', 'F_HANGAR', 'F_CLOUD', 'F_SETLD']
+      'F_CHAR', 'F_DELCHAR', 'F_CLRTEXT', 'F_GUN', 'F_HANG0', 'F_HANGAR', 'F_CLOUD', 'F_SETLD', 'F_PFHOLD']
 # the drawing's temporaries, which game code the frame runs may leave changed
 # (blib.mjs's DRAW_EXCLUDE): name, length
 DRAWTMP = [('SC', 2), ('T1', 1), ('P', 3), ('Q', 1), ('R', 1), ('S', 1), ('T', 1), ('U', 1), ('XX15', 6),
@@ -555,7 +556,8 @@ def le(v, n):
 def surface(cx, cy, r, vecs, typ, qq2):
     """the planet's circles as PF_HOOK makes them (planet_caps.py's model of
     gfx-planet7.asm and gfx-merid.asm's pc_circ): (PF_CLS, the records'
-    bytes for PCB, PC_N, pc_inv, and the model's base and records)"""
+    bytes for PCB, PC_N, pc_inv, the model's base and records, and the
+    unclamped thresholds' bytes for PC_TU)"""
     inwk = [0] * 36
     for k, v in enumerate(vecs[0] + vecs[1] + vecs[2]):
         q = min(abs(v), 32767)
@@ -570,8 +572,11 @@ def surface(cx, cy, r, vecs, typ, qq2):
     for c in kept:
         pcb += le(c['a'], 4) + le(c['K2'], 4) + le(c['K0'], 4) + [c['s0'] & 255] + le(c['L0'], 2) + \
             le(c['C0'] >> 16, 2) + le(c['Yc'], 2) + [c['F'], c['T1'], c['T2'], c['M1'], c['M2']]
+    tu = []
+    for c in kept:
+        tu += le(c['TU1'] & 0xFFFF, 2) + le(c['TU2'] & 0xFFFF, 2)
     cls = 0 if typ == 128 else 1
-    return (cls | (0x80 if kept or base else 0)), pcb, len(kept), base, recs
+    return (cls | (0x80 if kept or base else 0)), pcb, len(kept), base, recs, tu
 
 
 def surface_rows(cx, cy, r, surf):
@@ -639,10 +644,11 @@ def spin(vecs, ang):
     return [[int(round(c * v[0] - s_ * v[2])), v[1], int(round(s_ * v[0] + c * v[2]))] for v in vecs]
 
 
-def disc_scene(m, discs, ships_rec=(), lines=()):
+def disc_scene(m, discs, ships_rec=(), lines=(), hold=False):
     """record discs (as model_discs), their surface's circles in the mailbox
-    as PF_HOOK leaves them, then ships and lines over them; no stars, text or
-    sights"""
+    as PF_HOOK leaves them (with hold, as it leaves them when it keeps the
+    last ones: PF_CLS bit 6, and the mailbox's records scribbled over), then
+    ships and lines over them; no stars, text or sights"""
     S = m.S
     m['QQ11'] = 0
     m['VIEW'] = 1                                # (no lens flare)
@@ -655,11 +661,17 @@ def disc_scene(m, discs, ships_rec=(), lines=()):
         m.poke(S['INWK'] + 6, 0)                 # (its z, far: the ships are in front)
         m.poke(S['INWK'] + 7, 0x40)
         m.planet()
-        if surf:
+        if surf and hold:
+            m['PF_CLS'] = surf[0] | (0x40 if surf[0] & 0x80 else 0)
+            for i in range(S['PCX_END'] - S['PCB']):
+                m.poke(S['PCB'] + i, 0xA5 ^ i)
+        elif surf:
             m['PF_CLS'], pcb, n, base = surf[0], surf[1], surf[2], surf[3]
             for i, v in enumerate(pcb):
                 m.poke(S['PCB'] + i, v)
             m['PC_N'], m['pc_inv'] = n, base
+            for i, v in enumerate(surf[5]):
+                m.poke(S['PC_TU'] + i, v)
     if ships_rec:
         m.mem.blueprints('C')
     for i, (t, pos, ang) in enumerate(ships_rec):
@@ -771,6 +783,60 @@ def disc_tests(png_dir):
             png(got, os.path.join(png_dir, 'seq-%d-got.png' % f))
             png(want, os.path.join(png_dir, 'seq-%d-want.png' % f))
 
+def hold_tests(png_dir):
+    """the planet's records kept (gfx-frame.asm's F_PFHOLD, f_hrec): which
+    iterations keep them, and each frame that keeps them, the disc moved
+    since they were made (thresholds clamped to the window's rows before and
+    after the move among them), byte for byte a fresh frame of the records
+    made at the new centre"""
+    import random
+    rnd = random.Random(23)
+    qq2 = [0x4A, 0x5A, 0x48, 0x02, 0x53, 0xB7]
+    print('the planet\'s records kept (F_PFHOLD, f_hrec)')
+    m = Machine()
+    S = m.S
+    m['PF_CLS'] = 0x80
+    m['TYPE'], m['VIEW'] = 128, 0
+    m.poke(S['INWK'] + 8, 0)
+    seen = []
+    for mc, r, deep in ((40, 50, 0), (39, 50, 0), (38, 50, 0), (37, 51, 0), (36, 51, 0), (35, 51, 0),
+                        (34, 51, 2), (33, 51, 2), (32, 51, 2), (31, 51, 2), (30, 51, 2), (29, 51, 2), (27, 51, 2)):
+        m['MCNT'] = mc
+        m.poke(S['INWK'] + 8, deep)
+        m['PF_CLS'] = 0x80
+        m.call('F_PFHOLD', a=r)
+        seen.append((mc, bool(m.mpu.p & 1), m['PF_CLS'] >> 6))
+    want = [(40, False, 2), (39, True, 3), (38, False, 2), (37, False, 2), (36, False, 2), (35, True, 3),
+            (34, True, 3), (33, True, 3), (32, False, 2), (31, True, 3), (30, True, 3), (29, True, 3), (27, False, 2)]
+    check(seen == want, 'F_PFHOLD: kept with MCNT odd (a multiple of 4 made in deep space), the radius the same, the call the last iteration\'s%s' % (
+        '' if seen == want else ' (%r)' % seen))
+    m = Machine()
+    m.call('F_INIT')
+    border(m)
+    m.call('F_DIRECT')
+    m.mem.main[m.S['FRIN'] + 1] = 0
+    disc_scene(m, [])                            # (the first frame drops the circles:
+    frame(m)                                     # fresh's f_b0new)
+    vecs = rand_frame(rnd)
+    for f, (cx, cy, r, typ, made) in enumerate(((110, 90, 70, 128, True), (118, 84, 70, 128, False),
+                                               (90, 120, 70, 128, False), (100, 60, 120, 130, True),
+                                               (96, 20, 120, 130, False), (140, 170, 120, 130, False),
+                                               (60, 100, 90, 128, True), (61, 101, 90, 128, False))):
+        if made:
+            vecs = spin(vecs, 0.3)
+        surf = surface(cx, cy, r, vecs, typ, qq2)
+        disc_scene(m, [('planet', cx, cy, r, surf)], hold=not made)
+        b, _ = frame(m)
+        got = m.buffer(b)
+        _, want = fresh([('planet', cx, cy, r, surf)], buf=b)
+        diff = [a for a in range(0x3000) if got[a] != want[a]]
+        check(not diff, 'kept records, frame %d (%s): as a fresh frame of them made there%s' % (
+            f, 'made' if made else 'kept', '' if not diff else ' (%d bytes differ, first at offset &%04X)' % (len(diff), diff[0])))
+        if diff:
+            png(got, os.path.join(png_dir, 'hold-%d-got.png' % f))
+            png(want, os.path.join(png_dir, 'hold-%d-want.png' % f))
+
+
 def pmath_tests(quick=False):
     """the circle engine's arithmetic in the flight code's bank 4 (a build
     with _CIRCLES: gfx-merid.asm's first part) against exact models:
@@ -838,6 +904,9 @@ def pmath_tests(quick=False):
 
 
 def main():
+    global STUB
+    STUB = syms_of('flight')['PROGX_USED%']       # (main RAM no build uses)
+    assert STUB + 8 <= 0x7FFE, 'no room after the hot pass for the test\'s caller'
     args = sys.argv[1:]
     png_dir = OUT
     if '--png' in args:
@@ -951,6 +1020,7 @@ def main():
         png(bytes(bad), os.path.join(png_dir, 'frame-5-diff.png'))
 
     disc_tests(png_dir)
+    hold_tests(png_dir)
     pmath_tests('--quick' in args)
 
     print('cycles: F_FRAME %s (frame 1 includes clearing buffer 0); F_CHAR %d' % (

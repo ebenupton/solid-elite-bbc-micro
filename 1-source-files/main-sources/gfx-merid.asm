@@ -511,6 +511,14 @@ IF MERID_PART = 1
  STA pc_v
  LDA pc_v+1
  ADC pcby+1
+ PHA                    \ (unclamped, into pc_tw, for the frame's f_hrec)
+ TYA
+ ASL A
+ TAX
+ LDA pc_v
+ STA pc_tw,X
+ PLA
+ STA pc_tw+1,X
  BMI pct2
  BNE pct3
  LDA pc_v
@@ -546,6 +554,18 @@ IF MERID_PART = 1
  CMP #3
  BEQ pcy9
 .pcy2
+ LDA PC_N               \ (its unclamped thresholds, for the frame's f_hrec)
+ ASL A
+ ASL A
+ TAX
+ LDA pc_tw
+ STA PC_TU,X
+ LDA pc_tw+1
+ STA PC_TU+1,X
+ LDA pc_tw+2
+ STA PC_TU+2,X
+ LDA pc_tw+3
+ STA PC_TU+3,X
  LDX PC_N               \ the record into its slot
  INC PC_N
  LDY pcb_o+1,X
@@ -1933,6 +1953,8 @@ O_RC = pv_rc - pv
 .pc_a9  SKIP 3          \ } (16.8); A, sqrt(B) and the two nodes, in 1/512
 .pc_s9  SKIP 3          \ } pixels
 .pc_n   SKIP 6
+.pc_tw  SKIP 4          \ the record's thresholds T1, T2 before clamping (16-bit:
+                        \ each slot's into PC_TU, for the frame's f_hrec)
  ASSERT P% <= GLUE%
  ORG PFVS_C%            \ (in the home bank's last bytes, after gfx-planet7.asm's)
 .wr     SKIP RSZ        \ the record being made

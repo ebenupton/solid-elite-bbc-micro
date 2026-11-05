@@ -64,17 +64,20 @@ ENDIF
 .F_RP   SKIP 29 * MAXSH \ the ship records (F_SHIP): INWK 0-8, XX16, XX0, each
 F_SZL = F_RP + 6 * MAXSH  \ a field to an array of MAXSH (the ship's z, INWK
 F_SZH = F_RP + 7 * MAXSH  \ 6-7: the sort's)
-IF HI(P%) <> HI(P% + 23) \ (F_TMR whole in a page: f_text2 reads it every
- SKIP &100 - LO(P%)     \ frame, by row)
-ENDIF
-.F_TMR  SKIP 24         \ the text map's non-empty cells per row
-.f_tcol SKIP 1          \ (f_char1's column)
 .f_zsv  SKIP &22 + 16   \ F_FRAME's keep of &06-&27 and FZ's &D2-&E1
 F_SRN = MAXSH * 15      \ (the most faces is 15)
 .F_SR   SKIP F_SRN      \ the ships' faces' levels (F_SHIP)
 .F_SLV  SKIP 52         \ the docking slot's vertices, as R_PXL .. R_PYH + 3
                         \ (f_poly2, f_slot: gfx-frame_cold.asm; x high of
                         \ vertex 0, F_SLV+16, &80: none)
+.f_hcb  SKIP PCX_END-MBOX \ f_hrec's: the planet's records kept (the mailbox's
+.f_hcx  SKIP 4          \ &00 to PC_TU's end), the disc's centre then, and
+.f_hval SKIP 1          \ whether there are any (bit 7)
+.f_pph  SKIP 1          \ F_PFHOLD's: bit 7, records were made; the radius,
+.f_plr  SKIP 1          \ TYPE, VIEW and MCNT of its last call
+.f_plt  SKIP 1
+.f_plv  SKIP 1
+.f_plm  SKIP 1
  ALIGN &100
 .F_HW   SKIP 256        \ the planet's half-widths (f_hwbuild)
 .F_HW2  SKIP 256        \ the sun's
@@ -87,6 +90,11 @@ F_SRN = MAXSH * 15      \ (the most faces is 15)
 .R_NDX1  SKIP 192       \ end (bit 7: colour B), and their x, ascending
 .R_NDX2  SKIP 192
 .R_NDX3  SKIP 192
+IF HI(P%) <> HI(P% + 23) \ (F_TMR whole in a page: f_text2 reads it every
+ SKIP &100 - LO(P%)     \ frame, by row)
+ENDIF
+.F_TMR  SKIP 24         \ the text map's non-empty cells per row
+.f_tcol SKIP 1          \ (f_char1's column)
 .F_END
  ASSERT F_END <= FCSLOT \ the face lists of the blueprint set loaded, to FJT
                         \ (FCSLOT and its size: gfx-faces.asm; F_SETLD)
@@ -104,11 +112,13 @@ F_SRN = MAXSH * 15      \ (the most faces is 15)
  EQUB LO(F_LINE-1), LO(F_PDOT-1), LO(F_PLANET-1), LO(F_SHPPT-1)
  EQUB LO(F_CHAR-1), LO(F_DELCHAR-1), LO(F_CLRTEXT-1), LO(F_GUN-1)
  EQUB LO(F_HANG0-1), LO(F_HANGAR-1), LO(F_CLOUD-1), LO(F_SETLD-1)
+ EQUB LO(F_PFHOLD-1)
 .fjt_hi
  EQUB HI(F_INIT-1), HI(F_DIRECT-1), HI(F_FRAME-1), HI(F_SHIP-1)
  EQUB HI(F_LINE-1), HI(F_PDOT-1), HI(F_PLANET-1), HI(F_SHPPT-1)
  EQUB HI(F_CHAR-1), HI(F_DELCHAR-1), HI(F_CLRTEXT-1), HI(F_GUN-1)
  EQUB HI(F_HANG0-1), HI(F_HANGAR-1), HI(F_CLOUD-1), HI(F_SETLD-1)
+ EQUB HI(F_PFHOLD-1)
 .FJT_END
  ASSERT fjt_hi - fjt_lo = FG_N AND FJT_END <= &C000
 

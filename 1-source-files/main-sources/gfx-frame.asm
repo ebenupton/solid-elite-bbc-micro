@@ -908,6 +908,9 @@ ENDIF
 \ reads the planet's records there, PCB)
 
 .f_dprep
+ LDA F_PLON             \ the planet's records: this iteration's, or the last
+ BEQ P%+5               \ ones moved with the disc (f_hrec)
+ JSR f_hrec
  LDA #0
  STA f_lay
  STA f_sec
@@ -1373,6 +1376,185 @@ f_cx = fpr_cx + 1       \ (the operand of ADC # in the slow disc loop)
  INC R_NDF
  JMP PC_ROWS
 .fnb9
+ RTS
+
+\ F_PFHOLD (FG_PFHOLD): PF_HOOK asks, with A = the planet's radius, whether
+\ it may keep the circles' records it made last (C set) or must make them
+\ (C clear). They are made on the iterations with MCNT even, the ones on
+\ which the game turns the planet by its own pitch and roll (MVEIT part 8:
+\ H_MVS4), and in deep space (the planet's z at least 512 x 256: INWK+8's
+\ low bits at least 2, as 6-harness/scenes.py's scenes have it) only on
+\ those with MCNT a multiple of 4. On the others they are kept when the
+\ radius, TYPE and VIEW are the last call's and that call was the previous
+\ iteration's (MCNT): PF_CLS bits 7 and 6 then tell this iteration's frame
+\ to move them with the disc (f_hrec). A call that has them made notes its
+\ radius, TYPE, VIEW and MCNT.
+
+.F_PFHOLD
+ LDX #1                 \ MCNT AND 1, or 3 in deep space: 0, make them
+ LDA INWK+8
+ AND #&7F
+ CMP #2
+ BCC P%+4
+ LDX #3
+ TXA
+ AND MCNT
+ BEQ fph5
+ BIT f_pph
+ BPL fph5
+ LDA GA
+ CMP f_plr
+ BNE fph5
+ LDA TYPE
+ CMP f_plt
+ BNE fph5
+ LDA VIEW
+ CMP f_plv
+ BNE fph5
+ LDX MCNT
+ INX
+ CPX f_plm
+ BNE fph5
+ DEX                    \ kept
+ STX f_plm
+ LDA PF_CLS
+ ORA #&C0
+ STA PF_CLS
+ SEC
+ RTS
+.fph5                   \ made: noted
+ LDA GA
+ STA f_plr
+ LDA TYPE
+ STA f_plt
+ LDA VIEW
+ STA f_plv
+ LDA MCNT
+ STA f_plm
+ LDA #&80
+ STA f_pph
+ CLC
+ RTS
+
+\ f_hrec: the planet's records for f_bounds. PF_HOOK makes them only on some
+\ iterations (F_PFHOLD); on those (PF_CLS bit 7, not bit
+\ 6) the mailbox's records and their unclamped thresholds (&00 to PC_TU's
+\ end) are kept here, with the disc's centre; on the others (PF_CLS bits 7
+\ and 6) the kept records are put back in the mailbox moved with the disc's
+\ centre since (dx, dy: their centre lines C0, centre rows Yc and thresholds
+\ T1, T2, clamped to 0..192 again, exactly as if made at the new centre with
+\ the planet as it was), or if none are kept (a disc command used the
+\ mailbox after they were made, frame_cold.asm) the planet is drawn plain
+\ (PF_CLS bits 7 and 6 cleared). Without records (PF_CLS bit 7 clear) the
+\ copy is forgotten.
+
+fh_d = &10              \ (dx, dy: the rasteriser's scratch zero page, which
+fh_k = &14              \ F_FRAME has kept)
+
+.fhr8
+ LSR f_hval             \ (bit 7 clear: none kept)
+ RTS
+.f_hrec
+ BIT PF_CLS
+ BPL fhr8
+ BVS fhr2
+ LDX #PCX_END-MBOX-1    \ this iteration's: kept
+.fhr1
+ LDA MBOX,X
+ STA f_hcb,X
+ DEX
+ BPL fhr1
+ LDX #3
+.fhr1a
+ LDA F_PLX,X
+ STA f_hcx,X
+ DEX
+ BPL fhr1a
+ STX f_hval             \ (X = &FF)
+ RTS
+.fhr9
+ LDA PF_CLS             \ (none kept: plain)
+ AND #&3F
+ STA PF_CLS
+ RTS
+.fhr2
+ BIT f_hval
+ BPL fhr9
+ LDX #2                 \ (dx, dy) = the centre's move since they were made
+.fhr3
+ SEC
+ LDA F_PLX,X
+ SBC f_hcx,X
+ STA fh_d,X
+ LDA F_PLX+1,X
+ SBC f_hcx+1,X
+ STA fh_d+1,X
+ DEX
+ DEX
+ BPL fhr3
+ LDX #pc_inv-MBOX       \ the records, their count and base colour, into the
+.fhr4                   \ mailbox for f_bounds' PC_ROWS
+ LDA f_hcb,X
+ STA MBOX,X
+ DEX
+ BPL fhr4
+ INX                    \ each record (X) moved
+.fhr5
+ CPX PC_N
+ BCS fhr7
+ STX fh_k
+ LDY pcb_o,X
+ CLC
+ LDA PCB+R_C0,Y
+ ADC fh_d
+ STA PCB+R_C0,Y
+ LDA PCB+R_C0+1,Y
+ ADC fh_d+1
+ STA PCB+R_C0+1,Y
+ CLC
+ LDA PCB+R_YC,Y
+ ADC fh_d+2
+ STA PCB+R_YC,Y
+ LDA PCB+R_YC+1,Y
+ ADC fh_d+3
+ STA PCB+R_YC+1,Y
+ TXA
+ ASL A
+ ASL A
+ TAX
+ JSR fhr_t
+ INX
+ INX
+ INY
+ JSR fhr_t
+ LDX fh_k
+ INX
+ BNE fhr5               \ (always: X is at most 3)
+.fhr7
+ RTS
+.fhr_t                  \ a threshold (X: its unclamped word, at PC_TU's place)
+ CLC                    \ moved by dy, clamped to 0..192 into the record's
+ LDA f_hcb+PC_TU-MBOX,X \ T1 or T2 (Y)
+ ADC fh_d+2
+ PHA
+ LDA f_hcb+PC_TU-MBOX+1,X
+ ADC fh_d+3
+ BMI fht2
+ BNE fht3
+ PLA
+ CMP #193
+ BCC fht4
+ BCS fht3a
+.fht3
+ PLA
+.fht3a
+ LDA #192
+ BNE fht4
+.fht2
+ PLA
+ LDA #0
+.fht4
+ STA PCB+R_T1,Y
  RTS
 
 \ The planet's colours, every style's the beach ball's (pairs of bytes, even

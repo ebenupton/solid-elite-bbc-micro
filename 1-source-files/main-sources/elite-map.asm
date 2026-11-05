@@ -202,7 +202,9 @@
  PF_CLS = GVARS + 15    \ The planet's class, as PF_HOOK made it in this
                         \ iteration (gfx-planet7.asm: 0 a meridian planet, 1
                         \ craters; bit 7 set if it made the surface's circles,
-                        \ which the frame's f_bounds draws)
+                        \ which the frame's f_bounds draws, or with bit 6 if
+                        \ it kept the last ones, which the frame moves with
+                        \ the disc: F_PFHOLD, f_hrec)
 
                         \ The frame layer's entries, as the game calls them
                         \ (LDX #FG_xxx : JSR GCALL, gfx-glue.asm), in the order
@@ -224,7 +226,8 @@
  FG_HANGAR   = 13
  FG_CLOUD    = 14
  FG_SETLD    = 15
- FG_N        = 16
+ FG_PFHOLD   = 16
+ FG_N        = 17
 
                         \ The fixed colours of the frame layer's lines and dots
                         \ (indices into its F_CPE, gfx-frame.asm)

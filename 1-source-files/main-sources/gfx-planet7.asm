@@ -14,7 +14,12 @@
 \ PF_HOOK, in game context (G_PFHOOK, from H_CIRC): the planet's class
 \ (PF_CLS) and its style as a few circles on its sphere, each a record made
 \ by gfx-merid.asm's pc_circ (which describes the method), and a base colour
-\ (pc_inv):
+\ (pc_inv), made on the iterations with MCNT even, the ones on which the
+\ game turns the planet (H_MVS4), and only on those with MCNT a multiple of
+\ 4 in deep space; on the others the last ones are kept, if the radius,
+\ TYPE and VIEW are the same and they are the last iteration's, and the
+\ frame moves them with the disc (the frame layer decides: gfx-frame.asm's
+\ F_PFHOLD and f_hrec):
 \
 \   * class 0, a meridian planet (TYPE 128): the beach ball, the great
 \     circles normal to roofv and sidev, base 1 (colour B where the surface
@@ -106,6 +111,10 @@
  ENDIF
  STX pc_inv             \ (NMOS: X = 0; PC_N zeroed here, not on entry: the
  STX PC_N               \ frame reads it only with PF_CLS bit 7 set)
+ LDA pcr                \ the last records kept (the frame moves them with
+ LDX #FG_PFHOLD         \ the disc), or made (gfx-frame.asm's F_PFHOLD)
+ JSR GCALL
+ BCS pfh7
  LDA PF_CLS
  BNE pfh2
  INC pc_inv             \ (the beach ball: base 1)
