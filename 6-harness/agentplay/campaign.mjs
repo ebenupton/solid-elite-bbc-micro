@@ -50,6 +50,8 @@ const PLANS = {
         ["cur-orarra-s20", 40, "--seed", "20", "--mode", "curious", "--commander", "orarra", "--chaos", "missile*2,ecm"],
         ["cur-scoop-s26", 40, "--seed", "26", "--mode", "curious", "--commander", "equipped", "--chaos", "fuel*4,sun*6,scoop*4"],
         ["eff-scoop-s27", 30, "--seed", "27", "--commander", "equipped", "--chaos", "scoop*6,fuel*2,sun*3"],
+        ["cur-fscreens-s28", 40, "--seed", "28", "--mode", "curious", "--commander", "equipped", "--chaos", "fscreens*4,charts*2,views"],
+        ["cur-fscreens-s29", 40, "--seed", "29", "--mode", "curious", "--chaos", "fscreens*3,docked,pause"],
         // phase 2: from phase 1's discs, loading the saved commander
         ["load-s21", 30, "--seed", "21", "--mode", "load,curious", "--from", "cur-jameson-s1", "--chaos", "views,docked"],
         ["load-s22", 30, "--seed", "22", "--mode", "load,curious", "--from", "cur-deadly-s3", "--chaos", "disc"],

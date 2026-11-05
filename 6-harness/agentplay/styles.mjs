@@ -84,6 +84,9 @@ const ACTIONS = {
         keys: (r, sy) => [...(r[sy.PATG] ? [] : [[K.COPY, 3], [null, 30], [K.X, 3], [null, 10], [K.DEL, 3], [null, 20]]), [K.H, 4], [K.CTRL, 1000]] },
     dock:    { every: 8000, when: (r, sy) => flying(r, sy) && r[sy.DKCMP], keys: [[K.C, 3]] },
     charts:  { every: 3000, when: flying, keys: () => [[[K.F4, K.F5][Math.floor(rng() * 2)], 3], [null, 100], [K.F0, 3]] },
+    // the flight screens, which the flight code loads as overlays: data on the system
+    // (f6), the market (f7), the status (f8) and the inventory (f9), then the front view
+    fscreens: { every: 2500, when: flying, keys: () => [[[0x75, 0x16, 0x76, 0x77][Math.floor(rng() * 4)], 3], [null, 120], [K.F0, 3]] },
     spin:    { every: 2500, when: flying, keys: () => [[[[0x66, K.X], [0x67, K.S], [0x66, K.S]][Math.floor(rng() * 3)], 40]] },
     // the pause (COPY), with a configuration toggle in it sometimes (author names, X, or flashing bars, F: not CAPS LOCK, A, Y, J or K, which would change how the agent flies, or S, the sound), then DELETE to go on
     pause:   { every: 9000, when: flying, keys: () => [[K.COPY, 3], [null, 30], ...(rng() < 0.5 ? [[pick([0x42, 0x43]), 3], [null, 10]] : []), [K.DEL, 3]] },
