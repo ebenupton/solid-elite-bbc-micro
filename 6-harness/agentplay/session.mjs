@@ -95,7 +95,7 @@ export class Session {
         const patch = cmdr.patch ? m => cmdr.patch(m) : null;
         this.builds = { ref: cfg.ref, refSha: buildSha(this.rb), cand: cfg.cand, candSha: buildSha(this.cb), refdisc: cfg.refdisc, canddisc: cfg.canddisc };
         this.ref = new BMachine({ name: "ref", build: this.rb, input: this.refInput(), rand, patch, cover: true });
-        this.cand = new BMachine({ name: "cand", build: this.cb, input: this.candInput(), rand, patch, watch0d: true, cover: true });
+        this.cand = new BMachine({ name: "cand", build: this.cb, input: this.candInput(), rand, patch, watch0d: true, cover: true, workarounds: cfg.workarounds || [] });
         await this.ref.boot();
         await this.cand.boot();
         this.rsy = this.ref.sy;
@@ -117,7 +117,7 @@ export class Session {
             this.agent = new Agent(cfg.agentEnv || {});
             this.chaos = cfg.chaos ? makeChaos(cfg.chaos, cfg.seed || 0) : null;
             const header = { header: true, ...this.builds,
-                seed: cfg.seed, commander: cfg.commander || "jameson", mode: cfg.mode || "efficient", agentEnv: cfg.agentEnv || {}, chaos: cfg.chaos || null, startFrame: cfg.startFrame, strict: !!cfg.strict };
+                seed: cfg.seed, commander: cfg.commander || "jameson", mode: cfg.mode || "efficient", agentEnv: cfg.agentEnv || {}, chaos: cfg.chaos || null, startFrame: cfg.startFrame, strict: !!cfg.strict, workarounds: cfg.workarounds || [] };
             appendFileSync(this.files.inputs, JSON.stringify(header) + "\n");
             writeFileSync(`${cfg.out}/config.json`, JSON.stringify({ ...header, minutes: cfg.minutes, iters: cfg.iters }, null, 1));
         }
@@ -337,7 +337,7 @@ export class Session {
         for (const m of [ref, cand]) {
             const pc = m.cpu.pc;
             if (m.started && pc < 0x200 && !m.healthBad) { m.healthBad = true; this.finding("crash", `${m.name}: PC &${pc.toString(16)} in zero page or the stack`); this.stopNow = true; }
-            // a hang: no read for HANG_SECS emulated seconds (the candidate's stall counts only
+            // a hang: no read, MLOOP or pass of M% for HANG_SECS emulated seconds (the candidate's stall counts only
             // once the reference has made a read past it, or has stalled at the same read too)
             const stalled = x => x.started && !x.blocked && x.cyclesNow() - x.lastProgressCycles > HANG_SECS * 2e6 && !x.healthBad;
             const where = x => { const c = x.cpu, recent = [...new Set(Array.from({ length: 64 }, (_, i) => c.oldPcArray[(c.oldPcIndex - i) & 0xff]))].slice(0, 24).map(y => y.toString(16)); return `PC &${c.pc.toString(16)}, ${x.prog} ${x.labelOf(c.pc) || "?"}, iteration ${x.iter}, read ${x.polls}, ROMSEL &${c.romsel.toString(16)}; recent PCs ${recent.join(" ")}`; };
@@ -361,6 +361,7 @@ export class Session {
                 const key = `${m.name}:${kind}${kind === "routine" ? ":" + detail : ""}`;
                 this.stats.events[key] = (this.stats.events[key] || 0) + 1;
                 if (kind !== "routine") appendFileSync(this.files.events, JSON.stringify({ m: m.name, iter: it, kind, detail }) + "\n");
+                if (kind === "workaround") this.stats.workarounds = (this.stats.workarounds || 0) + 1;
                 if (kind === "brk" || kind === "page0d") {
                     this.brkSeen ||= {};
                     const n = this.brkSeen[detail] = (this.brkSeen[detail] || 0) + 1;
@@ -453,7 +454,7 @@ export class Session {
             observables: this.obsR ? { checked: this.obsChecked, differing: this.obsDiffs, kinds: this.obsKinds || {} } : null,
             discChecks: this.stats.discChecks || 0, saveFilesSame: this.stats.saveFilesSame || 0, discFinalSkipped: !!this.stats.discSkipped,
             brksRom: { ref: ref.brks.filter(b => b.fromRom).map(b => b.msg), cand: cand.brks.filter(b => b.fromRom).map(b => b.msg) },
-            seeded: cand.seeded?.length, final: finalState(ref, this.rsy),
+            seeded: cand.seeded?.length, workarounds: cfg.workarounds || [], workaroundHits: this.stats.workarounds || 0, final: finalState(ref, this.rsy),
         };
         const cov = ref.coverage();
         if (cov) writeFileSync(`${cfg.out}/coverage-ref.json`, JSON.stringify(cov));

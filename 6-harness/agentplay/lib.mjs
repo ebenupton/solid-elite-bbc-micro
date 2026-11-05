@@ -65,6 +65,7 @@ export class BMachine {
         this.iterInfo = [];         // per iteration: [poll index at MLOOP, emulated seconds]
         this.keysDown = [];
         this.prog = "docked";
+        this.wa = Object.fromEntries((opts.workarounds || []).map(w => [w, true]));
     }
 
     async boot() {
@@ -127,6 +128,10 @@ export class BMachine {
             if (this.page0d.length < 20) { this.page0d.push([this.iter, pc, a]); this.event("page0d", `PC &${pc.toString(16)} (ROMSEL ${cpu.romsel & 15}) wrote &${a.toString(16)}`); }
             return false;
         });
+        // (the instruction after the flight code's INBAY's JSR OSCLI, when INBAY is in main RAM:
+        // --workaround inbay)
+        const ib = P.flight.sy.INBAY;
+        this.inbayRet = ib !== undefined && ib < 0x8000 && this.b.banks.H ? ib + 7 : -1;
         this._fastExec();
         this.s._video.frameSkipCount = +(process.env.FRAMESKIP || 25);
         this.cyclesNow = () => cpu.cycleSeconds * 2e6 + cpu.currentCycles;
@@ -155,7 +160,14 @@ export class BMachine {
                     if (tab[pc] && self.tab(pc)) { this.halted = true; return false; }
                     if (this._debugInstruction && this._debugInstruction(pc, opcode)) return false;
                 }
-                if (opcode === 0 && self.started) self._brk(pc);
+                if (opcode === 0 && self.started) {
+                    // (--workaround inbay, the candidate: the BRK the port's INBAY falls into
+                    // after a death, in a build that put INBAY in main RAM: on to the docked
+                    // code's JMP SCRAM in its INBAY, at &801D in its home bank, where the
+                    // original's INBAY returned)
+                    if (pc === self.inbayRet && self.wa.inbay) { self.event("workaround", "INBAY's return after a death: sent to the docked INBAY's JMP SCRAM"); this.pc = 0x801d; first = false; continue; }
+                    self._brk(pc);
+                }
                 first = false;
                 this.incpc();
                 this.runner.run(opcode);
@@ -347,6 +359,7 @@ export class BMachine {
                 const v = this.rb(sy.LASCT);
                 if (v) this.ram[sy.LASCT] = v - 1;
                 this.settle();
+                this.lastProgressCycles = this.cyclesNow();     // (progress: the death animation runs M% 255 times, with no read or MLOOP)
                 break;
             }
             case "LAS": this.lasSaved = this.rb(sy.LASCT); break;
