@@ -40,6 +40,11 @@ NAMES = {1: 'Missile', 2: 'Coriolis station', 3: 'Escape pod', 4: 'Alloy plate',
          26: 'Python (pirate)', 27: 'Fer-de-lance', 28: 'Moray', 29: 'Thargoid', 30: 'Thargon',
          31: 'Constrictor', 32: 'Dodecahedron station'}
 NTYPES = 32
+# The escape pod's launch (ESCAPE) shows our Cobra Mk III (CYL) flying away,
+# with TYPE = CYL, and in a set without it launches the pirate's (CYL2), with
+# TYPE still CYL: so in such a set (every one has one of the two) type CYL's
+# normals and face lists are the pirate's, whose blueprint LL9 draws
+CYL, CYL2 = 11, 24
 # Vertex face lists as the build's blueprints have them, where they differ
 # from the data (none: Master Elite's blueprints are used unchanged)
 PATCH = {}
@@ -1255,24 +1260,28 @@ def emit_setdata(ships):
             L.append(' EQUB %d AND &FF, %d AND &FF, %d AND &FF    \\ face %d' % (nx, ny, nz, f))
         L.append('ENDIF')
     open(os.path.join(SRC, 'gfx-setnorm.asm'), 'w').write('\n'.join(L) + '\n')
-    L = head('gfx-settab.asm', 'FC_NORMTAB: by type 0..%d, the set\'s unit normals for that type (0: not in the set).' % NTYPES)
+    L = head('gfx-settab.asm', 'FC_NORMTAB: by type 0..%d, the set\'s unit normals for that type (0: not in the set; the Cobra Mk III\'s, %d, in a set with only the pirate\'s, %d: the pirate\'s).' % (NTYPES, CYL, CYL2))
     L.append('.FC_NORMTAB_S')
     L.append(' EQUW 0                        \\ type 0: unused')
     for t in range(1, NTYPES + 1):
         if t in have:
-            L += ['IF ST%d' % t, ' EQUW FC_S%d_N                \\ type %d: %s' % (t, t, have[t]['name']),
-                  'ELSE', ' EQUW 0', 'ENDIF']
+            L += ['IF ST%d' % t, ' EQUW FC_S%d_N                \\ type %d: %s' % (t, t, have[t]['name'])]
+            if t == CYL:
+                L += ['ELIF ST%d' % CYL2, ' EQUW FC_S%d_N                \\ (the pirate\'s: ESCAPE)' % CYL2]
+            L += ['ELSE', ' EQUW 0', 'ENDIF']
         else:
             L.append(' EQUW 0                        \\ type %d: in no set' % t)
     open(os.path.join(SRC, 'gfx-settab.asm'), 'w').write('\n'.join(L) + '\n')
-    L = head('gfx-setfaces.asm', 'FC_FACETAB and FC_DETTAB by type 0..%d, then the set\'s face and detail lists (gfx-faces.asm describes them); a type the set does not have points at FC_SNONE.' % NTYPES)
+    L = head('gfx-setfaces.asm', 'FC_FACETAB and FC_DETTAB by type 0..%d, then the set\'s face and detail lists (gfx-faces.asm describes them); a type the set does not have points at FC_SNONE, but the Cobra Mk III (%d) in a set with only the pirate\'s (%d) at the pirate\'s.' % (NTYPES, CYL, CYL2))
     for name, tag in (('FACETAB', 'F'), ('DETTAB', 'D')):
         L.append('.FC_%s_S' % name)
         L.append(' EQUW FC_SNONE_%s                \\ type 0: unused' % tag)
         for t in range(1, NTYPES + 1):
             if t in have:
-                L += ['IF ST%d' % t, ' EQUW FC_S%d_%s                \\ type %d: %s' % (t, tag, t, have[t]['name']),
-                      'ELSE', ' EQUW FC_SNONE_%s' % tag, 'ENDIF']
+                L += ['IF ST%d' % t, ' EQUW FC_S%d_%s                \\ type %d: %s' % (t, tag, t, have[t]['name'])]
+                if t == CYL:
+                    L += ['ELIF ST%d' % CYL2, ' EQUW FC_S%d_%s                \\ (the pirate\'s: ESCAPE)' % (CYL2, tag)]
+                L += ['ELSE', ' EQUW FC_SNONE_%s' % tag, 'ENDIF']
             else:
                 L.append(' EQUW FC_SNONE_%s                \\ type %d: in no set' % (tag, t))
     for t, s in ships:

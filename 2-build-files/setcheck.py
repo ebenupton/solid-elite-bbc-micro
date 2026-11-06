@@ -12,7 +12,10 @@
 # the lighting and the frame layer do, and checks that every type's normals,
 # face list and detail list are byte for byte the ones faces.py makes for
 # that type (2-build-files/faces-master.json), and that every type the set
-# does not have has none (0 in FC_NORMTAB). Exits 1 on any difference.
+# does not have has none (0 in FC_NORMTAB), but the Cobra Mk III (11) in a
+# set with only the pirate's (24), which has the pirate's (the escape pod's
+# launch, ESCAPE, draws the pirate's with TYPE 11 in such a set). Exits 1 on
+# any difference.
 
 import json, os, re, sys
 
@@ -43,11 +46,14 @@ def check(name, b4, b6):
         bad += 1
     for t in range(1, 33):
         n = w4(NORMTAB + 2 * t)
-        if t not in types:
+        mt = t
+        if t == 11 and t not in types and 24 in types:
+            mt = 24                         # (ESCAPE: the pirate's)
+        elif t not in types:
             if n:
                 fail("type %d is not in the set but has normals" % t)
             continue
-        m = master[t]
+        m = master[mt]
         got = [b4(n + i) for i in range(len(m["normals"]))]
         if got != m["normals"]:
             fail("type %d's normals differ" % t)

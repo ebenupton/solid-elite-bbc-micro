@@ -64581,7 +64581,7 @@ S.D.MOA &B700  &BD4F  &B700  &B700
      BF70   00 00
      BF72   00 00
      BF74   00 00
-     BF76   00 00
+     BF76   2A BE
      BF78   B8 BD
      BF7A   00 00
      BF7C   00 00
@@ -64615,7 +64615,7 @@ S.D.MOA &B700  &BD4F  &B700  &B700
      BC81   A6 BF
      BC83   A6 BF
      BC85   A6 BF
-     BC87   A6 BF
+     BC87   00 BF
      BC89   C4 BD
      BC8B   A6 BF
      BC8D   A6 BF
@@ -64649,7 +64649,7 @@ S.D.MOA &B700  &BD4F  &B700  &B700
      BCC3   A6 BF
      BCC5   A6 BF
      BCC7   A6 BF
-     BCC9   A6 BF
+     BCC9   3B BF
      BCCB   FD BD
      BCCD   A6 BF
      BCCF   A6 BF
@@ -90876,7 +90876,7 @@ S.D.MOH &B700  &BD53  &B700  &B700
      BF70   B9 BD
      BF72   C5 BD
      BF74   00 00
-     BF76   00 00
+     BF76   4F BE
      BF78   EC BD
      BF7A   00 00
      BF7C   00 00
@@ -90910,7 +90910,7 @@ S.D.MOH &B700  &BD53  &B700  &B700
      BC81   AF BD
      BC83   C1 BD
      BC85   B3 BF
-     BC87   B3 BF
+     BC87   00 BF
      BC89   07 BE
      BC8B   B3 BF
      BC8D   B3 BF
@@ -90944,7 +90944,7 @@ S.D.MOH &B700  &BD53  &B700  &B700
      BCC3   BF BD
      BCC5   F6 BD
      BCC7   B3 BF
-     BCC9   B3 BF
+     BCC9   3B BF
      BCCB   40 BE
      BCCD   B3 BF
      BCCF   B3 BF
@@ -94608,7 +94608,7 @@ S.D.MOI &B700  &BD5D  &B700  &B700
      BF70   00 00
      BF72   00 00
      BF74   00 00
-     BF76   00 00
+     BF76   3E BE
      BF78   00 00
      BF7A   00 00
      BF7C   00 00
@@ -94642,7 +94642,7 @@ S.D.MOI &B700  &BD5D  &B700  &B700
      BC81   AC BF
      BC83   AC BF
      BC85   AC BF
-     BC87   AC BF
+     BC87   F8 BE
      BC89   AC BF
      BC8B   AC BF
      BC8D   AC BF
@@ -94676,7 +94676,7 @@ S.D.MOI &B700  &BD5D  &B700  &B700
      BCC3   AC BF
      BCC5   AC BF
      BCC7   AC BF
-     BCC9   AC BF
+     BCC9   33 BF
      BCCB   AC BF
      BCCD   AC BF
      BCCF   AC BF
@@ -98222,7 +98222,7 @@ S.D.MOJ &B700  &BD3D  &B700  &B700
      BF70   00 00
      BF72   00 00
      BF74   00 00
-     BF76   00 00
+     BF76   00 BE
      BF78   00 00
      BF7A   00 00
      BF7C   00 00
@@ -98256,7 +98256,7 @@ S.D.MOJ &B700  &BD3D  &B700  &B700
      BC81   81 BF
      BC83   81 BF
      BC85   81 BF
-     BC87   81 BF
+     BC87   CE BE
      BC89   81 BF
      BC8B   81 BF
      BC8D   81 BF
@@ -98290,7 +98290,7 @@ S.D.MOJ &B700  &BD3D  &B700  &B700
      BCC3   81 BF
      BCC5   81 BF
      BCC7   81 BF
-     BCC9   81 BF
+     BCC9   09 BF
      BCCB   81 BF
      BCCD   81 BF
      BCCF   81 BF
@@ -109313,7 +109313,7 @@ S.D.MOM &B700  &BD65  &B700  &B700
      BF70   00 00
      BF72   00 00
      BF74   00 00
-     BF76   00 00
+     BF76   70 BE
      BF78   00 00
      BF7A   00 00
      BF7C   00 00
@@ -109347,7 +109347,7 @@ S.D.MOM &B700  &BD65  &B700  &B700
      BC81   A9 BF
      BC83   A9 BF
      BC85   A9 BF
-     BC87   A9 BF
+     BC87   48 BF
      BC89   A9 BF
      BC8B   A9 BF
      BC8D   A9 BF
@@ -109381,7 +109381,7 @@ S.D.MOM &B700  &BD65  &B700  &B700
      BCC3   A9 BF
      BCC5   A9 BF
      BCC7   A9 BF
-     BCC9   A9 BF
+     BCC9   83 BF
      BCCB   A9 BF
      BCCD   A9 BF
      BCCF   A9 BF

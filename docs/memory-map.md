@@ -328,6 +328,13 @@ pages) and 1,201 of bank 6. The lookups are unchanged; the larger files and
 the copy cost about 14,400 cycles per hyperspace iteration in the gate's
 run (375 per flight iteration on average).
 
+A type the set does not have has no normals and an empty face list, but
+for one: the escape pod's launch (`ESCAPE`) shows our Cobra Mk III with
+`TYPE` = `CYL`, and in a set without it (`D.MOA`, `D.MOH`, `D.MOI`,
+`D.MOJ`, `D.MOM`) launches the pirate's (`CYL2`) with `TYPE` still `CYL`, so
+in those sets type `CYL`'s entries are the pirate's normals and face lists,
+whose blueprint `LL9` draws.
+
 ## The map
 
 The map at the end of part 3 (the parts before it differed below `&8000`:
