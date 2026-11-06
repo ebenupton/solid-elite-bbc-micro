@@ -123,7 +123,6 @@ all:
 	$(PYTHON) 2-build-files/bank6.py $(BEEBASM)
 	$(PYTHON) 2-build-files/bankcheck.py
 	$(PYTHON) 2-build-files/ovlcheck.py
-	$(PYTHON) 2-build-files/setcheck.py
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-a.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-b.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-c.asm -v >> 3-assembled-output/compile.txt
@@ -140,6 +139,7 @@ all:
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-n.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-o.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-ships-p.asm -v >> 3-assembled-output/compile.txt
+	$(PYTHON) 2-build-files/setcheck.py
 	$(BEEBASM) -i 1-source-files/main-sources/elite-readme.asm -v >> 3-assembled-output/compile.txt
 	$(PYTHON) 2-build-files/elite-checksum.py
 	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-modelb.ssd -boot ELITE4 -title "E L I T E"
