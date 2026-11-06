@@ -601,13 +601,13 @@ and the frame's runs of game code leave everything as the original does.
 
 ## Speed
 
-The gate's run, 10,000 iterations: 259,643 cycles per flight iteration,
-7.70 flight iterations per second, against the patched original's 11.56
-(0.666 times; the planet's half spin makes the reference fly another run
+The gate's run, 10,000 iterations: 259,184 cycles per flight iteration,
+7.72 flight iterations per second, against the patched original's 11.56
+(0.667 times; the planet's half spin makes the reference fly another run
 than the original's 11.85, 168,749 cycles). The build has the planets'
 surfaces (`_CIRCLES`, the default) and the sun near the planet (`S_SUN`).
-With plain discs (`make circles=off`) it is 151,576 cycles, 13.19 it/s
-(1.141 times), of which the dashboard's clock switches take about 1,350
+With plain discs (`make circles=off`) it is 151,546 cycles, 13.20 it/s
+(1.142 times), of which the dashboard's clock switches take about 1,350
 cycles ([video-timing.md](video-timing.md)).
 By scene (`6-harness/bscenes.mjs` records each iteration's time and the
 planet's, the station's and the ships' positions in a build's run;
@@ -618,13 +618,13 @@ fits), without `_CIRCLES` (`make circles=off`: plain discs) and with it
 
 | Scene | Iterations | The original | The port | Against the original | With `_CIRCLES` | Against the original |
 |---|---:|---:|---:|---:|---:|---:|
-| Station close: the station ahead, nearer than 16 x 256 | 475 | 219,863 cycles, 9.10 it/s | 274,193 cycles, 7.29 it/s | 0.80 | 335,361, 5.96 | 0.66 |
-| Sun close: the sun ahead, nearer than 1,024 x 256 | 190 | 134,493, 14.87 | 132,138, 15.14 | 1.02 | 131,991, 15.15 | 1.02 |
-| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen) | 482 | 178,960, 11.18 | 153,919, 12.99 | 1.16 | 211,889, 9.44 | 0.84 |
-| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 6,924 | 180,116, 11.10 | 154,146, 12.97 | 1.17 | 288,463, 6.93 | 0.62 |
-| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 357 | 108,565, 18.42 | 105,511, 18.96 | 1.03 | 155,539, 12.86 | 0.70 |
-| Ships about (the rest, with other ships in the bubble) | 1,409 | 165,569, 12.08 | 152,901, 13.08 | 1.08 | 193,279, 10.35 | 0.86 |
-| The first system's front view (Lave, a beach ball, combat after launch) | 586 | 251,830, 7.94 | 126,416, 15.82 | 1.99 | 380,958, 5.25 | 0.66 |
+| Station close: the station ahead, nearer than 16 x 256 | 475 | 219,863 cycles, 9.10 it/s | 274,179 cycles, 7.29 it/s | 0.80 | 335,128, 5.97 | 0.66 |
+| Sun close: the sun ahead, nearer than 1,024 x 256 | 190 | 134,493, 14.87 | 132,140, 15.14 | 1.02 | 132,143, 15.14 | 1.02 |
+| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen) | 482 | 178,960, 11.18 | 153,929, 12.99 | 1.16 | 211,364, 9.46 | 0.85 |
+| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 6,924 | 180,116, 11.10 | 154,101, 12.98 | 1.17 | 287,898, 6.95 | 0.63 |
+| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 357 | 108,565, 18.42 | 105,577, 18.94 | 1.03 | 155,295, 12.88 | 0.70 |
+| Ships about (the rest, with other ships in the bubble) | 1,409 | 165,569, 12.08 | 148,334, 13.48 | 1.12 | 189,612, 10.55 | 0.87 |
+| The first system's front view (Lave, a beach ball, combat after launch) | 586 | 251,830, 7.94 | 126,354, 15.83 | 1.99 | 380,621, 5.25 | 0.66 |
 
 The original here is the patched one the gate compares with (its run, with
 the planet's half spin, differs from the original's). On the same run, a
@@ -632,6 +632,14 @@ build with the half spin but without this commit series' other changes
 (the circle engine's arithmetic as it was, the surface remade every
 iteration) has 172,992 cycles in open space (11.56 it/s), 305,368 with a
 big planet (6.55) and 395,096 at Lave (5.06).
+
+Ships about includes the escape pod's launch (iteration 8,150: 97 frames of
+our Cobra flying away and the docked code's load, 33.9 million cycles, about
+24,000 cycles of the scene's average); without it the scene takes 124,382
+cycles an iteration with plain discs and 165,674 with `_CIRCLES`. Scenes
+whose frames end well inside a field (open space) move by a hundred cycles
+or so from build to build as the frames meet the vertical sync at other
+phases (`F_FRAME`'s wait for the flip, `ff2`).
 
 With `_CIRCLES` the surface's rows are worked out from the circles and
 painted in every frame the planet turns; the circles themselves are made
