@@ -908,9 +908,11 @@ ENDIF
 \ reads the planet's records there, PCB)
 
 .f_dprep
+IF _CIRCLES             \ (only PF_HOOK makes records: a build with _CIRCLES)
  LDA F_PLON             \ the planet's records: this iteration's, or the last
  BEQ P%+5               \ ones moved with the disc (f_hrec)
  JSR f_hrec
+ENDIF
  LDA #0
  STA f_lay
  STA f_sec

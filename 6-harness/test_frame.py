@@ -811,6 +811,9 @@ def hold_tests(png_dir):
             (34, True, 3), (33, True, 3), (32, False, 2), (31, True, 3), (30, True, 3), (29, True, 3), (27, False, 2)]
     check(seen == want, 'F_PFHOLD: kept with MCNT odd (a multiple of 4 made in deep space), the radius the same, the call the last iteration\'s%s' % (
         '' if seen == want else ' (%r)' % seen))
+    if 'pm_isqrt' not in m.F:                   # (f_dprep runs f_hrec only with _CIRCLES)
+        print('kept records: no circle engine in this build')
+        return
     m = Machine()
     m.call('F_INIT')
     border(m)
