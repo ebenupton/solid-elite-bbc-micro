@@ -1080,10 +1080,12 @@ IF MERID_PART = 1
  RTS
 
 \ pm_mul16: pm_p (4) = pm_a (2) * pm_b (2), unsigned, from four 8 x 8
-\ products (Elite's quarter-square tables); pm_sq16: pm_p (4) = pm_a (2)
-\ squared, from two squares and one product. Each product is PMQ's: the
-\ multiplier b's byte is the low byte of the pointers pm_ql and pm_qh (QSL + b
-\ and QSH + b: the tables are page aligned), so that (pm_ql),Y is QS(Y + b)
+\ products (Elite's quarter-square tables), or from two when one operand's
+\ high byte is zero and one when both are (the short paths pma0 and pmz join
+\ the four products' code); pm_sq16: pm_p (4) = pm_a (2) squared, from two
+\ squares and one product. Each product is PMQ's: the multiplier b's byte
+\ is the low byte of the pointers pm_ql and pm_qh (QSL + b and QSH + b: the
+\ tables are page aligned), so that (pm_ql),Y is QS(Y + b)
 
 MACRO PMQ               \ (pm_t8 A) = Y * b, Y kept: QS(Y + b) - QS(|Y - b|)
  TYA
@@ -1124,6 +1126,7 @@ ENDMACRO
  LDA pm_t8
  STA pm_p
  LDY pm_a+1             \ ah bl
+ BEQ pma0
  PMQ
  TAX
  LDA pm_t8
@@ -1133,7 +1136,23 @@ ENDMACRO
  TXA
  ADC #0
  STA pm_p+2
- PMQB pm_b+1            \ ah bh
+ LDA pm_b+1             \ ah bh (Y = ah)
+ BNE pmah
+.pmz                    \ b < 256: al bl + ah bl << 8 (A = 0)
+ STA pm_p+3
+.pmr
+ RTS
+.pma0                   \ a < 256 (Y = 0): al bl, + al bh << 8 if b >= 256
+ STY pm_p+2
+ STY pm_p+3
+ LDA pm_b+1
+ BEQ pmr
+ STA pm_ql
+ STA pm_qh
+ BNE pmal               \ (always)
+.pmah
+ STA pm_ql
+ STA pm_qh
  PMQ
  TAX
  LDA pm_t8
@@ -1143,6 +1162,7 @@ ENDMACRO
  TXA
  ADC #0
  STA pm_p+3
+.pmal
  LDY pm_a               \ al bh
  PMQ
  TAX

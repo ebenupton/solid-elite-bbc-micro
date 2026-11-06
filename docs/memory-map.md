@@ -359,7 +359,7 @@ see the history of this file).
 
 Free space now, without `_CIRCLES`: 1,538 bytes in the flight code's home
 bank and 1,102 and 94 in its main RAM part; with it (the planet's surface,
-2,690 bytes at the home bank's end), 27 in the home bank, 0 and 7 in the
+2,711 bytes at the home bank's end), 6 in the home bank, 0 and 7 in the
 main RAM part, and of the circle engine's variables' room 5 bytes at
 `PFVH%` and 40 at `PFVS%`. In both, 21 in the flight code's cold bank (the
 renderer's window takes 3,910 and its state 3,072: [renderer.md](renderer.md),
