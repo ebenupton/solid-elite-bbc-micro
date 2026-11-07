@@ -113,15 +113,17 @@
 
                         \ The switches' targets: S1 (line 191 of the next field)
                         \ and S2 (line 311) as cycles from the loader's
-                        \ calibration probe (the vertical sync's start, line
-                        \ 272, as rwait's target), each split into whole
-                        \ microseconds (RD1, RD2, modulo 256 in timer 2) and a
-                        \ half (RH1, RH2: the odd cycle, an instruction of 3
-                        \ cycles in place of 2 before the write); RS1 and RS2
-                        \ place the writes on cycle 76 in jsbeeb with no trim
+                        \ calibration probe (the first time, read on time,
+                        \ at which the vertical sync's flag is set: rcal), less
+                        \ the fixed time of rwait and the writes before the
+                        \ switch, each split into whole microseconds (RD1, RD2,
+                        \ modulo 256 in timer 2) and a half (RH1, RH2: the odd
+                        \ cycle, an instruction of 3 cycles in place of 2
+                        \ before the write); RS1 and RS2 place the writes
+                        \ on cycle 75 (S1) and 76 (S2) in jsbeeb with no trim
                         \ (docs/video-timing.md)
- RS1 = 2 * (14800 - 1 * 64) - 7 + RTRIM1
- RS2 = 2 * (2512 - 1 * 64) - 6 + RTRIM2
+ RS1 = 2 * (14800 - 2 * 64) - 7 + RTRIM1
+ RS2 = 2 * (2512 - 2 * 64) - 6 + RTRIM2
  RD1 = RS1 DIV 2
  RH1 = RS1 AND 1
  RD2 = RS2 DIV 2
@@ -129,6 +131,10 @@
 
  RWMAX = 80             \ The longest wait (microseconds) that rwait takes as
                         \ on time; more means the interrupt came late
+
+ RCW = 122              \ The calibration's probes: how far ahead of a probe
+                        \ (microseconds in timer 2) its wait loop stops, so
+                        \ that rwait's wait to the probe is on time (rcal)
 
  MACRO RTRIMI h         \ A switch's odd half microsecond, before the write to
   IF h                  \ the ULA's control register: 3 cycles or 2

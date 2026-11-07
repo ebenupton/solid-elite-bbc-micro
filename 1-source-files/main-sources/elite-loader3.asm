@@ -871,8 +871,8 @@ NEXT
  JSR rcal               \ Find the vertical sync in timer 2, and set the
                         \ switches' targets from it
 
- LDA #0                 \ No switch has been made late (the calibration's
- STA rslip              \ probes use rwait's late path, and count there)
+ LDA #0                 \ No switch has been made late (rcal uses rslip to
+ STA rslip              \ check its probes)
 
  LDA #LO(35*RLINEUS-12) \ Start timer 1 to fire on line 310 (we are just after
  STA VIA+&44            \ line 272's start), a line before S2, and then RPA
@@ -969,9 +969,11 @@ NEXT
 
  JSR rt2rd              \ (rcvh rcvl) = timer 2, just after the sync's flag set
 
- LDA rcvl               \ (rch rcl) = the first probe, 170 microseconds earlier
- CLC                    \ in the field (a probe reads the flag about 94
- ADC #170               \ microseconds after its time, rwait's return)
+ LDA rcvl               \ (rch rcl) = the first probe, 94 microseconds earlier
+ CLC                    \ in the field (a probe reads the flag 45
+ ADC #94                \ microseconds after its time, at rwait's return, so
+                        \ the probes read it from about 47 microseconds before
+                        \ the moment it sets to 49 after)
  STA rcl
  LDA rcvh
  ADC #0
@@ -983,22 +985,32 @@ NEXT
 .rc2
 
  LDA rcl                \ (rch rcl) = the next probe: a field and a microsecond
- SEC                    \ on, &4E01 counts lower
- SBC #&01
+ SEC                    \ on, &4E01 counts lower (a microsecond here, the field
+ SBC #&01               \ at rc5)
  STA rcl
  LDA rch
+ SBC #0
+ STA rch
+
+.rc5
+
+ LDA rch                \ A field on, &4E00 counts lower (rc5: the same probe in
+ SEC                    \ the next field, after a late one)
  SBC #&4E
  STA rch
 
+ LDA #0                 \ rwait counts a late wait in rslip (the probe's read
+ STA rslip              \ is then a whole number of lines after its time)
+
 .rc3
 
- JSR rt2rd2             \ Wait until timer 2 is 40 or fewer counts above the
- LDA rcdl                \ probe (rt2rd2 sets (rcdh rcdl) = timer 2 less the
- SEC                    \ probe)
- SBC #41
- LDA rcdh
- SBC #0
- BPL rc3
+ JSR rt2rd2             \ Wait until timer 2 is RCW or fewer counts above the
+ LDA rcdl               \ probe (rt2rd2 sets (rcdh rcdl) = timer 2 less the
+ SEC                    \ probe): a pass of this loop is 49 microseconds (65
+ SBC #RCW+1             \ when rt2rd reads twice), and rwait reads timer 2 50
+ LDA rcdh               \ after this loop's read, so that rwait's wait is 8 to
+ SBC #0                 \ 72 microseconds: on time (at most RWMAX), and the
+ BPL rc3                \ flag is read at the probe's time
 
  LDA #%00000010         \ Clear the sync's flag, then read it at the probe's
  STA VIA+&4D            \ exact time (rwait, with the probe as target 4)
@@ -1008,11 +1020,20 @@ NEXT
  JSR rwait
  LDA VIA+&4D
 
+ LDX rslip              \ If rwait's wait was late, the read was not at the
+ BNE rc6                \ probe's time: make the probe again a field later
+
  AND #%00000010         \ If the flag is set, the sync has started: this probe
  BNE rc4                \ is the calibration
 
  DEC rcn                \ Otherwise try the next microsecond
  BNE rc2
+ BEQ rc4
+
+.rc6
+
+ DEC rcn                \ (a late probe counts as one of the 96)
+ BNE rc5
 
 .rc4
 
