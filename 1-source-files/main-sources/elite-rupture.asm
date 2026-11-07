@@ -22,7 +22,7 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
 \       Type: Subroutine
 \   Category: Drawing the screen
 \    Summary: The rupture's interrupt: switch the 6845's character clock on a
-\             line's cycle 76, then set up the next CRTC frame
+\             line's cycle 75 or 76, then set up the next CRTC frame
 \
 \ ------------------------------------------------------------------------------
 \
@@ -88,8 +88,8 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
  LDX #101
  STX CRTC+1
 
- LDA #ULAB              \ The switch, on cycle 76: mode 5's 1 MHz clock and
- RTRIMI RH1             \ four colours (with its odd half microsecond)
+ LDA #ULAB              \ The switch, on cycle 75 or 76: mode 5's 1 MHz clock
+ RTRIMI RH1             \ and four colours (with its odd half microsecond)
  STA VIA+&20
 
  LDY rpo                \ Colour 2's four palette entries, in the line's
@@ -224,8 +224,8 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
  LDX #89
  STX CRTC+1
 
- LDA #ULAA              \ The switch, on cycle 76: MODE 1's 2 MHz clock and
- RTRIMI RH2             \ four colours (with its odd half microsecond)
+ LDA #ULAA              \ The switch, on cycle 75 or 76: MODE 1's 2 MHz clock
+ RTRIMI RH2             \ and four colours (with its odd half microsecond)
  STA VIA+&20
 
  LDX #1                 \ R1 = 64 (line 311 is in the vertical blank; line 0,
@@ -329,11 +329,11 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
 \ ------------------------------------------------------------------------------
 \
 \ Port: the target, rtgt+X, is the value that timer 2's low byte reads here
-\ when the switch that follows the return will land on cycle 76 of its line
-\ with no wait. The difference from the value read is the wait in
-\ microseconds: as the targets are a whole number of lines apart (64
-\ microseconds) and the low byte wraps every 256 (four lines), the
-\ difference modulo 256 keeps the line's phase. A difference of at most
+\ when the switch that follows the return will land on cycle 75 or 76 of its
+\ line with no wait (docs/video-timing.md). The difference from the value
+\ read is the wait in microseconds: as the targets are a whole number of
+\ lines apart (64 microseconds) and the low byte wraps every 256 (four
+\ lines), the difference modulo 256 keeps the line's phase. A difference of at most
 \ RWMAX is the wait to the target; more means the interrupt came after the
 \ target (another interrupt, or a SEI section, held it off), so the wait is
 \ the difference modulo 64: the switch is made on the first line after that

@@ -7605,7 +7605,7 @@ Saving file '3-assembled-output/MISSILE.bin'
      19FC   85 70      STA &70
      19FE   A9 11      LDA #&11
      1A00   85 71      STA &71
-     1A02   A9 B1      LDA #&B1
+     1A02   A9 B2      LDA #&B2
      1A04   85 72      STA &72
      1A06   A9 2D      LDA #&2D
      1A08   85 73      STA &73
@@ -7642,21 +7642,21 @@ Saving file '3-assembled-output/MISSILE.bin'
      1A50   85 70      STA &70
      1A52   A9 61      LDA #&61
      1A54   85 71      STA &71
-     1A56   A9 2D      LDA #&2D
+     1A56   A9 2E      LDA #&2E
      1A58   85 72      STA &72
      1A5A   A9 2F      LDA #&2F
      1A5C   85 73      STA &73
      1A5E   20 8E 1E   JSR &1E8E
      1A61   A9 63      LDA #&63
      1A63   85 71      STA &71
-     1A65   A9 2D      LDA #&2D
+     1A65   A9 2E      LDA #&2E
      1A67   85 72      STA &72
      1A69   A9 2E      LDA #&2E
      1A6B   85 73      STA &73
      1A6D   20 8E 1E   JSR &1E8E
      1A70   A9 76      LDA #&76
      1A72   85 71      STA &71
-     1A74   A9 2D      LDA #&2D
+     1A74   A9 2E      LDA #&2E
      1A76   85 72      STA &72
      1A78   A9 30      LDA #&30
      1A7A   85 73      STA &73
@@ -7671,7 +7671,7 @@ Saving file '3-assembled-output/MISSILE.bin'
      1A8D   85 73      STA &73
      1A8F   A2 04      LDX #&04
      1A91   20 99 1E   JSR &1E99
-     1A94   20 23 2D   JSR &2D23
+     1A94   20 24 2D   JSR &2D24
      1A97   A2 23      LDX #&23
 .loop2
      1A99   BD EE 1C   LDA &1CEE,X
@@ -7789,7 +7789,7 @@ End macro FNE
      0B85   10 F0      BPL &0B77
      0B87   20 0D 0C   JSR &0C0D
      0B8A   A9 00      LDA #&00
-     0B8C   8D 49 79   STA &7949
+     0B8C   8D 4A 79   STA &794A
      0B8F   A9 B4      LDA #&B4
      0B91   8D 44 FE   STA &FE44
      0B94   A9 08      LDA #&08
@@ -7799,8 +7799,8 @@ End macro FNE
      0B9E   A9 2F      LDA #&2F
      0BA0   8D 47 FE   STA &FE47
      0BA3   A9 01      LDA #&01
-     0BA5   8D 45 79   STA &7945
-     0BA8   8D 46 79   STA &7946
+     0BA5   8D 46 79   STA &7946
+     0BA8   8D 47 79   STA &7947
      0BAB   A9 D8      LDA #&D8
      0BAD   8D 48 02   STA &0248
      0BB0   A0 0F      LDY #&0F
@@ -7870,7 +7870,7 @@ End macro FNE
      0C45   E9 4E      SBC #&4E
      0C47   8D C8 0C   STA &0CC8
      0C4A   A9 00      LDA #&00
-     0C4C   8D 49 79   STA &7949
+     0C4C   8D 4A 79   STA &794A
 .rc3
      0C4F   20 9A 0C   JSR &0C9A
      0C52   AD CB 0C   LDA &0CCB
@@ -7882,11 +7882,11 @@ End macro FNE
      0C5F   A9 02      LDA #&02
      0C61   8D 4D FE   STA &FE4D
      0C64   AD C7 0C   LDA &0CC7
-     0C67   8D 43 79   STA &7943
+     0C67   8D 44 79   STA &7944
      0C6A   A2 04      LDX #&04
-     0C6C   20 E2 78   JSR &78E2
+     0C6C   20 E3 78   JSR &78E3
      0C6F   AD 4D FE   LDA &FE4D
-     0C72   AE 49 79   LDX &7949
+     0C72   AE 4A 79   LDX &794A
      0C75   D0 0B      BNE &0C82
      0C77   29 02      AND #&02
      0C79   D0 0C      BNE &0C87
@@ -7900,11 +7900,11 @@ End macro FNE
      0C87   AD C7 0C   LDA &0CC7
      0C8A   38         SEC
      0C8B   E9 4C      SBC #&4C
-     0C8D   8D 3F 79   STA &793F
+     0C8D   8D 40 79   STA &7940
      0C90   AD C7 0C   LDA &0CC7
      0C93   38         SEC
-     0C94   E9 4D      SBC #&4D
-     0C96   8D 41 79   STA &7941
+     0C94   E9 4C      SBC #&4C
+     0C96   8D 42 79   STA &7942
      0C99   60         RTS
 .rt2rd2
      0C9A   20 B1 0C   JSR &0CB1
@@ -8077,7 +8077,7 @@ LOAD: &B00 -&CFA , free 5
      1DD5   85 70      STA &70
      1DD7   A9 63      LDA #&63
      1DD9   85 71      STA &71
-     1DDB   A9 2D      LDA #&2D
+     1DDB   A9 2E      LDA #&2E
      1DDD   85 72      STA &72
      1DDF   A9 2E      LDA #&2E
      1DE1   85 73      STA &73
@@ -8433,14 +8433,14 @@ LOAD: &B00 -&CFA , free 5
      05A0   8D 30 FE   STA &FE30
      05A3   60         RTS
 .dfsin
-     05A4   20 2A 79   JSR &792A
+     05A4   20 2B 79   JSR &792B
      05A7   AD E1 05   LDA &05E1
      05AA   F0 34      BEQ &05E0
      05AC   A2 BF      LDX #&BF
      05AE   A0 10      LDY #&10
      05B0   D0 0C      BNE &05BE
 .dfsout
-     05B2   20 37 79   JSR &7937
+     05B2   20 38 79   JSR &7938
      05B5   A9 FF      LDA #&FF
      05B7   8D E1 05   STA &05E1
      05BA   A2 10      LDX #&10
@@ -8517,7 +8517,7 @@ LOAD: &B00 -&CFA , free 5
      0638   68         PLA
      0639   60         RTS
 .BRKR
-     063A   20 37 79   JSR &7937
+     063A   20 38 79   JSR &7938
      063D   AD 03 04   LDA &0403
      0640   85 F4      STA &F4
      0642   8D 30 FE   STA &FE30
@@ -8851,19 +8851,19 @@ High resident block: &7EB0 -&7EBF , free 0  (then the circle engine's variables)
      7701   48         PHA
      7702   98         TYA
      7703   48         PHA
-     7704   AD 45 79   LDA &7945
+     7704   AD 46 79   LDA &7946
      7707   F0 03      BEQ &770C
      7709   4C 1E 78   JMP &781E
-     770C   AD 47 79   LDA &7947
+     770C   AD 48 79   LDA &7948
      770F   F0 03      BEQ &7714
      7711   4C BE 77   JMP &77BE
      7714   A0 00      LDY #&00
      7716   AD 86 03   LDA &0386
      7719   F0 02      BEQ &771D
      771B   A0 0C      LDY #&0C
-     771D   8C 4D 79   STY &794D
+     771D   8C 4E 79   STY &794E
      7720   A2 00      LDX #&00
-     7722   20 E2 78   JSR &78E2
+     7722   20 E3 78   JSR &78E3
      7725   A2 03      LDX #&03
      7727   8E 00 FE   STX &FE00
      772A   A2 24      LDX #&24
@@ -8881,14 +8881,14 @@ Macro RTRIMI:
      7745   24 70      BIT &70
 End macro RTRIMI
      7747   8D 20 FE   STA &FE20
-     774A   AC 4D 79   LDY &794D
-     774D   B9 50 79   LDA &7950,Y
+     774A   AC 4E 79   LDY &794E
+     774D   B9 51 79   LDA &7951,Y
      7750   8D 21 FE   STA &FE21
-     7753   B9 51 79   LDA &7951,Y
+     7753   B9 52 79   LDA &7952,Y
      7756   8D 21 FE   STA &FE21
-     7759   B9 52 79   LDA &7952,Y
+     7759   B9 53 79   LDA &7953,Y
      775C   8D 21 FE   STA &FE21
-     775F   B9 53 79   LDA &7953,Y
+     775F   B9 54 79   LDA &7954,Y
      7762   8D 21 FE   STA &FE21
      7765   A2 01      LDX #&01
      7767   8E 00 FE   STX &FE00
@@ -8909,29 +8909,29 @@ End macro RWAITX
      7780   8E 00 FE   STX &FE00
      7783   A2 3F      LDX #&3F
      7785   8E 01 FE   STX &FE01
-     7788   B9 54 79   LDA &7954,Y
+     7788   B9 55 79   LDA &7955,Y
      778B   8D 21 FE   STA &FE21
-     778E   B9 55 79   LDA &7955,Y
+     778E   B9 56 79   LDA &7956,Y
      7791   8D 21 FE   STA &FE21
-     7794   B9 56 79   LDA &7956,Y
+     7794   B9 57 79   LDA &7957,Y
      7797   8D 21 FE   STA &FE21
-     779A   B9 57 79   LDA &7957,Y
+     779A   B9 58 79   LDA &7958,Y
      779D   8D 21 FE   STA &FE21
-     77A0   B9 58 79   LDA &7958,Y
+     77A0   B9 59 79   LDA &7959,Y
      77A3   8D 21 FE   STA &FE21
-     77A6   B9 59 79   LDA &7959,Y
+     77A6   B9 5A 79   LDA &795A,Y
      77A9   8D 21 FE   STA &FE21
-     77AC   B9 5A 79   LDA &795A,Y
+     77AC   B9 5B 79   LDA &795B,Y
      77AF   8D 21 FE   STA &FE21
-     77B2   B9 5B 79   LDA &795B,Y
+     77B2   B9 5C 79   LDA &795C,Y
      77B5   8D 21 FE   STA &FE21
-     77B8   EE 46 79   INC &7946
+     77B8   EE 47 79   INC &7947
      77BB   4C CA 77   JMP &77CA
 .rpt1d
      77BE   A2 00      LDX #&00
-     77C0   20 E2 78   JSR &78E2
+     77C0   20 E3 78   JSR &78E3
      77C3   A9 50      LDA #&50
-     77C5   20 FA 78   JSR &78FA
+     77C5   20 FB 78   JSR &78FB
      77C8   A2 00      LDX #&00
 .rpt1
      77CA   A2 04      LDX #&04
@@ -8945,35 +8945,35 @@ End macro RWAITX
      77DE   A2 06      LDX #&06
      77E0   8E 00 FE   STX &FE00
      77E3   AE E2 06   LDX &06E2
-     77E6   AD 46 79   LDA &7946
+     77E6   AD 47 79   LDA &7947
      77E9   D0 02      BNE &77ED
      77EB   A2 00      LDX #&00
      77ED   8E 01 FE   STX &FE01
      77F0   A2 00      LDX #&00
      77F2   AD A2 7E   LDA &7EA2
      77F5   F0 0F      BEQ &7806
-     77F7   AD 48 79   LDA &7948
+     77F7   AD 49 79   LDA &7949
      77FA   D0 0A      BNE &7806
      77FC   AD A3 7E   LDA &7EA3
      77FF   8D A1 7E   STA &7EA1
      7802   8E A2 7E   STX &7EA2
      7805   E8         INX
 .rpt3
-     7806   8E 48 79   STX &7948
+     7806   8E 49 79   STX &7949
      7809   A9 0C      LDA #&0C
      780B   8D 00 FE   STA &FE00
      780E   AE A1 7E   LDX &7EA1
-     7811   BD 4E 79   LDA &794E,X
+     7811   BD 4F 79   LDA &794F,X
      7814   8D 01 FE   STA &FE01
      7817   A2 FE      LDX #&FE
      7819   A0 2F      LDY #&2F
-     781B   4C B3 78   JMP &78B3
+     781B   4C B4 78   JMP &78B4
 .rpt2
-     781E   AD 46 79   LDA &7946
+     781E   AD 47 79   LDA &7947
      7821   D0 03      BNE &7826
-     7823   4C 7D 78   JMP &787D
+     7823   4C 7E 78   JMP &787E
      7826   A2 02      LDX #&02
-     7828   20 E2 78   JSR &78E2
+     7828   20 E3 78   JSR &78E3
      782B   A2 03      LDX #&03
      782D   8E 00 FE   STX &FE00
      7830   A2 28      LDX #&28
@@ -8988,19 +8988,18 @@ End macro RWAITX
      7846   8E 01 FE   STX &FE01
      7849   A9 D8      LDA #&D8
 Macro RTRIMI:
-     784B   EA         NOP
+     784B   24 70      BIT &70
 End macro RTRIMI
-     784C   8D 20 FE   STA &FE20
-     784F   A2 01      LDX #&01
-     7851   8E 00 FE   STX &FE00
-     7854   A2 40      LDX #&40
-     7856   8E 01 FE   STX &FE01
-     7859   A2 02      LDX #&02
-     785B   8E 00 FE   STX &FE00
-     785E   A2 5A      LDX #&5A
-     7860   8E 01 FE   STX &FE01
+     784D   8D 20 FE   STA &FE20
+     7850   A2 01      LDX #&01
+     7852   8E 00 FE   STX &FE00
+     7855   A2 40      LDX #&40
+     7857   8E 01 FE   STX &FE01
+     785A   A2 02      LDX #&02
+     785C   8E 00 FE   STX &FE00
+     785F   A2 5A      LDX #&5A
+     7861   8E 01 FE   STX &FE01
 Macro RWAITX:
-     7863   EA         NOP
      7864   EA         NOP
      7865   EA         NOP
      7866   EA         NOP
@@ -9010,236 +9009,237 @@ Macro RWAITX:
      786A   EA         NOP
      786B   EA         NOP
      786C   EA         NOP
+     786D   EA         NOP
 End macro RWAITX
-     786D   A2 00      LDX #&00
-     786F   8E 00 FE   STX &FE00
-     7872   A2 7F      LDX #&7F
-     7874   8E 01 FE   STX &FE01
-     7877   CE 46 79   DEC &7946
-     787A   4C 87 78   JMP &7887
+     786E   A2 00      LDX #&00
+     7870   8E 00 FE   STX &FE00
+     7873   A2 7F      LDX #&7F
+     7875   8E 01 FE   STX &FE01
+     7878   CE 47 79   DEC &7947
+     787B   4C 88 78   JMP &7888
 .rpt4d
-     787D   A2 02      LDX #&02
-     787F   20 E2 78   JSR &78E2
-     7882   A9 50      LDA #&50
-     7884   20 FA 78   JSR &78FA
+     787E   A2 02      LDX #&02
+     7880   20 E3 78   JSR &78E3
+     7883   A9 50      LDA #&50
+     7885   20 FB 78   JSR &78FB
 .rpt4
-     7887   A2 04      LDX #&04
-     7889   8E 00 FE   STX &FE00
-     788C   A2 17      LDX #&17
-     788E   8E 01 FE   STX &FE01
-     7891   A2 07      LDX #&07
-     7893   8E 00 FE   STX &FE00
-     7896   A2 7F      LDX #&7F
-     7898   8E 01 FE   STX &FE01
-     789B   A2 06      LDX #&06
-     789D   8E 00 FE   STX &FE00
-     78A0   A2 18      LDX #&18
-     78A2   8E 01 FE   STX &FE01
-     78A5   A9 0C      LDA #&0C
-     78A7   8D 00 FE   STA &FE00
-     78AA   A9 0E      LDA #&0E
-     78AC   8D 01 FE   STA &FE01
-     78AF   A2 FE      LDX #&FE
-     78B1   A0 1D      LDY #&1D
+     7888   A2 04      LDX #&04
+     788A   8E 00 FE   STX &FE00
+     788D   A2 17      LDX #&17
+     788F   8E 01 FE   STX &FE01
+     7892   A2 07      LDX #&07
+     7894   8E 00 FE   STX &FE00
+     7897   A2 7F      LDX #&7F
+     7899   8E 01 FE   STX &FE01
+     789C   A2 06      LDX #&06
+     789E   8E 00 FE   STX &FE00
+     78A1   A2 18      LDX #&18
+     78A3   8E 01 FE   STX &FE01
+     78A6   A9 0C      LDA #&0C
+     78A8   8D 00 FE   STA &FE00
+     78AB   A9 0E      LDA #&0E
+     78AD   8D 01 FE   STA &FE01
+     78B0   A2 FE      LDX #&FE
+     78B2   A0 1D      LDY #&1D
 .rpt9
-     78B3   8E 4A 79   STX &794A
-     78B6   8C 4B 79   STY &794B
-     78B9   AD 45 79   LDA &7945
-     78BC   49 01      EOR #&01
-     78BE   8D 45 79   STA &7945
-     78C1   68         PLA
-     78C2   A8         TAY
-     78C3   68         PLA
-     78C4   AA         TAX
-     78C5   A9 78      LDA #&78
-     78C7   48         PHA
-     78C8   A9 D3      LDA #&D3
-     78CA   48         PHA
-     78CB   A9 04      LDA #&04
-     78CD   48         PHA
-     78CE   A5 FC      LDA &FC
-     78D0   6C E3 06   JMP (&06E3)
+     78B4   8E 4B 79   STX &794B
+     78B7   8C 4C 79   STY &794C
+     78BA   AD 46 79   LDA &7946
+     78BD   49 01      EOR #&01
+     78BF   8D 46 79   STA &7946
+     78C2   68         PLA
+     78C3   A8         TAY
+     78C4   68         PLA
+     78C5   AA         TAX
+     78C6   A9 78      LDA #&78
+     78C8   48         PHA
+     78C9   A9 D4      LDA #&D4
+     78CB   48         PHA
+     78CC   A9 04      LDA #&04
+     78CE   48         PHA
+     78CF   A5 FC      LDA &FC
+     78D1   6C E3 06   JMP (&06E3)
 .rret
-     78D3   48         PHA
-     78D4   AD 4A 79   LDA &794A
-     78D7   8D 46 FE   STA &FE46
-     78DA   AD 4B 79   LDA &794B
-     78DD   8D 47 FE   STA &FE47
-     78E0   68         PLA
-     78E1   40         RTI
+     78D4   48         PHA
+     78D5   AD 4B 79   LDA &794B
+     78D8   8D 46 FE   STA &FE46
+     78DB   AD 4C 79   LDA &794C
+     78DE   8D 47 FE   STA &FE47
+     78E1   68         PLA
+     78E2   40         RTI
 .rwait
-     78E2   AD 68 FE   LDA &FE68
-     78E5   38         SEC
-     78E6   FD 3F 79   SBC &793F,X
-     78E9   C9 51      CMP #&51
-     78EB   90 08      BCC &78F5
-     78ED   29 3F      AND #&3F
-     78EF   EE 49 79   INC &7949
-     78F2   4C FA 78   JMP &78FA
+     78E3   AD 68 FE   LDA &FE68
+     78E6   38         SEC
+     78E7   FD 40 79   SBC &7940,X
+     78EA   C9 51      CMP #&51
+     78EC   90 08      BCC &78F6
+     78EE   29 3F      AND #&3F
+     78F0   EE 4A 79   INC &794A
+     78F3   4C FB 78   JMP &78FB
 .rwt1
-     78F5   EA         NOP
      78F6   EA         NOP
      78F7   EA         NOP
      78F8   EA         NOP
      78F9   EA         NOP
+     78FA   EA         NOP
 .rwt2
 .rdelay
-     78FA   A8         TAY
-     78FB   29 07      AND #&07
-     78FD   49 07      EOR #&07
-     78FF   18         CLC
-     7900   69 22      ADC #&22
-     7902   8D 20 79   STA &7920
-     7905   A9 79      LDA #&79
-     7907   69 00      ADC #&00
-     7909   8D 21 79   STA &7921
-     790C   98         TYA
-     790D   4A         LSR A
+     78FB   A8         TAY
+     78FC   29 07      AND #&07
+     78FE   49 07      EOR #&07
+     7900   18         CLC
+     7901   69 23      ADC #&23
+     7903   8D 21 79   STA &7921
+     7906   A9 79      LDA #&79
+     7908   69 00      ADC #&00
+     790A   8D 22 79   STA &7922
+     790D   98         TYA
      790E   4A         LSR A
      790F   4A         LSR A
-     7910   AA         TAX
-     7911   EA         NOP
+     7910   4A         LSR A
+     7911   AA         TAX
      7912   EA         NOP
-     7913   F0 0A      BEQ &791F
+     7913   EA         NOP
+     7914   F0 0A      BEQ &7920
 .rdl
-     7915   EA         NOP
      7916   EA         NOP
      7917   EA         NOP
      7918   EA         NOP
-     7919   24 70      BIT &70
-     791B   CA         DEX
-     791C   D0 F7      BNE &7915
-     791E   EA         NOP
+     7919   EA         NOP
+     791A   24 70      BIT &70
+     791C   CA         DEX
+     791D   D0 F7      BNE &7916
+     791F   EA         NOP
 .rdj
-     791F   4C 22 79   JMP &7922
+     7920   4C 23 79   JMP &7923
 .rdn
-     7922   EA         NOP
      7923   EA         NOP
      7924   EA         NOP
      7925   EA         NOP
      7926   EA         NOP
      7927   EA         NOP
      7928   EA         NOP
-     7929   60         RTS
+     7929   EA         NOP
+     792A   60         RTS
 .rdin
-     792A   48         PHA
-     792B   A9 FF      LDA #&FF
-     792D   8D 47 79   STA &7947
+     792B   48         PHA
+     792C   A9 FF      LDA #&FF
+     792E   8D 48 79   STA &7948
 .rdi1
-     7930   AD 46 79   LDA &7946
-     7933   D0 FB      BNE &7930
-     7935   68         PLA
-     7936   60         RTS
+     7931   AD 47 79   LDA &7947
+     7934   D0 FB      BNE &7931
+     7936   68         PLA
+     7937   60         RTS
 .rdout
-     7937   48         PHA
-     7938   A9 00      LDA #&00
-     793A   8D 47 79   STA &7947
-     793D   68         PLA
-     793E   60         RTS
+     7938   48         PHA
+     7939   A9 00      LDA #&00
+     793B   8D 48 79   STA &7948
+     793E   68         PLA
+     793F   60         RTS
 .rtgt
-     793F   00
      7940   00
      7941   00
      7942   00
      7943   00
      7944   00
-.rphase
      7945   00
-.rstate
+.rphase
      7946   00
-.rdisc
+.rstate
      7947   00
-.rflip
+.rdisc
      7948   00
-.rslip
+.rflip
      7949   00
+.rslip
+     794A   00
 .rlat
-     794A   00 00
+     794B   00 00
 .rtmp
-     794C   00
-.rpo
      794D   00
+.rpo
+     794E   00
 .rsah
-     794E   02
-     794F   08
+     794F   02
+     7950   08
 .rpal
-     7950   D4
-     7951   C4
-     7952   94
-     7953   84
-     7954   76
-     7955   66
-     7956   36
-     7957   26
-     7958   F5
-     7959   E5
-     795A   B5
-     795B   A5
-     795C   D0
-     795D   C0
-     795E   90
-     795F   80
-     7960   76
-     7961   66
-     7962   36
-     7963   26
-     7964   F1
-     7965   E1
-     7966   B1
-     7967   A1
+     7951   D4
+     7952   C4
+     7953   94
+     7954   84
+     7955   76
+     7956   66
+     7957   36
+     7958   26
+     7959   F5
+     795A   E5
+     795B   B5
+     795C   A5
+     795D   D0
+     795E   C0
+     795F   90
+     7960   80
+     7961   76
+     7962   66
+     7963   36
+     7964   26
+     7965   F1
+     7966   E1
+     7967   B1
+     7968   A1
 .RUPT_END
-Rupture block: &7700 -&7967  (616  bytes)
+Rupture block: &7700 -&7968  (617  bytes)
 .PROBE
-     2D23   A5 F4      LDA &F4
-     2D25   48         PHA
-     2D26   A0 00      LDY #&00
-     2D28   A2 0F      LDX #&0F
+     2D24   A5 F4      LDA &F4
+     2D26   48         PHA
+     2D27   A0 00      LDY #&00
+     2D29   A2 0F      LDX #&0F
 .prb1
-     2D2A   BD A1 02   LDA &02A1,X
-     2D2D   D0 22      BNE &2D51
-     2D2F   86 F4      STX &F4
-     2D31   8E 30 FE   STX &FE30
-     2D34   A9 AA      LDA #&AA
-     2D36   8D FF BF   STA &BFFF
-     2D39   CD FF BF   CMP &BFFF
-     2D3C   D0 13      BNE &2D51
-     2D3E   A9 55      LDA #&55
-     2D40   8D FF BF   STA &BFFF
-     2D43   CD FF BF   CMP &BFFF
-     2D46   D0 09      BNE &2D51
-     2D48   8A         TXA
-     2D49   99 00 04   STA &0400,Y
-     2D4C   C8         INY
-     2D4D   C0 04      CPY #&04
-     2D4F   F0 16      BEQ &2D67
+     2D2B   BD A1 02   LDA &02A1,X
+     2D2E   D0 22      BNE &2D52
+     2D30   86 F4      STX &F4
+     2D32   8E 30 FE   STX &FE30
+     2D35   A9 AA      LDA #&AA
+     2D37   8D FF BF   STA &BFFF
+     2D3A   CD FF BF   CMP &BFFF
+     2D3D   D0 13      BNE &2D52
+     2D3F   A9 55      LDA #&55
+     2D41   8D FF BF   STA &BFFF
+     2D44   CD FF BF   CMP &BFFF
+     2D47   D0 09      BNE &2D52
+     2D49   8A         TXA
+     2D4A   99 00 04   STA &0400,Y
+     2D4D   C8         INY
+     2D4E   C0 04      CPY #&04
+     2D50   F0 16      BEQ &2D68
 .prb2
-     2D51   CA         DEX
-     2D52   10 D6      BPL &2D2A
-     2D54   68         PLA
-     2D55   85 F4      STA &F4
-     2D57   8D 30 FE   STA &FE30
-     2D5A   A2 00      LDX #&00
+     2D52   CA         DEX
+     2D53   10 D6      BPL &2D2B
+     2D55   68         PLA
+     2D56   85 F4      STA &F4
+     2D58   8D 30 FE   STA &FE30
+     2D5B   A2 00      LDX #&00
 .prb3
-     2D5C   BD 6E 2D   LDA &2D6E,X
-     2D5F   F0 FE      BEQ &2D5F
-     2D61   20 EE FF   JSR &FFEE
-     2D64   E8         INX
-     2D65   D0 F5      BNE &2D5C
+     2D5D   BD 6F 2D   LDA &2D6F,X
+     2D60   F0 FE      BEQ &2D60
+     2D62   20 EE FF   JSR &FFEE
+     2D65   E8         INX
+     2D66   D0 F5      BNE &2D5D
 .prb4
-     2D67   68         PLA
-     2D68   85 F4      STA &F4
-     2D6A   8D 30 FE   STA &FE30
-     2D6D   60         RTS
+     2D68   68         PLA
+     2D69   85 F4      STA &F4
+     2D6B   8D 30 FE   STA &FE30
+     2D6E   60         RTS
 .prbm
-     2D6E   16
-     2D6F   07
-     2D70   54 68 69 ...
-     2D92   0D
-     2D93   0A
-     2D94   73 69 64 ...
-     2DAE   0D
-     2DAF   0A
-     2DB0   00
+     2D6F   16
+     2D70   07
+     2D71   54 68 69 ...
+     2D93   0D
+     2D94   0A
+     2D95   73 69 64 ...
+     2DAF   0D
+     2DB0   0A
+     2DB1   00
 .TVT1code
 .TVT1
      1100   D4
@@ -9321,174 +9321,174 @@ Rupture block: &7700 -&7967  (616  bytes)
      1178   10 F7      BPL &1171
      117A   30 EE      BMI &116A
 .ELITE
-     2E2D   00 00 00 ... INCBIN "1-source-files/images/P.ELITE.bin"
+     2E2E   00 00 00 ... INCBIN "1-source-files/images/P.ELITE.bin"
 .ASOFT
-     2F2D   00 00 00 ... INCBIN "1-source-files/images/P.A-SOFT.bin"
+     2F2E   00 00 00 ... INCBIN "1-source-files/images/P.A-SOFT.bin"
 .CpASOFT
-     302D   00 00 00 ... INCBIN "1-source-files/images/P.(C)ASFT.bin"
-     312D   F0
-     312E   00
+     302E   00 00 00 ... INCBIN "1-source-files/images/P.(C)ASFT.bin"
+     312E   F0
      312F   00
      3130   00
      3131   00
      3132   00
      3133   00
      3134   00
-     3135   F0
-     3136   00
+     3135   00
+     3136   F0
      3137   00
      3138   00
      3139   00
      313A   00
      313B   00
      313C   00
-     313D   F0
-     313E   00
+     313D   00
+     313E   F0
      313F   00
      3140   00
      3141   00
      3142   00
      3143   00
      3144   00
-     3145   F0
-     3146   80
+     3145   00
+     3146   F0
      3147   80
      3148   80
      3149   80
-     314A   C0
-     314B   A4
-     314C   96
-     314D   F0
-     314E   00
+     314A   80
+     314B   C0
+     314C   A4
+     314D   96
+     314E   F0
      314F   00
      3150   00
      3151   00
      3152   00
      3153   00
      3154   00
-     3155   F0
-     3156   00
+     3155   00
+     3156   F0
      3157   00
      3158   00
      3159   00
      315A   00
      315B   00
      315C   00
-     315D   F0
-     315E   00
+     315D   00
+     315E   F0
      315F   00
      3160   00
      3161   00
      3162   00
      3163   00
      3164   00
-     3165   F0
-     3166   00
+     3165   00
+     3166   F0
      3167   00
      3168   00
      3169   00
      316A   00
      316B   00
      316C   00
-     316D   F0
-     316E   00
+     316D   00
+     316E   F0
      316F   00
      3170   00
      3171   00
      3172   00
      3173   00
      3174   00
-     3175   F0
-     3176   00
+     3175   00
+     3176   F0
      3177   00
      3178   00
      3179   00
      317A   00
      317B   00
      317C   00
-     317D   F0
-     317E   00
-     317F   33
-     3180   22
-     3181   33
-     3182   22
-     3183   33
-     3184   00
-     3185   F0
-     3186   00
-     3187   AA
-     3188   22
+     317D   00
+     317E   F0
+     317F   00
+     3180   33
+     3181   22
+     3182   33
+     3183   22
+     3184   33
+     3185   00
+     3186   F0
+     3187   00
+     3188   AA
      3189   22
      318A   22
-     318B   BB
-     318C   00
-     318D   F0
-     318E   00
-     318F   22
+     318B   22
+     318C   BB
+     318D   00
+     318E   F0
+     318F   00
      3190   22
      3191   22
      3192   22
-     3193   AA
-     3194   00
-     3195   F0
-     3196   00
-     3197   EE
-     3198   44
+     3193   22
+     3194   AA
+     3195   00
+     3196   F0
+     3197   00
+     3198   EE
      3199   44
      319A   44
      319B   44
-     319C   00
-     319D   F0
-     319E   00
-     319F   EE
-     31A0   88
-     31A1   CC
-     31A2   88
-     31A3   EE
-     31A4   00
-     31A5   F0
-     31A6   00
+     319C   44
+     319D   00
+     319E   F0
+     319F   00
+     31A0   EE
+     31A1   88
+     31A2   CC
+     31A3   88
+     31A4   EE
+     31A5   00
+     31A6   F0
      31A7   00
      31A8   00
      31A9   00
      31AA   00
      31AB   00
      31AC   00
-     31AD   F0
-     31AE   00
+     31AD   00
+     31AE   F0
      31AF   00
      31B0   00
      31B1   00
      31B2   00
      31B3   00
      31B4   00
-     31B5   F0
-     31B6   00
+     31B5   00
+     31B6   F0
      31B7   00
      31B8   00
      31B9   00
      31BA   00
      31BB   00
      31BC   00
-     31BD   F0
-     31BE   00
+     31BD   00
+     31BE   F0
      31BF   00
      31C0   00
      31C1   00
      31C2   00
      31C3   00
      31C4   00
-     31C5   F0
-     31C6   00
+     31C5   00
+     31C6   F0
      31C7   00
      31C8   00
      31C9   00
      31CA   00
-S.ELITE4 &1900  &31CB  &1900  &1900 
+     31CB   00
+S.ELITE4 &1900  &31CC  &1900  &1900 
 Saving file '3-assembled-output/ELITE4.unprot.bin'
 Addresses for the commander checksum in elite-checksum.py
 Load address = &1900 
-TVT1code = &2DB1 
+TVT1code = &2DB2 
 TVT1 = &1100 
 NA% = &64D 
 CHK2 = &69F 

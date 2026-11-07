@@ -119,11 +119,13 @@
                         \ switch, each split into whole microseconds (RD1, RD2,
                         \ modulo 256 in timer 2) and a half (RH1, RH2: the odd
                         \ cycle, an instruction of 3 cycles in place of 2
-                        \ before the write); RS1 and RS2 place the writes
-                        \ on cycle 75 (S1) and 76 (S2) in jsbeeb with no trim
-                        \ (docs/video-timing.md)
+                        \ before the write); with no trim they land both
+                        \ writes on cycle 75 in jsbeeb when the CPU's 1 MHz bus
+                        \ and the 6845's 1 MHz clock are in one phase, and on
+                        \ cycle 76 in the other, the two cycles of each
+                        \ switch's window (docs/video-timing.md)
  RS1 = 2 * (14800 - 2 * 64) - 7 + RTRIM1
- RS2 = 2 * (2512 - 2 * 64) - 6 + RTRIM2
+ RS2 = 2 * (2512 - 2 * 64) - 7 + RTRIM2
  RD1 = RS1 DIV 2
  RH1 = RS1 AND 1
  RD2 = RS2 DIV 2
