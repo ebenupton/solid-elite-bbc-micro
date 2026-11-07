@@ -93,6 +93,9 @@ dials, scanner and compass, right dials) with the character cells.
 - **Hangs:** no read and no iteration for 30 emulated seconds (`HANG_SECS`); both at the same
   read is `hang-both`, the original's own behaviour (an empty drive), not a port finding.
 - **Crashes:** the PC in page 0 or 1.
+- **No start:** a session in which the reference never reached its first input read (a disc
+  that does not boot), or the candidate never reached one the reference made, is `no-start`,
+  not a clean session that compared nothing.
 - **Save files:** after every disc access (`SVE`), once both machines are past the next
   `MLOOP`, and at the end, the commander files (directory `E`) on the two discs must match,
   catalogue and bytes, and each disc's own files (the game's) must be as they were at the

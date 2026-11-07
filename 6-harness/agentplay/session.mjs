@@ -463,6 +463,10 @@ export class Session {
         }
         if (!cfg.replay) this.logInput({ end: true, iter: this.ref.iter, polls: this.ref.polls, frames: this.frame });
         this.compareDiscs(true);
+        // (a session in which the game never reached its first input read: a disc that does not
+        // boot, say, compares nothing, which is not a clean session. The candidate waits at its
+        // first read for the reference's, so it counts only if the reference made reads)
+        for (const m of this.ref.polls ? [this.cand] : [this.ref]) if (!m.polls) this.finding("no-start", `${m.name}: no input read in ${(this.frame / 3000).toFixed(1)} emulated minutes (the game never started; PC &${m.cpu.pc.toString(16)})`);
         this.ref.renderAll(); this.cand.renderAll();
         if (this.findings.some(f => f.kind !== "observable") && !this.div) await this.shots("finding");
         else await this.shots("end");
