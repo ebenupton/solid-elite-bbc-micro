@@ -35,7 +35,7 @@ const args = parseArgs({ build: "value", iters: "value", screens: "flag", views:
 const B = loadBuild(resolve(args.build || CAND_BUILD));
 const ITERS = +(args.iters || 10000);
 
-let gcpu = null, judging = false, iterNow = 0, lastH = -1, nH = 0, linesThisField = 0, fields = 0, fieldLines = null;
+let phase1M = -1, gcpu = null, judging = false, iterNow = 0, lastH = -1, nH = 0, linesThisField = 0, fields = 0, fieldLines = null;
 const intervals = new Map(), fieldCounts = new Map(), ulaWrites = new Map(), badH = [], badV = [], ulaSeq = [];
 
 function onH(t) {
@@ -78,18 +78,28 @@ function install(s) {
     };
     hook("this.oddClock = !this.oddClock;", "this.oddClock = !this.oddClock; this._clk++;");
     hook("this.inHSync = true;", "this.inHSync = true; this._onH(this._clk);");
-    hook("this.inVSync = true;", "this.inVSync = true; this._onV();");
-    const names = Object.keys(V).filter(k => /^[A-Z_0-9]+$/.test(k));
-    const patched = new Function(...names, "return function " + src)(...names.map(k => V[k]));
+    // (the module's constants that the method uses: its exports, and in
+    // jsbeeb 2 also constants it does not export, read from its source)
+    const consts = Object.fromEntries(Object.keys(V).filter(k => /^[A-Z_0-9]+$/.test(k)).map(k => [k, V[k]]));
+    const modSrc = readFileSync(`${JS}/src/video.js`, "utf8");
+    for (const id of new Set(src.match(/\b[A-Za-z_][A-Za-z0-9_]*\b/g))) {
+        if (id in consts) continue;
+        const m = modSrc.match(new RegExp(`^(?:export )?const ${id} = ([^;]+);`, "m"));
+        if (m) consts[id] = new Function(...Object.keys(consts), `return ${m[1]};`)(...Object.values(consts));
+    }
+    const patched = new Function(...Object.keys(consts), "return function " + src)(...Object.values(consts));
+    // the vertical sync's rising edge, as the system VIA sees it (CA1)
+    const via = cpu.sysvia, setVB = via.setVBlankInt.bind(via);
+    let vb = false;
+    via.setVBlankInt = level => { if (level && !vb) onV(); vb = !!level; setVB(level); };
     video._clk = 0;
     video._onH = onH;
-    video._onV = onV;
     // (the CPU adds the clocks to currentCycles, which counts within the
     // emulated second, cycleSeconds, before it calls polltime)
     cpu.debugWrite.add((addr, val) => {
         // judge from the loader's handover to the rupture on: its switch S2,
         // the first write of the game screen's control value (&D8)
-        if (addr === 0xfe20 && val === 0xd8 && !judging) { judging = true; nH = 0; }
+        if (addr === 0xfe20 && val === 0xd8 && !judging) { judging = true; nH = 0; phase1M = (video.oddClock ? 1 : 0) ^ (cpu.currentCycles & 1); }
         return false;
     });
     if (args.ula) cpu.debugWrite.add((addr, val) => {
@@ -165,6 +175,7 @@ if (INJ >= 0) console.log(`injected delays 0-${INJ} cycles: S1 ${injCount[0]} en
 const hist = [...intervals.entries()].sort((a, b) => b[1] - a[1]).map(([d, n]) => `${d}:${n}`).join(" ");
 console.log(`iterations ${r.iters}${r.error ? " (stopped: " + r.error + ")" : ""}; horizontal syncs ${nH}; fields ${fields}`);
 console.log(`hsync intervals (2 MHz cycles: count): ${hist}`);
+console.log(`the 6845's 1 MHz clock against the CPU's 1 MHz bus (jsbeeb: the video's oddClock xor the CPU's cycle count, at the handover): ${phase1M}`);
 console.log(`lines a field (count): ${[...fieldCounts.entries()].map(([l, n]) => `${l}:${n}`).join(" ")}`);
 if (args.ula) {
     const by = new Map();

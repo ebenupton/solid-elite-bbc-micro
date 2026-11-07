@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "description": "jsbeeb 2, the web version of the emulator, for 6-harness/bversions.sh",
+  "dependencies": { "jsbeeb": "2.19.0" }
+}

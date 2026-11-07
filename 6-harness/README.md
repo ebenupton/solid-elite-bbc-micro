@@ -21,6 +21,11 @@ Every commit of the port passes the gate, `6-harness/verify.sh`.
   opens a window), as a "B-DFS1.2" machine: a Model B with DFS 1.2 and
   sideways RAM in slots 0 to 7. Run `npm install` in this folder, or point
   `JSBEEB` at a jsbeeb checkout or package directory.
+* For `bversions.sh`, also jsbeeb 2 (2.19.0), the version that the web
+  emulator at bbc.xania.org runs: `npm install` in `6-harness/jsbeeb2`, or
+  point `JSBEEB2` at it. Every tool also runs on it, with `JSBEEB` pointing
+  there. `BOOTPRE=N` in the environment makes every tool's boot run N
+  cycles more before its SHIFT+BREAK (another boot phase: `bversions.sh`).
 * Python 3 and BeebAsm 1.11 for the build, as for the rest of the
   repository, and py65 (`pip install py65`) for the rasteriser's test.
 
@@ -126,6 +131,8 @@ cycles per flight iteration.
 | `test_routines.py` | Calls the speed-ups' routines in the original and the port on py65, for every input (or a sample, with `--quick`, as the gate does), and compares their results: registers, flags, variables, and for the drawing routines (STARS1, BLINE, PIX1) the screen (with the renderer's `GFORCE` set, so that the port draws directly). A port's routine in the cold bank runs from that bank's image, and a test can compare it with an original routine of another name. |
 | `test_raster.py`, `raster_model.py` | The rasteriser's soak test (bank 5, docs/renderer.md): builds it and checks every primitive pixel for pixel against `raster_model.py`'s reference (the Master port's, from the Demonstration Disc port), on py65's NMOS 6502, with a write guard; `--quick` for the gate. |
 | `bshot.mjs` | Screenshots of a build at given iterations of the gate's run, from jsbeeb's video (headless), as PNG files: `--at N1,N2,...`, and `--after S` for the screen S emulated seconds after a run stops. |
+| `bhsync.mjs` | The video timing proof (docs/video-timing.md): times every horizontal and vertical sync of a run of the gate's pilot, from the rupture's handover on, and fails on any sync interval other than 128 cycles or any field other than 312 lines. `--screens`, `--views` as `bcompare.mjs`; `--ula` lists the switches by line and cycle; `--inject N` and `--t2skew N` for the fault injection and the timer's skew. It prints the run's phase of the 6845's 1 MHz clock against the CPU's 1 MHz bus. |
+| `bversions.sh` | `bhsync.mjs` at sixteen boot phases (`BOOTPRE`) on jsbeeb 1.6.0 and jsbeeb 2, and `bshot.mjs`'s screenshots of the two compared byte for byte. |
 | `test_frame.py` | Bank 6's test (docs/renderer.md): runs banks 5 and 6 on py65 with ROMSEL paging, with the flight code's home bank (and a blueprint set) and cold bank, records ships through the game's own `LL9` and calls every entry through `GCALL`, drawing frames whose ships are projected and whose clouds are drawn by the game's code; checks what each call writes, the zero page and Y kept, the flip, what was drawn (ships, vertices, particles, text, sights), the repair, and the discs against their model (the layer, the second disc, the planet's surface from circle records made by `planet_caps.py`, and incremental sequences against fresh frames); and the circle engine's arithmetic in the flight code's home bank (a build with `_CIRCLES`) against exact models: `pm_isqrt` for every 16-bit n, `pm_fdiv` against `planet_caps.py`'s `fdiv`, `pm_mul16` (and `pm_sq16`, once the engine has it) against the product, for random operands of every length, and `pf_tilt` (in bank 5, through `T_TILT`) against `planet_caps.py`'s; writes the frames as PNG files (`--png DIR`). The gate runs it. |
 | `planet_caps.py` | The Master port's bit-for-bit model of the circle engine (`gfx-merid.asm`) and the planet's styles (`gfx-planet7.asm`): `test_frame.py` makes the circles' records with it and checks `PC_ROWS`' rows against it. |
 | `bscenes.mjs`, `scenes.py` | The speed by scene: `bscenes.mjs` records each iteration's time and the planet's, the station's and the ships' positions over a build's run of the gate; `scenes.py REF.json CAND.json` compares two such runs, scene by scene (open space, planet close, station close, ships about). |

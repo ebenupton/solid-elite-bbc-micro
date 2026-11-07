@@ -277,12 +277,19 @@ export function canonFor(b, regions) {
 }
 
 // Machine set-up: boot the Model B, insert the disc, SHIFT+BREAK
-export async function bootModelB(disc) {
+// (pre: run that many cycles more before the SHIFT+BREAK, so that the game
+// starts at another phase of the field: BOOTPRE in the environment sets it
+// for every tool)
+export async function bootModelB(disc, pre = +(process.env.BOOTPRE || 0)) {
     const s = new MachineSession("B-DFS1.2");
     await s.initialise();
     await s.boot(30);
     s.loadDisc(disc);
-    s.keyDown(16); s.reset(true); await s.runFor(2000000); s.keyUp(16);
+    if (pre) await s.runFor(pre);
+    // (SHIFT: jsbeeb 1 names keys by key code, jsbeeb 2 by KeyboardEvent.code)
+    let shift = 16;
+    try { s.keyDown(shift); } catch { shift = "ShiftLeft"; s.keyDown(shift); }
+    s.reset(true); await s.runFor(2000000); s.keyUp(shift);
     return s;
 }
 
