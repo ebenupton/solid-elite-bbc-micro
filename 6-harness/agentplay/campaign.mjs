@@ -52,12 +52,30 @@ const PLANS = {
         ["eff-scoop-s27", 30, "--seed", "27", "--commander", "equipped", "--chaos", "scoop*6,fuel*2,sun*3"],
         ["cur-fscreens-s28", 40, "--seed", "28", "--mode", "curious", "--commander", "equipped", "--chaos", "fscreens*4,charts*2,views"],
         ["cur-fscreens-s29", 40, "--seed", "29", "--mode", "curious", "--chaos", "fscreens*3,docked,pause"],
+        // the galaxies past the fourth (the galactic hyperdrive often, refilled), and cargo
+        // scooped (a canister from a kill put under the nose, often: canisters are rare)
+        ["cur-galaxies-s30", 50, "--seed", "30", "--mode", "curious", "--commander", "galaxy3", "--chaos", "ghyp*12,ghypfill*6,dock", "--savediscs"],
+        ["cur-galaxies-s31", 45, "--seed", "31", "--mode", "curious", "--commander", "deadly", "--chaos", "ghyp*15,ghypfill*8,missile,ecm"],
+        ["eff-galaxies-s32", 45, "--seed", "32", "--commander", "equipped", "--chaos", "ghyp*12,ghypfill*6,scoop*40"],
+        ["cur-scoop-s33", 40, "--seed", "33", "--mode", "curious", "--commander", "deadly", "--chaos", "scoop*60"],
+        ["cur-scoop-s34", 40, "--seed", "34", "--mode", "curious", "--commander", "equipped", "--chaos", "scoop*60,missile*2"],
+        ["eff-scoop-s35", 40, "--seed", "35", "--commander", "deadly", "--chaos", "scoop*60,ghyp*4,ghypfill*2"],
+        // (no saves: a save after a death loses the original's disc, which ends a session, and a
+        // death goes back to the last save's galaxy; s39 saves, for a load in a far galaxy)
+        ["cur-galaxies-s37", 45, "--seed", "37", "--mode", "nosave,curious", "--commander", "galaxy3", "--chaos", "ghyp*12,ghypfill*6,dock"],
+        ["cur-galaxies-s38", 45, "--seed", "38", "--mode", "nosave,curious", "--commander", "equipped", "--chaos", "ghyp*15,ghypfill*8"],
+        ["cur-scoop-s40", 40, "--seed", "40", "--mode", "curious", "--commander", "deadly", "--chaos", "scoopnow*100"],
+        ["eff-scoop-s41", 30, "--seed", "41", "--commander", "equipped", "--chaos", "scoopnow*100,ghyp*4,ghypfill*2"],
+        ["cur-scoop-s42", 40, "--seed", "42", "--mode", "curious", "--commander", "deadly", "--chaos", "scoophold*100"],
+        ["eff-scoop-s43", 30, "--seed", "43", "--commander", "equipped", "--chaos", "scoophold*100,ghyp*4,ghypfill*2"],
+        ["cur-galaxies-s39", 45, "--seed", "39", "--mode", "curious", "--commander", "galaxy3", "--chaos", "ghyp*15,ghypfill*8", "--savediscs"],
         // phase 2: from phase 1's discs, loading the saved commander
         ["load-s21", 30, "--seed", "21", "--mode", "load,curious", "--from", "cur-jameson-s1", "--chaos", "views,docked"],
         ["load-s22", 30, "--seed", "22", "--mode", "load,curious", "--from", "cur-deadly-s3", "--chaos", "disc"],
         ["load-s23", 30, "--seed", "23", "--mode", "load,curious", "--from", "cur-galaxy3-s5"],
         ["load-s24", 30, "--seed", "24", "--mode", "load,curious", "--from", "cur-disc-s11", "--chaos", "dcat,dnoload,dsave"],
         ["load-s25", 30, "--seed", "25", "--mode", "load", "--from", "eff-s17", "--chaos", "pod,bomb,misjump"],
+        ["load-s36", 30, "--seed", "36", "--mode", "load,curious", "--from", "cur-galaxies-s39", "--chaos", "ghyp*6,ghypfill*3,scoophold*60"],
     ],
     quick: [
         ["q-cur", 3, "--seed", "1", "--mode", "curious", "--savediscs"],
@@ -130,7 +148,7 @@ for (const [name] of plan) {
     const real = s.findings.filter(f => f.kind !== "observable" && f.kind !== "hang-both" && f.kind !== "orig-disc-lost");
     rows.push({ name, status: real.length ? "FINDINGS" : "clean", minutes: s.gameMinutes, wall: s.wall, iters: s.compared, flight: s.flight, reads: s.reads,
         commander: cfg.commander, mode: cfg.mode, chaos: cfg.chaos || "", divergence: s.divergence ? s.divergence.iter : null, findings: s.findings.length,
-        events: ev, notes: s.agentNotes, galaxies: s.galaxies, observables: s.observables && { checked: s.observables.checked, differing: s.observables.differing },
+        events: ev, notes: s.agentNotes, galaxies: s.galaxies, feat: s.features || {}, observables: s.observables && { checked: s.observables.checked, differing: s.observables.differing },
         saves: s.saveFilesSame, discChecks: s.discChecks, final: s.final });
     for (const f of s.findings) {
         const key = fingerprint(f);
@@ -151,15 +169,17 @@ function fingerprint(f) {
     if (f.kind === "observable") return null;
     if (f.kind === "divergence") return `divergence: ${(f.text.split(": ").slice(1).join(": ")).replace(/\d+/g, "#")}`;
     if (f.kind === "control-flow") return `control-flow: ${f.text.replace(/read \d+ \(iteration \d+\)/, "").replace(/\(iteration \d+\)/g, "").trim()}`;
-    return `${f.kind}: ${f.text.replace(/iteration \d+/g, "iteration #")}`;
+    return `${f.kind}: ${f.text.replace(/iteration \d+/g, "iteration #").replace(/read \d+/g, "read #")}`;
 }
 const tot = rows.reduce((t, r) => ({ minutes: t.minutes + (r.minutes || 0), wall: t.wall + (r.wall || 0), iters: t.iters + (r.iters || 0), flight: t.flight + (r.flight || 0) }), { minutes: 0, wall: 0, iters: 0, flight: 0 });
 writeFileSync(`${OUT}/campaign.json`, JSON.stringify({ rows, coverage: cover, features, totals: tot, groups: [...groups.values()] }, null, 1));
 const pct = (r, c) => `${r.size} of ${c.size} code labels (${(100 * r.size / Math.max(1, c.size)).toFixed(1)}%)`;
 const md = [];
 md.push(`# agentplay campaign (Model B): ${OUT}`, "", `${rows.length} sessions, ${tot.minutes.toFixed(1)} game minutes, ${(tot.wall / 3600).toFixed(2)} job-hours, ${tot.iters} iterations compared (${tot.flight} in flight).`, "");
-md.push("| session | commander | mode | chaos | min | iterations | status | first divergence | findings | dashboard checked / differing | save checks |", "|---|---|---|---|---|---|---|---|---|---|---|");
-for (const r of rows) md.push(`| ${r.name} | ${r.commander || ""} | ${r.mode || ""} | ${r.chaos || ""} | ${r.minutes ?? ""} | ${r.iters ?? ""} | ${r.status} | ${r.divergence ?? ""} | ${r.findings ?? ""} | ${r.observables ? r.observables.checked + " / " + r.observables.differing : ""} | ${r.discChecks ?? ""} (${r.saves ?? 0} files same) |`);
+md.push("| session | commander | mode | chaos | min | iterations | status | first divergence | findings | dashboard checked / differing | save checks | galaxies | cargo / fuel scooped | deaths |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
+for (const r of rows) md.push(`| ${r.name} | ${r.commander || ""} | ${r.mode || ""} | ${r.chaos || ""} | ${r.minutes ?? ""} | ${r.iters ?? ""} | ${r.status} | ${r.divergence ?? ""} | ${r.findings ?? ""} | ${r.observables ? r.observables.checked + " / " + r.observables.differing : ""} | ${r.discChecks ?? ""} (${r.saves ?? 0} files same) | ${(r.galaxies || []).join(" ")} | ${r.feat ? (r.feat["cargo scooped"] || 0) + " / " + (r.feat["fuel scooped"] || 0) : ""} | ${r.events ? r.events.DEATH || 0 : ""} |`);
+const gall = new Set(rows.flatMap(r => r.galaxies || []));
+md.push("", `Galaxies reached over all sessions: ${[...gall].sort((x, y) => x - y).join(" ")}.`);
 md.push("", "Routine entries (reference machine, over all sessions):", "", Object.entries(cover).sort((x, y) => y[1] - x[1]).map(([k, v]) => `${k} ${v}`).join(", "), "");
 md.push("Features seen (reference machine's state, iterations or events, over all sessions):", "", Object.entries(features).sort((x, y) => y[1] - x[1]).map(([k, v]) => `${k} ${v}`).join(", "), "");
 if (codeLabels.size) {

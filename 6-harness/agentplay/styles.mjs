@@ -103,6 +103,14 @@ const POKES = {
     // a cargo canister in the bubble put just ahead and below, slow: scooped (with the scoops)
     scoop:   { every: 2500, when: (r, sy) => flying(r, sy) && r[sy.BST] && canister(r, sy) >= 0,
         poke: (r, sy) => [["K%", 37 * canister(r, sy), [0, 0, 0, 0x30, 0, 0x80, 0x80, 0, 0]], ["K%", 37 * canister(r, sy) + 27, [1]]] },
+    // the same, inside MA's scoop test (x_lo, y_lo and z_lo all under 64) at once: from further
+    // off, a canister often passes the test between two iterations and is not scooped
+    scoopnow: { every: 2500, when: (r, sy) => flying(r, sy) && r[sy.BST] && canister(r, sy) >= 0,
+        poke: (r, sy) => [["K%", 37 * canister(r, sy), [0, 0, 0, 0x10, 0, 0x80, 0x20, 0, 0]], ["K%", 37 * canister(r, sy) + 27, [1]]] },
+    // the same with the hold emptied first (QQ20, 17 items): the agent trades with a full
+    // hold, and a canister scooped into a full hold is destroyed (MA59), not scooped
+    scoophold: { every: 2500, when: (r, sy) => flying(r, sy) && r[sy.BST] && canister(r, sy) >= 0,
+        poke: (r, sy) => [["QQ20", 0, new Array(17).fill(0)], ["K%", 37 * canister(r, sy), [0, 0, 0, 0x10, 0, 0x80, 0x20, 0, 0]], ["K%", 37 * canister(r, sy) + 27, [1]]] },
     // the sun (slot 1, when it is the sun) put ahead, its centre 84 to 125 x 256 away: the
     // cabin heats up (CABTMP is 30 plus 255 less the high byte of the distance's square),
     // fuel scooping from 224 (with the scoops: nearer than about 125 x 256), and death by
@@ -159,7 +167,9 @@ const DOCKED = {
 };
 for (const [nm, f] of Object.entries(DOCKED)) ACTIONS[nm] = { every: 150, disc: true, exclusive: true, when: atStatus, keys: f };
 
-function canister(r, sy) { for (let i = 2; i < 12; i++) if (r[sy.FRIN + i] === 5) return i; return -1; }
+// (a canister in the bubble that is not exploding or killed, INWK+31 bits 5 and 7: the agent
+// shoots canisters, and one exploding is not scooped)
+function canister(r, sy) { for (let i = 2; i < 12; i++) if (r[sy.FRIN + i] === 5 && !(r[sy["K%"] + 37 * i + 31] & 0xa0)) return i; return -1; }
 function flying(r, sy) { return !r[sy.QQ12] && !r[sy.QQ11] && r[sy.MCNT] !== 0xff; }
 
 let rng = Math.random;

@@ -120,7 +120,11 @@ its checksum at the first `QU5`; `--mode` (`efficient`, `curious`, `fair`, `nosa
 (E.C.M., the energy bomb, the escape pod, the views, missiles, the galactic hyperdrive and
 `ghypfill`, hyperspace, mis-jumps (`misjump`: the author names on in the pause, then CTRL
 held through a jump), in-system jumps, the docking computer, the charts, the pause, the sun
-put just ahead (`sun`), drained shields, heat, an empty tank; docked, from the Status screen,
+put just ahead (`sun`), drained shields, heat, an empty tank, cargo canisters put under the
+nose (`scoop`, from 48 below and 128 ahead; `scoopnow`, inside the scoop test at once;
+`scoophold`, the same with the hold emptied first: the agent trades with a full hold, and a
+canister scooped into a full hold is destroyed; only a canister that is not exploding, as
+the agent shoots them, so the canisters a session's kills leave set how many it scoops); docked, from the Status screen,
 `disc` (the disc menu: catalogue, a failed load, a failed delete, saves, deletes, bad drives,
 names over-deleted) and `docked` (market, data, inventory, charts with the cursor and the
 search, equipment, sales)); `--seed`, RAND at `TT170` and the overlay's seed. All of it goes
