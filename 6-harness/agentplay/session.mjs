@@ -158,7 +158,12 @@ export class Session {
                 if (k >= S.q.length || S.cfDiverged) return null;      // (after a control-flow divergence the candidate stays where it is)
                 const e = S.q[k];
                 if (e.t !== ctx.kind || e.s !== ctx.site || (e.t === "d" && e.key !== ctx.key)) {
-                    S.finding("control-flow", `read ${ctx.poll} (iteration ${ctx.iter}): reference ${e.t} from ${e.s} (iteration ${e.i}), candidate ${ctx.kind} from ${ctx.site}`, { poll: ctx.poll, iter: ctx.iter });
+                    // (the reference's disc has lost its own files, and the candidate's has not: the
+                    // original's catalogue after a death, written back by a save, README's
+                    // orig-catalogue-after-death; the reference's next R.D.CODE fails)
+                    const lost = S.origDiscLost();
+                    if (lost) S.finding("orig-disc-lost", `read ${ctx.poll} (iteration ${ctx.iter}): reference ${e.t} from ${e.s}, candidate ${ctx.kind} from ${ctx.site}: the reference's disc lost its own files (${lost}), the original's catalogue written back after a death; the candidate's disc kept them`, { poll: ctx.poll, iter: ctx.iter });
+                    else S.finding("control-flow", `read ${ctx.poll} (iteration ${ctx.iter}): reference ${e.t} from ${e.s} (iteration ${e.i}), candidate ${ctx.kind} from ${ctx.site}`, { poll: ctx.poll, iter: ctx.iter });
                     S.stopNow = true; S.cfDiverged = true;
                     return null;
                 }
@@ -211,6 +216,15 @@ export class Session {
         this.lastPoll = Math.max(-1, ...this.rlog.keys());
     }
 
+    // the files of its own the reference's disc has lost when the candidate's has lost none
+    // (else null)
+    origDiscLost() {
+        try {
+            const gone = m => { const now = this.discSig(m), was = this.disc0[m.name]; return Object.keys(was).filter(n => now[n] !== was[n]); };
+            const r = gone(this.ref), c = gone(this.cand);
+            return r.length && !c.length ? r.slice(0, 6).join(" ") : null;
+        } catch { return null; }
+    }
     finding(kind, text, extra = {}) {
         const f = { kind, text, frame: this.frame, refIter: this.ref?.iter, candIter: this.cand?.iter, ...extra };
         this.findings.push(f);
@@ -378,7 +392,7 @@ export class Session {
         // machine can be ahead between two reads)
         const rl = ref.brks.filter(b => b.fromRom), cl = cand.brks.filter(b => b.fromRom);
         if (!this.brkMismatch && cl.length > rl.length && ref.polls > cl[rl.length].polls) { this.brkMismatch = true; this.finding("brk-mismatch", `candidate disc error (${cl[rl.length].msg}) after read ${cl[rl.length].polls} (iteration ${cl[rl.length].iter}) with none in the reference`); }
-        if (!this.brkMismatch && rl.length > cl.length && cand.polls > rl[cl.length].polls) { this.brkMismatch = true; this.finding("brk-mismatch", `reference disc error (${rl[cl.length].msg}) after read ${rl[cl.length].polls} (iteration ${rl[cl.length].iter}) with none in the candidate`); }
+        if (!this.brkMismatch && rl.length > cl.length && cand.polls > rl[cl.length].polls) { this.brkMismatch = true; const lost = this.origDiscLost(); this.finding(lost ? "orig-disc-lost" : "brk-mismatch", `reference disc error (${rl[cl.length].msg}) after read ${rl[cl.length].polls} (iteration ${rl[cl.length].iter}) with none in the candidate`); }
     }
 
     // the commander files (directory E) the two machines have written must be the same
@@ -393,7 +407,8 @@ export class Session {
         for (const m of [this.ref, this.cand]) {
             const now = this.discSig(m), was = this.disc0[m.name];
             const lost = Object.keys(was).filter(n => now[n] !== was[n]);
-            if (lost.length) this.onceFinding(`disc0:${m.name}`, "disc-integrity", `${m.name}: ${lost.length} of the disc's own files gone or changed after a disc access (iteration ${m.iter}): ${lost.slice(0, 8).join(" ")}; the catalogue now holds ${Object.keys((m === this.ref ? r : c).files).length} files`);
+            // (the reference's alone: the original's catalogue after a death, as in origDiscLost)
+            if (lost.length) this.onceFinding(`disc0:${m.name}`, m === this.ref && this.origDiscLost() ? "orig-disc-lost" : "disc-integrity", `${m.name}: ${lost.length} of the disc's own files gone or changed after a disc access (iteration ${m.iter}): ${lost.slice(0, 8).join(" ")}; the catalogue now holds ${Object.keys((m === this.ref ? r : c).files).length} files`);
         }
         const names = new Set([...Object.keys(r.files), ...Object.keys(c.files)].filter(n => n.startsWith("E.")));
         if (final && this.stats.discSkipped) names.clear();

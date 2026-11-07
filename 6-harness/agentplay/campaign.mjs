@@ -127,7 +127,7 @@ for (const [name] of plan) {
     const ev = {};
     for (const [k, v] of Object.entries(s.events || {})) { const m = /^ref:routine:(.*)$/.exec(k); if (m) { ev[m[1]] = v; cover[m[1]] = (cover[m[1]] || 0) + v; } }
     for (const [k, v] of Object.entries(s.features || {})) features[k] = (features[k] || 0) + v;
-    const real = s.findings.filter(f => f.kind !== "observable" && f.kind !== "hang-both");
+    const real = s.findings.filter(f => f.kind !== "observable" && f.kind !== "hang-both" && f.kind !== "orig-disc-lost");
     rows.push({ name, status: real.length ? "FINDINGS" : "clean", minutes: s.gameMinutes, wall: s.wall, iters: s.compared, flight: s.flight, reads: s.reads,
         commander: cfg.commander, mode: cfg.mode, chaos: cfg.chaos || "", divergence: s.divergence ? s.divergence.iter : null, findings: s.findings.length,
         events: ev, notes: s.agentNotes, galaxies: s.galaxies, observables: s.observables && { checked: s.observables.checked, differing: s.observables.differing },

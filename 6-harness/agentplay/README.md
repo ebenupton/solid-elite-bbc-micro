@@ -96,7 +96,12 @@ dials, scanner and compass, right dials) with the character cells.
 - **Save files:** after every disc access (`SVE`), once both machines are past the next
   `MLOOP`, and at the end, the commander files (directory `E`) on the two discs must match,
   catalogue and bytes, and each disc's own files (the game's) must be as they were at the
-  start (`disc-integrity`).
+  start (`disc-integrity`). When the reference's disc alone has lost its own files, the
+  finding is `orig-disc-lost`, the original's own behaviour, not a port finding (see
+  `orig-catalogue-after-death.jsonl` under Repros): a save after a death writes back the
+  catalogue the game had overwritten, and the reference's next `R.D.CODE` fails, so the
+  control-flow difference that follows (or the reference's disc error) is `orig-disc-lost`
+  too, and the session ends there.
 - **Coverage:** whole-code coverage by program (the flight and docked programs share
   addresses), labels as `flight:NAME`, `docked:NAME`, and for the port its renderer banks,
   `bank5:NAME`, `bank6:NAME`; the routines entered (`ROUTINES`) and the features reached

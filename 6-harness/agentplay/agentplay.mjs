@@ -32,7 +32,7 @@ try {
     const S = new Session(cfg);
     await S.start();
     const s = await S.run();
-    const bad = s.findings.filter(f => f.kind !== "observable" && f.kind !== "hang-both");
+    const bad = s.findings.filter(f => f.kind !== "observable" && f.kind !== "hang-both" && f.kind !== "orig-disc-lost");
     console.log(`AGENTPLAY ${bad.length ? "FINDINGS" : "CLEAN"} ${cfg.out}: ${s.gameMinutes} game min, ${s.compared} iterations compared (${s.flight} in flight), ${s.reads} reads (${s.keyReads} with keys), findings ${s.findings.length}` +
         `${s.divergence ? `, first divergence at iteration ${s.divergence.iter}` : ""}; final ${JSON.stringify(s.final)}`);
     console.log(`features ${JSON.stringify(s.features)} agent ${JSON.stringify(s.agentNotes)}`);

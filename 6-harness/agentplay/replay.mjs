@@ -53,7 +53,7 @@ try {
     await S.start();
     console.log(`ref ${S.builds.ref} (${S.builds.refSha}), cand ${S.builds.cand} (${S.builds.candSha})`);
     const s = await S.run();
-    const bad = s.findings.filter(f => f.kind !== "observable" && f.kind !== "hang-both");
+    const bad = s.findings.filter(f => f.kind !== "observable" && f.kind !== "hang-both" && f.kind !== "orig-disc-lost");
     console.log(`REPLAY ${bad.length ? "FINDINGS" : "CLEAN"} ${cfg.out}: ${s.compared} iterations compared, ${s.reads} reads, findings ${s.findings.length}${s.divergence ? `, first divergence at iteration ${s.divergence.iter}` : ""}`);
     for (const f of s.findings.slice(0, 20)) console.log(`  ${f.kind}: ${f.text}`);
     process.exit(bad.length ? 1 : 0);
