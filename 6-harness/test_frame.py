@@ -800,16 +800,21 @@ def hold_tests(png_dir):
     m['TYPE'], m['VIEW'] = 128, 0
     m.poke(S['INWK'] + 8, 0)
     seen = []
-    for mc, r, deep in ((40, 50, 0), (39, 50, 0), (38, 50, 0), (37, 51, 0), (36, 51, 0), (35, 51, 0),
-                        (34, 51, 2), (33, 51, 2), (32, 51, 2), (31, 51, 2), (30, 51, 2), (29, 51, 2), (27, 51, 2)):
+    steps = ((40, 50, 0, 0), (39, 50, 0, 0), (38, 50, 0, 0), (37, 51, 1, 0), (36, 51, 1, 0),   # close: every one made
+             (35, 51, 2, 1),                                       # at the threshold, the last made close: kept
+             (34, 51, 2, 0), (33, 51, 2, 1), (32, 51, 2, 0),        # deep space: kept with MCNT odd
+             (31, 52, 2, 0), (30, 52, 2, 0), (29, 52, 3, 1),        # another radius: made
+             (27, 52, 2, 0), (26, 52, 2, 0),                        # not the last iteration's: made
+             (25, 52, 1, 0), (24, 52, 2, 0),                        # close again: made
+             (0, 52, 2, 0), (255, 52, 2, 1), (254, 52, 2, 0))       # MCNT wraps
+    for mc, r, deep, _ in steps:
         m['MCNT'] = mc
         m.poke(S['INWK'] + 8, deep)
         m['PF_CLS'] = 0x80
         m.call('F_PFHOLD', a=r)
         seen.append((mc, bool(m.mpu.p & 1), m['PF_CLS'] >> 6))
-    want = [(40, False, 2), (39, True, 3), (38, False, 2), (37, False, 2), (36, False, 2), (35, True, 3),
-            (34, True, 3), (33, True, 3), (32, False, 2), (31, True, 3), (30, True, 3), (29, True, 3), (27, False, 2)]
-    check(seen == want, 'F_PFHOLD: kept with MCNT odd (a multiple of 4 made in deep space), the radius the same, the call the last iteration\'s%s' % (
+    want = [(mc, bool(k), 3 if k else 2) for mc, _, _, k in steps]
+    check(seen == want, 'F_PFHOLD: made every iteration of a close planet, kept in deep space with MCNT odd, the radius the same, the call the last iteration\'s%s' % (
         '' if seen == want else ' (%r)' % seen))
     if 'pm_isqrt' not in m.F:                   # (f_dprep runs f_hrec only with _CIRCLES)
         print('kept records: no circle engine in this build')
@@ -823,8 +828,9 @@ def hold_tests(png_dir):
     frame(m)                                     # fresh's f_b0new)
     vecs = rand_frame(rnd)
     for f, (cx, cy, r, typ, made) in enumerate(((110, 90, 70, 128, True), (118, 84, 70, 128, False),
-                                               (90, 120, 70, 128, False), (100, 60, 120, 130, True),
-                                               (96, 20, 120, 130, False), (140, 170, 120, 130, False),
+                                               (118, 84, 70, 128, True), (90, 120, 70, 128, False),
+                                               (100, 60, 120, 130, True), (96, 20, 120, 130, False),
+                                               (100, 60, 120, 130, True), (140, 170, 120, 130, False),
                                                (60, 100, 90, 128, True), (61, 101, 90, 128, False))):
         if made:
             vecs = spin(vecs, 0.3)

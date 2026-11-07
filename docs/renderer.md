@@ -298,12 +298,13 @@ dirty rows, the second disc's pieces), is in the flight code's bank 7 with
 each buffer's state (`gfx-window7.asm`: `gfx-raster_disc.asm` with the
 strips, `gfx-raster_disc2.asm`), as bank 5 has no room for it.
 
-`PF_HOOK` makes the circles' records only on the iterations the game turns
-the planet by its own pitch and roll (`MCNT` even: `H_MVS4`), and in deep
-space (its z at least 512 x 256) only on those with `MCNT` a multiple of 4,
-as the BBC Master port does. On the others it asks the frame layer
-(`F_PFHOLD`, with the radius): if the radius, `TYPE` and `VIEW` are the
-last call's and that call was the previous iteration's, the last records
+`PF_HOOK` makes the circles' records on every iteration of a close planet,
+and in deep space (its z at least 512 x 256) on the iterations the game
+turns the planet by its own pitch and roll (`MCNT` even: `H_MVS4`, earlier
+in the same iteration, so a record always shows the latest turn), as the
+BBC Master port does. It asks the frame layer (`F_PFHOLD`, with the
+radius): in deep space with `MCNT` odd, if the radius, `TYPE` and `VIEW` are
+the last call's and that call was the previous iteration's, the last records
 are kept (`PF_CLS` bits 7 and 6), and the frame moves them with the disc's
 centre (`f_hrec`: their centre lines, centre rows and threshold rows, the
 thresholds clamped to the window again from the unclamped ones `pc_circ`
@@ -374,7 +375,8 @@ buffers (moving, growing and still discs, the sun and the planet swapping,
 the second disc coming and going, surfaces spinning and going, no disc,
 ships and lines over them), each frame's buffer byte for byte the same
 scene drawn on a fresh machine; `F_PFHOLD`'s choices, and frames that keep
-the records with the disc moved, among the window's edges, byte for byte
+the records with the disc moved, among the window's edges, each after a
+frame that made them, byte for byte
 fresh frames of records made at the new centre.
 
 ### The lens flare
@@ -642,9 +644,9 @@ or so from build to build as the frames meet the vertical sync at other
 phases (`F_FRAME`'s wait for the flip, `ff2`).
 
 With `_CIRCLES` the surface's rows are worked out from the circles and
-painted in every frame the planet turns; the circles themselves are made
-only on the iterations the planet turns (every fourth in deep space), and
-kept, moved with the disc, on the others.
+painted in every frame; the circles themselves are made on every iteration
+of a close planet, and in deep space on the iterations the planet turns
+(every second), kept, moved with the disc, on the others.
 
 The disc layer keeps both discs on each buffer and writes only what
 changed. Its batches cost, over the gate's run (`bprofile.mjs`), about 90

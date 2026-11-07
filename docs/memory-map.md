@@ -362,7 +362,7 @@ see the history of this file).
 | Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`, with the lighting (`gfx-light.asm`: `L_REC`, and in the flight code `L_SUN`); in a build with `_CIRCLES`, the planet's surface after the hot pass (`PF_HOOK`, `gfx-planet7.asm`, and the circle engine's `pc_circ`, `gfx-merid.asm`); the quarter squares at `&B300-&B6FF` (`QSL`, `QSH`); the blueprint set at `&B700`, with its ships' normals and `FC_NORMTAB` (`NORMTAB`); after it, in a build with `_CIRCLES`, what one `PF_HOOK` call makes and uses (`PFVS%`, `&BFA2-&BFFF`, which a set's file loads over between iterations) |
 | Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000` (in the docked code, after its set's face lists), then `QQ18`; in the flight code, then the overlay region (`OVL%`) and the renderer's window (`WIN7%`, `gfx-window7.asm`: the disc layer's painter and the second disc, `&A387` on, and each buffer's disc state in the twelve pages `&B300-&BEFF`, not in the image); `DFSSAVE%` at `&BF00` |
 | Bank 5 | ROMSEL `BANK5` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), and in the room below the per-x tables, in a build with `_CIRCLES`, the planet surface's `pf_tilt` (`gfx-planet7.asm`, which `PF_HOOK` calls through the glue's `T_TILT`); the jump table `RJT` |
-| Bank 6 | ROMSEL `BANK6` | the frame layer, from `F.BANK`: its code with the discs, the circle engine's rows (`PC_ROWS`), the lens flare, the screens drawn directly and the hangar's background (`&8000-&AB14`), the lighting's ramps and the faces' small tables, its state with the discs' rows, the face lists of the blueprint set loaded (`FCSLOT`, the 847 bytes below the dispatcher), the dispatcher `FJT` (`&BFC0`); and the sun near the planet (`S_SUN`, `gfx-ssun.asm`; `make ssun=off` leaves it out) |
+| Bank 6 | ROMSEL `BANK6` | the frame layer, from `F.BANK`: its code with the discs, the circle engine's rows (`PC_ROWS`), the lens flare, the screens drawn directly and the hangar's background (`&8000-&ABF4`), the lighting's ramps and the faces' small tables, its state with the discs' rows, the face lists of the blueprint set loaded (`FCSLOT`, the 847 bytes below the dispatcher), the dispatcher `FJT` (`&BFC0`); and the sun near the planet (`S_SUN`, `gfx-ssun.asm`; `make ssun=off` leaves it out) |
 
 Free space now, without `_CIRCLES`: 1,538 bytes in the flight code's home
 bank and 1,102 and 94 in its main RAM part; with it (the planet's surface,
@@ -375,7 +375,7 @@ docked code's home bank (below its main RAM part's image), 4,737 in its
 cold bank, 1,152 and 94 in its main RAM part, none in resident block A
 (after the circle engine's 62 bytes there) and 7 in the glue, none in the
 high resident block (before the circle engine's 64), 24 in bank 6 (with
-`S_SUN`; and 7 before its state's page alignment), and in bank 5 47 in its
+`S_SUN`; and 15 before its state's page alignment), and in bank 5 47 in its
 low region (`&8000-&8FFF`), 58 in its high region (`&9600-&BFBF`) and 12
 after `R_LINE`'s cold part, `R_RESETBUF`, `r_wq` and `pf_tilt`. The flight
 code's banks are what the frames can use; the docked code's are free only

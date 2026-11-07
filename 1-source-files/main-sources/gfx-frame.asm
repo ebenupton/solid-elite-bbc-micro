@@ -1382,26 +1382,25 @@ f_cx = fpr_cx + 1       \ (the operand of ADC # in the slow disc loop)
 
 \ F_PFHOLD (FG_PFHOLD): PF_HOOK asks, with A = the planet's radius, whether
 \ it may keep the circles' records it made last (C set) or must make them
-\ (C clear). They are made on the iterations with MCNT even, the ones on
-\ which the game turns the planet by its own pitch and roll (MVEIT part 8:
-\ H_MVS4), and in deep space (the planet's z at least 512 x 256: INWK+8's
-\ low bits at least 2, as 6-harness/scenes.py's scenes have it) only on
-\ those with MCNT a multiple of 4. On the others they are kept when the
-\ radius, TYPE and VIEW are the last call's and that call was the previous
-\ iteration's (MCNT): PF_CLS bits 7 and 6 then tell this iteration's frame
-\ to move them with the disc (f_hrec). A call that has them made notes its
-\ radius, TYPE, VIEW and MCNT.
+\ (C clear). They are made on every iteration of a close planet, and in
+\ deep space (the planet's z at least 512 x 256: INWK+8's low bits at least
+\ 2, as 6-harness/scenes.py's scenes have it) on the iterations with MCNT
+\ even, the ones on which the game turns the planet by its own pitch and
+\ roll (MVEIT part 8: H_MVS4, earlier in the same iteration), so a record
+\ always shows the latest turn. On the others in deep space they are kept
+\ when the radius, TYPE and VIEW are the last call's and that call was the
+\ previous iteration's (MCNT): PF_CLS bits 7 and 6 then tell this
+\ iteration's frame to move them with the disc (f_hrec). A call that has
+\ them made notes its radius, TYPE, VIEW and MCNT.
 
 .F_PFHOLD
- LDX #1                 \ MCNT AND 1, or 3 in deep space: 0, make them
- LDA INWK+8
+ LDA MCNT               \ MCNT even: make them
+ LSR A
+ BCC fph5
+ LDA INWK+8             \ a close planet: make them
  AND #&7F
  CMP #2
- BCC P%+4
- LDX #3
- TXA
- AND MCNT
- BEQ fph5
+ BCC fph5
  BIT f_pph
  BPL fph5
  LDA GA
@@ -1417,9 +1416,7 @@ f_cx = fpr_cx + 1       \ (the operand of ADC # in the slow disc loop)
  INX
  CPX f_plm
  BNE fph5
- DEX                    \ kept
- STX f_plm
- LDA PF_CLS
+ LDA PF_CLS             \ kept
  ORA #&C0
  STA PF_CLS
  SEC
