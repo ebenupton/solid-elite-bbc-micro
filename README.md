@@ -1,3 +1,110 @@
+# Solid Elite for the BBC Micro
+
+A port of Acornsoft's BBC Micro disc Elite with solid, sunlit ships and solid planets instead of wireframes, running on a BBC Micro Model B with 64K of sideways RAM. It is the BBC Micro sibling of [Solid Elite for the BBC Master](https://github.com/ebenupton/solid-elite-bbc-master) and [Solid Elite for the 6502 Second Processor](https://github.com/ebenupton/solid-elite-6502-second-processor), and, like them, it is built on, and would not exist without, [Mark Moxon](https://github.com/markmoxon)'s [fully documented source code for BBC Micro disc Elite](https://github.com/markmoxon/elite-source-code-bbc-micro-disc).
+
+<p align="center">
+<img src="images/solid-elite-beach-ball.png" width="60%" alt="Lave as a beach ball in the front view, above the original's dashboard">
+<br>
+<em>Lave as a beach ball: two great circles, projected exactly, split the disc into land and sea. The space view is a double-buffered four-colour screen at the 2 MHz clock; the dashboard below it is the original's, at the 1 MHz clock.</em>
+</p>
+
+What's new:
+
+* **Solid ships, lit by the sun.** Every ship, the space station and the cargo are drawn with filled, dithered faces, shaded by the direction of the sun, as in the Master port.
+* **Solid planets, drawn by one circle engine.** Every feature of a planet's surface is a circle on its sphere, projected exactly onto the disc and cut cleanly by its limb. Meridian planets, Lave's among them, are beach balls: two great circles splitting the disc into land and sea. Crater planets have up to three true spherical craters, green on a blue sea, chosen by the system's seed. Planets spin at half the original's rate; close up, the surface is remade every frame, and in deep space every other frame, on the frames it turns.
+* **Suns, near and far.** Suns are solid discs with a lens flare when you look towards them, turned down or off as the sun is hidden. Near the planet, where the original gives the sun's slot to the space station and the sun vanishes, the sun is still drawn where it would be, rising and setting behind the planet's limb.
+* **Every disc incremental.** The planet and the sun keep what they drew in each screen buffer and redraw only the rows that changed, and stars never show through a fill.
+* **Flicker-free, double-buffered flight, at up to 25 frames a second.** The space view is a four-colour screen (black, cyan, magenta and yellow, dithered into shades) drawn into one of two buffers in main RAM while the other is on show. Every frame is on show for at least two fields.
+* **The original's dashboard, under a full-width space view.** The space view runs at the 6845's 2 MHz character clock (256 four-colour pixels a line) and the dashboard is the original Model B's, in mode 5's format at the 1 MHz clock. The video ULA's clock is switched twice a field, in mid-line, by a timer interrupt, timed to the cycle so that every horizontal sync is exactly 64 microseconds from the last ([docs/video-timing.md](docs/video-timing.md)).
+* **A solid hangar** when you dock, and the Constrictor turning in solid in the mission briefing.
+* **Faster game logic.** Speed-ups to the multiplication, division, square root, stardust, keyboard-scanning and line-drawing routines, rewritten for the NMOS 6502, one idea per commit. With the original's wireframe they make the game 22% faster in flight.
+* **The original game, exactly.** The game logic is Acornsoft's: given the same keypresses, the port plays out the same game as the original, iteration for iteration, and its save files are byte-identical with the original's.
+
+<p align="center">
+<img src="images/solid-elite-beach-ball-turned.png" width="32%" alt="The beach ball turned the other way">
+<img src="images/solid-elite-planet-limb.png" width="32%" alt="A beach ball at the edge of the view">
+<img src="images/solid-elite-planet-close.png" width="32%" alt="A planet close up, cut by the edge of the view">
+<br>
+<em>Beach-ball planets from the gate's run, in an emulated Model B (jsbeeb).</em>
+</p>
+
+## Playing it
+
+Download [solid-elite-bbc-micro.ssd](solid-elite-bbc-micro.ssd) and run it on a BBC Micro Model B with DFS and four 16K banks of sideways RAM, or in an emulator set up that way (for example jsbeeb's "B-DFS1.2" machine, which has sideways RAM in slots 0 to 7): load the disc and press SHIFT-BREAK. The loader finds the four banks itself (the first four slots, counting down from 15, with no ROM in them and RAM that keeps what is written to it), so any sideways RAM board with four free banks will do. The game plays as BBC Micro disc Elite does: the same keys, the same saved commanders. The disc is the current build of this branch, rebuilt with every change.
+
+So far the port has been run only in emulators. The mid-line clock switches are proved exact in jsbeeb's timing, but not yet on a real Model B; [docs/video-timing.md](docs/video-timing.md) ends with the checklist for that.
+
+## Building it
+
+As for Mark's source (see [his build instructions](#building-bbc-micro-disc-elite-from-the-source) below), with BeebAsm 1.11 and Python 3:
+
+```
+make
+```
+
+`make` writes the disc to `5-compiled-game-discs/elite-modelb.ssd`, copies it to `solid-elite-bbc-micro.ssd` in the root, and writes the binaries to `3-assembled-output`. If `python` or `beebasm` is not on your path, pass `PYTHON=python3` or `BEEBASM=...`. The port is the Stairway to Hell variant only, without the original's copy protection. Two options leave parts out: `make circles=off` draws the planets as plain discs, without their surfaces, and `make ssun=off` leaves out the sun near the planet. `make verify` runs the gate (below), which needs Node.js and jsbeeb (see [6-harness](6-harness/README.md)).
+
+## The layout
+
+The original is two programs, the flight code and the docked code, each loading the other from disc when you launch, dock or die, and each filling main RAM below the screen. The port moves both into sideways RAM and keeps the swaps: each program has a **home bank** (bank 4), paged in whenever it runs, and a **cold bank** (bank 7), reached only through far calls, and the other two banks hold the renderer (bank 5, the rasteriser; bank 6, the frame layer, the discs and the lens flare). Main RAM holds the two screen buffers (`&1000` and `&4000`), the dashboard and the split-screen interrupt above them, and the hot code that does not fit in bank 4. As in the Master port, each program's source is emitted in three passes, each in the original's order: a **low pass** of what must stay in main RAM, a **hot pass** flowed by measured sizes through main RAM and bank 4, and a **cold pass** in bank 7 for the docked screens, the text, the missions and the rest of what runs once an event. The ships' edge lists are left out (every ship is drawn from its faces), and some of the flight code's once-an-event code is loaded from disc into bank 7 as two overlays (the charts, the hyperspace jump, the launch and the escape pod; the status, market and inventory screens).
+
+The Model B has 64K of sideways RAM against the Master's 64K plus 20K of shadow RAM, HAZEL and ANDY, so space is tight: after the planets' surfaces, 6 bytes are free at the end of bank 4, 21 in bank 7, 24 in bank 6 and 117 in bank 5. The Master port's kept solid rows for docking do not fit. [docs/memory-map.md](docs/memory-map.md) has the details, and [docs/modelb-memory.md](docs/modelb-memory.md) what the MOS and DFS keep where.
+
+## Speed
+
+In the gate's flight run (a deterministic pilot's launches, fights, station approaches and hyperspace jumps, over 10,000 iterations), the port runs at 7.48 main-loop iterations per emulated second, against the original's 11.56 (the original with the planet's half spin, as the comparison has it): 0.647 times its speed. Everything is drawn filled, double-buffered, on the same 2 MHz 6502 that runs the game. Most of the gap is the planets' surfaces: with plain disc planets (`make circles=off`) the port runs at 13.20, 1.142 times the original. By scene, over the same run:
+
+| Scene | Original (wireframe) | Port | Port, `circles=off` |
+|---|---:|---:|---:|
+| Open space | 18.42 | 12.53 | 18.96 |
+| Big planet | 11.10 | 6.72 | 12.97 |
+| Lave, just after launch | 7.94 | 5.13 | 15.82 |
+| Planet close | 11.18 | 9.08 | 12.99 |
+| Sun close | 14.87 | 15.15 | 15.14 |
+| Station close | 9.10 | 5.89 | 7.29 |
+| Ships about | 12.08 | 10.36 | 13.08 |
+
+## Testing
+
+Every commit was checked against the released game (the Stairway to Hell disc), running both side by side in an emulated Model B on the same inputs and comparing the game state at every main-loop iteration:
+
+* **The gate** ([6-harness](6-harness/README.md), `make verify`) flies both with a deterministic pilot for 10,000 iterations and requires the game state to be the original's at every one, then docks, launches and docks again, saves, loads, fails to load and catalogues through the game's disc menu, compares the saved file byte for byte with the one the original saves, and changes views in flight. The speed-ups were each checked routine by routine against the original's on every input or a large random sample (`test_routines.py`), the rasteriser primitive by primitive against a pixel-exact model (`test_raster.py`), and the frame layer and the planets' surfaces on their own (`test_frame.py`).
+* **Every horizontal sync, exactly 64 microseconds.** `bhsync.mjs` logs every horizontal sync of an instrumented headless jsbeeb through the gate's run and the screens and views, millions of them, and requires every interval to be 128 cycles and every field 312 lines; fault injection (an interrupt held off by up to 300 cycles) leaves every interval at 128, and builds with a switch moved a cycle or two outside its two-cycle window fail it.
+* **Patches to the original in the comparison.** The original runs unchanged but for three things the harness does to it: at the altitude check, `Q` is set to 0 in both runs (the original takes a square root of whatever the last routine left there); an explosion's first random number takes C = 1, as the port's code leaves it; and the planet turns by its own pitch and roll only on even iterations, as the port's half spin does. With these the whole game state, the planet's vectors included, matches at every iteration.
+* **Soak tests** with Dom Pajak's [elite-agent](https://github.com/8bitkick/elite-agent) playing the original while the port replays the same inputs read for read, comparing the game state at every iteration and the dashboard byte for byte ([6-harness/agentplay](6-harness/agentplay/README.md)). The last soak, on the build before the planet's records were last changed, ran 58 sessions and 1.35 million iterations with no difference: both missions, fuel and cargo scooping, all eight galaxies, witchspace, the escape pod, energy bomb, E.C.M., missiles and docking computer, every docked screen and the disc menu, and 76 deaths. Its predecessor found the one port bug the soaks have turned up, a hang after every death, since fixed.
+
+## Credits
+
+* **Elite** was written by **Ian Bell and David Braben** and is copyright &copy; Acornsoft 1984.
+
+* **The source code this port is built on** is **Mark Moxon**'s reconstruction of BBC Micro disc Elite from a disassembly of the original binaries, with every line documented and explained. The commentary is copyright &copy; Mark Moxon. His work made this port possible: the memory map, the speed-ups and the renderer were all worked out from his annotated source, and his build, which reproduces the released game byte for byte, is what every change here was checked against. See his [elite.bbcelite.com](https://elite.bbcelite.com) for the full story of how Elite works.
+
+* Mark in turn credits Paul Brink's annotated disassembly and Kieran Connell's [BeebAsm version](https://github.com/kieranhj/elite-beebasm); see his acknowledgements below.
+
+* **The port** (the changes on this branch) is by Eben Upton, written with [Claude Code](https://claude.com/claude-code). Its renderer and many of its speed-ups come from [Solid Elite for the BBC Master](https://github.com/ebenupton/solid-elite-bbc-master).
+
+* **Regression testing** used **Dom Pajak**'s [elite-agent](https://github.com/8bitkick/elite-agent), a rule-based Elite player, whose play drives the soak tests.
+
+This is an independent project. It is not affiliated with or endorsed by Mark Moxon, Ian Bell, David Braben or Acornsoft, and problems with the port should be reported here, not to Mark.
+
+The copyright position is unchanged from Mark's repository: the original game and Mark's commentary are copyright, and, as with Mark's repository, no licence is granted (see [his note on licences](#user-content-a-note-on-licences-copyright-etc) below).
+
+## The port
+
+The port is a series of commits on top of Mark's source, in three parts:
+
+1. **The memory map.** Both programs move out of main RAM into sideways RAM, two banks each, swapped from disc at the same moments as the original swapped them, leaving main RAM below the screen and two banks for a renderer. The game is still the original, iteration for iteration and pixel for pixel: 11.87 flight iterations per emulated second against the original's 11.85.
+2. **The speed-ups.** The game logic made faster one idea per commit, still drawing the original's wireframe pixel for pixel: 14.51 flight iterations per emulated second (1.224 times the original).
+3. **The filled renderer.** The Master port's renderer, rewritten for the NMOS 6502 and the Model B's memory: filled ships lit by the sun, a double-buffered four-colour screen, disc planets and suns drawn incrementally, the sun near the planet, the lens flare, the hangar and the briefing's ship; the original's dashboard at the 1 MHz clock below the space view; then the planets' surfaces, with the Master port's faster circle arithmetic and the planet's half spin. The gate's flight run gives 7.48 iterations per emulated second (0.647 times the original with the same half spin), or 13.20 (1.142 times) with plain disc planets.
+
+Throughout, the game logic is the original's: the port's game state matches the release at every iteration, and save files are byte-identical with the original's. See [docs/README.md](docs/README.md) for the step-by-step results, [docs/renderer.md](docs/renderer.md) for the renderer, [docs/speedups.md](docs/speedups.md) for the speed-ups, [docs/memory-map.md](docs/memory-map.md) for the layout and [docs/video-timing.md](docs/video-timing.md) for the split screen's timing.
+
+---
+
+## Mark Moxon's README
+
+The rest of this file is Mark's README for the repository this port is built on, unchanged.
+
 # Fully documented source code for the disc version of Elite on the BBC Micro
 
 <details>
