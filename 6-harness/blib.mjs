@@ -121,7 +121,7 @@ export function loadBuild(file) {
 // runElite applies as hooks (a patch may give several): the gate's reference
 // (the original disc) has three, where the port defines a value that the
 // original leaves to what was drawn (ma93-q, ee51-c) or changes the game on
-// purpose (mv8-spin).
+// purpose (mv8-half).
 //
 //  * "ma93-q": in the main flight loop's altitude check (MA93: STA R, JSR
 //    LL5), the original takes SQRT(R Q) with Q left over from whatever ran
@@ -132,16 +132,17 @@ export function loadBuild(file) {
 //    MA93 by its bytes (STA R, JSR LL5: &85 R &20 LL5), which must be there
 //    once, or the run fails; LL5 reads R and Q first, and no register, so
 //    setting Q in memory at the JSR is the port's two instructions.
-//  * "mv8-spin": the planet's half spin. The port turns the planet (and
-//    the sun, whose counters are 0) by its own pitch and roll (MVEIT part
-//    8) only on iterations with MCNT even: H_MVS4, which part 7's last
-//    MVS4 call goes through, skips part 8 on the others, leaving RAT2 = 0
-//    as part 8 does. The original gets the same: at part 8's first
+//  * "mv8-half": the planet's half spin. The port turns the planet by its
+//    own pitch and roll (MVEIT part 8) by half the original's angle on
+//    every iteration: for TYPE 128 or more, MVS5 takes 1/32 radian a step
+//    in place of 1/16 (x' = x (1 - 1/2048) + d y / 32, y' = y (1 - 1/2048)
+//    - d x / 32). The original gets the same: at part 8's first
 //    instruction (LDA INWK+30, AND #&80, STA RAT2: &A5 INWK+30 &29 &80 &85
 //    RAT2, found back from MV8, which must be there once, or the run
-//    fails), for TYPE 128 or more with MCNT odd, the pitch and roll
-//    counters (INWK+29, INWK+30) are set to 0, so part 8 turns nothing and
-//    leaves RAT2 = 0, and they are put back at MV5.
+//    fails), for TYPE 128 or more, the half steps are worked out from its
+//    vectors as the port works them out (halfPart8, below), and at MV5,
+//    once its own part 8 has run (the counters damped, RAT2 and Q left as
+//    the port leaves them), they are put in place of its vectors.
 //  * "ee51-c": when LL9 starts a killed ship's explosion, its first random
 //    number (EE55's first DORND) takes C from EE51, which removes the ship
 //    from the screen: LL155 leaves C set after drawing a heap of lines but
@@ -169,25 +170,72 @@ export const PATCHES = {
         const a = at[0] + 3;
         return { a, map: img.map, sig: [0xa0, 0x01, 0xa9], apply: cpu => { cpu.p.c = true; } };
     },
-    "mv8-spin": (prog) => {
+    "mv8-half": (prog) => {
         const sy = prog.sy, img = prog.images.find(im => sy.MV8 >= im.base && sy.MV8 < im.base + im.data.length);
         const want = [0xa5, sy.INWK + 30, 0x29, 0x80, 0x85, sy.RAT2];
         const at = [];
         for (let a = sy.MV8 - 6; a > sy.MV8 - 64; a--) if (want.every((v, i) => img.data[a + i - img.base] === v)) at.push(a);
-        if (at.length !== 1) throw new Error(`patch mv8-spin: MVEIT part 8 found ${at.length} times before MV8`);
+        if (at.length !== 1) throw new Error(`patch mv8-half: MVEIT part 8 found ${at.length} times before MV8`);
         const sig = a => [0, 1, 2].map(i => img.data[a + i - img.base]);
-        let kept = null;
+        let vec = null;
         return [
             { a: at[0], map: img.map, sig: want.slice(0, 3), apply: cpu => {
                 const m = cpu.ramRomOs;
-                if ((m[sy.TYPE] & 0x80) && (m[sy.MCNT] & 1)) { kept = [m[sy.INWK + 29], m[sy.INWK + 30]]; m[sy.INWK + 29] = 0; m[sy.INWK + 30] = 0; }
+                if (m[sy.TYPE] & 0x80) vec = halfPart8(i => m[sy.INWK + i]);
             } },
             { a: sy.MV5, map: img.map, sig: sig(sy.MV5), apply: cpu => {
-                if (kept) { cpu.ramRomOs[sy.INWK + 29] = kept[0]; cpu.ramRomOs[sy.INWK + 30] = kept[1]; kept = null; }
+                if (vec) { for (let i = 0; i < 18; i++) cpu.ramRomOs[sy.INWK + 9 + i] = vec[i]; vec = null; }
             } },
         ];
     },
 };
+
+// The planet's half spin, as the port works it out (MVS5 for TYPE 128 or
+// more), for the reference's patch mv8-half: MVEIT part 8 by half the
+// original's angle, from INWK (inwk(i) = INWK+i, read before part 8 runs).
+// For each of the pitch counter (INWK+30: roofv with nosev) and the roll
+// counter (INWK+29: roofv with sidev) that is not 0 (bits 0-6), each pair of
+// coordinates (x, y), in the direction d (the counter's sign), becomes
+//   x' = x (1 - 1/2048) + d y / 32,  y' = y (1 - 1/2048) - d x / 32
+// in sign-magnitude, exactly as the port's MVS5 for the planet: x less its
+// high byte's magnitude over 8, y's magnitude shifted right five times, the
+// two added as the original's ADD (and MU8) adds them. Returns INWK+9 to
+// INWK+26 (nosev, roofv, sidev) after the turn. (The BBC Master port's
+// harness has the same model, mlib.mjs's halfPart8.)
+export function halfPart8(inwk) {
+    const v = Array.from({ length: 18 }, (_, i) => inwk(9 + i));
+    const lo = o => v[o - 9], hi = o => v[o - 8];
+    // ADD: (A X) = (A P) + (S R), sign-magnitude, as the original's ADD and MU8
+    const add = (A, P, S, R) => {
+        const T = A & 0x80;
+        if (!((T ^ S) & 0x80)) {
+            const sum = R + P;
+            return [((S + A + (sum >> 8)) & 0xff) | T, sum & 0xff];
+        }
+        const m1 = (A & 0x7f) << 8 | P, m2 = (S & 0x7f) << 8 | R;
+        if (m1 >= m2) { const d = m1 - m2; return [(d >> 8) | T, d & 0xff]; }
+        const d = m2 - m1; return [(d >> 8) | (T ^ 0x80), d & 0xff];
+    };
+    // (A X) = INWK(x) (1 - 1/2048) + INWK(y) / 32 with its sign EOR dir
+    const mvh = (x, y, dir) => {
+        const t = (hi(x) & 0x7f) >> 3, r = lo(x) - t;
+        const R = r & 0xff, S = (hi(x) - (r < 0 ? 1 : 0)) & 0xff;
+        const m = ((hi(y) & 0x7f) << 8 | lo(y)) >> 5;
+        return add((m >> 8) | ((hi(y) & 0x80) ^ dir), m & 0xff, S, R);
+    };
+    const put = (o, [h, l]) => { v[o - 9] = l; v[o - 8] = h; };
+    for (const [c, y0] of [[30, 9], [29, 21]]) {
+        const cnt = inwk(c);
+        if (!(cnt & 0x7f)) continue;
+        const d = cnt & 0x80;
+        for (let k = 0; k < 6; k += 2) {
+            const x = 15 + k, y = y0 + k;
+            const nx = mvh(x, y, d), ny = mvh(y, x, d ^ 0x80);
+            put(y, ny); put(x, nx);
+        }
+    }
+    return v;
+}
 
 // Game state compared per iteration: [start, length, name]. The workspaces
 // are at the same addresses in both programs (and the regions are found by

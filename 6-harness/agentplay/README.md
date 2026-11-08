@@ -61,7 +61,7 @@ every read must match (a routine's cold body `name_C` and an overlay's copy `nam
 as `name`), which checks control flow.
 
 The rest of blib's determinism measures are kept: the laser pulse counted per pass of `M%`,
-the sound off from `TT170`, the reference's patches (`ma93-q`, `ee51-c`, `mv8-spin`), the
+the sound off from `TT170`, the reference's patches (`ma93-q`, `ee51-c`, `mv8-half`), the
 candidate's boot leftovers seeded from the reference at `TT170`, and the filing system's
 bytes: a compared byte the MOS, DFS or the NMI handler wrote is left out of the comparison
 until the game writes it, and is set to 0 (above page 0) at each `MLOOP` and pass of `M%`,

@@ -28,7 +28,7 @@
 // byte of the compared state that the filing system wrote and the game has not written
 // since is set to 0 at each MLOOP, pass of M% and call of DIALS (above page 0; blib
 // does it at MLOOP and M%) and left out of the
-// comparison meanwhile; the reference's patches (ma93-q, ee51-c, mv8-spin: build.json's
+// comparison meanwhile; the reference's patches (ma93-q, ee51-c, mv8-half: build.json's
 // "patches") are applied; and at TT170 the candidate's boot leftovers are seeded from the
 // reference (seedFrom). At every MLOOP the game state (blib.regionsFor) is snapshotted.
 //

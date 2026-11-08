@@ -315,6 +315,14 @@ EVERY = (lambda *r: sample(4000, *r)) if QUICK else grid
 # BIT or a call of DORND, never after the routines tested here.
 MUL = ["A", "X", "Y", "N", "Z", "C", "P", "T"]
 
+# (MVEIT part 8's pairs of vectors for MVS5, (X, Y): roofv with nosev, then
+# roofv with sidev; and their values, low and high bytes, whole or as the
+# game's unit vectors have them, |v| up to &6000 and a little more)
+MVS5_PAIRS = [(15, 9), (17, 11), (19, 13), (15, 21), (17, 23), (19, 25)]
+MVS5_VECS = [tuple(v) for v in sample(400, B, [0, 0x80, 0x60, 0xE0, 0x61, 0xE1] + list(range(0x62)) + list(range(0x80, 0xE2)) + list(B), B,
+                                       [0, 0x80, 0x60, 0xE0] + list(range(0x62)) + list(range(0x80, 0xE2)) + list(B))]
+
+
 TESTS = [
     # (MU11 is never entered with X = 0: MULTU and SQUA2 return 0 for that)
     ("MU11", "MU11", lambda: ((0, x, y, c, {"P": p}) for p, x, y, c in EVERY(B, B1, [0x5A], [0, 1])), MUL),
@@ -372,6 +380,11 @@ TESTS = [
         ((y, al, be, c, v) for y, al, be, c, v in sample(4000 if QUICK else 200000, [9, 15, 21], [0, 0x80, 1, 0x81, 2, 0x7F, 0xFF], [0, 0x80, 1, 0x81, 3, 0x7F, 0xFE], [0, 1],
             [tuple(x) for x in sample(500, B, [0, 0x80, 0x60, 0xE0] + list(B), B, [0x80, 0, 0x60, 0xE0] + list(B), B, [0, 0x80] + list(B))]))),
      ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R", "S", "T", "T1", "INWK+9", "INWK+10", "INWK+11", "INWK+12", "INWK+13", "INWK+14", "INWK+15", "INWK+16", "INWK+17", "INWK+18", "INWK+19", "INWK+20", "INWK+21", "INWK+22", "INWK+23", "INWK+24", "INWK+25", "INWK+26"]),
+    # (MVS5 for a ship, TYPE below 128, with the pairs of vectors MVEIT part
+    # 8 rotates: the port's MVS5 turns the planet by half steps, below)
+    ("MVS5", "MVS5", lambda: ((0, x, y, c, {"TYPE": t, "RAT2": d, "INWK+%d" % x: v[0], "INWK+%d" % (x + 1): v[1], "INWK+%d" % y: v[2], "INWK+%d" % (y + 1): v[3]})
+        for (x, y), t, d, c, v in sample(4000 if QUICK else 200000, MVS5_PAIRS, [1, 2, 10, 31], [0, 0x80], [0, 1], MVS5_VECS)),
+     ["A", "X", "Y", "N", "Z", "Q", "K", "K+1"] + ["INWK+%d" % k for k in range(9, 27)]),
     ("LL5", "LL5", lambda: ((0x11, 0x81, 0x5A, c, {"R": r, "Q": q, "S": 0x22, "T": 0x33}) for r, q, c in EVERY(B, B, [0, 1])),
      ["A", "X", "Y", "N", "Z", "C", "V", "Q", "R", "S", "T"]),
     ("LL38", "LL38", lambda: ((a, 0x81, 0x5A, c, {"R": r, "Q": q, "S": ss}) for a, r, q, ss, c in grid([0, 0x80, 0x33, 0xB3], B, B, [0, 0x80], [0, 1]) if not QUICK or (r ^ q) & 7 == 0),
@@ -401,6 +414,55 @@ TESTS = [
     ("SQUA", "SQUA", lambda: ((a, 0, y, c, {"T": 0x77}) for a, y, c in EVERY(B, [0x5A], [0, 1])),
      MUL),
 ]
+
+
+def half_model(v, x, y, d):
+    """the planet's half step on the pair of vectors at INWK+x and INWK+y (v:
+    offset -> byte) in the direction d (bit 7), as the BBC Master port's MVS5H
+    works it out and the harness's halfPart8 (blib.mjs) models it:
+    x' = x (1 - 1/2048) + d y / 32, y' = y (1 - 1/2048) - d x / 32, each as x
+    less its high byte's magnitude over 8 plus y's magnitude shifted right
+    five times, added as the original's ADD adds them"""
+    def add(A, P, S, R):
+        T = A & 0x80
+        if not (T ^ S) & 0x80:
+            t = R + P
+            return ((S + A + (t >> 8)) & 0xFF) | T, t & 0xFF
+        m1, m2 = (A & 0x7F) << 8 | P, (S & 0x7F) << 8 | R
+        if m1 >= m2:
+            return (m1 - m2) >> 8 | T, (m1 - m2) & 0xFF
+        return (m2 - m1) >> 8 | (T ^ 0x80), (m2 - m1) & 0xFF
+
+    def mvh(a, b, dr):
+        t = (v[a + 1] & 0x7F) >> 3
+        r = v[a] - t
+        m = ((v[b + 1] & 0x7F) << 8 | v[b]) >> 5
+        return add(m >> 8 | ((v[b + 1] & 0x80) ^ dr), m & 0xFF, (v[a + 1] - (r < 0)) & 0xFF, r & 0xFF)
+
+    return mvh(x, y, d), mvh(y, x, d ^ 0x80)
+
+
+def mvs5_half(cand):
+    """the port's MVS5 for the planet (TYPE 128 or 130) against half_model:
+    the two vectors, and Q = X; returns 1 on a failure"""
+    n = fails = 0
+    first = None
+    for (x, y), t, d, v in sample(20000 if QUICK else 1000000, MVS5_PAIRS, [128, 130], [0, 0x80], MVS5_VECS):
+        mem = {"TYPE": t, "RAT2": d, "INWK+%d" % x: v[0], "INWK+%d" % (x + 1): v[1], "INWK+%d" % y: v[2], "INWK+%d" % (y + 1): v[3]}
+        cand.call("MVS5", 0, x, y, 0, mem)
+        k = cand.out(["X", "Y", "Q", "INWK+%d" % x, "INWK+%d" % (x + 1), "INWK+%d" % y, "INWK+%d" % (y + 1)])
+        (xh, xl), (yh, yl) = half_model({x: v[0], x + 1: v[1], y: v[2], y + 1: v[3]}, x, y, d)
+        want = {"X": x, "Y": y, "Q": x, "INWK+%d" % x: xl, "INWK+%d" % (x + 1): xh, "INWK+%d" % y: yl, "INWK+%d" % (y + 1): yh}
+        n += 1
+        if k != want:
+            fails += 1
+            if first is None:
+                first = (x, y, d, v, want, k)
+    if fails:
+        print("%-10s FAIL %d of %d; first: X=%d Y=%d RAT2=%d %s: (model, port) %s" % ("MVS5H", fails, n, *first[:4], {o: (first[4][o], first[5][o]) for o in first[4] if first[4][o] != first[5][o]}))
+        return 1
+    print("%-10s pass (%d inputs)" % ("MVS5H", n))
+    return 0
 
 
 def main():
@@ -438,6 +500,8 @@ def main():
             print("%-10s FAIL %d of %d; first: A=%d X=%d Y=%d C=%d %s: (original, port) %s" % (name, fails, n, a, x, y, c, mem, diff))
         else:
             print("%-10s pass (%d inputs)" % (name, n))
+    if not names or "MVS5H" in names:
+        bad += mvs5_half(cand)
     print("TEST_ROUTINES %s" % ("FAIL" if bad else "PASS"))
     sys.exit(1 if bad else 0)
 

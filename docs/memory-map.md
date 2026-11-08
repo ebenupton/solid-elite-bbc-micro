@@ -364,9 +364,9 @@ see the history of this file).
 | Bank 5 | ROMSEL `BANK5` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), and in the room below the per-x tables, in a build with `_CIRCLES`, the planet surface's `pf_tilt` (`gfx-planet7.asm`, which `PF_HOOK` calls through the glue's `T_TILT`); the jump table `RJT` |
 | Bank 6 | ROMSEL `BANK6` | the frame layer, from `F.BANK`: its code with the discs, the circle engine's rows (`PC_ROWS`), the lens flare, the screens drawn directly and the hangar's background (`&8000-&ABF4`), the lighting's ramps and the faces' small tables, its state with the discs' rows, the face lists of the blueprint set loaded (`FCSLOT`, the 847 bytes below the dispatcher), the dispatcher `FJT` (`&BFC0`); and the sun near the planet (`S_SUN`, `gfx-ssun.asm`; `make ssun=off` leaves it out) |
 
-Free space now, without `_CIRCLES`: 1,538 bytes in the flight code's home
+Free space now, without `_CIRCLES`: 1,527 bytes in the flight code's home
 bank and 1,102 and 94 in its main RAM part; with it (the planet's surface,
-2,711 bytes at the home bank's end), 6 in the home bank, 0 and 7 in the
+2,711 bytes at the home bank's end), 6 in the home bank, 0 and 3 in the
 main RAM part, and of the circle engine's variables' room 5 bytes at
 `PFVH%` and 40 at `PFVS%`. In both, 21 in the flight code's cold bank (the
 renderer's window takes 3,910 and its state 3,072: [renderer.md](renderer.md),

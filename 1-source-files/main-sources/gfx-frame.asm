@@ -1385,13 +1385,12 @@ f_cx = fpr_cx + 1       \ (the operand of ADC # in the slow disc loop)
 \ (C clear). They are made on every iteration of a close planet, and in
 \ deep space (the planet's z at least 512 x 256: INWK+8's low bits at least
 \ 2, as 6-harness/scenes.py's scenes have it) on the iterations with MCNT
-\ even, the ones on which the game turns the planet by its own pitch and
-\ roll (MVEIT part 8: H_MVS4, earlier in the same iteration), so a record
-\ always shows the latest turn. On the others in deep space they are kept
-\ when the radius, TYPE and VIEW are the last call's and that call was the
-\ previous iteration's (MCNT): PF_CLS bits 7 and 6 then tell this
-\ iteration's frame to move them with the disc (f_hrec). A call that has
-\ them made notes its radius, TYPE, VIEW and MCNT.
+\ even. On the others in deep space they are kept when the radius, TYPE and
+\ VIEW are the last call's and that call was the previous iteration's
+\ (MCNT): PF_CLS bits 7 and 6 then tell this iteration's frame to move them
+\ with the disc (f_hrec), so a kept frame lacks one of the planet's half
+\ steps (MVEIT part 8, MVS5) and the player's own turn since. A call that
+\ has them made notes its radius, TYPE, VIEW and MCNT.
 
 .F_PFHOLD
  LDA MCNT               \ MCNT even: make them

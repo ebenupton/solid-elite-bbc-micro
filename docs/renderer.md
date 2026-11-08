@@ -299,17 +299,17 @@ each buffer's state (`gfx-window7.asm`: `gfx-raster_disc.asm` with the
 strips, `gfx-raster_disc2.asm`), as bank 5 has no room for it.
 
 `PF_HOOK` makes the circles' records on every iteration of a close planet,
-and in deep space (its z at least 512 x 256) on the iterations the game
-turns the planet by its own pitch and roll (`MCNT` even: `H_MVS4`, earlier
-in the same iteration, so a record always shows the latest turn), as the
-BBC Master port does. It asks the frame layer (`F_PFHOLD`, with the
-radius): in deep space with `MCNT` odd, if the radius, `TYPE` and `VIEW` are
-the last call's and that call was the previous iteration's, the last records
-are kept (`PF_CLS` bits 7 and 6), and the frame moves them with the disc's
-centre (`f_hrec`: their centre lines, centre rows and threshold rows, the
-thresholds clamped to the window again from the unclamped ones `pc_circ`
-leaves in `PC_TU`), exactly as if made at the new centre with the planet as
-it was. The mailbox holds the records only until the frame's batches, so
+and in deep space (its z at least 512 x 256) on the iterations with `MCNT`
+even, as the BBC Master port does. It asks the frame layer (`F_PFHOLD`,
+with the radius): in deep space with `MCNT` odd, if the radius, `TYPE` and
+`VIEW` are the last call's and that call was the previous iteration's, the
+last records are kept (`PF_CLS` bits 7 and 6), and the frame moves them
+with the disc's centre (`f_hrec`: their centre lines, centre rows and
+threshold rows, the thresholds clamped to the window again from the
+unclamped ones `pc_circ` leaves in `PC_TU`), exactly as if made at the new
+centre with the planet as it was. The game turns the planet by a half step
+on every iteration (`MVS5`, below), so a kept frame lacks one half step and
+the player's own turn since. The mailbox holds the records only until the frame's batches, so
 `f_hrec` keeps each iteration's records with the disc's centre, in bank 6.
 
 * **`f_dprep`** (before the wait): which disc is the layer (`f_lay`) and
@@ -470,17 +470,32 @@ and the reference gets the same (the named patch `ee51-c`, at the
 instruction after the `JSR`, which it finds from `LL9` by its bytes).
 
 The port also changes the game on purpose in one place: the planet spins
-at half the original's rate. `MVEIT` turns it (and the sun, whose counters
-are 0) by its own pitch and roll, part 8, only on iterations with `MCNT`
-even: part 7's last `MVS4` goes through `H_MVS4`, which on the others
-skips part 8, leaving `RAT2` = 0 as part 8 does, and goes on at `MV5`. The
-reference gets the same with the named patch `mv8-spin`: at part 8's first
-instruction (`LDA INWK+30`, `AND #&80`, `STA RAT2`, found back from `MV8`),
-for `TYPE` 128 or more with `MCNT` odd, it sets the pitch and roll counters
-(`INWK+29`, `INWK+30`) to 0, so part 8 turns nothing and leaves `RAT2` =
-0, and puts them back at `MV5`. The planet's vectors reach the game (`H_CIRC`
-leaves `K2` from `nosev_x`, which `MV40` adds into the next object's `y`),
-so the patched reference flies a different run from the original's.
+at half the original's rate, smoothly. `MVEIT` part 8 turns the planet by
+its own pitch and roll by half the original's angle on every iteration:
+`MVS5`, which part 8 calls for each pair of coordinates, takes 1/32 radian
+a step for `TYPE` 128 or more (the planet: part 6 returns for the sun) in
+place of 1/16, with the second-order term to match (cos 1/32 = 1 - 1/2048):
+
+    x' = x (1 - 1/2048) + d y / 32,   y' = y (1 - 1/2048) - d x / 32
+
+worked out as the original works out its step: each first term's `T` is
+`|x_hi|` shifted right three times in place of once, and each second term
+`|y|` shifted right five times in place of four, each extra shift skipped
+for a ship (`BIT TYPE`, `BPL`: 26 bytes in `MVS5`, 24 cycles a call for a
+ship); the counters are damped, and `RAT2` and `Q` left, by part 8 and
+`MVS5` as for a ship. This is bit for bit the BBC Master port's `MVS5H`
+(`test_routines.py`'s `MVS5H` checks it against the model). A step scales a
+vector by at most 1 + 2^-22 before rounding (the full step 1 + 2^-18), and
+`TIDY` renormalises as before. The reference gets the same with the named
+patch `mv8-half`: at part 8's first instruction (`LDA INWK+30`,
+`AND #&80`, `STA RAT2`, found back from `MV8`), for `TYPE` 128 or more, it
+works out the half steps from the planet's vectors exactly as `MVS5` does
+(`blib.mjs`'s `halfPart8`, with a model of the original's `ADD`), and at
+`MV5`, once its own part 8 has run (its counters, `RAT2` and `Q` as the
+port leaves them), puts them in place of its vectors. The planet's vectors
+reach the game (`H_CIRC` leaves `K2` from `nosev_x`, which `MV40` adds into
+the next object's `y`), so the patched reference flies a different run
+from the original's.
 
 ### The frame's records
 
@@ -531,7 +546,7 @@ particle the original draws.
 | `LASLI`, `LASLI2` | cold | `GLASV` is set (the frame draws the beams from `LASX`, `LASY`); nothing to draw or remove |
 | `MA93` | home | (every mode) `Q = 0` before the altitude's `JSR LL5`; the reference is patched to match |
 | `LL9` part 1 | home | (every mode) C = 1 after the kill path's `JSR EE51`, for the explosion's first random number; the reference is patched to match |
-| `MVEIT` part 7 (`H_MVS4`) | home | (every mode) the planet's own pitch and roll (part 8) only on iterations with `MCNT` even: its half spin; the reference is patched to match |
+| `MVS5` | home | (every mode) for the planet, half the angle: its own pitch and roll (`MVEIT` part 8) by 1/32 radian a step, every iteration: its half spin; the reference is patched to match |
 | `SIGHT` | cold | `GSIGHT` is set to the laser power, `QQ19` as `TT15` leaves it |
 | `TTX66` | cold | (every mode) `F_DIRECT`: direct mode, buffer 1 on show, the text map cleared; for an in-system jump in space mode (`WARP` sets `GWARP`), the frames go on, and `TTX66` neither clears the screen nor draws the border |
 | `TT26` (`RR3`) | cold | (every mode) the character goes to the text map (`F_CHAR`); in record mode it is not drawn |

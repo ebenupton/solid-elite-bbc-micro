@@ -7753,6 +7753,23 @@ ENDIF
 \                       or negative (i.e. the sign of the roll or pitch counter
 \                       in bit 7)
 \
+\ ------------------------------------------------------------------------------
+\
+\ Port: the planet (TYPE 128 or more: MVEIT part 8 is the only caller, and the
+\ sun never reaches it) turns by half the angle, 1/32 radian a step, so that
+\ it spins smoothly at half the original's rate, every iteration. With the
+\ second-order term to match (cos 1/32 = 1 - 1/2048):
+\
+\   X = X * (1 - 1/2048) + Y / 32
+\   Y = Y * (1 - 1/2048) - X / 32
+\
+\ (and the signs of the second terms swapped for a negative direction),
+\ worked out as for 1/16 radian, with two more shifts for each first term's
+\ T (|X_hi| / 8) and one more for each second term (|Y| shifted right five
+\ times), each skipped for a ship (BIT TYPE, BPL). The harness turns the
+\ reference's planet by the same half steps (6-harness/blib.mjs, mv8-half),
+\ so the game states still match.
+\
 \ ******************************************************************************
 
 .MVS5
@@ -7760,6 +7777,10 @@ ENDIF
  LDA INWK+1,X           \ Fetch roofv_x_hi, clear the sign bit, divide by 2 and
  AND #%01111111         \ store in T, so:
  LSR A                  \
+ BIT TYPE               \ (Port: for the planet, TYPE 128 or more, divide by
+ BPL P%+4               \ 8, so T = |roofv_x| / 2048: see above)
+ LSR A
+ LSR A
  STA T                  \ T = |roofv_x_hi| / 2
                         \   = |roofv_x| / 512
                         \
@@ -7794,6 +7815,11 @@ ENDIF
  EOR INWK+1,Y           \ Flipping the sign bit in nosev_x_hi clears it, so
                         \ A = |nosev_x_hi|
 
+ BIT TYPE               \ Port: for the planet, one more shift, so (A P) =
+ BPL P%+5               \ |nosev_x| / 32
+ LSR A
+ ROR P
+
  LSR A                  \ Set (A P) = (A P) / 16
  ROR P                  \           = |nosev_x_hi nosev_x_lo| / 16
  LSR A                  \           = |nosev_x| / 16
@@ -7825,6 +7851,10 @@ ENDIF
  LDA INWK+1,Y           \ Fetch nosev_x_hi, clear the sign bit, divide by 2 and
  AND #%01111111         \ store in T, so:
  LSR A                  \
+ BIT TYPE               \ (Port: for the planet, divide by 8, so T =
+ BPL P%+4               \ |nosev_x| / 2048)
+ LSR A
+ LSR A
  STA T                  \ T = |nosev_x_hi| / 2
                         \   = |nosev_x| / 512
 
@@ -7848,6 +7878,11 @@ ENDIF
 
  EOR INWK+1,X           \ Flipping the sign bit in roofv_x_hi clears it, so
                         \ A = |roofv_x_hi|
+
+ BIT TYPE               \ Port: for the planet, one more shift, so (A P) =
+ BPL P%+5               \ |roofv_x| / 32
+ LSR A
+ ROR P
 
  LSR A                  \ Set (A P) = (A P) / 16
  ROR P                  \           = |roofv_x_hi roofv_x_lo| / 16
@@ -13983,46 +14018,6 @@ ENDMACRO
                         \ in R, where 1.0 = 255. LL28+4 always returns with the
                         \ C flag cleared, and we return from the subroutine
                         \ using a tail call
-
-\ ******************************************************************************
-\
-\       Name: H_MVS4
-\       Type: Subroutine
-\   Category: Moving
-\    Summary: Port: MVEIT part 7's last MVS4, then part 8 skipped for the planet
-\             on odd iterations: its half spin
-\
-\ ------------------------------------------------------------------------------
-\
-\ Port: the planet (and the sun, whose counters are 0) turns by its own pitch
-\ and roll (MVEIT part 8: 1/16 radian each a step, its counters at 127) only
-\ on iterations with MCNT even, so it spins at half the original's rate, and
-\ in deep space the circles' records are made on the iterations it turns
-\ (gfx-frame.asm's F_PFHOLD, which PF_HOOK asks). On the others part 8 is
-\ skipped, leaving RAT2 = 0 as part 8 does for counters at 127 or 0, and
-\ MVEIT goes on at MV5. The harness makes the original skip the same turns (6-harness/
-\ blib.mjs's mv8-spin), so the game states still match.
-\
-\ ******************************************************************************
-
-.H_MVS4
-
- JSR MVS4               \ Apply our pitch and roll rotations to the sidev vector
-
- LDA TYPE               \ The planet or the sun (TYPE 128 or more) on an
- BPL hsp9               \ iteration with MCNT odd: part 8 skipped, returning
- LDA MCNT               \ from MVEIT's call into part 7 to MV5
- LSR A
- BCC hsp9
- LDA #0
- STA RAT2
- PLA
- PLA
- JMP MV5
-
-.hsp9
-
- RTS
 
 \ ******************************************************************************
 \
@@ -34698,8 +34693,7 @@ LIGHT_SUN = TRUE
  JSR MVS4               \ ship's roofv vector
 
  LDY #21                \ Apply our pitch and roll rotations to the current
- JSR H_MVS4             \ ship's sidev vector (Port: then H_MVS4 skips part 8
-                        \ for the planet on odd iterations: its half spin)
+ JSR MVS4               \ ship's sidev vector
 
 \ ******************************************************************************
 \
