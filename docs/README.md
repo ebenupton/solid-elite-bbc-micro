@@ -70,31 +70,33 @@ default commander's checksum.
 | Part 3: the circle engine's arithmetic, the planet's half spin and its surface remade only when it turns; against the patched original, 11.56 it/s (`make circles=off`: 13.19 it/s, 1.141 times, 151,576 cycles) | 7.70 | 0.666 | 259,643 |
 | Part 3: the circle engine's short products (`make circles=off`: 13.20 it/s, 1.142 times, 151,546 cycles) | 7.72 | 0.667 | 259,184 |
 | Part 3: the planet's surface made every iteration close up, every other in deep space (`make circles=off`: 13.20 it/s, 1.142 times, 151,527 cycles) | 7.48 | 0.647 | 267,323 |
+| Part 3: the planet's half spin by half steps on every iteration; against the patched original, which flies another run with them, 12.64 it/s (`make circles=off`: 12.27 it/s, 0.970 times, 163,029 cycles) | 7.25 | 0.574 | 275,703 |
 
 These are the gate's run: the pilot's mix of launches, fights, approaches to
-the station and hyperspace jumps, over 10,000 iterations. Saved commander
+the station and hyperspace jumps, over 10,000 iterations (in the last row's
+run, a launch, fights, one jump and the long approach to the next system's
+station, which the reference places from the planet's vectors). Saved commander
 files are byte for byte the original's. Since the renderer's record mode
 stopped working out the original's lines, the reference is run with two
 small patches (`Q` = 0 at the altitude check, and C = 1 for an explosion's
 first random number, as the port's source has them;
 [renderer.md](renderer.md)), and since the planet's half spin, a third
-(the planet turned by its own pitch and roll only on iterations with
-`MCNT` even, as `H_MVS4` has it), which makes it fly another run, with
-another speed. From the four-colour screen on, the
-gate compares the game state without the drawing's temporaries and line
-heaps (`--loose`), and no longer the screen.
+(the planet turned by its own pitch and roll by half the original's angle
+on every iteration, worked out exactly as the port's `MVS5` works it out),
+which makes it fly another run, with another speed. From the four-colour
+screen on, the gate compares the game state without the drawing's
+temporaries and line heaps (`--loose`), and no longer the screen.
 
 By scene, over the same run (iterations in the front view, classified by
-the patched original's state; [renderer.md](renderer.md), "Speed"):
+the patched original's state; the run has none near the station or the
+sun; [renderer.md](renderer.md), "Speed"):
 
 | Scene | Iterations | The patched original, it/s | The port, it/s | Against it |
 |---|---:|---:|---:|---:|
-| Station close (nearer than 16 x 256, ahead) | 475 | 9.10 | 5.89 | 0.65 |
-| Sun close (nearer than 1,024 x 256, ahead) | 190 | 14.87 | 15.15 | 1.02 |
-| Planet close (nearer than 128 x 256, ahead; mostly off the screen) | 482 | 11.18 | 9.08 | 0.81 |
-| Big planet (128 x 256 to 512 x 256, ahead) | 6,924 | 11.10 | 6.72 | 0.61 |
-| Open space (planet far, no ships, no station near) | 357 | 18.42 | 12.53 | 0.68 |
-| Ships about | 1,409 | 12.08 | 10.36 | 0.86 |
+| Planet close (nearer than 128 x 256, ahead; mostly off the screen) | 134 | 6.52 | 7.08 | 1.09 |
+| Big planet (128 x 256 to 512 x 256, ahead) | 9,670 | 12.75 | 7.21 | 0.57 |
+| Open space (planet far, no ships, no station near) | 133 | 19.48 | 13.69 | 0.70 |
+| The first system (Lave, combat just after launch) | 586 | 7.91 | 5.13 | 0.65 |
 
 The filled renderer is slower than the original's wireframe: every frame
 is drawn filled (all of it but the bigger disc, which is kept from frame

@@ -618,14 +618,17 @@ and the frame's runs of game code leave everything as the original does.
 
 ## Speed
 
-The gate's run, 10,000 iterations: 267,323 cycles per flight iteration,
-7.48 flight iterations per second, against the patched original's 11.56
-(0.647 times; the planet's half spin makes the reference fly another run
-than the original's 11.85, 168,749 cycles). The build has the planets'
-surfaces (`_CIRCLES`, the default) and the sun near the planet (`S_SUN`).
-With plain discs (`make circles=off`) it is 151,527 cycles, 13.20 it/s
-(1.142 times), of which the dashboard's clock switches take about 1,350
-cycles ([video-timing.md](video-timing.md)).
+The gate's run, 10,000 iterations: 275,703 cycles per flight iteration,
+7.25 flight iterations per second, against the patched original's 12.64
+(0.574 times; the planet's half spin makes the reference fly another run
+than the original's 11.85, 168,749 cycles: the station is placed from the
+planet's vectors, and after the launch at Lave, its fights and the jump,
+the pilot spends the rest of the run on its approach to the next system's
+station, a big planet ahead). The build has the planets' surfaces
+(`_CIRCLES`, the default) and the sun near the planet (`S_SUN`). With plain
+discs (`make circles=off`) it is 163,029 cycles, 12.27 it/s (0.970 times),
+of which the dashboard's clock switches take about 1,350 cycles
+([video-timing.md](video-timing.md)).
 By scene (`6-harness/bscenes.mjs` records each iteration's time and the
 planet's, the station's and the ships' positions in a build's run;
 `6-harness/scenes.py` compares two such runs, counting a flight iteration
@@ -635,45 +638,35 @@ fits), without `_CIRCLES` (`make circles=off`: plain discs) and with it
 
 | Scene | Iterations | The original | The port | Against the original | With `_CIRCLES` | Against the original |
 |---|---:|---:|---:|---:|---:|---:|
-| Station close: the station ahead, nearer than 16 x 256 | 475 | 219,863 cycles, 9.10 it/s | 274,074 cycles, 7.30 it/s | 0.80 | 339,594, 5.89 | 0.65 |
-| Sun close: the sun ahead, nearer than 1,024 x 256 | 190 | 134,493, 14.87 | 132,160, 15.13 | 1.02 | 132,042, 15.15 | 1.02 |
-| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen) | 482 | 178,960, 11.18 | 153,898, 13.00 | 1.16 | 220,275, 9.08 | 0.81 |
-| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 6,924 | 180,116, 11.10 | 154,085, 12.98 | 1.17 | 297,607, 6.72 | 0.61 |
-| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 357 | 108,565, 18.42 | 105,495, 18.96 | 1.03 | 159,603, 12.53 | 0.68 |
-| Ships about (the rest, with other ships in the bubble) | 1,409 | 165,569, 12.08 | 148,332, 13.48 | 1.12 | 193,104, 10.36 | 0.86 |
-| The first system's front view (Lave, a beach ball, combat after launch) | 586 | 251,830, 7.94 | 126,347, 15.83 | 1.99 | 389,679, 5.13 | 0.65 |
+| Planet close: the planet ahead, nearer than 128 x 256 (mostly off the screen) | 134 | 306,965 cycles, 6.52 it/s | 282,573 cycles, 7.08 it/s | 1.09 | 282,569, 7.08 | 1.09 |
+| Big planet: the planet ahead, 128 x 256 to 512 x 256 (the big discs, 100 to 190 rows) | 9,670 | 156,880, 12.75 | 162,118, 12.34 | 0.97 | 277,352, 7.21 | 0.57 |
+| Open space: the planet at 512 x 256 or more, no station within 64 x 256, no ships | 133 | 102,695, 19.48 | 105,428, 18.97 | 0.97 | 146,133, 13.69 | 0.70 |
+| The first system's front view (Lave, a beach ball, combat after launch) | 586 | 252,926, 7.91 | 127,658, 15.67 | 1.98 | 390,167, 5.13 | 0.65 |
 
 The original here is the patched one the gate compares with (its run, with
-the planet's half spin, differs from the original's). On the same run, a
-build with the half spin but without this commit series' other changes
-(the circle engine's arithmetic as it was, the surface remade every
-iteration) has 172,992 cycles in open space (11.56 it/s), 305,368 with a
-big planet (6.55) and 395,096 at Lave (5.06).
-
-Ships about includes the escape pod's launch (iteration 8,150: 97 frames of
-our Cobra flying away and the docked code's load, 33.9 million cycles, about
-24,000 cycles of the scene's average); without it the scene takes 124,376
-cycles an iteration with plain discs and 169,179 with `_CIRCLES`. Scenes
-whose frames end well inside a field (open space) move by a hundred cycles
-or so from build to build as the frames meet the vertical sync at other
-phases (`F_FRAME`'s wait for the flip, `ff2`).
+the planet's half spin, differs from the original's). The run has no
+iterations near the station or the sun, and none with ships about outside
+Lave's window. Scenes whose frames end well inside a field (open space)
+move by a hundred cycles or so from build to build as the frames meet the
+vertical sync at other phases (`F_FRAME`'s wait for the flip, `ff2`).
 
 With `_CIRCLES` the surface's rows are worked out from the circles and
 painted in every frame; the circles themselves are made on every iteration
-of a close planet, and in deep space on the iterations the planet turns
-(every second), kept, moved with the disc, on the others.
+of a close planet, and in deep space on every second iteration, kept,
+moved with the disc, on the others (the planet turns by a half step on
+every iteration).
 
 The disc layer keeps both discs on each buffer and writes only what
-changed. Its batches cost, over the gate's run (`bprofile.mjs`), about 90
-disc rows a flight iteration in 6 batches, 18,300 cycles a flight
+changed. Its batches cost, over a run of the gate's pilot that docks
+(`bprofile.mjs`), about 90 disc rows a flight iteration in 6 batches, 18,300 cycles a flight
 iteration, about 200 cycles a row: filling the slots in bank 6 (52 a row),
 `R_GETW` in bank 5 (the dirty extents taken and emptied, the writes put
 back: about 70 a row), a changed row's data taken and put back in the
 painter (`dp_ld`, `dp_st`: 84 a changed row, about half the rows), and a
 trampoline and a far call a batch (about 220 cycles).
 
-The station close is the slowest scene. A profile of its iterations
-(`bprofile.mjs --scenes`, each flight iteration put in the scene of the
+The station close is the slowest scene. A profile of its iterations in
+that run (`bprofile.mjs --scenes`, each flight iteration put in the scene of the
 iteration it ends; 272,546 cycles an iteration that way) has bank 5 at
 133,853: `R_POLY` about 55,000 (mostly phase B, the station's faces filling
 most of the window), the row runs' stores 19,302, the repair 17,365,

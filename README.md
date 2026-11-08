@@ -11,7 +11,7 @@ A port of Acornsoft's BBC Micro disc Elite with solid, sunlit ships and solid pl
 What's new:
 
 * **Solid ships, lit by the sun.** Every ship, the space station and the cargo are drawn with filled, dithered faces, shaded by the direction of the sun, as in the Master port.
-* **Solid planets, drawn by one circle engine.** Every feature of a planet's surface is a circle on its sphere, projected exactly onto the disc and cut cleanly by its limb. Meridian planets, Lave's among them, are beach balls: two great circles splitting the disc into land and sea. Crater planets have up to three true spherical craters, green on a blue sea, chosen by the system's seed. Planets spin at half the original's rate; close up, the surface is remade every frame, and in deep space every other frame, on the frames it turns.
+* **Solid planets, drawn by one circle engine.** Every feature of a planet's surface is a circle on its sphere, projected exactly onto the disc and cut cleanly by its limb. Meridian planets, Lave's among them, are beach balls: two great circles splitting the disc into land and sea. Crater planets have up to three true spherical craters, green on a blue sea, chosen by the system's seed. Planets spin smoothly at half the original's rate, by half its angle every frame; close up, the surface is remade every frame, and in deep space every other frame.
 * **Suns, near and far.** Suns are solid discs with a lens flare when you look towards them, turned down or off as the sun is hidden. Near the planet, where the original gives the sun's slot to the space station and the sun vanishes, the sun is still drawn where it would be, rising and setting behind the planet's limb.
 * **Every disc incremental.** The planet and the sun keep what they drew in each screen buffer and redraw only the rows that changed, and stars never show through a fill.
 * **Flicker-free, double-buffered flight, at up to 25 frames a second.** The space view is a four-colour screen (black, cyan, magenta and yellow, dithered into shades) drawn into one of two buffers in main RAM while the other is on show. Every frame is on show for at least two fields.
@@ -52,17 +52,14 @@ The Model B has 64K of sideways RAM against the Master's 64K plus 20K of shadow 
 
 ## Speed
 
-In the gate's flight run (a deterministic pilot's launches, fights, station approaches and hyperspace jumps, over 10,000 iterations), the port runs at 7.48 main-loop iterations per emulated second, against the original's 11.56 (the original with the planet's half spin, as the comparison has it): 0.647 times its speed. Everything is drawn filled, double-buffered, on the same 2 MHz 6502 that runs the game. Most of the gap is the planets' surfaces: with plain disc planets (`make circles=off`) the port runs at 13.20, 1.142 times the original. By scene, over the same run:
+In the gate's flight run (a deterministic pilot's launch, fights, a hyperspace jump and the long approach to the next system's station, 10,000 iterations), the port runs at 7.25 main-loop iterations per emulated second, against the original's 12.64 (the original with the planet's half spin, as the comparison has it): 0.574 times its speed. Everything is drawn filled, double-buffered, on the same 2 MHz 6502 that runs the game. Most of the gap is the planets' surfaces: with plain disc planets (`make circles=off`) the port runs at 12.27, 0.970 times the original. By scene, over the same run (nearly all of it with a big planet ahead):
 
-| Scene | Original (wireframe) | Port | Port, `circles=off` |
-|---|---:|---:|---:|
-| Open space | 18.42 | 12.53 | 18.96 |
-| Big planet | 11.10 | 6.72 | 12.97 |
-| Lave, just after launch | 7.94 | 5.13 | 15.82 |
-| Planet close | 11.18 | 9.08 | 12.99 |
-| Sun close | 14.87 | 15.15 | 15.14 |
-| Station close | 9.10 | 5.89 | 7.29 |
-| Ships about | 12.08 | 10.36 | 13.08 |
+| Scene | Iterations | Original (wireframe) | Port | Port, `circles=off` |
+|---|---:|---:|---:|---:|
+| Open space | 133 | 19.48 | 13.69 | 18.97 |
+| Big planet | 9,670 | 12.75 | 7.21 | 12.34 |
+| Lave, just after launch | 586 | 7.91 | 5.13 | 15.67 |
+| Planet close | 134 | 6.52 | 7.08 | 7.08 |
 
 ## Testing
 
@@ -70,7 +67,7 @@ Every commit was checked against the released game (the Stairway to Hell disc), 
 
 * **The gate** ([6-harness](6-harness/README.md), `make verify`) flies both with a deterministic pilot for 10,000 iterations and requires the game state to be the original's at every one, then docks, launches and docks again, saves, loads, fails to load and catalogues through the game's disc menu, compares the saved file byte for byte with the one the original saves, and changes views in flight. The speed-ups were each checked routine by routine against the original's on every input or a large random sample (`test_routines.py`), the rasteriser primitive by primitive against a pixel-exact model (`test_raster.py`), and the frame layer and the planets' surfaces on their own (`test_frame.py`).
 * **Every horizontal sync, exactly 64 microseconds.** `bhsync.mjs` logs every horizontal sync of an instrumented headless jsbeeb through the gate's run and the screens and views, millions of them, and requires every interval to be 128 cycles and every field 312 lines; fault injection (an interrupt held off by up to 300 cycles) leaves every interval at 128, and builds with a switch moved a cycle or two outside its two-cycle window fail it.
-* **Patches to the original in the comparison.** The original runs unchanged but for three things the harness does to it: at the altitude check, `Q` is set to 0 in both runs (the original takes a square root of whatever the last routine left there); an explosion's first random number takes C = 1, as the port's code leaves it; and the planet turns by its own pitch and roll only on even iterations, as the port's half spin does. With these the whole game state, the planet's vectors included, matches at every iteration.
+* **Patches to the original in the comparison.** The original runs unchanged but for three things the harness does to it: at the altitude check, `Q` is set to 0 in both runs (the original takes a square root of whatever the last routine left there); an explosion's first random number takes C = 1, as the port's code leaves it; and the planet turns by its own pitch and roll by half the original's angle, worked out exactly as the port works out its half spin. With these the whole game state, the planet's vectors included, matches at every iteration.
 * **Soak tests** with Dom Pajak's [elite-agent](https://github.com/8bitkick/elite-agent) playing the original while the port replays the same inputs read for read, comparing the game state at every iteration and the dashboard byte for byte ([6-harness/agentplay](6-harness/agentplay/README.md)). The last soak, on the build before the planet's records were last changed, ran 58 sessions and 1.35 million iterations with no difference: both missions, fuel and cargo scooping, all eight galaxies, witchspace, the escape pod, energy bomb, E.C.M., missiles and docking computer, every docked screen and the disc menu, and 76 deaths. Its predecessor found the one port bug the soaks have turned up, a hang after every death, since fixed.
 
 ## Credits
@@ -95,7 +92,7 @@ The port is a series of commits on top of Mark's source, in three parts:
 
 1. **The memory map.** Both programs move out of main RAM into sideways RAM, two banks each, swapped from disc at the same moments as the original swapped them, leaving main RAM below the screen and two banks for a renderer. The game is still the original, iteration for iteration and pixel for pixel: 11.87 flight iterations per emulated second against the original's 11.85.
 2. **The speed-ups.** The game logic made faster one idea per commit, still drawing the original's wireframe pixel for pixel: 14.51 flight iterations per emulated second (1.224 times the original).
-3. **The filled renderer.** The Master port's renderer, rewritten for the NMOS 6502 and the Model B's memory: filled ships lit by the sun, a double-buffered four-colour screen, disc planets and suns drawn incrementally, the sun near the planet, the lens flare, the hangar and the briefing's ship; the original's dashboard at the 1 MHz clock below the space view; then the planets' surfaces, with the Master port's faster circle arithmetic and the planet's half spin. The gate's flight run gives 7.48 iterations per emulated second (0.647 times the original with the same half spin), or 13.20 (1.142 times) with plain disc planets.
+3. **The filled renderer.** The Master port's renderer, rewritten for the NMOS 6502 and the Model B's memory: filled ships lit by the sun, a double-buffered four-colour screen, disc planets and suns drawn incrementally, the sun near the planet, the lens flare, the hangar and the briefing's ship; the original's dashboard at the 1 MHz clock below the space view; then the planets' surfaces, with the Master port's faster circle arithmetic and the planet's half spin. The gate's flight run gives 7.25 iterations per emulated second (0.574 times the original with the same half spin), or 12.27 (0.970 times) with plain disc planets.
 
 Throughout, the game logic is the original's: the port's game state matches the release at every iteration, and save files are byte-identical with the original's. See [docs/README.md](docs/README.md) for the step-by-step results, [docs/renderer.md](docs/renderer.md) for the renderer, [docs/speedups.md](docs/speedups.md) for the speed-ups, [docs/memory-map.md](docs/memory-map.md) for the layout and [docs/video-timing.md](docs/video-timing.md) for the split screen's timing.
 
