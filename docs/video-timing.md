@@ -378,6 +378,87 @@ that moment, and a change of clock (the BBC driver's `video_ula_w` calling
 therefore always one whole line at one clock there, whatever the cycle of
 the write.
 
+### b2
+
+Tom Seddon's b2 (https://github.com/tom-seddon/b2, at commit `2cd8e53a`)
+runs the port as jsbeeb does, switch for switch: every horizontal sync
+interval 128 cycles, every field 312 lines, and b2's TV locked throughout.
+
+b2 models what the screen depends on at 2 MHz-cycle resolution too.
+`BBCMicro::UpdateTemplated` (src/beeb/src/BBCMicro_Update.inl) steps the
+6845 on every 2 MHz cycle while the ULA's control register selects the fast
+clock, and on the 1 MHz clock's cycles only otherwise, so a change of clock
+takes effect in mid-line, from the cycle of the write. Its 6845
+(src/beeb/src/crtc.cpp) ends a line where C0 equals R0, starts the sync
+where it equals R2, and latches the end of a frame (R4, R9) at column 1 of
+the frame's last line; the port writes R4 a line or more away from that.
+Unlike jsbeeb, b2 takes the CPU bus's 1 MHz clock (the stretched accesses,
+the VIAs) and the 6845's 1 MHz clock from the same bits of one cycle count,
+so it has one phase between the two, whatever the boot. Its TV
+(src/beeb/src/TVOutput.cpp) is driven by the syncs: a horizontal sync
+during a line's 52 microseconds of scan starts the retrace at once, and the
+TV ignores the input for the next 12 microseconds (retrace and back porch);
+a line with no sync retraces on its own after 64 microseconds, so a sync
+interval longer than 128 cycles makes the TV miss the next sync, and it
+then runs a cycle out of step with the syncs, ignoring them, until its next
+vertical retrace. A vertical sync is taken only 1/65 to 1/45 of a second
+after the last (else it is ignored), and after 500 lines with none the TV
+retraces anyway. b2 is strict about a long line, then, and lenient about a
+short one; the port's lines are all 64 microseconds exactly.
+
+The check is `6-harness/b2/` (no window, ever): `build.sh` builds b2's core
+library (libbeeb) and `b2drive.cpp`, a headless driver against it, through
+b2's own CMake build with `b2drive.cmake` hooked in (b2 is not changed or
+copied into this repository); `b2drive` makes b2's default Model B (OS 1.20,
+BASIC II, Acorn's 1770 DFS 2.26, the "B/Acorn 1770 DFS" configuration) with
+sideways RAM in banks 4 to 7, boots the disc with SHIFT+BREAK, plays a
+script of key presses (`fly.txt`: the title, the docked screen, a launch,
+the four views, the docking computer, the hangar, the docked screens), and
+writes b2's TV picture as PNG files. It times every edge of the 6845's
+syncs as b2 emits them, runs a mirror of the TV's state machine on the same
+signal (its retraces on a sync and on its own, the syncs it ignores, the
+vertical syncs it takes and rejects), and lists the ULA's control writes by
+the line and cycle they land on. `b2sweep.sh` runs it at boot phases, as
+`bversions.sh` does for jsbeeb: SHIFT+BREAK after 0, 1, 2, 3, 5, 8 ... 987
+cycles more, and cold boots (power on with SHIFT held) at the four phases
+of b2's 4 MHz count, each to the script's end, 155 emulated seconds.
+
+Results on the gated build (48e3f9f):
+
+| Run | Sync intervals | Lines a field | b2's TV |
+|---|---|---|---|
+| `b2sweep.sh`, 16 warm boot phases | 2,217,844 to 2,218,816 each, all 128 | 312, all (7,108 to 7,111 fields) | every retrace on a sync, no sync ignored, every vertical sync taken: 300 lines and 39,936 cycles a field |
+| `b2sweep.sh`, 4 cold boots | 2,214,241 each, all 128 | 312, all 7,097 | the same |
+
+In every run both switches land with p = 76, the window's second cycle, as
+jsbeeb's runs in its phase 1 do; a switch made a line or more late (`rslip`,
+9 to 23 in a run of 155 seconds, held off by the disc's interrupts and the
+MOS's `SEI` sections)
+lands on the same cycle. The negative control behaves as jsbeeb's phase 1
+does: with `RTRIM1` and `RTRIM2` at -1 the switches land with p = 75 and
+pass; at +1, S2 lands with p = 77 and its line is 129 cycles, and b2's TV
+then loses the horizontal sync for most of every field (the long line
+above). So b2's window is p = 75 and 76, the same as jsbeeb's, and b2 sits
+in jsbeeb's phase 1; which of the two phases a real ULA has is still the
+oscilloscope's question ("On a real Model B", below).
+
+The picture matches the original's: in the original disc (the Stairway to
+Hell release) on b2, the space view's frame and the dashboard start and end
+on the same pixel columns (112 and 623 of b2's 736) and the same rows as
+the port's, and the port's dashboard on the docked screen is pixel for
+pixel the original's but for one bar's length (the game's state at that
+moment), its first line (line 192) whole and yellow, where the original's
+shows the mode 4 screen's white for its first eight pixels. The original runs at the
+MOS's interlaced timing, fields of 312 and 313 lines in turn, which b2's TV
+takes as well; the port's fields are all 312 lines (R8 = 0).
+
+Two things show on b2 as they do on jsbeeb, and are the port's, not the
+timing's: while a disc command runs (the screen is blank and frame B shows
+no rows, "Disc access", above), the space view's last line (line 191) shows
+the bytes that the load stages through the buffers; and the first frame
+after the docked code loads (the docking tunnel, for a few fields before the
+hangar) shows such bytes in its top rows.
+
 ## The web emulator, and why it showed the screen torn
 
 On bbc.xania.org (jsbeeb 2.19.0, its "BBC B": the B-DFS1.2 model, as the

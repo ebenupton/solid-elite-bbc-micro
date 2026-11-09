@@ -1,0 +1,57 @@
+# b2drive script: title, docked, launch, fly with each view, dock with the
+# docking computer, the hangar and the docked screens. Times in emulated
+# seconds from the boot (SHIFT+BREAK released).
+22 snap title
+24 key N
+27 key Space
+31 snap docked
+32 key f0
+36 snap launching
+48 snap space-front
+49 key f1
+52 snap space-rear
+53 key f2
+56 snap space-left
+57 key f3
+60 snap space-right
+61 key f0
+64 snap space-front2
+64.5 poke 384 FF
+65 key C 1
+# (the docking computer docks at about 120 s; the hangar shows as the docked
+# code loads)
+118.0 snap dock-118.0
+118.5 snap dock-118.5
+119.0 snap dock-119.0
+119.5 snap dock-119.5
+120.0 snap dock-120.0
+120.5 snap dock-120.5
+121.0 snap dock-121.0
+121.5 snap dock-121.5
+122.0 snap dock-122.0
+122.5 snap dock-122.5
+123.0 snap dock-123.0
+123.5 snap dock-123.5
+124.0 snap dock-124.0
+124.5 snap dock-124.5
+125.0 snap dock-125.0
+125.5 snap dock-125.5
+126.0 snap dock-126.0
+126.5 snap dock-126.5
+127.0 snap dock-127.0
+127.5 snap dock-127.5
+128.0 snap dock-128.0
+128.5 snap dock-128.5
+129.0 snap dock-129.0
+129.5 snap dock-129.5
+130.0 snap dock-130.0
+130.5 snap dock-130.5
+131.0 snap dock-131.0
+131.5 snap dock-131.5
+140 key Space
+144 snap docked2
+145 key f7
+149 snap market
+150 key f5
+154 snap chart
+155 end
