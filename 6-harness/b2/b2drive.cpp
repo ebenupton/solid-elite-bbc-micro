@@ -7,7 +7,7 @@
 //
 //   b2drive --disc D.ssd --roms B2/etc/roms --out DIR [--script FILE]
 //           [--secs S] [--pre N] [--cold] [--ram 4,5,6,7] [--judge-ula HEX]
-//           [--judge-after S] [--snap-every S] [--ula N]
+//           [--judge-after S] [--snap-every S] [--ula N] [--rslip HEX]
 //
 // The machine: b2's default Model B configuration (OS 1.20, BASIC II in bank
 // 15, Acorn's 1770 DFS 2.26 in bank 14) with sideways RAM in the banks of
@@ -47,7 +47,10 @@
 //   edge, which the port puts on line 272; the cycle from the horizontal
 //   sync's rising edge, cycle 90 of its line; a write on cycle c takes
 //   effect from cycle c, so the last cycle at the old clock, p, is c - 1),
-//   and with --ula N the first N of them in order.
+//   and with --ula N the first N of them in order;
+// * with --rslip HEX, the byte there at the end: the rupture's rslip (the
+//   switches made a line or more late, modulo 256), whose address b2sweep.sh
+//   takes from the build's loader-symbols.txt.
 //
 // Exit status 0 when every interval is 128 cycles, every field has the same
 // line count, the TV never times out, never ignores a sync and accepts every
@@ -358,7 +361,7 @@ int main(int argc, char *argv[]) {
     double secs = 60, judge_after = -1, snap_every = 0;
     uint64_t pre = 0;
     bool cold = false;
-    int judge_ula = 0xd8, ula_log = 0;
+    int judge_ula = 0xd8, ula_log = 0, rslip_addr = -1;
     std::vector<int> ram = {4, 5, 6, 7};
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
@@ -374,6 +377,7 @@ int main(int argc, char *argv[]) {
         else if (a == "--judge-after") { judge_after = atof(next().c_str()); judge_ula = -1; }
         else if (a == "--snap-every") snap_every = atof(next().c_str());
         else if (a == "--ula") ula_log = atoi(next().c_str());
+        else if (a == "--rslip") rslip_addr = (int)strtol(next().c_str(), nullptr, 16);
         else if (a == "--ram") {
             ram.clear();
             std::string s = next();
@@ -533,7 +537,7 @@ int main(int argc, char *argv[]) {
     printf("ULA control writes by value, line and cycle:");
     for (auto &kv : d.ula_hist) printf(" [%s x%llu]", kv.first.c_str(), (unsigned long long)kv.second);
     printf("\n");
-    printf("rslip (&794A) = %u\n", ram_p[0x794a]);
+    if (rslip_addr >= 0) printf("rslip (&%04X) = %u\n", rslip_addr, ram_p[rslip_addr & 0xffff]);
     for (auto &s : d.bad) printf("  BAD %s\n", s.c_str());
     bool ok = d.judging && d.nh > 0 && d.intervals.size() == 1 && d.intervals.count(128) && d.fields.size() == 1 &&
               d.mir.h_by_timeout == 0 && d.ignored_h == 0 && d.mir.v_rejected == 0 && d.mir.v_forced == 0 && d.mir.lines_per_field.size() <= 1;

@@ -4,8 +4,8 @@
 #
 # b2drive (build.sh) boots the disc and flies fly.txt (the title, the docked
 # screen, a launch, the four views, the docking computer, the hangar and the
-# docked screens; the script ends at 155 emulated seconds, [secs] (default
-# 160) is a limit), at each boot phase:
+# docked screens; the script ends at 177 emulated seconds, [secs] (default
+# 185) is a limit), at each boot phase:
 #
 #  * warm: SHIFT+BREAK after PRE more 2 MHz cycles (b2drive --pre), for each
 #    PRE in PHASES: the user VIA's timer 2 and the loader's start of it fall
@@ -22,7 +22,7 @@
 # "B2SWEEP PASS" or "B2SWEEP FAIL". Logs and the PNGs: 6-harness/work/b2/.
 set -u
 cd "$(dirname "$0")/../.." || exit 1
-SECS=${1:-160}
+SECS=${1:-185}
 PHASES=${PHASES:-"0 1 2 3 5 8 13 21 34 55 89 144 233 377 610 987"}
 COLD=${COLD:-"0 1 2 3"}
 B2SRC=${B2SRC:-$HOME/b2src/b2}
@@ -30,12 +30,14 @@ BIN=${B2DRIVE:-$B2SRC/build/r.osx/b2drive}
 DISC=${DISC:-solid-elite-bbc-micro.ssd}
 OUT=6-harness/work/b2
 [ -x "$BIN" ] || { echo "no b2drive at $BIN (sh 6-harness/b2/build.sh)"; exit 1; }
+RSLIP=$(sed -n "s/.*'rslip':\([0-9]*\).*/\1/p" 3-assembled-output/loader-symbols.txt)
+RSLIP=$(printf '%X' "${RSLIP:-0}")
 mkdir -p "$OUT"
 run() { # mode pre
     d="$OUT/$1-$2"; mkdir -p "$d"
     flag=""; [ "$1" = cold ] && flag=--cold
     "$BIN" --disc "$DISC" --roms "$B2SRC/etc/roms" --out "$d" --script 6-harness/b2/fly.txt \
-        --secs "$SECS" --pre "$2" $flag > "$d/log.txt" 2>&1
+        --secs "$SECS" --pre "$2" --rslip "$RSLIP" $flag > "$d/log.txt" 2>&1
 }
 n=0
 for m in warm cold; do
