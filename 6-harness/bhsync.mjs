@@ -21,7 +21,8 @@
 // flight screens or changes view (bcompare.mjs's regressions), so that the
 // overlays' disc loads are in the run as well as the gate's launches,
 // dockings, hyperspace jumps and the docked screens. --ula also lists the
-// writes to the video ULA's control register by the line cycle they land on.
+// writes to the video ULA's control register by the line cycle they land on,
+// and the writes to the 6845's R8 (the display off while the disc is in use).
 import { writeFileSync, readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { runElite, loadBuild, CAND_BUILD } from "./blib.mjs";
@@ -35,7 +36,7 @@ const args = parseArgs({ build: "value", iters: "value", screens: "flag", views:
 const B = loadBuild(resolve(args.build || CAND_BUILD));
 const ITERS = +(args.iters || 10000);
 
-let phase1M = -1, gcpu = null, judging = false, iterNow = 0, lastH = -1, nH = 0, linesThisField = 0, fields = 0, fieldLines = null;
+let crtcReg = 0, phase1M = -1, gcpu = null, judging = false, iterNow = 0, lastH = -1, nH = 0, linesThisField = 0, fields = 0, fieldLines = null;
 const intervals = new Map(), fieldCounts = new Map(), ulaWrites = new Map(), badH = [], badV = [], ulaSeq = [];
 
 function onH(t) {
@@ -107,6 +108,15 @@ function install(s) {
         // line cycle it lands on (the last sync was on cycle 90)
         if ((addr === 0xfe46 || addr === 0xfe47 || addr === 0xfe44 || addr === 0xfe45) && ulaSeq.length < 60 && judging) ulaSeq.push({ k: `T1w${(addr & 15).toString(16)}=${val.toString(16)}pc${cpu.pc.toString(16)}@x`, at: 0, iv: [] });
         if (addr === 0xfe45 && ulaSeq.length < 4) ulaSeq.push({ k: `T1start@${(272 + linesThisField - 1 + 312) % 312}`, at: cpu.cycleSeconds * 2000000 + cpu.currentCycles, iv: [] });
+        // the 6845's R8 (the display on or off while the disc is in use:
+        // RUPT's rset8), by value and the line cycle it lands on
+        if (addr === 0xfe00) crtcReg = val & 31;
+        if (addr === 0xfe01 && crtcReg === 8 && judging) {
+            const t = cpu.cycleSeconds * 2000000 + cpu.currentCycles;
+            const cyc = (((t - lastH + 90) % 128) + 128) % 128;
+            const k = `R8=${val.toString(16)}@${(272 + linesThisField - (cyc < 90 ? 0 : 1) + 312) % 312}:${cyc}`;
+            ulaWrites.set(k, (ulaWrites.get(k) || 0) + 1);
+        }
         if ((addr & 0xfff0) !== 0xfe20 || (addr & 1) || !judging) return false;   // (from the handover on)
         const t = cpu.cycleSeconds * 2000000 + cpu.currentCycles;
         // (the line: the vertical sync starts line 272, and linesThisField
