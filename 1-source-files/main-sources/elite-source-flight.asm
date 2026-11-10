@@ -35838,6 +35838,9 @@ LIGHT_SUN = TRUE
 
 .BOL2
 
+ STA GHOLD              \ Port: the screen is clear (A = 0), so the rupture may
+                        \ show it again after a program load (GHOLD, F_DIRECT)
+
  LDX QQ22+1             \ Fetch into X the number that's shown on-screen during
                         \ the hyperspace countdown
 

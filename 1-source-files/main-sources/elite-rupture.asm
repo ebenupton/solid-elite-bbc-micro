@@ -39,8 +39,13 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
 \ the switch.
 \
 \ While the disc is in use (rdisc, set by dfsin), S1 is not made: frame B
-\ stays at 2 MHz, with no rows shown, so that a disc NMI cannot fall inside a
-\ switch.
+\ stays at 2 MHz, so that a disc NMI cannot fall inside a switch, and the
+\ 6845's display is off (R8, rblank) from the end of line 191, so the screen
+\ is black: frame B at 2 MHz would show the dashboard's bytes in the wrong
+\ format, and the disc command stages its loads through the screen buffers.
+\ The display comes back on in the vertical blank, at point 2, once the disc
+\ is free again and the frame layer is not holding it off (GHOLD, from a
+\ program load until the new program's first screen clear, TTX66).
 \
 \ ******************************************************************************
 
@@ -57,15 +62,15 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
 
                         \ Point 1: S1, the switch to the dashboard (frame B)
 
- LDA rdisc              \ If the disc is in use, leave the field at 2 MHz
- BEQ P%+5
+ LDA rdisc              \ If the disc is in use, or the display is still off
+ ORA rblank             \ after it, leave the field at 2 MHz, with the display
+ BEQ P%+5               \ off
  JMP rpt1d
 
- LDY #0                 \ rpo = the dashboard's palette: 0 for the original's
- LDA ESCPA              \ standard colours, 12 for its escape pod colours
- BEQ P%+4
- LDY #12
- STY rpo
+ LDA ESCPA              \ rpo = the dashboard's palette: 0 for the original's
+ BEQ P%+4               \ standard colours, 12 for its escape pod colours (any
+ LDA #12                \ non-zero ESCPA)
+ STA rpo
 
  LDX #0                 \ Wait for S1's cycle (rwait), from target 0
  JSR rwait
@@ -142,11 +147,15 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
 
 .rpt1d
 
- LDX #0                 \ The disc is in use: no switch, but wait until frame
- JSR rwait              \ B has started (its vertical registers may only be
- LDA #80                \ written then), from S1's line
- JSR rdelay
- LDX #0                 \ (R6 = 0 below, as rstate = 0)
+ LDX #0                 \ The disc is in use: no switch. From S1's line (rwait)
+ JSR rwait              \ wait until line 191's display has ended, then turn
+ LDA #RBW1              \ the display off (R8 = &30, rblank: it lands on cycle
+ JSR rdelay             \ 96 or 97 of the line, before frame B's first line)
+ LDA #&30
+ JSR rset8
+
+ LDA #RBW2              \ Then wait until frame B has started (its vertical
+ JSR rdelay             \ registers may only be written then)
 
 .rpt1
 
@@ -163,12 +172,9 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
  LDX #10
  STX CRTC+1
 
- LDX #6                 \ R6 = PANR (7, or 0 to hide the dashboard), or 0 while
- STX CRTC               \ the disc is in use
+ LDX #6                 \ R6 = PANR (7, or 0 to hide the dashboard; while the
+ STX CRTC               \ disc is in use the display is off)
  LDX PANR
- LDA rstate
- BNE P%+4
- LDX #0
  STX CRTC+1
 
  LDX #0                 \ If the frame layer has asked for a flip (GFLIP), show
@@ -238,7 +244,8 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
  LDX #90                \ its cycle 52
  STX CRTC+1
 
- RWAITX 20              \ (until line 311 has ended, on cycle 128)
+ JSR rdn+3              \ (until line 311 has ended, on cycle 128: 20 cycles,
+                        \ the call, four of rdelay's NOPs and the return)
 
  LDX #0                 \ R0 = 127, now that line 311 has ended, and before
  STX CRTC               \ line 0's C0 reaches the old 89 (its cycle 89)
@@ -251,10 +258,15 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
 
 .rpt4d
 
- LDX #2                 \ Frame B is at 2 MHz: no switch, but wait until frame
- JSR rwait              \ A has started (its vertical registers may only be
- LDA #80                \ written then), from S2's line
- JSR rdelay
+ LDX #2                 \ Frame B is at 2 MHz: no switch. On S2's line (rwait),
+ JSR rwait              \ in the vertical blank, turn the display back on (R8 =
+ LDA rdisc              \ 0, rblank = 0) if the disc is free and the frame
+ ORA GHOLD              \ layer is not holding it off (a program load, until
+ BNE P%+5               \ the new program's first screen clear: GHOLD)
+ JSR rset8
+
+ LDA #RBW3              \ Then wait until frame A has started (its vertical
+ JSR rdelay             \ registers may only be written then)
 
 .rpt4
 
@@ -357,11 +369,9 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
 
 .rwt1
 
- NOP                    \ (the late path's length, 10 cycles more than the
- NOP                    \ taken BCC, in the on-time path)
- NOP
- NOP
- NOP
+ PHA                    \ (the late path's length, 10 cycles more than the
+ PLA                    \ taken BCC, in the on-time path)
+ BIT &70
 
 .rwt2
 
@@ -385,14 +395,11 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
 .rdelay
 
  TAY                    \ Set the jump into the NOPs to run A AND 7 of them
- AND #7
+ AND #7                 \ (the run is in one page: rdj's high byte is rdn's)
  EOR #7
  CLC
  ADC #LO(rdn)
  STA rdj+1
- LDA #HI(rdn)
- ADC #0
- STA rdj+2
 
  TYA                    \ X = A DIV 8, the blocks of 8 microseconds
  LSR A
@@ -400,8 +407,9 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
  LSR A
  TAX
 
- NOP                    \ (4 cycles, so that the constant part of the wait is
- NOP                    \ what the switches' targets were set for)
+ JSR rdn+7              \ (12 cycles, the call and rdelay's RTS, so that the
+                        \ constant part of the wait is what the switches'
+                        \ targets were set for)
 
  BEQ rdj                \ If there are none, go to the NOPs (3 cycles)
 
@@ -431,6 +439,8 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
 
  RTS
 
+ ASSERT HI(rdn) = HI(rdn + 7)
+
 \ ******************************************************************************
 \
 \       Name: rdin
@@ -442,35 +452,60 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
 \ ------------------------------------------------------------------------------
 \
 \ Port: DFS transfers sectors on NMIs, which a switch cannot hold off, so
-\ while the disc is in use the field stays at 2 MHz (frame B with no rows
-\ shown). rdin sets rdisc, so that S1 is not made from then on, and waits
-\ until frame B is back at 2 MHz (rstate = 0), if it is not already: at most
-\ frame B's 120 lines. rdout clears rdisc. Both keep A, X and Y.
+\ while the disc is in use the field stays at 2 MHz, with the 6845's display
+\ off (RUPT). rdin sets rdisc, so that S1 is not made from then on, and waits
+\ until the rupture has turned the display off (rblank), at the end of a
+\ line 191, if it is not off already: the next S1 (frame B is then at 2 MHz,
+\ and stays there), at most 312 lines and frame B's 120 on, so the screen is
+\ black before the disc command touches memory. rdout clears rdisc: the
+\ display comes back on at the next point 2 (or later, GHOLD). Both keep X
+\ and Y.
 \
 \ ******************************************************************************
 
 .rdin
-
- PHA                    \ Store A on the stack
 
  LDA #&FF               \ Stop S1
  STA rdisc
 
 .rdi1
 
- LDA rstate             \ Wait until frame B is at 2 MHz
- BNE rdi1
+ LDA rblank             \ Wait until the display is off (frame B is then at 2
+ BEQ rdi1               \ MHz)
 
- PLA                    \ Restore A and return
- RTS
+ RTS                    \ Return from the subroutine
 
 .rdout
 
- PHA                    \ Start S1 again
- LDA #0
+ LDA #0                 \ Start S1 again (once the display is back on)
  STA rdisc
- PLA
  RTS
+
+\ ******************************************************************************
+\
+\       Name: rset8
+\       Type: Subroutine
+\   Category: Drawing the screen
+\    Summary: Turn the 6845's display off (A = &30) or on (A = 0)
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: R8 = A, the HD6845S's display skew: 3 (&30, bits 4 and 5) is no
+\ display, 0 none, as the screen has always had (no interlace: bits 0 and 1
+\ are 0 either way, so the syncs are not touched); and rblank = A, non-zero
+\ while the display is off.
+\
+\ ******************************************************************************
+
+.rset8
+
+ LDX #8                 \ R8 = A
+ STX CRTC
+ STA CRTC+1
+
+ STA rblank             \ rblank = A
+
+ RTS                    \ Return from the subroutine
 
 \ ******************************************************************************
 \
@@ -511,9 +546,13 @@ UT2H = UVIA + &09       \ lines; its interrupt disabled)
 
  EQUW 0                 \ Timer 1's next period, for rret
 
-.rtmp
+.rblank
 
- EQUB 0                 \ rwait's workspace
+ EQUB &FF               \ Non-zero while the 6845's display is off (rset8): from
+                        \ point 1 of a field in which the disc is in use to the
+                        \ next point 2 at which it is free, and before the
+                        \ loader's handover (so rdin returns at once for its
+                        \ disc commands; the loader then clears it)
 
 .rpo
 

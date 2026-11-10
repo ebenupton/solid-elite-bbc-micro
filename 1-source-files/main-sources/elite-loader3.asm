@@ -874,6 +874,8 @@ NEXT
  LDA #0                 \ No switch has been made late (rcal uses rslip to
  STA rslip              \ check its probes)
 
+ STA rblank             \ The display is on (R8 = 0, rinit), for RUPT and rdin
+
  LDA #LO(35*RLINEUS-12) \ Start timer 1 to fire on line 310 (we are just after
  STA VIA+&44            \ line 272's start), a line before S2, and then RPA
  LDA #HI(35*RLINEUS-12) \ microseconds on (point 1, a line before S1)

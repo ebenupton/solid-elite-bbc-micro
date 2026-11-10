@@ -134,6 +134,14 @@
  RWMAX = 80             \ The longest wait (microseconds) that rwait takes as
                         \ on time; more means the interrupt came late
 
+ RBW1 = 1               \ The rupture's waits (rdelay, microseconds) while the
+ RBW2 = 36              \ disc is in use (RUPT, rpt1d and rpt4d): from S1's
+ RBW3 = 60              \ line to the write that turns the display off, just
+                        \ after line 191's display has ended (RBW1), then to
+                        \ frame B's start (RBW2); from S2's line, with the
+                        \ display turned back on in the vertical blank, to
+                        \ frame A's start (RBW3)
+
  RCW = 122              \ The calibration's probes: how far ahead of a probe
                         \ (microseconds in timer 2) its wait loop stops, so
                         \ that rwait's wait to the probe is on time (rcal)
@@ -207,8 +215,14 @@
                         \ LASY; cleared after each frame)
  GNF = GVARS + 10       \ F_SHIP's and L_REC's inputs: the ship's number of
  GTYPE = GVARS + 12     \ faces and its type (TYPE, or 32 for the dodecahedron
-                        \ station: a type 2 with 24 vertices); GVARS + 8, + 9
-                        \ and + 11 are free
+                        \ station: a type 2 with 24 vertices); GVARS + 9 and
+                        \ + 11 are free
+ GHOLD = GVARS + 8      \ Non-zero: the rupture keeps the 6845's display off
+                        \ after a disc command (RUPT, rpt4d): F_DIRECT sets it,
+                        \ as a program load does (PCLI), and every TTX66 clears
+                        \ it once the screen is clear, so the new program's
+                        \ screen is shown, not the bytes its load staged
+                        \ through buffer 1 (STAGE%)
  GSTASH = GVARS + 13    \ Bit 7 set: a disc command has used buffer 0 (PCLI):
                         \ the next frame starts it afresh (f_b0new)
  GA = GVARS + 14        \ GCALL's A across the paging (gfx-glue.asm)

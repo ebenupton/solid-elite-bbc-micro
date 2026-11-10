@@ -2124,6 +2124,12 @@ ENDIF
 
  JSR RES2               \ Reset a number of flight variables and workspaces
 
+ JSR TTX66              \ Port: clear the screen and draw its border, as the
+                        \ flight code's HFS2 left it before this program was
+                        \ loaded (its load staged through the screen's top
+                        \ rows, STAGE%), which also lets the rupture show it
+                        \ again (GHOLD)
+
  JSR HFS1               \ Show the space station docking tunnel
 
  JSR HALL               \ Show the ship hangar
@@ -12207,6 +12213,9 @@ ENDIF
                         \ part; Port: on the four-colour screen, its 48 pages
                         \ from SCREEN%, &4000 to &6FFF)
                         \ screen (the top part)
+
+ STA GHOLD              \ Port: the screen is clear (A = 0), so the rupture may
+                        \ show it again after a program load (GHOLD, F_DIRECT)
 
  LDY #1                 \ Move the text cursor to row 1
  STY YC

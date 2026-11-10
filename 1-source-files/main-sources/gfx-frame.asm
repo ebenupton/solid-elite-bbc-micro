@@ -471,7 +471,10 @@ RPN = 4
 \ ------------------------------------------------------------------------------
 \ f_direct0 (F_DIRECT, frame_cold.asm): the screen is about to be cleared and
 \ drawn directly (TTX66): cancel double buffering and show buffer 1
-\ (SCREEN%), the direct-mode screen
+\ (SCREEN%), the direct-mode screen; and hold the display off after a disc
+\ command until TTX66 has cleared the screen (GHOLD: for a program load,
+\ PCLI's F_DIRECT, as its load staged through buffer 1; at any other F_DIRECT
+\ TTX66 clears it again at once)
 \ ------------------------------------------------------------------------------
 
 .f_direct0
@@ -484,6 +487,7 @@ RPN = 4
  STA GLASV
  LDA #1
  STA GFRONT
+ STA GHOLD
  PLP
  LDX #0                 \ the text map cleared (Y is kept)
  LDY #23
