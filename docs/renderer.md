@@ -242,7 +242,12 @@ The shared variables (`GVARS`, `elite-map.asm`):
 * `GA`: `GCALL`'s A. `PF_CLS`: the planet's class, as `PF_HOOK` made it
   this iteration (bit 7: it made the surface's circles, in the mailbox).
 
-`GVARS + 8`, `+ 9` and `+ 11` are free.
+* `GHOLD`: non-zero, the rupture keeps the display off after a disc
+  command: `F_DIRECT` sets it (so a program load does, through `PCLI`'s
+  `F_DIRECT`) and `TTX66` clears it once the screen is clear
+  (docs/video-timing.md, "Disc access").
+
+`GVARS + 9` and `+ 11` are free.
 
 ### A frame
 
@@ -593,6 +598,13 @@ which returns at once there. Three screens are frames:
 As these draw into buffer 0, over DFS's workspace page, the docked code's
 own disc calls (the commander file's `OSFILE`, and `CATD`) keep the page as
 `PCLI` does (`dfsin`, `dfsout`).
+
+After a docking, the docked code's `DOENTRY` clears the screen and draws
+its border (`TTX66`) before the docking tunnel's rings (`HFS1`): the
+flight code's `HFS2` left the screen so, but the docked code's load staged
+through its top rows (`STAGE%`). `TTX66`, in both programs, also clears
+`GHOLD` once the screen is clear, so the rupture shows the screen again
+after a program load (docs/video-timing.md, "Disc access").
 
 ### The buffers and the flip
 

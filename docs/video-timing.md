@@ -240,11 +240,43 @@ as "the 6845's 1 MHz clock against the CPU's 1 MHz bus": 0 or 1).
 DFS transfers sectors on NMIs, which no `SEI` holds off, so a switch could
 be broken in its middle. Every disc command in the port starts with `dfsin`
 and ends with `dfsout` (elite-resident.asm), so `dfsin` stops the switching:
-`rdin` sets `rdisc` and waits, if frame B is at 1 MHz, until S2 has switched
-back. From then on the rupture leaves the whole field at 2 MHz, frame B
-with no rows shown: the dashboard is blank while the disc is in use.
-`dfsout` clears `rdisc` (`rdout`), and the next S1 switches again. A disc
-error ends at the break handler instead, `BRKR`, which clears it too.
+`rdin` sets `rdisc`, and at the next point 1 the rupture makes no switch:
+it leaves the whole field at 2 MHz from then on, and turns the 6845's
+display off (`rset8`: R8 = &30, the HD6845S's display skew of 3, no
+display; bits 0 and 1, the interlace, stay 0, so no sync moves) with a
+write that lands on cycle 96 or 97 of line 191, after the line's display
+has ended (cycle 64) and before frame B's first line, and sets `rblank`.
+`rdin` waits for `rblank`, so the screen is black before the disc command
+touches memory (DFS's workspace page and the staging area, `STAGE%`, are in
+the screen buffers). While the disc is in use the screen is black, frame A
+and frame B alike: frame B at 2 MHz would show the dashboard's bytes in the
+wrong format, and the loads stage through both buffers. `dfsout` clears
+`rdisc` (`rdout`); at the next point 2 the rupture, which makes no switch
+there either (frame B is at 2 MHz), turns the display back on (R8 = 0,
+`rblank` = 0) on line 311, in the vertical blank, so the next field is
+whole, and the next S1 switches again (point 1 makes no switch while
+`rblank` is set). A disc error ends at the break handler instead, `BRKR`,
+which clears `rdisc` too.
+
+After a program load the display stays off a little longer: `PCLI`'s
+`F_DIRECT` sets `GHOLD` (the frame layer's `f_direct0`, which every
+`TTX66` runs too), the rupture turns the display on only with `rdisc` and
+`GHOLD` both clear, and `TTX66` clears `GHOLD` once it has cleared the
+screen. A program's two 16K images are loaded through `STAGE%`
+(`&1600-&55FF`), over the top eleven character rows of buffer 1, the
+screen that the new program shows first, so the screen comes back with the
+new program's first screen clear: the launch tunnel (`LAUN`), the title,
+or, after a docking, the docked code's `DOENTRY`, which clears the screen
+and draws its border (`TTX66`, as the flight code's `HFS2` left it before
+the load) before the docking tunnel's rings.
+
+The three writes are R8 alone, on lines in which the screen shows nothing
+or about to show nothing, at 2 MHz throughout, and they change no
+register that the syncs depend on: every horizontal sync interval stays
+128 cycles and every field 312 lines through every disc command
+(`bhsync.mjs`, whose `--ula` lists the R8 writes by line and cycle too, and
+the b2 sweep, below). A switch made a line late (`rwait`'s late path)
+moves the write to the same cycle of a later line, as for a switch.
 
 Every route to a disc command:
 
@@ -317,15 +349,15 @@ Results on the gated build:
 
 | Run | jsbeeb | Iterations | Sync intervals | Lines a field |
 |---|---|---|---|---|
-| the gate's run | 1.6.0 | 10,000 | 22,005,740, all 128 | 312, all 70,530 whole fields |
-| the gate's run | 2.19.0 | 10,000 | 21,914,846, all 128 | 312, all 70,239 |
-| `--screens` | 1.6.0 | 1,500 | 4,471,602, all 128 | 312, all 14,331 |
-| `--screens` | 2.19.0 | 1,500 | 4,530,505, all 128 | 312, all 14,519 |
-| `--views` | 1.6.0 | 1,500 | 3,665,150, all 128 | 312, all 11,746 |
-| `--views` | 2.19.0 | 1,500 | 3,647,052, all 128 | 312, all 11,688 |
-| `--inject 300` | 1.6.0 | 400 | 1,352,745, all 128 | 312, all 4,334 |
-| `--inject 300` | 2.19.0 | 400 | 1,330,804, all 128 | 312, all 4,264 |
-| `--inject 300`, the other phase (`BOOTPRE=1`) | 1.6.0 | 400 | 1,352,746, all 128 | 312, all 4,334 |
+| the gate's run | 1.6.0 | 10,000 | 21,773,443, all 128 | 312, all 69,785 whole fields |
+| the gate's run | 2.19.0 | 10,000 | 21,754,102, all 128 | 312, all 69,723 |
+| `--screens` | 1.6.0 | 1,500 | 4,514,725, all 128 | 312, all 14,469 |
+| `--screens` | 2.19.0 | 1,500 | 4,577,073, all 128 | 312, all 14,669 |
+| `--views` | 1.6.0 | 1,500 | 3,243,559, all 128 | 312, all 10,395 |
+| `--views` | 2.19.0 | 1,500 | 3,225,775, all 128 | 312, all 10,338 |
+| `--inject 300` | 1.6.0 | 400 | 1,355,850, all 128 | 312, all 4,344 |
+| `--inject 300` | 2.19.0 | 400 | 1,333,900, all 128 | 312, all 4,274 |
+| `--inject 300`, the other phase (`BOOTPRE=1`) | 1.6.0 | 400 | 1,355,862, all 128 | 312, all 4,344 |
 | `--t2skew` 1, 7, 33, 101 | 1.6.0, and 2.19.0 in the other phase | 20 each | 92,693 each, all 128 | 312 |
 | `bversions.sh`: sixteen boot phases | both | 20 each | 92,693 each, all 128 | 312 |
 
@@ -339,8 +371,8 @@ and every device go on, as for an interrupt that a `SEI` section or another
 handler held off), d going 0, 1, 2, ... N in turn for S1 and for S2
 separately. It skips the entries while the disc is in use: holding the
 emulated CPU there would also hold off DFS's NMIs, which no `SEI` does on a
-real machine. With N = 300 over 400 iterations (3,903 entries for S1 and
-3,902 for S2), the switches slipped to later lines as designed, always on
+real machine. With N = 300 over 400 iterations (3,913 entries for S1 and
+3,911 for S2), the switches slipped to later lines as designed, always on
 the same cycle; every interval 128, every field 312, on both versions and
 in both phases of the 1 MHz clock.
 
@@ -421,20 +453,21 @@ vertical syncs it takes and rejects), and lists the ULA's control writes by
 the line and cycle they land on. `b2sweep.sh` runs it at boot phases, as
 `bversions.sh` does for jsbeeb: SHIFT+BREAK after 0, 1, 2, 3, 5, 8 ... 987
 cycles more, and cold boots (power on with SHIFT held) at the four phases
-of b2's 4 MHz count, each to the script's end, 155 emulated seconds.
+of b2's 4 MHz count, each to the script's end, 177 emulated seconds (the
+docking computer docks between 119 and 156 seconds in, by the boot).
 
-Results on the gated build (48e3f9f):
+Results on the gated build:
 
 | Run | Sync intervals | Lines a field | b2's TV |
 |---|---|---|---|
-| `b2sweep.sh`, 16 warm boot phases | 2,217,844 to 2,218,816 each, all 128 | 312, all (7,108 to 7,111 fields) | every retrace on a sync, no sync ignored, every vertical sync taken: 300 lines and 39,936 cycles a field |
-| `b2sweep.sh`, 4 cold boots | 2,214,241 each, all 128 | 312, all 7,097 | the same |
+| `b2sweep.sh`, 16 warm boot phases | 2,561,594 to 2,567,552 each, all 128 | 312, all (8,210 to 8,229 fields) | every retrace on a sync, no sync ignored, every vertical sync taken: 300 lines and 39,936 cycles a field |
+| `b2sweep.sh`, 4 cold boots | 2,563,607 each, all 128 | 312, all 8,216 | the same |
 
 In every run both switches land with p = 76, the window's second cycle, as
-jsbeeb's runs in its phase 1 do; a switch made a line or more late (`rslip`,
-9 to 23 in a run of 155 seconds, held off by the disc's interrupts and the
-MOS's `SEI` sections)
-lands on the same cycle. The negative control behaves as jsbeeb's phase 1
+jsbeeb's runs in its phase 1 do; a switch made a line or more late (2 to
+12 in a run of 177 seconds, held off by the disc's interrupts and the MOS's
+`SEI` sections; `rslip` counts these and the rupture's waits made late
+while the disc is in use, 60 to 83 in all) lands on the same cycle. The negative control behaves as jsbeeb's phase 1
 does: with `RTRIM1` and `RTRIM2` at -1 the switches land with p = 75 and
 pass; at +1, S2 lands with p = 77 and its line is 129 cycles, and b2's TV
 then loses the horizontal sync for most of every field (the long line
@@ -452,12 +485,13 @@ shows the mode 4 screen's white for its first eight pixels. The original runs at
 MOS's interlaced timing, fields of 312 and 313 lines in turn, which b2's TV
 takes as well; the port's fields are all 312 lines (R8 = 0).
 
-Two things show on b2 as they do on jsbeeb, and are the port's, not the
-timing's: while a disc command runs (the screen is blank and frame B shows
-no rows, "Disc access", above), the space view's last line (line 191) shows
-the bytes that the load stages through the buffers; and the first frame
-after the docked code loads (the docking tunnel, for a few fields before the
-hangar) shows such bytes in its top rows.
+While a disc command runs the screen is black on b2 as on jsbeeb, and the
+docking tunnel after the docked code loads is drawn on a clear screen
+("Disc access", above). (Before, with frame B's R6 = 0 while the disc was
+in use, the Hitachi 6845's first line of each frame still showed, as b2
+models it: line 192 showed the dashboard's bytes at the 2 MHz clock, line 0
+the top of the buffer on show; and the tunnel's top rows showed the bytes
+the load had staged through buffer 1.)
 
 ## The web emulator, and why it showed the screen torn
 
