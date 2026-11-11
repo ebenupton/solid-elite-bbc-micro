@@ -180,7 +180,7 @@ What differs from the Master port's frame layer:
 
 | Where | What |
 |---|---|
-| main `&0724-&07B9` | the glue, `GLUE%` (`gfx-glue.asm`): bank 5's trampolines and `GCALL`, at a fixed address at the end of the resident block A, which includes it |
+| main `&0724-&07B5` | the glue, `GLUE%` (`gfx-glue.asm`): bank 5's trampolines and `GCALL`, at a fixed address at the end of the resident block A, which includes it |
 | main `&7E00-&7E9F` | the mailbox (the rasteriser's inputs; the stars, which the game's hooks write; `f_wq`'s query and answer) |
 | main `&7EA0-&7EAF` | the shared variables, `GVARS` (`elite-map.asm`) |
 | zero page `&06-&27`, `&D2-&E1` | the rasteriser's, and the frame layer's pointers (`FZ`: the game's `XX2`, `K3` and `K4`, dead between iterations): `F_FRAME` keeps the game's bytes in bank 6 (`f_zsv`) and puts them back |

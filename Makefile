@@ -142,6 +142,8 @@ all:
 	$(PYTHON) 2-build-files/setcheck.py
 	$(BEEBASM) -i 1-source-files/main-sources/elite-readme.asm -v >> 3-assembled-output/compile.txt
 	$(PYTHON) 2-build-files/elite-checksum.py
+	$(PYTHON) 2-build-files/mapcheck.py
+	$(PYTHON) 2-build-files/bmap.py
 	$(BEEBASM) -i 1-source-files/main-sources/elite-disc.asm -do 5-compiled-game-discs/elite-modelb.ssd -boot ELITE4 -title "E L I T E"
 	cp 5-compiled-game-discs/elite-modelb.ssd solid-elite-bbc-micro.ssd
 ifneq ($(verify), no)
