@@ -1949,16 +1949,15 @@ ASSERT prk1 = prk0 + 6 AND prk3 = prk0 + 18 AND pra3 = pra0 + 18
 
 
 
-\ The engine's variables: pc_circ's (bank 4's pass) in main RAM, 64 bytes
-\ at PFVH% and 62 at PFVA%, and what one call makes and uses in the home
-\ bank's last bytes, at PFVS% (elite-map.asm), so that the code at the
-\ home bank's end has the room; PC_ROWS' in bank 6 (bank 6's pass); and the
-\ records' slots' offsets in both (pcb_o, five bytes)
+\ The engine's variables: pc_circ's in main RAM, at PFVH% after
+\ gfx-planet7.asm's (main high) and at PFVA% (main low), and what one call
+\ makes and uses in the home bank's last bytes, at PFVS% (bank 4 top), so
+\ that the code at the home bank's end has the room, each placed by the
+\ flight code's layout (elite-map.asm's addresses); PC_ROWS' in bank 6 (bank
+\ 6's pass); and the records' slots' offsets in both (pcb_o, five bytes)
 
-\       Area: bank 4
+\       Area: main high
 
- PFV_P% = P%
- ORG PFVH_C%            \ (after gfx-planet7.asm's)
 .pv                     \ pc_circ's 16-bit operands (pc_mul: offsets O_ from pv)
 .pv_m   SKIP 6          \ |mx|, |my|, |mz| >> 2
 .pv_hx  SKIP 2          \ the unit axis' x and y (0.8)
@@ -1985,8 +1984,9 @@ O_RC = pv_rc - pv
 .pm_sx  SKIP 1          \ bit 7: mx < 0 (after negating m if mz < 0)
 .pm_sy  SKIP 1          \ bit 7: my' < 0
 .pm_inv SKIP 1          \ 1 if m was negated
- ASSERT P% <= PFVH% + 64
- ORG PFVA%
+
+\       Area: main low
+
 .pm_eu  SKIP 1
 .pm_ulo SKIP 2
 .pm_a32 SKIP 4          \ a, 16.16 signed } (in this order: the record's
@@ -2011,8 +2011,9 @@ O_RC = pv_rc - pv
 .pc_n   SKIP 6
 .pc_tw  SKIP 4          \ the record's thresholds T1, T2 before clamping (16-bit:
                         \ each slot's into PC_TU, for the frame's f_hrec)
- ASSERT P% <= GLUE%
- ORG PFVS_C%            \ (in the home bank's last bytes, after gfx-planet7.asm's)
+
+\       Area: bank 4 top
+
 .pm_zsave SKIP 23       \ Elite's &10-&26 while PF_HOOK uses them
 .wr     SKIP RSZ        \ the record being made
 .pcbx   SKIP 2          \ the body: its centre and radius
@@ -2020,8 +2021,6 @@ O_RC = pv_rc - pv
 .pcr    SKIP 1
 .pcc    SKIP 1          \ the circle's cosine (0.8) and its sign (bit 7)
 .pcneg  SKIP 1
- ASSERT P% <= &C000
- ORG PFV_P%
 
 \       Area: bank 6
 

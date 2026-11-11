@@ -52,6 +52,20 @@ ENDIF
 
 .M_CIRC_END
 
+IF _CIRCLES             \ the circle engine's variables (elite-map.asm): the
+ ORG PFVH%              \ main high, main low and bank 4 top passes
+ INCLUDE "3-assembled-output/gfx-planet7-mainhigh.asm"
+ INCLUDE "3-assembled-output/gfx-merid-mainhigh.asm"
+ ASSERT P% <= PFVH% + 64
+ ORG PFVA%
+ INCLUDE "3-assembled-output/gfx-merid-mainlow.asm"
+ ASSERT P% <= GLUE%
+ ORG PFVS%
+ INCLUDE "3-assembled-output/gfx-planet7-bank4top.asm"
+ INCLUDE "3-assembled-output/gfx-merid-bank4top.asm"
+ ASSERT P% <= &C000
+ENDIF
+
 
  CLEAR &8000, &C000
  ORG &8000

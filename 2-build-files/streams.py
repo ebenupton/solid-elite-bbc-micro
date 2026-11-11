@@ -1199,12 +1199,15 @@ def text_tokens(errors):
 # rasteriser's code, gfx-bank5.asm), bank 5 gap (the room below its per-x
 # tables), bank 6 (the frame layer, gfx-bank6.asm), bank 7 (the flight
 # code's cold bank: the renderer's window after its overlays) and main (the
-# resident block A in main RAM: the glue). The lines before a file's first
-# tag line (its header) are in every pass of the file, and may hold nothing
-# but comments (checked: a definition that two places need is in a block
-# tagged with both, as an assembly may include several of a file's passes).
-# Each pass is the file with every line outside its
-# blocks blanked (line numbers stay the file's), written as
+# resident block A in main RAM: the glue); and for the circle engine's
+# variables, bank 4 top (the flight code's home bank's last bytes, PFVS%),
+# main low (PFVA%, in the resident block A's room) and main high (PFVH%,
+# after the high resident block), which elite-layout-flight.asm and (for
+# pf_tilt's) gfx-bank5.asm place. The lines before a file's first tag line
+# (its header) are in every pass of the file, and may hold nothing but
+# comments (checked: a definition that two places need is in a block tagged
+# with both, as an assembly may include several of a file's passes). Each
+# pass is the file with every line outside its blocks blanked (line numbers stay the file's), written as
 # 3-assembled-output/<file>-<place>.asm (the place without spaces), which the
 # place's layout INCLUDEs. bank5.py and bank6.py write them too (streams.py
 # passes), as the rasteriser's test builds bank 5 before the game.
@@ -1213,7 +1216,7 @@ RFILES = ("gfx-glue.asm", "gfx-raster_poly.asm", "gfx-raster_line.asm", "gfx-ras
           "gfx-raster_reset.asm", "gfx-planet7.asm", "gfx-merid.asm", "gfx-frame.asm", "gfx-ssun.asm",
           "gfx-flare.asm", "gfx-frame_cold.asm", "gfx-hangar.asm", "gfx-finit.asm",
           "gfx-raster_disc.asm", "gfx-raster_disc2.asm", "gfx-raster_dpatch.asm")
-RPLACES = ("bank 4", "bank 5", "bank 5 gap", "bank 6", "bank 7", "main")
+RPLACES = ("bank 4", "bank 4 top", "bank 5", "bank 5 gap", "bank 6", "bank 7", "main", "main low", "main high")
 
 
 def renderer_passes(errors):

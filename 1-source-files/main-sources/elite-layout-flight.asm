@@ -108,6 +108,23 @@ ENDIF
 
 .HOME_END%
 
+IF _CIRCLES             \ the circle engine's variables (elite-map.asm): the
+ ORG PFVH%              \ main high, main low and bank 4 top passes
+ INCLUDE "3-assembled-output/gfx-planet7-mainhigh.asm"
+ INCLUDE "3-assembled-output/gfx-merid-mainhigh.asm"
+.PFVH_END%
+ ASSERT P% <= PFVH% + 64
+ ORG PFVA%
+ INCLUDE "3-assembled-output/gfx-merid-mainlow.asm"
+.PFVA_END%
+ ASSERT P% <= GLUE%
+ ORG PFVS%
+ INCLUDE "3-assembled-output/gfx-planet7-bank4top.asm"
+ INCLUDE "3-assembled-output/gfx-merid-bank4top.asm"
+.PFVS_END%
+ ASSERT P% <= &C000
+ENDIF
+
 
  PRINT "Flight bank 4: &8000-", ~CIRC_START%-1, " (the hot pass), ", HOME_END%-CIRC_START%, " (the planet's surface), free ", QSL-HOME_END%
  PRINT "Flight main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%, ", then ", PROGX_END%-PROGX_USED%, " free of ", PROGX_END%-PROGX%

@@ -137,14 +137,18 @@ context, `gfx-planet7.asm` and `gfx-merid.asm`'s first blocks), `bank 5`
 and `bank 5 gap` (the rasteriser's code, and the room below its per-x
 tables), `bank 6` (the frame layer), `bank 7` (the flight code's cold bank:
 the disc layer's painter in the renderer's window) and `main` (the glue, in
-the resident block A). `streams.py` writes each file's pass for each place
+the resident block A), and for the circle engine's variables `main low`
+(`PFVA%`, in the resident block A's room), `main high` (`PFVH%`, after the
+high resident block) and `bank 4 top` (`PFVS%`, the flight code's home
+bank's last bytes), which the flight code's layout places (and
+`gfx-bank5.asm` `pf_tilt`'s main high pass, at the same place); no
+renderer file has an `ORG`. `streams.py` writes each file's pass for each place
 it names (`3-assembled-output/<file>-<place>.asm`, the other lines blanked;
 the lines before a file's first `Area:` line, its header, are in every pass
 and may hold only comments), and each place's layout INCLUDEs its passes:
 `gfx-bank5.asm`, `gfx-bank6.asm`, `elite-layout-flight.asm` and the
 resident block. A block in two places' lists (`gfx-merid.asm`'s definitions
-and `pcb_o`, `gfx-planet7.asm`'s variables in main RAM) is assembled in
-both.
+and `pcb_o`) is assembled in both.
 
 **The containers.** The passes go into these containers:
 

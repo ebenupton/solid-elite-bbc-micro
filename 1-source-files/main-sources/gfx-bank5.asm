@@ -69,6 +69,9 @@
 .R_GAPEND
  ASSERT R_GAPEND <= r_tables
 
+ ORG PFVH%              \ (pf_tilt's variables in main RAM, as the flight code's
+ INCLUDE "3-assembled-output/gfx-planet7-mainhigh.asm"   \ layout places them)
+
  ORG &8000
  GUARD &9000
  INCLUDE "3-assembled-output/gfx-raster_poly-bank5.asm"

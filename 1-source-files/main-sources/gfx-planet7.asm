@@ -1239,21 +1239,22 @@ rga_y = pm_tt+1         \ engine's, which PF_HOOK saves)
 
 ENDIF                   \ (_PLANET_RINGS)
 
- PFV_Q% = P%            \ (what one call makes and uses: in the home bank's
- ORG PFVS%              \ last bytes, PFVS%, elite-map.asm)
-IF _PLANET_MOON OR _PLANET_RINGS
+\       Area: bank 4 top
+
+                        \ What one call makes and uses: in the home bank's last
+                        \ bytes, PFVS% (elite-map.asm), as the flight code's
+IF _PLANET_MOON OR _PLANET_RINGS   \ layout places them
 .pf_cx SKIP 2           \ the planet's centre and radius (PF_HOOK)
 .pf_cy SKIP 2
 .pf_r  SKIP 1
 .pf_h  SKIP 1           \ h, the system's moon and ring (PF_HOOK)
 ENDIF
- PFVS_C% = P%           \ (gfx-merid.asm's follow)
- ORG PFV_Q%
 
-\       Area: bank 4, bank 5 gap
+\       Area: main high
 
- PFV_R% = P%            \ (both parts': pf_tilt's, in main RAM at PFVH%; bank
- ORG PFVH%              \ 5's assembly and the flight code's give them the same
+                        \ pf_tilt's, in main RAM at PFVH%, which bank 5's layout
+                        \ and the flight code's place alike (gfx-merid.asm's
+                        \ follow in the flight code)
 .pcv    SKIP 6          \ the axis (three sign-magnitude words: pf_tilt)
 .pcn    SKIP 2          \ 2^24 / the axis' nominal length (>> 3)
 .pft_f  SKIP 1          \ pf_tilt's own
@@ -1264,5 +1265,3 @@ ENDIF
 .pft_n  SKIP 1
 .pft_r  SKIP 2
 .pft_s  SKIP 2
- PFVH_C% = P%           \ (gfx-merid.asm's follow)
- ORG PFV_R%
