@@ -103,7 +103,6 @@
 .R_PRDYT    SKIP 2          \ per buffer: the rows that may have a dirty extent
 .R_PRDYB    SKIP 2
 .R_PRSCNT   SKIP 2          \ per buffer: star records
-.R_PRECNT   SKIP 2          \ per buffer: star records erased, not yet in WL
 .R_PRWT     SKIP 1          \ the rows of WL/WR that may be non-empty
 .R_PRWB     SKIP 1
 

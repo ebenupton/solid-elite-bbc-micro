@@ -39,9 +39,9 @@
 
  CPU 0
 
- CLEAR GLUE%, DTMP
+ CLEAR GLUE%, &07C0
  ORG GLUE%
- GUARD DTMP
+ GUARD &07C0
  INCLUDE "3-assembled-output/gfx-glue-main.asm"
  SAVE "3-assembled-output/GLUE.bin", GLUE%, GLUE_END, GLUE%
 

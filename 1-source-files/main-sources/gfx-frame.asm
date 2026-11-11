@@ -141,7 +141,6 @@ ASSERT HI(F_TCH) = HI(F_TCH + 23)
 .F_PLX      EQUW 0      \ centre x (16-bit signed screen)
 .F_PLY      EQUW 0      \ centre y
 .F_PLR      EQUB 0      \ radius
-.F_PLT      EQUB 0      \ planet type
 
 .F_SUON     EQUB 0      \ sun disc recorded this frame (F_PLANET)
 .F_SUX      EQUW 0      \ its centre x, y (16-bit signed screen)
@@ -620,8 +619,6 @@ RPN = 4
  STA F_PLY+1
  LDA K
  STA F_PLR
- LDA TYPE
- STA F_PLT
  LDA INWK+8             \ the planet's z is 24-bit, and a ship drawn with
  BEQ P%+4               \ faces is nearer than 4096: a planet 65536 or more
  LDA #&FF               \ away is held as z_hi = &FF, further than any such

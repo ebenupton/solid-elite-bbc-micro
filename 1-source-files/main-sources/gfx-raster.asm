@@ -255,8 +255,7 @@ r_tb = R_PTB
 \ the API arrays live in raster_vars.asm; the rasteriser's private state,
 \ R_PRBUF (the current buffer), R_PRDYT/R_PRDYB (per buffer: rows that may
 \ have a dirty extent), R_PRDST/R_PRDSB (per buffer: rows of its disc),
-\ R_PRSCNT (per buffer: star records), R_PRECNT (per buffer: star records
-\ erased, not yet in WL), R_PRWT/R_PRWB (rows of WL/WR that may be non-empty)
+\ R_PRSCNT (per buffer: star records), R_PRWT/R_PRWB (rows of WL/WR that may be non-empty)
 \ and R_PRBMODE (per buffer: its rows may hold boundaries), is at the end of
 \ the shared region (gfx-raster_lcold.asm)
 r_dl = R_DIRTYL0
@@ -750,10 +749,8 @@ R_ENDPAGE 5
 .r_s0b SKIP 48          \ buffer 0: mask set in column x DIV 4 + 1
 R_ENDPAGE 6
 .r_run7 R_RUN 7
-.r_s0r SKIP 48          \ star records, buffer 0: row
 R_ENDPAGE 7
 .r_run8 R_RUN 8
-.r_s1r SKIP 48          \ buffer 1: row
 .r_m0 EQUB 0            \ r_div8, r_dvq: quotient
 .r_v0 EQUB 0            \ r_div8: divisor
 R_ENDPAGE 8
@@ -774,10 +771,8 @@ R_ENDPAGE 10
 .r_run11 R_RUN 11
 R_ENDPAGE 11
 .r_run12 R_RUN 12
-.r_s1k SKIP 48          \ buffer 1: star's first pixel
 R_ENDPAGE 12
 .r_run13 R_RUN 13
-.r_s0k SKIP 48          \ buffer 0: star's first pixel
 R_ENDPAGE 13
 .r_run14 R_RUN 14
 .r_pclip
@@ -820,10 +815,6 @@ ASSERT LO(r_s0a) = LO(r_s1a)
 ASSERT LO(r_s0x) = LO(r_s1x)
 .r_sbh_s0y EQUB HI(r_s0y), HI(r_s1y)
 ASSERT LO(r_s0y) = LO(r_s1y)
-.r_sbh_s0k EQUB HI(r_s0k), HI(r_s1k)
-ASSERT LO(r_s0k) = LO(r_s1k)
-.r_sbh_s0r EQUB HI(r_s0r), HI(r_s1r)
-ASSERT LO(r_s0r) = LO(r_s1r)
 .r_sbh_s0b EQUB HI(r_s0b), HI(r_s1b)
 ASSERT LO(r_s0b) = LO(r_s1b)
 R_ENDPAGE 14
@@ -976,6 +967,17 @@ R_ENDPAGE 22
 R_ENDPAGE 23
 ASSERT (HI(r_run0) AND 31) = 0   \ (the repair: the row's run page is Y DIV 8 OR HI(r_run0))
 
+\ ============================================================================
+\ The screen's row pages: the high byte of row y's byte 0 in each buffer (the
+\ readers' operands point at one or the other: R_SETBUF), r_ypg at a page's
+\ start and r_ypg0 after R_STARERASE, so that neither crosses a page (each is
+\ read ,Y for rows 0 to 191)
+\ ============================================================================
+.r_ypg                    \ buffer 1 (SCREEN%)
+FOR y, 0, 191
+  EQUB &40 + 2 * (y DIV 8)
+NEXT
+
 
 \ ============================================================================
 \ R_STARERASE: black the pixels R_STARPLOT set last time in this buffer.
@@ -1019,6 +1021,12 @@ ASSERT (HI(r_run0) AND 31) = 0   \ (the repair: the row's run page is Y DIV 8 OR
 .edone
   RTS
 }
+
+.r_ypg0                   \ (Model B) buffer 0 (BUF0)
+FOR y, 0, 191
+  EQUB HI(BUF0) + 2 * (y DIV 8)
+NEXT
+ASSERT HI(r_ypg) = HI(r_ypg + 191) AND HI(r_ypg0) = HI(r_ypg0 + 191)
 
 \ ============================================================================
 \ Stars
@@ -1285,154 +1293,6 @@ ASSERT (HI(r_run0) AND 31) = 0   \ (the repair: the row's run page is Y DIV 8 OR
   INC r_k
 .o2
   RTS
-}
-
-\ r_lput2: pixels RZ_SB .. RZ_TA+1 of row RZ_Y in RZ_COL (row pointers set).
-\ Clobbers A, X, Y.
-.r_lput2
-{
-  LDA RZ_TA+1
-  TAY                     \ Y = last pixel
-  LDX RZ_SB               \ X = first
-  EOR RZ_SB
-  CMP #4
-  BCS two
-  LDA r_lm,X              \ one byte
-  AND r_rm,Y
-  STA RZ_T7
-  LDY r_xo,X
-  CPX #&80
-  BCS h1
-  LDA RZ_COL
-  EOR (RZ_PA),Y
-  AND RZ_T7
-  EOR (RZ_PA),Y
-  STA (RZ_PA),Y
-  RTS
-.h1
-  LDA RZ_COL
-  EOR (RZ_PB),Y
-  AND RZ_T7
-  EOR (RZ_PB),Y
-  STA (RZ_PB),Y
-  RTS
-.two
-  STY R_XR
-  TYA                     \ adjacent bytes?
-  AND #&FC
-  STA RZ_T7
-  TXA
-  AND #&FC
-  ADC #3                  \ (C = 1 from the CMP)
-  CMP RZ_T7
-  BEQ adj
-  JMP long                \ (r_ypg and r_ypg0 sit between here and .long)
-.adj
-  LDY r_xo,X              \ first byte: from X on
-  CPX #&80
-  BCS h2
-  LDA RZ_COL
-  EOR (RZ_PA),Y
-  AND r_lm,X
-  EOR (RZ_PA),Y
-  STA (RZ_PA),Y
-  BCC s2                  \ (NMOS: C = 0 from the CPX #&80)
-.h2
-  LDA RZ_COL
-  EOR (RZ_PB),Y
-  AND r_lm,X
-  EOR (RZ_PB),Y
-  STA (RZ_PB),Y
-.s2
-  LDX R_XR                \ second byte: up to the last
-  LDY r_xo,X
-  CPX #&80
-  BCS h3
-  LDA RZ_COL
-  EOR (RZ_PA),Y
-  AND r_rm,X
-  EOR (RZ_PA),Y
-  STA (RZ_PA),Y
-  RTS
-.h3
-  LDA RZ_COL
-  EOR (RZ_PB),Y
-  AND r_rm,X
-  EOR (RZ_PB),Y
-  STA (RZ_PB),Y
-  RTS
-.^r_ypg                   \ high byte of row y's byte 0, buffer 1 (SCREEN%)
-FOR y, 0, 191
-  EQUB &40 + 2 * (y DIV 8)
-NEXT
-.^r_ypg0                  \ (Model B) the same, buffer 0 (BUF0): R_SETBUF points
-FOR y, 0, 191             \ the readers at one or the other
-  EQUB HI(BUF0) + 2 * (y DIV 8)
-NEXT
-.long
-  STX R_XL                \ up to 4 bytes: masked ends, whole bytes stored
-  TYA                     \ through a byte pointer
-  SEC
-  SBC R_XL
-  CMP #16                 \ (16 pixels or more: the run, 5 cycles a byte and
-  BCS span                \ about 90 to set up, against 26 a byte here)
-  LDA RZ_PP               \ (RZ_PP holds a planted RTS's address: keep it)
-  PHA
-  LDA RZ_PP+1
-  PHA
-  LDA r_xo,X
-  ORA RZ_PA
-  STA RZ_PP
-  LDA RZ_PA+1
-  CPX #&80
-  ADC #0
-  STA RZ_PP+1
-  LDY #0                  \ (NMOS: the bytes are (RZ_PP),Y, Y = 0, 8, ...)
-  LDA RZ_COL              \ first byte: from X on
-  EOR (RZ_PP),Y
-  AND r_lm,X
-  EOR (RZ_PP),Y
-  STA (RZ_PP),Y
-  LDA R_XR                \ whole bytes: last/4 - first/4 - 1
-  LSR A
-  LSR A
-  STA RZ_T7
-  TXA
-  LSR A
-  LSR A
-  SEC
-  SBC RZ_T7               \ (C = 0: last/4 >= first/4 + 2)
-  EOR #&FF
-  TAX
-  BEQ lb
-.wl
-  TYA                     \ (C = 0: Y < 32)
-  ADC #8
-  TAY
-  LDA RZ_COL
-  STA (RZ_PP),Y
-  DEX
-  BNE wl
-.lb
-  TYA                     \ last byte: up to the last pixel
-  ADC #8
-  TAY
-  LDX R_XR
-  LDA RZ_COL
-  EOR (RZ_PP),Y
-  AND r_rm,X
-  EOR (RZ_PP),Y
-  STA (RZ_PP),Y
-  PLA
-  STA RZ_PP+1
-  PLA
-  STA RZ_PP
-  RTS
-.span
-  LDY RZ_Y                \ a span (r_rowset for the run page)
-  JSR r_rowset
-  LDX R_XL
-  JMP r_spc
 }
 
 .r_end

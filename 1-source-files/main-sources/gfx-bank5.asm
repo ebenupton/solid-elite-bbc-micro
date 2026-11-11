@@ -17,7 +17,7 @@
 \   &9600-&BFBF  the shared region (gfx-raster.asm): R_SETBUF and r_pgfix,
 \                the spans, R_DOT, R_MARKDIRTY, the per-x tables at &9C00,
 \                the 24 row runs at &A000 (with the stars' records and
-\                variables in their tails), the stars, r_lput2 and the row
+\                variables in their tails), the stars and the row
 \                pages; R_LINE's cold part, R_RESETBUF and the frame layer's
 \                query (r_wq) in the room below the per-x tables; R_INIT
 \   &BFC0        RJT, the jump table

@@ -289,12 +289,8 @@
  GLUE% = &0724          \ The glue the game calls the frame layer through, and
                         \ the trampolines into bank 5 (gfx-glue.asm): at a
                         \ fixed address at the end of the resident block A
-                        \ (&0724-&07BC), which includes it there, so that bank 6
+                        \ (&0724-&07BF), which includes it there, so that bank 6
                         \ can be built against it
-
- DTMP = &07BD           \ Workspace for the hangar's lines (HAS2 and HAS3, in
- DTMP2 = &07BE          \ the docked code), at the end of the resident block A
-                        \ (elite-resident.asm)
 
  PFVA% = &06E6          \ The circle engine's variables (gfx-merid.asm and
  PFVH% = &7EC0          \ gfx-planet7.asm, the flight code's planet surface in

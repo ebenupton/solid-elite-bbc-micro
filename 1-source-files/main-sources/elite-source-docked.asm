@@ -9598,81 +9598,105 @@ ENDIF
 
 .HAS2
 
-                        \ Port: on the four-colour screen, HAS2 draws a line
-                        \ to the right from x-coordinate Y on the pixel row at
-                        \ SC(1 0) (the row's first page and the pixel line in
-                        \ SC), and HAS3 to the left, a pixel at a time, until
-                        \ either reaches a pixel that is already set or the
-                        \ edge of the screen; the lines are yellow
-
- JSR has1               \ Set up the row and the first pixel
+ LDA #%00100000         \ Set A to the pixel pattern for a mode 4 character row
+                        \ byte with the third pixel set, so we start drawing the
+                        \ horizontal line just to the right of the 2-pixel
+                        \ border along the edge of the screen
 
 .HAL2
 
- JSR has2               \ Draw the pixel at DTMP, or return if it is set
+ TAX                    \ Store A in X so we can retrieve it after the following
+                        \ check and again after updating screen memory
 
- INC DTMP               \ Move one pixel to the right, and loop back until we
- BNE HAL2               \ fall off the right edge of the screen
+ AND (SC),Y             \ If the pixel we want to draw is non-zero (using A as a
+ BNE HA3                \ mask), then this means it already contains something,
+                        \ so we stop drawing because we have run into something
+                        \ that's already on-screen, and return from the
+                        \ subroutine (as HA3 contains an RTS)
+
+ TXA                    \ Retrieve the value of A we stored above, so A now
+                        \ contains the pixel mask again
+
+ ORA (SC),Y             \ OR the byte with the current contents of screen
+                        \ memory, so the pixel we want is set to red (because
+                        \ we know the bits are already 0 from the above test)
+
+ STA (SC),Y             \ Store the updated pixel in screen memory
+
+ TXA                    \ Retrieve the value of A we stored above, so A now
+                        \ contains the pixel mask again
+
+ LSR A                  \ Shift A to the right to move on to the next pixel
+
+ BCC HAL2               \ If bit 0 before the shift was clear (i.e. we didn't
+                        \ just do the fourth pixel in this block), loop back to
+                        \ HAL2 to check and draw the next pixel
+
+ TYA                    \ Set Y = Y + 8 (as we know the C flag is set) to point
+ ADC #7                 \ to the next character block along
+ TAY
+
+ LDA #%10000000         \ Reset the pixel mask in A to the first pixel in the
+                        \ new 8-pixel character block
+
+ BCC HAL2               \ If the above addition didn't overflow, jump back to
+                        \ HAL2 to keep drawing the line in the next character
+                        \ block
 
 .HA3
 
- LDA DTMP2              \ Restore SCH to the row's first page and return
- STA SCH
- RTS
+ RTS                    \ The addition overflowed, so we have reached the last
+                        \ character block in this page of memory, which is the
+                        \ end of the line, so we return from the subroutine
+
+                        \ HAS3: draw a hangar background line from right to
+                        \ left, starting with the pixel mask in A at screen
+                        \ address SC(1 0) and character block offset Y, and
+                        \ aborting if we bump into something that's already
+                        \ on-screen (the original's own block; Port: with
+                        \ HAS2's, as the frame layer draws the hangar's lines)
 
 .HAS3
 
- JSR has1               \ Set up the row and the first pixel
+ TAX                    \ Store A in X so we can retrieve it after the following
+                        \ check and again after updating screen memory
 
-.HAL3
+ AND (SC),Y             \ If the pixel we want to draw is non-zero (using A as a
+ BNE HA3                \ mask), then this means it already contains something,
+                        \ so we stop drawing because we have run into something
+                        \ that's already on-screen, and return from the
+                        \ subroutine (as HA3 contains an RTS)
 
- JSR has2               \ Draw the pixel at DTMP, or return if it is set
+ TXA                    \ Retrieve the value of A we stored above, so A now
+                        \ contains the pixel mask again
 
- LDA DTMP               \ Stop at the left edge of the screen
- BEQ HA3
+ ORA (SC),Y             \ OR the byte with the current contents of screen
+                        \ memory, so the pixel we want is set to red (because
+                        \ we know the bits are already 0 from the above test)
 
- DEC DTMP               \ Move one pixel to the left and loop back
- JMP HAL3
+ STA (SC),Y             \ Store the updated pixel in screen memory
 
-.has1
+ TXA                    \ Retrieve the value of A we stored above, so A now
+                        \ contains the pixel mask again
 
- STY DTMP               \ Keep the x-coordinate in DTMP and the row's first page
- LDA SCH                \ in DTMP2
- STA DTMP2
- RTS
+ ASL A                  \ Shift A to the left to move to the next pixel to the
+                        \ left
 
-.has2
+ BCC HAS3               \ If bit 7 before the shift was clear (i.e. we didn't
+                        \ just do the first pixel in this block), loop back to
+                        \ HAS3 to check and draw the next pixel to the left
 
-                        \ Draw the pixel at x-coordinate DTMP on the row, or if
-                        \ it is already set, return from HAS2 or HAS3 (by
-                        \ dropping this call's return address) through HA3
-
- LDA DTMP               \ Set Y to the pixel's byte in the row and SCH to the
- AND #%11111100         \ row's first page, or its second if x >= 128
- ASL A
+ TYA                    \ Set Y = Y - 8 (as we know the C flag is set) to point
+ SBC #8                 \ to the next character block to the left
  TAY
- LDA DTMP2
- ADC #0
- STA SCH
 
- LDA DTMP               \ Set X = x mod 4, the pixel in the byte
- AND #3
- TAX
+ LDA #%00000001         \ Set a mask in A to the last pixel in the 8-pixel byte
 
- LDA TWOS,X             \ If the pixel is already set, stop
- AND (SC),Y
- BNE has3
+ BCS HAS3               \ If the above subtraction didn't underflow, jump back
+                        \ to HAS3 to keep drawing the line in the next character
+                        \ block to the left
 
- LDA TWOS,X             \ Otherwise OR it into the screen (yellow: both bit
- ORA (SC),Y             \ planes)
- STA (SC),Y
- RTS
-
-.has3
-
- PLA                    \ Drop the return address and return from HAS2 or HAS3
- PLA                    \ through HA3
- JMP HA3
+ RTS                    \ Return from the subroutine
 
 \ ******************************************************************************
 \

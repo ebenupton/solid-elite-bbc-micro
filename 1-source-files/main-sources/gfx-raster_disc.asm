@@ -587,8 +587,7 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
 \ Port (Model B): the Master port's, with the byte offsets worked out and
 \ the masks from four-byte tables (r_lm4, r_rm4), and the row's two pages
 \ (columns 0..31 and 32..63) as one pointer, RZ_PP, to the half that the
-\ pixels are in: a span across the halves is written as two (r_lput2 was
-\ bank 5's).
+\ pixels are in: a span across the halves is written as two.
 \
 \ ******************************************************************************
 {

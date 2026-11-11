@@ -39,6 +39,5 @@
   LDA #0
   STA R_PRDYB,X
   STA R_PRSCNT,X
-  STA R_PRECNT,X
   RTS
 

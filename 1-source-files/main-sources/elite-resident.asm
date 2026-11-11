@@ -817,7 +817,7 @@ pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
 \
 \ ******************************************************************************
 
- PRINT "Resident block A: &0400-", ~P%-1, ", free ", PFVA%-P%, " (then the circle engine's variables, the renderer's glue, the hangar's workspace, SNE and ACT)"
+ PRINT "Resident block A: &0400-", ~P%-1, ", free ", PFVA%-P%, " (then the circle engine's variables, the renderer's glue, SNE and ACT)"
  ASSERT P% <= PFVA% AND PROGM_END% > PROGM%
 
 \ ******************************************************************************
@@ -833,8 +833,8 @@ pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
  INCLUDE "1-source-files/main-sources/gfx-rws.asm"
  INCLUDE "3-assembled-output/gfx-glue-main.asm"
 
- PRINT "The renderer's glue: ", ~GLUE%, "-", ~P%-1, ", free ", DTMP-P%
- ASSERT P% <= DTMP
+ PRINT "The renderer's glue: ", ~GLUE%, "-", ~P%-1, ", free ", &07C0-P%
+ ASSERT P% <= &07C0
 
  ORG &07C0
 
