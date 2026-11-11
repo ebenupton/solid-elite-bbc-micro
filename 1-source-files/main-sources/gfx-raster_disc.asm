@@ -1,8 +1,9 @@
 \ ******************************************************************************
 \
 \ gfx-raster_disc.asm - the disc layer's painter (docs/renderer.md, "The disc
-\ layer"), in the flight code's bank 7 (the renderer's window: WIN7%,
-\ gfx-window7.asm)
+\ layer"), in the flight code's bank 7 (the renderer's window, WIN7%, after
+\ the cold pass and the overlays: elite-layout-flight.asm, which places this
+\ bank 7 pass, gfx-raster_disc2.asm's and gfx-raster_dpatch.asm's there)
 \
 \ Port (Model B): the BBC Master port's R_DISCROWS (its bank 5's disc window,
 \ gfx-raster_disc.asm, in the hand-converted NMOS 6502 code of its Model B
@@ -40,9 +41,48 @@
 \ Not here: the kept solid rows (k_kill), and the repair of the dirty rows
 \ outside the band (bank 5's R_REPAIR).
 \
+\ Each buffer's disc state is in the last twelve pages of bank 7 below
+\ DFSSAVE% (DPST%: not in the image; DP_BEGIN's PB_RESET sets it up once a
+\ buffer is blanked, as every program load leaves both), page aligned so
+\ that each buffer's arrays are the other's but for their high bytes
+\ (buffer 1's are buffer 0's + &300):
+\
+\   * the layer's spans, R_DISCL and R_DISCR, and the second disc's, R_S2L
+\     and R_S2R (192 each per buffer: L = 255, R = 0 for none);
+\
+\   * the layer's boundaries, R_BDN (the count, 0 to 3, or &40 for more:
+\     unknown, and in bit 7 the colour at the span's left end, as R_NDN),
+\     R_BDX0, R_BDX1 and R_BDX2.
+\
+\ The most read, R_DISCL, R_DISCR, R_BDN and R_BDX0, start at low bytes &00
+\ and &40, so that reading them ,X never crosses a page.
+\
+\       Area: bank 7
+\
 \ ******************************************************************************
 
  CPU 0                  \ NMOS 6502: no 65C02 instructions in this file
+
+DPST% = DFSSAVE% - &C00 \ the disc state, to DFSSAVE%
+ ASSERT LO(DPST%) = 0
+
+R_DISCL0 = DPST%        \ buffer 0's spans (three pages)
+R_S2L0   = DPST% + &0C0
+R_S2R0   = DPST% + &180
+R_DISCR0 = DPST% + &240
+R_DISCL1 = DPST% + &300 \ buffer 1's
+R_S2L1   = DPST% + &3C0
+R_S2R1   = DPST% + &480
+R_DISCR1 = DPST% + &540
+R_BDN0   = DPST% + &600 \ buffer 0's boundaries (three pages)
+R_BDX10  = DPST% + &6C0
+R_BDX20  = DPST% + &780
+R_BDX00  = DPST% + &840
+R_BDN1   = DPST% + &900 \ buffer 1's
+R_BDX11  = DPST% + &9C0
+R_BDX21  = DPST% + &A80
+R_BDX01  = DPST% + &B40
+ ASSERT R_BDX01 + 192 = DFSSAVE%
 
 R_COLE  = &06           \ the rasteriser's zero page (gfx-raster.asm), which
 R_COLO  = &07           \ F_FRAME keeps: the frame layer's inputs ...

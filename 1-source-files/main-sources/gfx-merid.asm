@@ -4,12 +4,12 @@
 \ its sphere
 \
 \ Port (Model B): the BBC Master port's (its bank 7's meridian window, in the
-\ hand-converted NMOS 6502 code of its Model B branch), in two parts, each
-\ assembled with its caller: MERID_PART = 1, pc_circ and its arithmetic, at
-\ the end of the flight code's bank 4, with PF_HOOK (gfx-planet7.asm), where
-\ the game's quarter squares are (a build with _CIRCLES:
-\ elite-layout-flight.asm); MERID_PART = 2, PC_ROWS, in bank 6 with the frame
-\ layer, which calls it from f_bounds and has the rows' arrays (R_NDT,
+\ hand-converted NMOS 6502 code of its Model B branch), in two places, each
+\ assembled with its caller (its blocks' "Area:" lines, streams.py's passes):
+\ pc_circ and its arithmetic in bank 4, at the end of the flight code's hot
+\ pass, with PF_HOOK (gfx-planet7.asm), where the game's quarter squares
+\ are (a build with _CIRCLES: elite-layout-flight.asm); PC_ROWS in bank 6
+\ with the frame layer, which calls it from f_bounds and has the rows' arrays (R_NDT,
 \ R_NDB, R_NDISCL/R, R_NDN, R_NDX0-3: gfx-frame.asm, gfx-bank6.asm). The
 \ records (PCB), their count (PC_N) and the base colour (pc_inv) are in the
 \ mailbox (gfx-rws.asm), from PF_HOOK in the game's iteration to f_bounds in
@@ -66,6 +66,8 @@
 \
 \ ******************************************************************************
 
+\       Area: bank 4, bank 6
+
 pm_a  = &10             \ zero page workspace (Elite's, saved and restored):
 pm_b  = &14             \ multiplicand, dividend; multiplier, divisor;
 pm_p  = &18             \ product, quotient; temporary
@@ -101,7 +103,7 @@ ELSE
 PCSLOTS = PCMAX
 ENDIF
 
-IF MERID_PART = 1
+\       Area: bank 4
 
 \ ******************************************************************************
 \
@@ -1324,9 +1326,9 @@ ENDMACRO
   EQUB INT(SQR(256 * h))
  NEXT
 
-ENDIF                   \ (MERID_PART = 1)
 
-IF MERID_PART = 2
+
+\       Area: bank 6
 
 \ ******************************************************************************
 \
@@ -1945,15 +1947,15 @@ ASSERT prk1 = prk0 + 6 AND prk3 = prk0 + 18 AND pra3 = pra0 + 18
  LDY #3
  BNE mpi
 
-ENDIF                   \ (MERID_PART = 2)
 
-\ The engine's variables: pc_circ's (MERID_PART = 1) in main RAM, 64 bytes
+
+\ The engine's variables: pc_circ's (bank 4's pass) in main RAM, 64 bytes
 \ at PFVH% and 62 at PFVA%, and what one call makes and uses in the home
 \ bank's last bytes, at PFVS% (elite-map.asm), so that the code at the
-\ home bank's end has the room; PC_ROWS' in bank 6 (MERID_PART = 2); and the
+\ home bank's end has the room; PC_ROWS' in bank 6 (bank 6's pass); and the
 \ records' slots' offsets in both (pcb_o, five bytes)
 
-IF MERID_PART = 1
+\       Area: bank 4
 
  PFV_P% = P%
  ORG PFVH_C%            \ (after gfx-planet7.asm's)
@@ -2021,7 +2023,7 @@ O_RC = pv_rc - pv
  ASSERT P% <= &C000
  ORG PFV_P%
 
-ELSE
+\       Area: bank 6
 
 \ The frame's (PC_ROWS')
 
@@ -2042,6 +2044,6 @@ pr_tm  = pr_c + R_M1    \ M1, M2, &80, &80
 .pr_lc  EQUB 0          \ the left limb's toggles (pr_nx): how many, their rows
 .pr_lt  SKIP 6          \ (2 a record: at most 6)
 
-ENDIF
+\       Area: bank 4, bank 6
 
 .pcb_o  EQUB 0, RSZ, 2*RSZ, 3*RSZ, 4*RSZ \ the slots' offsets in PCB (and the end)

@@ -1,4 +1,4 @@
-streams (measure): flight: 436 blocks (low 3, hot 194, cold 171, blueprints 0, none 13), 94 hot units, stubs 60 into the cold pass, 64 out of it, 11 direct; docked: 434 blocks (low 2, hot 213, cold 175, blueprints 12, none 6), 118 hot units, stubs 39 into the cold pass, 43 out of it, 2 direct; tokens: cold 5, resident 2
+streams (measure): flight: 436 blocks (low 3, hot 194, cold 171, blueprints 0, none 13), 94 hot units, stubs 60 into the cold pass, 64 out of it, 11 direct; docked: 434 blocks (low 2, hot 213, cold 175, blueprints 12, none 6), 118 hot units, stubs 39 into the cold pass, 43 out of it, 2 direct; tokens: cold 5, resident 2; renderer: 20 files, 23 passes
 .R_DIRTYL0
      9000
 .R_DIRTYR0
@@ -7105,26 +7105,26 @@ Including file 1-source-files/main-sources/elite-map.asm
 Processed file '1-source-files/main-sources/elite-map.asm' ok
 Including file 1-source-files/main-sources/gfx-rws.asm
 Processed file '1-source-files/main-sources/gfx-rws.asm' ok
-Including file 1-source-files/main-sources/gfx-raster.asm
-Processed file '1-source-files/main-sources/gfx-raster.asm' ok
-Including file 1-source-files/main-sources/gfx-raster_init.asm
-Processed file '1-source-files/main-sources/gfx-raster_init.asm' ok
-Including file 1-source-files/main-sources/gfx-raster_rep.asm
-Processed file '1-source-files/main-sources/gfx-raster_rep.asm' ok
-Including file 1-source-files/main-sources/gfx-raster_dq.asm
-Processed file '1-source-files/main-sources/gfx-raster_dq.asm' ok
-Including file 1-source-files/main-sources/gfx-raster_lcold.asm
-Processed file '1-source-files/main-sources/gfx-raster_lcold.asm' ok
-Including file 1-source-files/main-sources/gfx-raster_reset.asm
-Processed file '1-source-files/main-sources/gfx-raster_reset.asm' ok
-Including file 1-source-files/main-sources/gfx-raster_wq.asm
-Processed file '1-source-files/main-sources/gfx-raster_wq.asm' ok
-Including file 1-source-files/main-sources/gfx-planet7.asm
-Processed file '1-source-files/main-sources/gfx-planet7.asm' ok
-Including file 1-source-files/main-sources/gfx-raster_poly.asm
-Processed file '1-source-files/main-sources/gfx-raster_poly.asm' ok
-Including file 1-source-files/main-sources/gfx-raster_line.asm
-Processed file '1-source-files/main-sources/gfx-raster_line.asm' ok
+Including file 3-assembled-output/gfx-raster-bank5.asm
+Processed file '3-assembled-output/gfx-raster-bank5.asm' ok
+Including file 3-assembled-output/gfx-raster_init-bank5.asm
+Processed file '3-assembled-output/gfx-raster_init-bank5.asm' ok
+Including file 3-assembled-output/gfx-raster_rep-bank5.asm
+Processed file '3-assembled-output/gfx-raster_rep-bank5.asm' ok
+Including file 3-assembled-output/gfx-raster_dq-bank5.asm
+Processed file '3-assembled-output/gfx-raster_dq-bank5.asm' ok
+Including file 3-assembled-output/gfx-raster_lcold-bank5gap.asm
+Processed file '3-assembled-output/gfx-raster_lcold-bank5gap.asm' ok
+Including file 3-assembled-output/gfx-raster_reset-bank5gap.asm
+Processed file '3-assembled-output/gfx-raster_reset-bank5gap.asm' ok
+Including file 3-assembled-output/gfx-raster_dq-bank5gap.asm
+Processed file '3-assembled-output/gfx-raster_dq-bank5gap.asm' ok
+Including file 3-assembled-output/gfx-planet7-bank5gap.asm
+Processed file '3-assembled-output/gfx-planet7-bank5gap.asm' ok
+Including file 3-assembled-output/gfx-raster_poly-bank5.asm
+Processed file '3-assembled-output/gfx-raster_poly-bank5.asm' ok
+Including file 3-assembled-output/gfx-raster_line-bank5.asm
+Processed file '3-assembled-output/gfx-raster_line-bank5.asm' ok
 Processed file '1-source-files/main-sources/gfx-bank5.asm' ok
 .SHIP_MISSILE
      7F00   00
@@ -9482,7 +9482,7 @@ TVT1code = &2DBC
 TVT1 = &1100 
 NA% = &64D 
 CHK2 = &69F 
-streams (place): flight: 436 blocks (low 3, hot 194, cold 171, blueprints 0, none 13), 94 hot units, stubs 60 into the cold pass, 64 out of it, 11 direct; hot &8000-&A862: 47 units, 10339 bytes, 0 free; hotm &79B2-&7DFF: 32 units, 1102 bytes, 0 free; hotx &7FA0-&7FFD: 15 units, 91 bytes, 3 free; docked: 434 blocks (low 2, hot 213, cold 175, blueprints 12, none 6), 118 hot units, stubs 39 into the cold pass, 43 out of it, 2 direct; hot &8000-&AE11: 118 units, 8720 bytes, 3074 free; hotm &7980-&7DFF: 0 units, 0 bytes, 1152 free; hotx &7FA0-&7FFD: 0 units, 0 bytes, 94 free; tokens: cold 5, resident 2
+streams (place): flight: 436 blocks (low 3, hot 194, cold 171, blueprints 0, none 13), 94 hot units, stubs 60 into the cold pass, 64 out of it, 11 direct; hot &8000-&A862: 47 units, 10339 bytes, 0 free; hotm &79B2-&7DFF: 32 units, 1102 bytes, 0 free; hotx &7FA0-&7FFD: 15 units, 91 bytes, 3 free; docked: 434 blocks (low 2, hot 213, cold 175, blueprints 12, none 6), 118 hot units, stubs 39 into the cold pass, 43 out of it, 2 direct; hot &8000-&AE11: 118 units, 8720 bytes, 3074 free; hotm &7980-&7DFF: 0 units, 0 bytes, 1152 free; hotx &7FA0-&7FFD: 0 units, 0 bytes, 94 free; tokens: cold 5, resident 2; renderer: 20 files, 23 passes
 .ZP
      0000
 .RAND
@@ -61690,28 +61690,24 @@ Including file 3-assembled-output/bank6-game.asm
 Processed file '3-assembled-output/bank6-game.asm' ok
 Including file 1-source-files/main-sources/gfx-rws.asm
 Processed file '1-source-files/main-sources/gfx-rws.asm' ok
-Including file 1-source-files/main-sources/gfx-glue.asm
-Including file 1-source-files/main-sources/gfx-rtramp.asm
-Processed file '1-source-files/main-sources/gfx-rtramp.asm' ok
-Processed file '1-source-files/main-sources/gfx-glue.asm' ok
-Including file 1-source-files/main-sources/gfx-frame.asm
-Processed file '1-source-files/main-sources/gfx-frame.asm' ok
-Including file 1-source-files/main-sources/gfx-merid.asm
-Processed file '1-source-files/main-sources/gfx-merid.asm' ok
-Including file 1-source-files/main-sources/gfx-ssun.asm
+Including file 3-assembled-output/gfx-glue-main.asm
+Processed file '3-assembled-output/gfx-glue-main.asm' ok
+Including file 3-assembled-output/gfx-frame-bank6.asm
+Processed file '3-assembled-output/gfx-frame-bank6.asm' ok
+Including file 3-assembled-output/gfx-merid-bank6.asm
+Processed file '3-assembled-output/gfx-merid-bank6.asm' ok
+Including file 3-assembled-output/gfx-ssun-bank6.asm
 Including file 3-assembled-output/elite-flight-again.asm
 Processed file '3-assembled-output/elite-flight-again.asm' ok
-Processed file '1-source-files/main-sources/gfx-ssun.asm' ok
-Including file 1-source-files/main-sources/gfx-flare.asm
-Processed file '1-source-files/main-sources/gfx-flare.asm' ok
-Including file 1-source-files/main-sources/gfx-flare6.asm
-Processed file '1-source-files/main-sources/gfx-flare6.asm' ok
-Including file 1-source-files/main-sources/gfx-frame_cold.asm
-Processed file '1-source-files/main-sources/gfx-frame_cold.asm' ok
-Including file 1-source-files/main-sources/gfx-hangar.asm
-Processed file '1-source-files/main-sources/gfx-hangar.asm' ok
-Including file 1-source-files/main-sources/gfx-finit.asm
-Processed file '1-source-files/main-sources/gfx-finit.asm' ok
+Processed file '3-assembled-output/gfx-ssun-bank6.asm' ok
+Including file 3-assembled-output/gfx-flare-bank6.asm
+Processed file '3-assembled-output/gfx-flare-bank6.asm' ok
+Including file 3-assembled-output/gfx-frame_cold-bank6.asm
+Processed file '3-assembled-output/gfx-frame_cold-bank6.asm' ok
+Including file 3-assembled-output/gfx-hangar-bank6.asm
+Processed file '3-assembled-output/gfx-hangar-bank6.asm' ok
+Including file 3-assembled-output/gfx-finit-bank6.asm
+Processed file '3-assembled-output/gfx-finit-bank6.asm' ok
 Including file 1-source-files/main-sources/gfx-faces.asm
 Processed file '1-source-files/main-sources/gfx-faces.asm' ok
 Including file 1-source-files/main-sources/gfx-light6.asm

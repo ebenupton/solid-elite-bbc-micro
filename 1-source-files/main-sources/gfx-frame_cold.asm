@@ -15,6 +15,8 @@
 \ f_unstar) are not here: on the Model B the stardust is drawn only in a
 \ space view (STARS), which is always in record mode.
 \
+\       Area: bank 6
+\
 \ ******************************************************************************
 
 \ F_CHAR: TT26's (CHPR's) character A at (XC-1, YC): in record or space mode

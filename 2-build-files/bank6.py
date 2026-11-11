@@ -62,6 +62,8 @@ for c in CONSTS:
     L.append('%-8s = %s' % (c, m.group(1)))
 open(os.path.join(OUT, 'bank6-game.asm'), 'w').write('\n'.join(L) + '\n')
 
+subprocess.run([sys.executable, '2-build-files/streams.py', 'passes'], check=True)   # (the renderer's
+                                   # pass copies, which the bank's assembly INCLUDEs)
 r = subprocess.run([BEEBASM, '-i', os.path.join(MS, 'gfx-bank6.asm'), '-v'], capture_output=True, text=True)
 out = r.stdout + r.stderr
 if r.returncode or re.search(r'error|assert', out, re.I):

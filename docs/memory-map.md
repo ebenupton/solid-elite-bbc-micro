@@ -130,6 +130,22 @@ first. The text tokens' source, `elite-text-tokens.asm` (the original's
 program's cold pass, and its sine and arctan tables `SNE` and `ACT` are
 `Area: resident`, which stay at `&07C0` in the loader's resident block.
 
+The renderer's files are placed the same way: each is one file, whatever
+places its blocks go to, and each block's place is named by its `Area:`
+line: `bank 4` (the flight code's home bank: the planet's surface in game
+context, `gfx-planet7.asm` and `gfx-merid.asm`'s first blocks), `bank 5`
+and `bank 5 gap` (the rasteriser's code, and the room below its per-x
+tables), `bank 6` (the frame layer), `bank 7` (the flight code's cold bank:
+the disc layer's painter in the renderer's window) and `main` (the glue, in
+the resident block A). `streams.py` writes each file's pass for each place
+it names (`3-assembled-output/<file>-<place>.asm`, the other lines blanked;
+the lines before a file's first `Area:` line, its header, are in every pass
+and may hold only comments), and each place's layout INCLUDEs its passes:
+`gfx-bank5.asm`, `gfx-bank6.asm`, `elite-layout-flight.asm` and the
+resident block. A block in two places' lists (`gfx-merid.asm`'s definitions
+and `pcb_o`, `gfx-planet7.asm`'s variables in main RAM) is assembled in
+both.
+
 **The containers.** The passes go into these containers:
 
 * the **main RAM part** of the program, in two pieces: `PROGM%` to
@@ -360,7 +376,7 @@ see the history of this file).
 | The high resident block | `&7EB0-&7EBF` | `RESH%` (`elite-resident-high.asm`): the screen's palette; then, in a build with `_CIRCLES`, 64 bytes of the circle engine's variables (`PFVH%`, `&7EC0-&7EFF`) |
 | The missile's blueprint | `&7F00-&7F9F` | as in the original, without its edges; then the rest of the programs' main RAM part, `PROGX%` (`&7FA0-&7FFD`, the `hotx` container); `VEC` at `&7FFE` |
 | Home bank | `&8000-&BFFF`, ROMSEL `BANK4` | the flight or docked code's home image: `S%` and the home code from `&8000`, with the lighting (`gfx-light.asm`: `L_REC`, and in the flight code `L_SUN`); in a build with `_CIRCLES`, the planet's surface after the hot pass (`PF_HOOK`, `gfx-planet7.asm`, and the circle engine's `pc_circ`, `gfx-merid.asm`); the quarter squares at `&B300-&B6FF` (`QSL`, `QSH`); the blueprint set at `&B700`, with its ships' normals and `FC_NORMTAB` (`NORMTAB`); after it, in a build with `_CIRCLES`, what one `PF_HOOK` call makes and uses (`PFVS%`, `&BFA2-&BFFF`, which a set's file loads over between iterations) |
-| Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000` (in the docked code, after its set's face lists), then `QQ18`; in the flight code, then the overlay region (`OVL%`) and the renderer's window (`WIN7%`, `gfx-window7.asm`: the disc layer's painter and the second disc, `&A387` on, and each buffer's disc state in the twelve pages `&B300-&BEFF`, not in the image); `DFSSAVE%` at `&BF00` |
+| Cold bank | `&8000-&BFFF`, ROMSEL `BANK7` | the flight or docked code's cold image: the cold code from `&8000` (in the docked code, after its set's face lists), then `QQ18`; in the flight code, then the overlay region (`OVL%`) and the renderer's window (`WIN7%`: the renderer's bank 7 passes, the disc layer's painter and the second disc, `&A387` on, and each buffer's disc state in the twelve pages `&B300-&BEFF`, not in the image); `DFSSAVE%` at `&BF00` |
 | Bank 5 | ROMSEL `BANK5` | the rasteriser, from `R.BANK` ([renderer.md](renderer.md)): the polygons, lines and repair (`&8000-&8FFF`), the state, the tables, the 24 row runs and the stars (`&9000-&BFBF`), and in the room below the per-x tables, in a build with `_CIRCLES`, the planet surface's `pf_tilt` (`gfx-planet7.asm`, which `PF_HOOK` calls through the glue's `T_TILT`); the jump table `RJT` |
 | Bank 6 | ROMSEL `BANK6` | the frame layer, from `F.BANK`: its code with the discs, the circle engine's rows (`PC_ROWS`), the lens flare, the screens drawn directly and the hangar's background (`&8000-&ABF4`), the lighting's ramps and the faces' small tables, its state with the discs' rows, the face lists of the blueprint set loaded (`FCSLOT`, the 847 bytes below the dispatcher), the dispatcher `FJT` (`&BFC0`); and the sun near the planet (`S_SUN`, `gfx-ssun.asm`; `make ssun=off` leaves it out) |
 

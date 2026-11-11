@@ -11,6 +11,8 @@
 \ clears it (f_b0new). The text map, F_TCH and the notes are all zero, as
 \ loaded: no text, none shown, none noted.
 \
+\       Area: bank 6
+\
 \ ******************************************************************************
 
 .F_INIT

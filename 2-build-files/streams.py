@@ -1187,12 +1187,86 @@ def text_tokens(errors):
     return "tokens: %s" % ", ".join("%s %d" % (a, sum(1 for b in bl if b.area == a)) for a in TOKTAGS.values())
 
 
+# The renderer's files are placed the same way: each is one file, whatever
+# places its blocks go to, and each place is a pass over it. A block's place
+# is named by a tag line, as in the programs' sources:
+#
+#   \       Area: bank 6                (or a list: "bank 4, bank 5 gap")
+#
+# and runs to the next tag line. The places (RPLACES) are the renderer's
+# banks and the room in them: bank 4 (the flight code's home bank: the
+# planet's surface in game context, elite-layout-flight.asm), bank 5 (the
+# rasteriser's code, gfx-bank5.asm), bank 5 gap (the room below its per-x
+# tables), bank 6 (the frame layer, gfx-bank6.asm), bank 7 (the flight
+# code's cold bank: the renderer's window after its overlays) and main (the
+# resident block A in main RAM: the glue). The lines before a file's first
+# tag line (its header) are in every pass of the file, and may hold nothing
+# but comments (checked: a definition that two places need is in a block
+# tagged with both, as an assembly may include several of a file's passes).
+# Each pass is the file with every line outside its
+# blocks blanked (line numbers stay the file's), written as
+# 3-assembled-output/<file>-<place>.asm (the place without spaces), which the
+# place's layout INCLUDEs. bank5.py and bank6.py write them too (streams.py
+# passes), as the rasteriser's test builds bank 5 before the game.
+RFILES = ("gfx-glue.asm", "gfx-raster_poly.asm", "gfx-raster_line.asm", "gfx-raster.asm",
+          "gfx-raster_init.asm", "gfx-raster_rep.asm", "gfx-raster_dq.asm", "gfx-raster_lcold.asm",
+          "gfx-raster_reset.asm", "gfx-planet7.asm", "gfx-merid.asm", "gfx-frame.asm", "gfx-ssun.asm",
+          "gfx-flare.asm", "gfx-frame_cold.asm", "gfx-hangar.asm", "gfx-finit.asm",
+          "gfx-raster_disc.asm", "gfx-raster_disc2.asm", "gfx-raster_dpatch.asm")
+RPLACES = ("bank 4", "bank 5", "bank 5 gap", "bank 6", "bank 7", "main")
+
+
+def renderer_passes(errors):
+    """each renderer file's pass copies, one per place it names"""
+    n = 0
+    for name in RFILES:
+        path = SRCDIR + name
+        lines = open(path, encoding="latin-1").read().split("\n")
+        tag, tags, used = None, [], set()
+        for i, l in enumerate(lines):
+            m = AREA.match(l)
+            if m:
+                tag = frozenset(t.strip() for t in m.group(1).split(","))
+                for t in tag - set(RPLACES):
+                    errors.append("%s:%d: unknown place %r" % (path, i + 1, t))
+                used |= tag
+            tags.append(tag)
+        if not used:
+            errors.append("%s: no Area: line" % path)
+        for i, (l, t) in enumerate(zip(lines, tags)):
+            if t is None and code_part(l):
+                errors.append("%s:%d: a statement before the first Area: line (%r)" % (path, i + 1, code_part(l)))
+        k = 0
+        while k < len(lines):
+            e, depth = k, 0
+            while e < len(lines) and tags[e] == tags[k]:
+                c = code_part(lines[e]).upper()
+                depth += bool(re.match(r"^IF\b", c)) - bool(re.match(r"^ENDIF\b", c))
+                e += 1
+            if depth:
+                errors.append("%s:%d: IF ... ENDIF not balanced in a block" % (path, k + 1))
+            k = e
+        base = os.path.splitext(name)[0]
+        for p in sorted(used & set(RPLACES)):
+            with open(OUTDIR + "%s-%s.asm" % (base, p.replace(" ", "")), "w", encoding="latin-1") as f:
+                f.write("\n".join(l if t is None or p in t else "" for l, t in zip(lines, tags)))
+            n += 1
+    return "renderer: %d files, %d passes" % (len(RFILES), n)
+
+
 def main():
     phase = sys.argv[1] if len(sys.argv) > 1 else "place"
-    if phase not in ("measure", "place"):
-        sys.exit("usage: streams.py measure|place")
+    if phase not in ("measure", "place", "passes"):
+        sys.exit("usage: streams.py measure|place|passes")
     errors = []
-    report = [program(p, phase, errors) for p in PROGS] + [text_tokens(errors)]
+    if phase == "passes":
+        report = [renderer_passes(errors)]
+        for e in errors:
+            print("streams:", e)
+        if errors:
+            sys.exit(1)
+        return
+    report = [program(p, phase, errors) for p in PROGS] + [text_tokens(errors), renderer_passes(errors)]
     for e in errors:
         print("streams:", e)
     print("streams (%s): %s%s" % (phase, "; ".join(report), ", %d error(s)" % len(errors) if errors else ""))

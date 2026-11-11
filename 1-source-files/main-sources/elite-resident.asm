@@ -831,7 +831,7 @@ pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
  ORG GLUE%
 
  INCLUDE "1-source-files/main-sources/gfx-rws.asm"
- INCLUDE "1-source-files/main-sources/gfx-glue.asm"
+ INCLUDE "3-assembled-output/gfx-glue-main.asm"
 
  PRINT "The renderer's glue: ", ~GLUE%, "-", ~P%-1, ", free ", DTMP-P%
  ASSERT P% <= DTMP

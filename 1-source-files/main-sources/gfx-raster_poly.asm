@@ -7,6 +7,8 @@
 \ pages it in.  R_SETBUF (shared) pages it in to patch phase B's DIRTY
 \ operands.  INCLUDE it at &8000 in an assembly of its own (ANDY), after
 \ gfx-raster.asm.
+\
+\       Area: bank 5
 \ ============================================================================
 
 \ ============================================================================

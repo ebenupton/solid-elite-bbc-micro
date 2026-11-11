@@ -27,6 +27,8 @@
 \ name (TT66's, in yellow, which the wall's tan, half yellow, swallows): a
 \ black band, rows 1 to 15, is left above it.
 \
+\       Area: bank 6
+\
 \ ******************************************************************************
 
 HTOP = 16               \ the wall's top row: text row 1, the view's name, is on

@@ -16,6 +16,8 @@
 \ any other is clipped exactly (rl_gen: the first and last pixels inside, from
 \ the window's four sides), then drawn by the same loops from the first pixel
 \ when d <= 255, or pixel by pixel with a 16-bit error term when d > 255.
+\
+\       Area: bank 5
 \ ============================================================================
 
 .rl_start

@@ -46,3 +46,6 @@ __pycache__/
 3-assembled-output/elite-docked-*.asm
 3-assembled-output/measure-*-symbols.txt
 6-harness/node_modules
+
+# The renderer's pass copies (streams.py)
+3-assembled-output/gfx-*.asm

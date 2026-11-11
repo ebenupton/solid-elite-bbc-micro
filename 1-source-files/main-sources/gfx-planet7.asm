@@ -5,8 +5,10 @@
 \ Port (Model B): the BBC Master port's (its bank 7's meridian window, in the
 \ hand-converted NMOS 6502 code of its Model B branch), at the end of the
 \ flight code's bank 4 with the circle engine's pc_circ (gfx-merid.asm's
-\ MERID_PART = 1) in a build with _CIRCLES (elite-layout-flight.asm): PF_HOOK
-\ from H_CIRC, in game context. Its class goes to PF_CLS (GVARS) and its
+\ bank 4 pass) in a build with _CIRCLES (elite-layout-flight.asm): PF_HOOK
+\ from H_CIRC, in game context; its pf_tilt in bank 5 (the room below the
+\ rasteriser's per-x tables), and pf_tilt's variables in main RAM, which both
+\ assemblies place alike (each block's "Area:" line, streams.py's passes). Its class goes to PF_CLS (GVARS) and its
 \ records to the mailbox (PCB, PC_N, pc_inv: gfx-rws.asm), for the frame's
 \ f_bounds (PC_ROWS, in bank 6). The moon, the rings and the bands are not
 \ in this port (_PLANET_MOON, _PLANET_RINGS and _PLANET_BANDS are FALSE).
@@ -44,7 +46,7 @@
 \
 \ ******************************************************************************
 
-IF PLANET7_PART = 1     \ (the home bank's part; bank 5's, pf_tilt, below)
+\       Area: bank 4
 
 pf_tilt = T_TILT        \ (bank 5's, through the glue's trampoline)
 
@@ -279,11 +281,13 @@ IF _PLANET_BANDS        \ (make bands=on)
 
 ENDIF
 
-ENDIF                   \ (PLANET7_PART = 1)
 
-IF PLANET7_PART = 2     \ (bank 5's part, gfx-bank5.asm: pf_tilt, which reads
+
+\       Area: bank 5 gap
+
+INWK = PF_INWK          \ (bank 5's part, gfx-bank5.asm: pf_tilt, which reads
                         \ only the game's INWK and writes the main RAM's pcv
-INWK = PF_INWK          \ and pcn, so that the home bank has the room)
+                        \ and pcn, so that the home bank has the room)
 
 \ pf_tilt: pcv = (+/- vector X) / 2 + (+/- vector Y) / 2^(k+1), as
 \ sign-magnitude words (X, Y = 9 nosev, 15 roofv, 21 sidev; Y = 0: none), A
@@ -416,9 +420,9 @@ INWK = PF_INWK          \ and pcn, so that the home bank has the room)
  STA pft_r+1
  RTS
 
-ENDIF                   \ (PLANET7_PART = 2)
 
-IF PLANET7_PART = 1
+
+\       Area: bank 4
 
 \ ******************************************************************************
 \
@@ -1246,7 +1250,7 @@ ENDIF
  PFVS_C% = P%           \ (gfx-merid.asm's follow)
  ORG PFV_Q%
 
-ENDIF                   \ (PLANET7_PART = 1)
+\       Area: bank 4, bank 5 gap
 
  PFV_R% = P%            \ (both parts': pf_tilt's, in main RAM at PFVH%; bank
  ORG PFVH%              \ 5's assembly and the flight code's give them the same

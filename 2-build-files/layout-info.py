@@ -32,8 +32,9 @@
 import re
 
 OUT = "3-assembled-output/"
-WINDOW7 = {"flight": ("gfx-window7.asm", "gfx-raster_disc.asm", "gfx-raster_strips.asm",
-                      "gfx-raster_disc2.asm", "gfx-raster_dpatch.asm")}   # (bank 7's renderer window: elite-layout-flight.asm)
+WINDOW7 = {"flight": ("gfx-raster_disc-bank7.asm", "gfx-raster_disc2-bank7.asm",
+                      "gfx-raster_dpatch-bank7.asm")}   # (bank 7's renderer window, the renderer's
+                                                        # bank 7 passes: elite-layout-flight.asm)
 NAMES = ("farC", "farCj", "farH", "farHj", "BANK4", "BANK7", "BANK5", "BANK6", "PCLI",
          "IRQG", "NA%", "CHK2", "CHK", "BRBR1", "PANR", "GCALL", "dfsin", "dfsout", "pload",
          "T_GETW", "T_TILT")
@@ -59,8 +60,8 @@ with open(OUT + "resident.asm", "w") as f:
 
 def labels(path):
     """the labels a copy defines, with those of the files it INCLUDEs from
-    1-source-files/main-sources (the cold bank's renderer window, gfx-window7.asm and
-    the files it INCLUDEs)"""
+    1-source-files/main-sources (the cold bank's renderer window: the bank 7
+    passes, and gfx-raster_strips.asm, which gfx-raster_disc.asm INCLUDEs)"""
     try:
         t = open(path, encoding="latin-1").read()
     except FileNotFoundError:          # (before streams.py's place: run again after it)
@@ -75,7 +76,7 @@ for prog in ("flight", "docked"):
     with open(OUT + "%s-banks.txt" % prog, "w") as f:
         for name in labels(OUT + "elite-%s-cold.asm" % prog) + labels(OUT + "elite-tokens-cold.asm") + \
                 sum((labels(OUT + "elite-%s-ovl%d.asm" % (prog, n)) for n in (1, 2, 3)), []) + \
-                sum((labels("1-source-files/main-sources/" + w) for w in WINDOW7.get(prog, ())), []):
+                sum((labels(OUT + w) for w in WINDOW7.get(prog, ())), []):
             f.write("%s C\n" % name)
         for name in sum((labels(OUT + "elite-%s-%s.asm" % (prog, c)) for c in ("low", "hot", "hotm", "hotx", "blueprints")), []):
             f.write("%s H\n" % name)

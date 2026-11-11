@@ -24,7 +24,7 @@
 \
 \   * The rasteriser (bank 5) keeps its state in its own bank, which this
 \     bank cannot see: it is reached only through the trampolines in main
-\     RAM (T_INIT to T_GETW, gfx-rtramp.asm), with the inputs in its
+\     RAM (T_INIT to T_GETW, gfx-glue.asm), with the inputs in its
 \     mailbox (MBOX) and zero page (&06-&27). So what the Master port's frame
 \     layer read or wrote of the rasteriser's arrays goes through bank 5: a
 \     cell f_mark erases is marked dirty at each buffer's next frame
@@ -52,6 +52,8 @@
 \
 \   * Every entry keeps Y (but F_GUN, which returns one), and takes its
 \     inputs in A, Y and memory (GCALL carries the entry's number in X).
+\
+\       Area: bank 6
 \
 \ ******************************************************************************
 
@@ -716,7 +718,7 @@ ENDIF
  JSR f_ships            \ filled ships, far to near
  JSR f_dots             \ particles, distant ships
  JSR f_lasers           \ our laser beams
- JSR f_flt              \ the lens flare (gfx-flare6.asm), then the text on top
+ JSR f_flt              \ the lens flare (gfx-flare.asm), then the text on top
  JSR f_sight2           \ and the sights
 .ff_stars
  LDA #NDSTAR            \ stardust, on black only (last: erasing it next

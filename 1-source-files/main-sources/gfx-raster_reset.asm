@@ -1,6 +1,8 @@
 \ ============================================================================
 \ raster_reset.asm -- R_RESETBUF (T_RESETBUF, R_INIT) and r7_reset1 (bank 5,
 \ in the room below the per-x tables, after gfx-raster_lcold.asm)
+\
+\       Area: bank 5 gap
 \ ============================================================================
 \ ============================================================================
 \ R_RESETBUF: the current buffer's state, not the screen

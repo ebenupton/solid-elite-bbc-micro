@@ -28,7 +28,7 @@
 \ About 1,250 cycles a flared frame.
 \
 \ Port (Model B): in bank 6, after the frame layer, which calls R_FLARE from
-\ f_flt (gfx-flare6.asm). This bank writes the back buffer itself (main RAM,
+\ f_flt (below). This bank writes the back buffer itself (main RAM,
 \ at f_scr: f_bufpatch), and as it cannot reach bank 5's dirty extents,
 \ each ghost's box (its rows by its columns, clipped) is marked dirty
 \ through T_MARKBOX (fl_box), so that the next frame on this buffer repairs
@@ -40,6 +40,8 @@
 \ the planet's span on the probe's row from its disc layer; this tests the
 \ disc itself, which the Model B draws under the sun when the sun is the
 \ smaller disc.
+\
+\       Area: bank 6
 \
 \ ******************************************************************************
 
@@ -717,3 +719,48 @@ ASSERT HI(fl_htab) = HI(P% - 1)
 .fl_s2  SKIP 1          \ the back buffer's base, halved
 .fl_py  SKIP 1          \ fl_inpl's row and half-width
 .fl_ph  SKIP 1
+
+\ ******************************************************************************
+\
+\ The lens flare's step in the frame, F_FRAME's f_flt (R_FLARE is in this
+\ bank too, called directly)
+\
+\ ******************************************************************************
+
+\ f_flt: F_FRAME's text step, after the flare (in place of JSR f_text2).
+\ Without the sun (F_SUON = 0) it costs a test. With it: when the view is the
+\ front one and the sun's centre is on the screen (x 1..255, y 0..191), the
+\ flare (R_FLARE) with fl_dx and fl_dy (the centre less (128, 96)), and
+\ FL_BEH bit 7 if the sun is smaller than the planet, so further: behind it
+\ (R_FLARE's probes then test the planet's disc).
+
+.f_flt
+ LDA F_SUON
+ BEQ flt9
+ LDA VIEW               \ the front view, and the sun's centre on the
+ ORA F_SUX+1            \ screen: x 1..255, y 0..191
+ ORA F_SUY+1
+ BNE flt9
+ LDA F_SUX
+ BEQ flt9
+ EOR #&80
+ STA fl_dx
+ LDA F_SUY
+ CMP #192
+ BCS flt9
+ SBC #95                \ (C = 0: - 96)
+ STA fl_dy
+ LDA #0                 \ FL_BEH bit 7: the sun is smaller than the planet
+ LDX F_PLON
+ BEQ flt1
+ LDX F_SUR
+ CPX F_PLR
+ ROR A                  \ (C clear: smaller)
+ EOR #&80
+.flt1
+ STA FL_BEH
+ JSR R_FLARE
+.flt9
+ JMP f_text2
+
+.FL_BEH EQUB 0          \ bit 7: the sun is behind the planet (R_FLARE's probes)

@@ -27,7 +27,7 @@ program).
 | zero page `&06-&27` | the colour pair, span ends and clip window (`&06-&0F`), and the rasteriser's scratch (`&10-&27`); the caller saves and restores the game's bytes there around a frame |
 | bank 5 `&8000-&8FFF` | `R_POLY` (both phases) and `R_LINE` (43 bytes free) |
 | bank 5 `&9000-&95FF` | the state: both buffers' dirty extents (`R_DIRTYL0`, `R_DIRTYR0`, `R_DIRTYL1` = `R_DIRTYL0` + `&300`, `R_DIRTYR1`), this frame's written extents (`R_WL`, `R_WR`), `R_POLY`'s edge tables |
-| bank 5 `&9600-&BFBF` | the shared region (`gfx-raster.asm`): `R_SETBUF` and `r_pgfix`, the spans, `R_DOT`, `R_MARKDIRTY`, the per-x tables at `&9C00`, the 24 row runs at `&A000` (with the stars' records and variables in their tails), the stars, the row pages, `R_INIT`, the repair (`R_REPAIR`, `r7_rowrep`) and the disc layer's transfer (`R_GETW`, `R_DRAINQ`: `gfx-raster_dq.asm`) (56 bytes free); below the per-x tables, `R_LINE`'s cold part, `R_RESETBUF` and the frame layer's query, `r_wq` (`gfx-raster_wq.asm`) (260 bytes free) |
+| bank 5 `&9600-&BFBF` | the shared region (`gfx-raster.asm`): `R_SETBUF` and `r_pgfix`, the spans, `R_DOT`, `R_MARKDIRTY`, the per-x tables at `&9C00`, the 24 row runs at `&A000` (with the stars' records and variables in their tails), the stars, the row pages, `R_INIT`, the repair (`R_REPAIR`, `r7_rowrep`) and the disc layer's transfer (`R_GETW`, `R_DRAINQ`: `gfx-raster_dq.asm`) (56 bytes free); below the per-x tables, `R_LINE`'s cold part, `R_RESETBUF` and the frame layer's query, `r_wq` (`gfx-raster_dq.asm`'s bank 5 gap pass) (260 bytes free) |
 | bank 5 `&BFC0-&BFE9` | `RJT`, the jump table |
 
 Nothing of the rasteriser's state is in main RAM but the mailbox. Bank 5
@@ -38,7 +38,7 @@ in bank 5 (`R_NTMP`, `R_NTMPY`, `R_NTMPX`).
 
 Bank 5's entry points are in its jump table, `RJT` (`gfx-rws.asm`), in this
 order; the frame layer calls them through the trampolines `T_INIT` to
-`T_GETW` (`gfx-rtramp.asm`, 112 bytes, in the resident block A: each `T_n` is four bytes, a `JSR` to a shared body and the low byte of `RJT`'s entry), each
+`T_GETW` (`gfx-glue.asm`, 112 bytes, in the resident block A: each `T_n` is four bytes, a `JSR` to a shared body and the low byte of `RJT`'s entry), each
 of which pages bank 5 in (`BANK5`), calls the entry and pages the caller's
 bank back. A, X and Y are passed through; nothing is returned in them.
 
@@ -105,7 +105,7 @@ buffer). The gate runs it with `--quick`.
 
 The frame layer is the BBC Master port's current one (its `gfx-frame.asm`,
 `gfx-frame_cold.asm`, `gfx-finit.asm`, `gfx-hangar.asm` and its tables,
-`gfx-flare.asm` and `gfx-flare6.asm`, in the hand-converted NMOS 6502 code
+`gfx-flare.asm`, in the hand-converted NMOS 6502 code
 of its Model B branch), adapted to the Model B, with the Master port's disc
 layer (its row code in the flight code's bank 7: "The discs", below) and
 its planets' surfaces, without its kept solid rows, moons and rings. The game's drawing routines,
@@ -134,14 +134,14 @@ What differs from the Master port's frame layer:
   frame (`f_scr`, and the sights' addresses).
 * **The rasteriser's state is in bank 5,** which bank 6 cannot see: it is
   reached only through the trampolines in main RAM (`T_INIT` to `T_GETW`,
-  `gfx-rtramp.asm`), with the inputs in the mailbox and the zero page. What
+  `gfx-glue.asm`), with the inputs in the mailbox and the zero page. What
   the Master port's frame layer read or wrote of the rasteriser's arrays
   goes through bank 5 instead: a text cell that `f_mark` must erase in both
   buffers is noted per buffer and text row (`f_mkl`, `f_mkr`) and marked
   dirty at that buffer's next frame (`f_tmark`, `R_MARKBOX`), before its
   repair; and what `f_text2` and `f_sight2` need of this frame's written and
   dirty extents comes from one query (`f_wq`: `R_GETW` with A = `&40`,
-  `gfx-raster_wq.asm`), the union over each text row's eight lines for the
+  `gfx-raster_dq.asm`), the union over each text row's eight lines for the
   rows asked for, and whether anything covers the sights.
 * **The game's zero page overlaps the rasteriser's** (`XX16` is `&09-&1A`,
   `XX0` `&1E`) and this layer's (`XX2`, which part 6 reads, is `FZ` at
@@ -300,8 +300,8 @@ what the Master port's frame layer does of it and the rows' arrays; the
 row code, the painter, which compares each row with what the buffer holds
 and writes only the pixels that changed (the edges' strips, the repair of
 dirty rows, the second disc's pieces), is in the flight code's bank 7 with
-each buffer's state (`gfx-window7.asm`: `gfx-raster_disc.asm` with the
-strips, `gfx-raster_disc2.asm`), as bank 5 has no room for it.
+each buffer's state (the bank 7 passes of `gfx-raster_disc.asm`, with the
+strips, and `gfx-raster_disc2.asm`), as bank 5 has no room for it.
 
 `PF_HOOK` makes the circles' records on every iteration of a close planet,
 and in deep space (its z at least 512 x 256) on the iterations with `MCNT`
@@ -386,8 +386,8 @@ fresh frames of records made at the new centre.
 
 ### The lens flare
 
-The Master port's lens flare with its probes (`gfx-flare.asm`,
-`gfx-flare6.asm`), in bank 6: `f_flt` runs it after the beams, when the sun
+The Master port's lens flare with its probes (`gfx-flare.asm`),
+in bank 6: `f_flt` runs it after the beams, when the sun
 is recorded, the view is the front one and the sun's centre is on the
 screen. `R_FLARE` probes the back buffer as drawn so far at nine points of
 the sun's disc (its centre, and eight round it at about 0.62 R): a probe

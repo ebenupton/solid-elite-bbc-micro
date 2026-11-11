@@ -46,6 +46,8 @@
 \ sights see them as written, as they see the disc layer's; nothing goes
 \ into DIRTY, so the next frame on this buffer does not repair them.
 \
+\       Area: bank 7
+\
 \ ******************************************************************************
 
  CPU 0                  \ NMOS 6502: no 65C02 instructions in this file

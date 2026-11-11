@@ -19,7 +19,7 @@
 \
 \ The entry points are in a jump table at RJT (&BFC0), so that callers need
 \ none of bank 5's symbols; the frame layer enters it through the
-\ trampolines in gfx-rtramp.asm (main RAM). Each routine is the Master
+\ trampolines in gfx-glue.asm (main RAM). Each routine is the Master
 \ port's (gfx-raster.asm's header), except:
 \
 \   * there is no disc layer: R_DISCROWS' row code (and its arrays) is the

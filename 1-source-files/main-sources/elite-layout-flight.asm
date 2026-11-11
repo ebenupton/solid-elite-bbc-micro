@@ -28,9 +28,13 @@
 \     it at &5600;
 \
 \   * bank 7 (saved as D.CODEC): the cold pass from &8000, then the recursive
-\     text tokens (QQ18, elite-text-tokens.asm's blocks tagged cold), then
-\     the renderer's window (WIN7%: the flight code's own parts of the
-\     renderer).
+\     text tokens (QQ18, elite-text-tokens.asm's blocks tagged cold), the
+\     overlay region, then the renderer's window (WIN7%: the bank 7 passes of
+\     the renderer's files, the flight code's own parts of the renderer).
+\
+\ The renderer's files are placed by passes too (streams.py: each block's
+\ "Area:" line names its place), and this file INCLUDEs their bank 4 and
+\ bank 7 passes (3-assembled-output/<file>-bank4.asm, -bank7.asm).
 \
 \ ******************************************************************************
 
@@ -97,11 +101,9 @@ IF _CIRCLES
  _PLANET_MOON = FALSE
  _PLANET_RINGS = FALSE
  _PLANET_BANDS = FALSE
- MERID_PART = 1
- PLANET7_PART = 1
  ASSERT PF_INWK = INWK
- INCLUDE "1-source-files/main-sources/gfx-planet7.asm"
- INCLUDE "1-source-files/main-sources/gfx-merid.asm"
+ INCLUDE "3-assembled-output/gfx-planet7-bank4.asm"
+ INCLUDE "3-assembled-output/gfx-merid-bank4.asm"
 ENDIF
 
 .HOME_END%
@@ -180,11 +182,17 @@ ENDIF
                         \ Port: the renderer's window in bank 7, after the cold
                         \ pass: the parts of the renderer that only the flight
                         \ code uses and that banks 5 and 6 have no room for,
-                        \ loaded with the flight code (docs/renderer.md)
+                        \ loaded with the flight code (docs/renderer.md): the
+                        \ bank 7 passes of the disc layer's painter, the second
+                        \ disc and their operands' patch (streams.py), then each
+                        \ buffer's disc state, not in the image, to DFSSAVE%
+                        \ (DPST%: gfx-raster_disc.asm)
 
 .WIN7%
 
- INCLUDE "1-source-files/main-sources/gfx-window7.asm"
+ INCLUDE "3-assembled-output/gfx-raster_disc-bank7.asm"
+ INCLUDE "3-assembled-output/gfx-raster_disc2-bank7.asm"
+ INCLUDE "3-assembled-output/gfx-raster_dpatch-bank7.asm"
 
 .WIN7_END%
 

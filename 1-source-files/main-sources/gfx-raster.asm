@@ -158,6 +158,8 @@
 \ comparison.  A change of
 \ the colours A/B must be handled by the caller as now: fold the old disc
 \ into DIRTY (R_MARKDIRTY) first.
+\
+\       Area: bank 5
 \ ============================================================================
 
 

@@ -43,6 +43,8 @@
 \ F_SUON) are written: the zero page and the game's variables that MV40
 \ and SOLAR use are kept and put back, so the game sees nothing of it.
 \
+\       Area: bank 6
+\
 \ ******************************************************************************
 
 CPU 0                   \ (NMOS 6502: no 65C02 instruction in this file)

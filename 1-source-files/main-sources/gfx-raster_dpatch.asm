@@ -5,7 +5,9 @@
 \
 \ Port (Model B): as the Master port's R_SETBUF and r_dbm patch them: each
 \ buffer's arrays are the same but for their high bytes (buffer 1's are
-\ buffer 0's + &300, gfx-window7.asm). X = the buffer.
+\ buffer 0's + &300, gfx-raster_disc.asm). X = the buffer.
+\
+\       Area: bank 7
 \
 \ ******************************************************************************
 

@@ -46,10 +46,8 @@ IF _CIRCLES             \ (the planet's surface at the hot pass's end, as the
  _PLANET_MOON = FALSE   \ layout has it, for the hot pass's reference to it)
  _PLANET_RINGS = FALSE
  _PLANET_BANDS = FALSE
- MERID_PART = 1
- PLANET7_PART = 1
- INCLUDE "1-source-files/main-sources/gfx-planet7.asm"
- INCLUDE "1-source-files/main-sources/gfx-merid.asm"
+ INCLUDE "3-assembled-output/gfx-planet7-bank4.asm"
+ INCLUDE "3-assembled-output/gfx-merid-bank4.asm"
 ENDIF
 
 .M_CIRC_END
@@ -68,7 +66,9 @@ ENDIF
  OVL_END% = &BE00
  CLEAR OVL%, &C000
  ORG OVL%
- INCLUDE "1-source-files/main-sources/gfx-window7.asm"
+ INCLUDE "3-assembled-output/gfx-raster_disc-bank7.asm"
+ INCLUDE "3-assembled-output/gfx-raster_disc2-bank7.asm"
+ INCLUDE "3-assembled-output/gfx-raster_dpatch-bank7.asm"
 
                         \ The containers' bounds, as labels for the symbols
                         \ (bank 4 also holds the main RAM part's image)

@@ -22,6 +22,12 @@
 \                query (r_wq) in the room below the per-x tables; R_INIT
 \   &BFC0        RJT, the jump table
 \
+\ Each file is placed by its passes (2-build-files/streams.py: every block's
+\ "Area:" line names its place): this file INCLUDEs the bank 5 passes, and in
+\ the room below the per-x tables the bank 5 gap passes
+\ (3-assembled-output/<file>-bank5.asm, -bank5gap.asm), which bank5.py has
+\ streams.py write first.
+\
 \ The row runs are assembled for buffer 1 (SCREEN%, &4000); r_pgfix moves a
 \ run page's stores to the buffer it is used for (gfx-raster.asm).
 \
@@ -46,27 +52,27 @@
  ASSERT R_DIRTYL1 = R_DIRTYL0 + &300 AND R_DIRTYR1 = R_DIRTYR0 + &300
  ASSERT P% = &9600
 
- INCLUDE "1-source-files/main-sources/gfx-raster.asm"
- INCLUDE "1-source-files/main-sources/gfx-raster_init.asm"
- INCLUDE "1-source-files/main-sources/gfx-raster_rep.asm"
- INCLUDE "1-source-files/main-sources/gfx-raster_dq.asm"
+ INCLUDE "3-assembled-output/gfx-raster-bank5.asm"
+ INCLUDE "3-assembled-output/gfx-raster_init-bank5.asm"
+ INCLUDE "3-assembled-output/gfx-raster_rep-bank5.asm"
+ INCLUDE "3-assembled-output/gfx-raster_dq-bank5.asm"
 .R_HIEND
  ASSERT R_HIEND <= RJT
 
  CLEAR r_tfree, r_tables \ (gfx-raster.asm skips it)
  ORG r_tfree             \ R_LINE's cold part and the private state, then
- INCLUDE "1-source-files/main-sources/gfx-raster_lcold.asm"
- INCLUDE "1-source-files/main-sources/gfx-raster_reset.asm"
- INCLUDE "1-source-files/main-sources/gfx-raster_wq.asm"
-PLANET7_PART = 2        \ (pf_tilt, which the flight code's PF_HOOK calls
- INCLUDE "1-source-files/main-sources/gfx-planet7.asm"  \ through T_TILT)
+ INCLUDE "3-assembled-output/gfx-raster_lcold-bank5gap.asm"
+ INCLUDE "3-assembled-output/gfx-raster_reset-bank5gap.asm"
+ INCLUDE "3-assembled-output/gfx-raster_dq-bank5gap.asm"
+ INCLUDE "3-assembled-output/gfx-planet7-bank5gap.asm"  \ (pf_tilt, which the flight
+                        \ code's PF_HOOK calls through T_TILT)
 .R_GAPEND
  ASSERT R_GAPEND <= r_tables
 
  ORG &8000
  GUARD &9000
- INCLUDE "1-source-files/main-sources/gfx-raster_poly.asm"
- INCLUDE "1-source-files/main-sources/gfx-raster_line.asm"
+ INCLUDE "3-assembled-output/gfx-raster_poly-bank5.asm"
+ INCLUDE "3-assembled-output/gfx-raster_line-bank5.asm"
 .R_LOEND
 
  ORG RJT                \ the entry points (gfx-rws.asm), in this order

@@ -12,6 +12,8 @@
 \ masked), its R_WL/R_WR set to that and its DIRTY emptied.  Afterwards
 \ R_WL/R_WR hold, per row, what the repair wrote (shapes drawn later are in
 \ DIRTY, not R_WL/R_WR).
+\
+\       Area: bank 5
 \ ============================================================================
 
 c_L   = &18                 \ r7_rowrep's zero page (the rasteriser's scratch)

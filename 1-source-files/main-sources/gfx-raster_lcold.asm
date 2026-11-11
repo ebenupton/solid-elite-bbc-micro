@@ -7,6 +7,8 @@
 \ tail) and the zero page, nothing of the polygon window's.  INCLUDE it in
 \ bank 5's assembly, after gfx-raster.asm (elite-gfx.asm: in the room below
 \ the per-x tables, from r_tfree).
+\
+\       Area: bank 5 gap
 \ ============================================================================
 
 \ rl_mdqa: rl_mdq with rp_mb = d and rp_v = a (rl_gen's rl_i and rl_j bounds);

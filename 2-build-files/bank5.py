@@ -15,6 +15,8 @@ os.chdir(ROOT)
 BEEBASM = sys.argv[1] if len(sys.argv) > 1 else os.environ.get('BEEBASM', 'beebasm')
 SRC = '1-source-files/main-sources/gfx-bank5.asm'
 
+subprocess.run([sys.executable, '2-build-files/streams.py', 'passes'], check=True)   # (the renderer's
+                                   # pass copies, which the bank's assembly INCLUDEs)
 r = subprocess.run([BEEBASM, '-i', SRC, '-v'], capture_output=True, text=True)
 out = r.stdout + r.stderr
 if r.returncode or 'error' in out.lower():
