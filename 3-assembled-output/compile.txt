@@ -4508,6 +4508,22 @@ raster.asm: 9608  bytes from &9600  to &BB88
      BE94   C5 20      CMP &20
      BE96   90 D9      BCC &BE71
      BE98   60         RTS
+.RJT
+     BE99   4C 88 BB   JMP &BB88
+     BE9C   4C 23 96   JMP &9623
+     BE9F   4C DB 99   JMP &99DB
+     BEA2   4C C2 BB   JMP &BBC2
+     BEA5   4C C5 BD   JMP &BDC5
+     BEA8   4C BF B2   JMP &B2BF
+     BEAB   4C BF B1   JMP &B1BF
+     BEAE   4C 00 80   JMP &8000
+     BEB1   4C 37 8A   JMP &8A37
+     BEB4   4C C0 B8   JMP &B8C0
+     BEB7   4C E4 B9   JMP &B9E4
+     BEBA   4C CD BD   JMP &BDCD
+     BEBD   4C E1 BD   JMP &BDE1
+     BEC0   4C F2 9A   JMP &9AF2
+.RJT_END
 .R_HIEND
 .rl_mdqa
      9933   AD E7 B0   LDA &B0E7
@@ -6932,22 +6948,7 @@ raster.asm: 9608  bytes from &9600  to &BB88
 .rl_end
 raster_line.asm: 1495  bytes
 .R_LOEND
-     BFC0   4C 88 BB   JMP &BB88
-     BFC3   4C 23 96   JMP &9623
-     BFC6   4C DB 99   JMP &99DB
-     BFC9   4C C2 BB   JMP &BBC2
-     BFCC   4C C5 BD   JMP &BDC5
-     BFCF   4C BF B2   JMP &B2BF
-     BFD2   4C BF B1   JMP &B1BF
-     BFD5   4C 00 80   JMP &8000
-     BFD8   4C 37 8A   JMP &8A37
-     BFDB   4C C0 B8   JMP &B8C0
-     BFDE   4C E4 B9   JMP &B9E4
-     BFE1   4C CD BD   JMP &BDCD
-     BFE4   4C E1 BD   JMP &BDE1
-     BFE7   4C F2 9A   JMP &9AF2
-.RJT_END
-Bank 5 (rasteriser): &8000-&8FD0  (free 47 ), &9600-&BE98  (free 295 ), R_LINE's cold part, R_RESETBUF and r_wq to &9BEE  (free 17 ), the jump table &&BFC0 -&BFE9 
+Bank 5 (rasteriser): &8000-&8FD0  (free 47 ), &9600-&BEC2  (the jump table &&BE99 -&BEC2 ; free 317 ), R_LINE's cold part, R_RESETBUF, r_wq and pf_tilt to &9BEE  (free 17 )
 Saving file '3-assembled-output/BANK5.bin'
 Including file 1-source-files/main-sources/elite-map.asm
 Processed file '1-source-files/main-sources/elite-map.asm' ok
@@ -8517,7 +8518,7 @@ Resident block A: &0400-&6E5 , free 0  (then the circle engine's variables, the 
      074E   AE 25 07   LDX &0725
      0751   AC 26 07   LDY &0726
 .rtj
-     0754   20 C0 BF   JSR &BFC0
+     0754   20 99 BE   JSR &BE99
      0757   8D 24 07   STA &0724
      075A   68         PLA
      075B   85 F4      STA &F4
@@ -8527,72 +8528,72 @@ Resident block A: &0400-&6E5 , free 0  (then the circle engine's variables, the 
 .T_INIT
 Macro RTRAMP:
      0764   20 27 07   JSR &0727
-     0767   C0
+     0767   99
 End macro RTRAMP
 .T_SETBUF
 Macro RTRAMP:
      0768   20 27 07   JSR &0727
-     076B   C3
+     076B   9C
 End macro RTRAMP
 .T_RESETBUF
 Macro RTRAMP:
      076C   20 27 07   JSR &0727
-     076F   C6
+     076F   9F
 End macro RTRAMP
 .T_REPAIR
 Macro RTRAMP:
      0770   20 27 07   JSR &0727
-     0773   C9
+     0773   A2
 End macro RTRAMP
 .T_SPAN
 Macro RTRAMP:
      0774   20 27 07   JSR &0727
-     0777   CC
+     0777   A5
 End macro RTRAMP
 .T_MARKDIRTY
 Macro RTRAMP:
      0778   20 27 07   JSR &0727
-     077B   CF
+     077B   A8
 End macro RTRAMP
 .T_DOT
 Macro RTRAMP:
      077C   20 27 07   JSR &0727
-     077F   D2
+     077F   AB
 End macro RTRAMP
 .T_POLY
 Macro RTRAMP:
      0780   20 27 07   JSR &0727
-     0783   D5
+     0783   AE
 End macro RTRAMP
 .T_LINE
 Macro RTRAMP:
      0784   20 27 07   JSR &0727
-     0787   D8
+     0787   B1
 End macro RTRAMP
 .T_STARERASE
 Macro RTRAMP:
      0788   20 27 07   JSR &0727
-     078B   DB
+     078B   B4
 End macro RTRAMP
 .T_STARPLOT
 Macro RTRAMP:
      078C   20 27 07   JSR &0727
-     078F   DE
+     078F   B7
 End macro RTRAMP
 .T_MARKBOX
 Macro RTRAMP:
      0790   20 27 07   JSR &0727
-     0793   E1
+     0793   BA
 End macro RTRAMP
 .T_GETW
 Macro RTRAMP:
      0794   20 27 07   JSR &0727
-     0797   E4
+     0797   BD
 End macro RTRAMP
 .T_TILT
 Macro RTRAMP:
      0798   20 27 07   JSR &0727
-     079B   E7
+     079B   C0
 End macro RTRAMP
 .rtramp_end
 .GCALL
@@ -54659,7 +54660,7 @@ Saving file '3-assembled-output/T.CODEC.bin'
      074E   AE 25 07   LDX &0725
      0751   AC 26 07   LDY &0726
 .rtj
-     0754   20 C0 BF   JSR &BFC0
+     0754   20 99 BE   JSR &BE99
      0757   8D 24 07   STA &0724
      075A   68         PLA
      075B   85 F4      STA &F4
@@ -54669,72 +54670,72 @@ Saving file '3-assembled-output/T.CODEC.bin'
 .T_INIT
 Macro RTRAMP:
      0764   20 27 07   JSR &0727
-     0767   C0
+     0767   99
 End macro RTRAMP
 .T_SETBUF
 Macro RTRAMP:
      0768   20 27 07   JSR &0727
-     076B   C3
+     076B   9C
 End macro RTRAMP
 .T_RESETBUF
 Macro RTRAMP:
      076C   20 27 07   JSR &0727
-     076F   C6
+     076F   9F
 End macro RTRAMP
 .T_REPAIR
 Macro RTRAMP:
      0770   20 27 07   JSR &0727
-     0773   C9
+     0773   A2
 End macro RTRAMP
 .T_SPAN
 Macro RTRAMP:
      0774   20 27 07   JSR &0727
-     0777   CC
+     0777   A5
 End macro RTRAMP
 .T_MARKDIRTY
 Macro RTRAMP:
      0778   20 27 07   JSR &0727
-     077B   CF
+     077B   A8
 End macro RTRAMP
 .T_DOT
 Macro RTRAMP:
      077C   20 27 07   JSR &0727
-     077F   D2
+     077F   AB
 End macro RTRAMP
 .T_POLY
 Macro RTRAMP:
      0780   20 27 07   JSR &0727
-     0783   D5
+     0783   AE
 End macro RTRAMP
 .T_LINE
 Macro RTRAMP:
      0784   20 27 07   JSR &0727
-     0787   D8
+     0787   B1
 End macro RTRAMP
 .T_STARERASE
 Macro RTRAMP:
      0788   20 27 07   JSR &0727
-     078B   DB
+     078B   B4
 End macro RTRAMP
 .T_STARPLOT
 Macro RTRAMP:
      078C   20 27 07   JSR &0727
-     078F   DE
+     078F   B7
 End macro RTRAMP
 .T_MARKBOX
 Macro RTRAMP:
      0790   20 27 07   JSR &0727
-     0793   E1
+     0793   BA
 End macro RTRAMP
 .T_GETW
 Macro RTRAMP:
      0794   20 27 07   JSR &0727
-     0797   E4
+     0797   BD
 End macro RTRAMP
 .T_TILT
 Macro RTRAMP:
      0798   20 27 07   JSR &0727
-     079B   E7
+     079B   C0
 End macro RTRAMP
 .rtramp_end
 .GCALL
@@ -61536,6 +61537,8 @@ Processed file '3-assembled-output/bank6-game.asm' ok
 Including file 1-source-files/main-sources/gfx-rws.asm
 Processed file '1-source-files/main-sources/gfx-rws.asm' ok
 Including file 3-assembled-output/gfx-glue-main.asm
+Including file 3-assembled-output/bank5-entry.asm
+Processed file '3-assembled-output/bank5-entry.asm' ok
 Processed file '3-assembled-output/gfx-glue-main.asm' ok
 Including file 3-assembled-output/gfx-frame-bank6.asm
 Processed file '3-assembled-output/gfx-frame-bank6.asm' ok

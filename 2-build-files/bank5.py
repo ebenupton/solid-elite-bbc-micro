@@ -5,10 +5,12 @@
 
 Assembles 1-source-files/main-sources/gfx-bank5.asm (the BBC Master port's
 rasteriser in NMOS 6502 code, gfx-raster*.asm, laid out for the Model B's
-bank 5) and writes 3-assembled-output/BANK5.bin (16K, at &8000) and
-bank5-symbols.txt, appending the assembly's report to compile.txt.
+bank 5) and writes 3-assembled-output/BANK5.bin (16K, at &8000),
+bank5-symbols.txt, and bank5-entry.asm (the address of its jump table, RJT,
+for the glue's trampolines: gfx-glue.asm), appending the assembly's report
+to compile.txt.
 """
-import os, subprocess, sys
+import os, re, subprocess, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
@@ -27,3 +29,7 @@ print('\n'.join(l for l in out.splitlines() if l.startswith('Bank 5')))
 d = subprocess.run([BEEBASM, '-i', SRC, '-d'], capture_output=True, text=True, check=True)
 open('3-assembled-output/bank5-symbols.txt', 'w').write(
     '\n'.join(l for l in d.stdout.splitlines() if l.startswith('[{')) + '\n')
+rjt = re.search(r"'RJT':(\d+)", d.stdout)   # bank 5's jump table, for the glue's
+open('3-assembled-output/bank5-entry.asm', 'w').write(   # trampolines (gfx-glue.asm)
+    '\\ bank5-entry.asm -- written by 2-build-files/bank5.py; do not edit.\n\n'
+    'RJT = &%04X             \\ bank 5\'s jump table (gfx-bank5.asm)\n' % int(rjt.group(1)))

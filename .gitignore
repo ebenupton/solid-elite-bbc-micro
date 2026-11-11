@@ -49,3 +49,4 @@ __pycache__/
 
 # The renderer's pass copies (streams.py)
 3-assembled-output/gfx-*.asm
+3-assembled-output/bank5-entry.asm

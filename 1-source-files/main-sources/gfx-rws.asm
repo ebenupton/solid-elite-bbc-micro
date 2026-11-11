@@ -17,9 +17,10 @@
 \                       the stars, R_MARKBOX's last row, the disc layer's
 \                       batches and the frame layer's query (R_GETW)
 \
-\ The entry points are in a jump table at RJT (&BFC0), so that callers need
-\ none of bank 5's symbols; the frame layer enters it through the
-\ trampolines in gfx-glue.asm (main RAM). Each routine is the Master
+\ The entry points are in a jump table, RJT, after the code (gfx-bank5.asm),
+\ so that callers need only its address, which bank5.py writes for the glue
+\ (3-assembled-output/bank5-entry.asm); the frame layer enters it through
+\ the trampolines in gfx-glue.asm (main RAM). Each routine is the Master
 \ port's (gfx-raster.asm's header), except:
 \
 \   * there is no disc layer: R_DISCROWS' row code (and its arrays) is the
@@ -103,5 +104,3 @@ pc_inv   = MBOX + &49   \ the base colour
 PC_TU    = MBOX + &52   \ their thresholds T1, T2 unclamped (16-bit, 4 a record)
 PCX_END  = PC_TU + 4 * 3  \ (the frame's f_hrec keeps &00 to here)
  ASSERT PC_TU >= R_BY1 + 1 AND PCX_END <= DB_QE
-
-RJT = &BFC0             \ the entry points' jump table

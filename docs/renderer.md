@@ -25,10 +25,9 @@ program).
 | main `&4000-&6FFF` | buffer 1 (`SCREEN%`, the direct-mode screen) |
 | main `&7E00-&7E9F` | the mailbox, `MBOX`: each call's inputs (below) |
 | zero page `&06-&27` | the colour pair, span ends and clip window (`&06-&0F`), and the rasteriser's scratch (`&10-&27`); the caller saves and restores the game's bytes there around a frame |
-| bank 5 `&8000-&8FFF` | `R_POLY` (both phases) and `R_LINE` (43 bytes free) |
+| bank 5 `&8000-&8FFF` | `R_POLY` (both phases) and `R_LINE` (47 bytes free) |
 | bank 5 `&9000-&95FF` | the state: both buffers' dirty extents (`R_DIRTYL0`, `R_DIRTYR0`, `R_DIRTYL1` = `R_DIRTYL0` + `&300`, `R_DIRTYR1`), this frame's written extents (`R_WL`, `R_WR`), `R_POLY`'s edge tables |
-| bank 5 `&9600-&BFBF` | the shared region (`gfx-raster.asm`): `R_SETBUF` and `r_pgfix`, the spans, `R_DOT`, `R_MARKDIRTY`, the per-x tables at `&9C00`, the 24 row runs at `&A000` (with the stars' records and variables in their tails), the stars, the row pages, `R_INIT`, the repair (`R_REPAIR`, `r7_rowrep`) and the disc layer's transfer (`R_GETW`, `R_DRAINQ`: `gfx-raster_dq.asm`) (56 bytes free); below the per-x tables, `R_LINE`'s cold part, `R_RESETBUF` and the frame layer's query, `r_wq` (`gfx-raster_dq.asm`'s bank 5 gap pass) (260 bytes free) |
-| bank 5 `&BFC0-&BFE9` | `RJT`, the jump table |
+| bank 5 `&9600-&BEC2` | the shared region (`gfx-raster.asm`): `R_SETBUF` and `r_pgfix`, the spans, `R_DOT`, `R_MARKDIRTY`, the per-x tables at `&9C00`, the 24 row runs at `&A000` (with the stars' records and variables in their tails), the row pages, the stars, `R_INIT`, the repair (`R_REPAIR`, `r7_rowrep`), the disc layer's transfer (`R_GETW`, `R_DRAINQ`: `gfx-raster_dq.asm`) and `RJT`, the jump table, at `&BE99` (317 bytes free, to the bank's top); below the per-x tables, `R_LINE`'s cold part, the private state, `R_RESETBUF`, the frame layer's query, `r_wq` (`gfx-raster_dq.asm`'s bank 5 gap pass), and `pf_tilt` (17 bytes free) |
 
 Nothing of the rasteriser's state is in main RAM but the mailbox. Bank 5
 uses no zero page outside `&06-&27`: the NMOS conversion's temporaries are
@@ -36,8 +35,9 @@ in bank 5 (`R_NTMP`, `R_NTMPY`, `R_NTMPX`).
 
 ### The interface
 
-Bank 5's entry points are in its jump table, `RJT` (`gfx-rws.asm`), in this
-order; the frame layer calls them through the trampolines `T_INIT` to
+Bank 5's entry points are in its jump table, `RJT` (`gfx-bank5.asm`, after
+the high region's code; `bank5.py` writes its address for the glue,
+`3-assembled-output/bank5-entry.asm`), in this order; the frame layer calls them through the trampolines `T_INIT` to
 `T_GETW` (`gfx-glue.asm`, 112 bytes, in the resident block A: each `T_n` is four bytes, a `JSR` to a shared body and the low byte of `RJT`'s entry), each
 of which pages bank 5 in (`BANK5`), calls the entry and pages the caller's
 bank back. A, X and Y are passed through; nothing is returned in them.

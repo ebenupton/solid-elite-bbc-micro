@@ -23,6 +23,9 @@
 
 FJT = &BFC0             \ bank 6's dispatcher (gfx-bank6.asm)
 
+ INCLUDE "3-assembled-output/bank5-entry.asm"   \ RJT, bank 5's jump table (bank5.py
+                                                \ writes it from bank 5's symbols)
+
 \ (the entries' numbers, FG_*, are in elite-map.asm, for the game's hooks)
 
 \ ******************************************************************************
