@@ -21,10 +21,10 @@
 #     with the program's home bank, bank 4, paged. Each unit (blocks that
 #     fall into each other) goes in the first of its containers with room for
 #     it: bank 4 from S% at &8000 (HOME%) to the room that the layout keeps
-#     at the bank's end (the quarter squares and the blueprint slot, and in
-#     the flight code the renderer's routines that run in game context), then
-#     main RAM (HOTM%, elite-layout-<program>.asm), then the room after the
-#     missile's blueprint (PROGX%, elite-map.asm).
+#     before the blueprint slot (in the flight code, the renderer's routines
+#     that run in game context), then main RAM after the low pass (hotm, to
+#     PROGH%, then hotx, to PROGM_END%: elite-layout-<program>.asm,
+#     elite-map.asm).
 #   * "Area: low": the low pass, code that must be in main RAM, where it is
 #     seen whatever bank is paged (LOW%, elite-map.asm). The disc version's
 #     own code of that kind (the interrupt handler, the break handler, the

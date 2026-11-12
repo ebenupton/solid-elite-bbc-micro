@@ -30,12 +30,22 @@ def syms(path):
 
 
 def map_constants():
-    """the port's memory map constants (elite-map.asm)"""
-    out = {}
-    for l in open(os.path.join(REPO, "1-source-files/main-sources/elite-map.asm")):
-        m = re.match(r"^\s*([A-Za-z_][\w%]*)\s*=\s*&([0-9A-Fa-f]+)", l)
-        if m:
-            out[m.group(1)] = int(m.group(2), 16)
+    """the port's memory map constants (elite-map.asm: NAME = expression,
+    evaluated in order, as 2-build-files/mapcheck.py reads them)"""
+    out, ev = {}, {}
+    for l in open(os.path.join(REPO, "1-source-files/main-sources/elite-map.asm"), encoding="latin-1"):
+        m = re.match(r"^\s*([A-Za-z_][\w%]*)\s*=\s*([^\\]+)", l)
+        if not m:
+            continue
+        e = re.sub(r"&([0-9A-Fa-f]+)", r"0x\1", m.group(2)).strip()
+        e = re.sub(r"\bDIV\b", "//", e)
+        e = re.sub(r"\bAND\b", "&", e).replace("%", "_P")
+        try:
+            v = eval(e, {}, dict(ev))
+        except Exception:
+            continue
+        if isinstance(v, int):
+            out[m.group(1)] = ev[m.group(1).replace("%", "_P")] = v
     return out
 
 

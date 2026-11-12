@@ -136,17 +136,23 @@ for prog, sy in (("flight", FL), ("docked", DK)):
 qsl, bp, bp_end = C["QSL"], C["BPSLOT_P"], C["BPSLOT_END_P"]
 fhot_end = FL["CIRC_START%"]
 order("flight bank 4", [("the hot pass", 0x8000, fhot_end), ("the planet's surface", fhot_end, FL["HOME_END%"]),
-                        ("the quarter squares", qsl, bp), ("the blueprint slot", bp, bp_end),
-                        ("the circle engine's variables (bank 4 top)", C["PFVS_P"], FL.get("PFVS_END%", C["PFVS_P"]))])
+                        ("the blueprint slot", bp, bp_end),
+                        ("the circle engine's variables (bank 4 top)", C["PFVS_P"], FL.get("PFVS_END%", C["PFVS_P"])),
+                        ("the quarter squares", qsl, qsl + 0x400)])
+if qsl + 0x400 != 0xC000:
+    errors.append("bank 4: the quarter squares are not the bank's last 1K")
+for img in ("D.CODEH.bin", "T.CODEH.bin"):             # (the loader makes them: no
+    if 0x8000 + os.path.getsize(OUT + img) > qsl:      # home image may reach them)
+        errors.append("bank 4: %s reaches the quarter squares (&%04X)" % (img, qsl))
 nlab += inside(FL, OUT + "elite-flight-hot.asm", 0x8000, fhot_end, "the hot pass")
 for f in ("gfx-planet7", "gfx-merid"):
-    nlab += inside(FL, OUT + "%s-bank4.asm" % f, fhot_end, qsl, "bank 4's planet's surface")
-    nlab += inside(FL, OUT + "%s-bank4top.asm" % f, C["PFVS_P"], 0xC000, "bank 4 top")
+    nlab += inside(FL, OUT + "%s-bank4.asm" % f, fhot_end, bp, "bank 4's planet's surface")
+    nlab += inside(FL, OUT + "%s-bank4top.asm" % f, C["PFVS_P"], qsl, "bank 4 top")
     nlab += inside(FL, OUT + "%s-mainhigh.asm" % f, C["PFVH_P"], 0x7FFE, "main high")
 nlab += inside(FL, OUT + "gfx-merid-mainlow.asm", C["PFVA_P"], C["GLUE_P"], "main low")
 nlab += inside(B5, OUT + "gfx-planet7-mainhigh.asm", C["PFVH_P"], 0x7FFE, "main high")
-order("docked bank 4", [("the hot pass", 0x8000, DK["HOME_END%"]), ("the main RAM part's image", qsl - (progm_end - progm), qsl),
-                        ("the quarter squares", qsl, bp), ("the blueprint slot", bp, bp_end)])
+order("docked bank 4", [("the hot pass", 0x8000, DK["HOME_END%"]), ("the main RAM part's image", bp - (progm_end - progm), bp),
+                        ("the blueprint slot", bp, bp_end), ("the quarter squares", qsl, qsl + 0x400)])
 nlab += inside(DK, OUT + "elite-docked-hot.asm", 0x8000, DK["HOME_END%"], "the hot pass")
 nlab += inside(DK, OUT + "elite-docked-blueprints.asm", bp, bp_end, "the blueprint slot")
 dfss = C["DFSSAVE_P"]

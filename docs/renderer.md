@@ -561,8 +561,8 @@ particle the original draws.
 | `LOMOD`, `DEATH2` | cold, home | `CATD` is called with DFS's workspace put back at `&1000` (`dfsin`) and kept afterwards (`dfsout`), as `PCLI` does, as buffer 0 is drawn over it |
 
 The flight code's home bank is full (its hot pass and the lighting, with
-the faces' normals, 1,956 bytes, at `&8000-&B4FF`, the quarter squares and
-the blueprint slot after it). For room, besides `CLYNS`, `LYN` and the
+the faces' normals, 1,956 bytes, at `&8000-&B2FF`, the blueprint slot and
+the quarter squares after it). For room, besides `CLYNS`, `LYN` and the
 rarely run parts of the main loops, these are in the cold bank: `DEATH`
 (its read of `XX21` through `DPLT`, at home), `LASLI`, `PU1` (a side or rear
 view's axes, once an object an iteration there), `TIDY` with `TIS1`,
@@ -577,8 +577,8 @@ The docked code records its ships too, with its own copies of the hooks
 (`H_LL42`, `S_SHIP`, `L_REC` with the fixed light, `H_EE31`, `LL155`,
 `SHPPT`), its text (`CHPR`'s `RR3` and `RRD`, `CLYNS`: the text map in
 every mode, the screen only outside record mode and space mode, `DRAWQ`)
-and `TTX66` (direct mode). It has the quarter squares too (`QSL`, `QSH`, in
-its home bank, for `L_REC`). Its cold bank's `S% + 19` entry is `DOEXP`,
+and `TTX66` (direct mode). It uses the quarter squares too (`QSL`, `QSH`,
+which the loader makes at the top of the home bank, for `L_REC`). Its cold bank's `S% + 19` entry is `DOEXP`,
 which returns at once there. Three screens are frames:
 
 * **The title** (`TITLE`, which sets `QQ11` = 0): `LL9F`, a frame after

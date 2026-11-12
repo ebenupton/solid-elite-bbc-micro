@@ -1951,7 +1951,7 @@ ASSERT prk1 = prk0 + 6 AND prk3 = prk0 + 18 AND pra3 = pra0 + 18
 
 \ The engine's variables: pc_circ's in main RAM, at PFVH% after
 \ gfx-planet7.asm's (main high) and at PFVA% (main low), and what one call
-\ makes and uses in the home bank's last bytes, at PFVS% (bank 4 top), so
+\ makes and uses in bank 4 after the blueprint slot, at PFVS% (bank 4 top), so
 \ that the code at the home bank's end has the room, each placed by the
 \ flight code's layout (elite-map.asm's addresses); PC_ROWS' in bank 6 (bank
 \ 6's pass); and the records' slots' offsets, which both read (pcb_o, five

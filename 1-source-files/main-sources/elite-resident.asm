@@ -121,10 +121,12 @@
 
  JSR pload              \ Load the blueprint file to STAGE%
 
- LDA BANK4              \ Copy it to the home bank's blueprint slot
- LDX #HI(BPSLOT_END% - BPSLOT% + &FF)
+ LDA BANK4              \ Copy it to the home bank's blueprint slot (its pages,
+ LDX #HI(BPSLOT_END% - BPSLOT% + &FF)   \ up to the quarter squares)
  LDY #HI(BPSLOT%)
  JSR bcopy
+
+ ASSERT BPSLOT% + (BPSLOT_END% - BPSLOT% + &FF) DIV 256 * 256 = QSL
 
  JMP prest              \ Page the caller's bank back in and return
 
@@ -140,8 +142,8 @@
  STA pcbuf+9
  JSR pload
 
- LDA BANK4              \ Copy it into the home bank (64 pages: the whole bank,
- LDX #64                \ as STAGE% has room for it)
+ LDA BANK4              \ Copy it into the home bank, up to the quarter squares,
+ LDX #HI(QSL - HOME%)   \ which the loader made and no image holds
  LDY #HI(HOME%)
  JSR bcopy
 

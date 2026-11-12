@@ -24,7 +24,7 @@ IF _CIRCLES
 ELSE
  CIRCSZ = 0
 ENDIF
- HOT_END% = QSL - CIRCSZ
+ HOT_END% = BPSLOT% - CIRCSZ
 
  ORG PROGM%
 
@@ -63,7 +63,7 @@ IF _CIRCLES             \ the circle engine's variables (elite-map.asm): the
  ORG PFVS%
  INCLUDE "3-assembled-output/gfx-planet7-bank4top.asm"
  INCLUDE "3-assembled-output/gfx-merid-bank4top.asm"
- ASSERT P% <= &C000
+ ASSERT P% <= QSL
 ENDIF
 
 

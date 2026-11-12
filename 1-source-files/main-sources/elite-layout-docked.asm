@@ -25,7 +25,9 @@
 \   * bank 4 (saved as T.CODEH): the hot pass from S% at &8000 (HOME%), then
 \     the main RAM part's image, and the docked code's own blueprints (its
 \     blocks tagged "Area: blueprints", which followed the code at &5600 in
-\     the original) in the blueprint slot at BPSLOT%;
+\     the original) in the blueprint slot at BPSLOT%; the image stops short
+\     of the quarter squares, which the loader makes (the docked code's
+\     lighting multiplies with them, L_REC);
 \
 \   * bank 7 (saved as T.CODEC): the cold pass from &8000, then the recursive
 \     text tokens (QQ18, elite-text-tokens.asm's blocks tagged cold).
@@ -36,12 +38,12 @@
  INCLUDE "3-assembled-output/resident.asm"              \ The loader's resident
                                                         \ addresses
 
- PROGI% = QSL - PROGIS%   \ The main RAM part's image, below the
-                        \ quarter squares (the blueprint slot holds this
-                        \ program's blueprints)
+ PROGI% = BPSLOT% - PROGIS%   \ The main RAM part's image, below the
+                        \ blueprint slot (which holds this program's
+                        \ blueprints)
 
  HOT_END% = PROGI%      \ (bank 4: the hot pass, the main RAM part's image, then
-                        \ the quarter squares and the blueprint slot)
+                        \ the blueprint slot and the quarter squares)
 
  INCLUDE "3-assembled-output/elite-docked-config.asm"
 
@@ -74,22 +76,6 @@
  PRINT "Docked main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%
  ASSERT HOME_END% <= HOT_END%
 
-                        \ Port: the quarter squares, QSL and QSH, in bank 4 just
-                        \ below the blueprint slot, as in the flight code: the
-                        \ docked code's lighting multiplies with them (L_REC)
-
- ORG QSL
-
- FOR I%, 0, 511
-  EQUB LO(I% * I% DIV 4)
- NEXT
-
- FOR I%, 0, 511
-  EQUB HI(I% * I% DIV 4)
- NEXT
-
- ASSERT QSH = QSL + &200 AND P% = BPSLOT%
-
  ORG BPSLOT%
 
  INCLUDE "3-assembled-output/elite-docked-blueprints.asm"
@@ -114,12 +100,14 @@
 
  ASSERT P% = BPSLOT_END%
 
- ORG PROGI%             \ the main RAM part's image, below the quarter squares
+ ORG PROGI%             \ the main RAM part's image, below the blueprint slot
  ASSERT INBAYJ = INBAYJ%   \ (the flight code's INBAY returns there: elite-map.asm)
 
  COPYBLOCK PROGM%, PROGM_END%, PROGI%
 
- SAVE "3-assembled-output/T.CODEH.bin", HOME%, &C000, HOME%
+ SAVE "3-assembled-output/T.CODEH.bin", HOME%, BPSLOT_END%, HOME%   \ (to the
+                        \ slot's end, below the quarter squares, which the
+                        \ loader makes)
  SAVE "3-assembled-output/T.CODEM.bin", PROGM%, PROGM_END%, PROGM%   \ (the main
                         \ RAM part, for the harness: it is on the disc in x.CODEH)
 

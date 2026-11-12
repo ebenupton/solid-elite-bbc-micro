@@ -67,7 +67,8 @@ def check(name, b4, b6):
 
 for c in "ABCDEFGHIJKLMNOP":
     data = open(OUT + "D.MO%s.bin" % c, "rb").read()
-    setf = 0xC000 - BPSLOT                   # (part 3: after the slot's pages)
+    setf = 0x900                             # (part 3: after the slot's nine pages,
+                                             # SETF% = BPSLOT% + &900, elite-map.asm)
     check("D.MO" + c, lambda a: data[a - BPSLOT], lambda a: data[setf + a - FCSLOT])
 h = open(OUT + "T.CODEH.bin", "rb").read()
 cimg = open(OUT + "T.CODEC.bin", "rb").read()

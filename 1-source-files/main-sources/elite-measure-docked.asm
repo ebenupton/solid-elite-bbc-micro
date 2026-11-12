@@ -14,7 +14,7 @@
  INCLUDE "1-source-files/main-sources/elite-map.asm"
  INCLUDE "3-assembled-output/resident.asm"
 
- PROGI% = QSL - PROGIS%
+ PROGI% = BPSLOT% - PROGIS%
  HOT_END% = PROGI%
 
  INCLUDE "3-assembled-output/elite-docked-config.asm"

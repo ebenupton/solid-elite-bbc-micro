@@ -89,16 +89,17 @@ row("main RAM", 0x7FFE, 0x8000, "`VEC`")
 qsl, bp, bp_end = C["QSL"], C["BPSLOT_P"], C["BPSLOT_END_P"]
 circ = FL["CIRC_START%"]
 row("bank 4 (flight)", 0x8000, circ, "`S%` and the hot pass")
-row("bank 4 (flight)", circ, qsl, "the planet's surface (bank 4 passes: `PF_HOOK`, `pc_circ`)", FL["HOME_END%"] - circ)
-row("bank 4 (flight)", qsl, bp, "the quarter squares `QSL`, `QSH`")
-row("bank 4 (flight)", bp, bp_end, "the blueprint set (`D.MOx`), its normals and `FC_NORMTAB`")
+row("bank 4 (flight)", circ, bp, "the planet's surface (bank 4 passes: `PF_HOOK`, `pc_circ`)", FL["HOME_END%"] - circ)
+row("bank 4 (flight)", bp, bp_end, "the blueprint set (`D.MOx`), its normals and `FC_NORMTAB` (the image holds the main RAM part's image here)")
 pfvs_used = FL.get("PFVS_END%", C["PFVS_P"]) - C["PFVS_P"]
-row("bank 4 (flight)", C["PFVS_P"], 0xC000, "the circle engine's variables (bank 4 top)", pfvs_used)
+row("bank 4 (flight)", C["PFVS_P"], qsl, "the circle engine's variables (bank 4 top)", pfvs_used)
+row("bank 4 (flight)", qsl, 0xC000, "the quarter squares `QSL`, `QSH` (made by the loader)")
 progis = progm_end - progm
-row("bank 4 (docked)", 0x8000, qsl - progis, "`S%` and the hot pass", DK["HOME_END%"] - 0x8000)
-row("bank 4 (docked)", qsl - progis, qsl, "the main RAM part's image")
-row("bank 4 (docked)", qsl, bp, "the quarter squares `QSL`, `QSH`")
+row("bank 4 (docked)", 0x8000, bp - progis, "`S%` and the hot pass", DK["HOME_END%"] - 0x8000)
+row("bank 4 (docked)", bp - progis, bp, "the main RAM part's image")
 row("bank 4 (docked)", bp, bp_end, "the docked code's blueprints, their normals and `FC_NORMTAB`", C["NORMTAB"] - bp)
+row("bank 4 (docked)", bp_end, qsl, "(free)", 0)
+row("bank 4 (docked)", qsl, 0xC000, "the quarter squares `QSL`, `QSH` (made by the loader)")
 dfss = C["DFSSAVE_P"]
 dpst = dfss - 0xC00
 row("bank 7 (flight)", 0x8000, FL["OVL%"], "the cold pass, `QQ18`")

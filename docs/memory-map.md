@@ -54,7 +54,7 @@ program's source.
 4. **Both home banks have one layout.** `S%`, the program's entry table,
    is at `&8000` (`HOME%`) in both, as the original's was at `&11E3` in
    both, so that the loader's resident code can enter either. The blueprint
-   set is at `&B700-&BFFF` (`BPSLOT%`, the original's `XX21` at `&5600`) in
+   set is at `&B300-&BBFF` (`BPSLOT%`, the original's `XX21` at `&5600`) in
    both: 2,304 bytes, as the blueprints are assembled without their edge
    lists (the `EDGE` macro assembles nothing: every ship is drawn from its
    faces, and nothing reads the edges), so the largest set, `D.MOC`, takes
@@ -62,7 +62,11 @@ program's source.
    renderer's data for the set's ships ("Per-set renderer data", below). The blueprints'
    headers, their edge counts included, are as they were. The flight code loads its set from a `D.MOx` file there; the docked
    code's set is its own, assembled with it. The missile's blueprint stays
-   in main RAM at `&7F00`, as in the original, where both sets point.
+   in main RAM at `&7F00`, as in the original, where both sets point. Above
+   the slot, `&BC00-&BFFF`, are the quarter squares (`QSL`, `QSH`), which
+   both programs multiply with and the loader makes once at boot: neither
+   program's home image reaches them, and `PCLI` copies a home image and a
+   blueprint file into the bank no further.
 5. **The MOS's vectors and the filing system see main RAM only.** WRCHV,
    BRKV and IRQ1V point at the loader's resident code, which pages the
    program's home bank in itself. Disc commands and file names must be in
@@ -113,7 +117,7 @@ Master port, each program is emitted in three passes, **low**, **hot** and
   call any pass but not the other overlay, even through code in between:
   `2-build-files/ovlcheck.py` checks every path at build time.
 * **`Area: blueprints`** (the docked code's own ship blueprints) is bank 4's
-  blueprint slot at `&B700`.
+  blueprint slot at `&B300`.
 * **`Area: none`** is code the port no longer runs: each copy has only its
   labels and one `RTS`, at its place, so a reference still assembles and
   returns at once.
@@ -142,8 +146,8 @@ the resident block A, and after it `gfx-merid.asm`'s `pcb_o`, the records'
 offsets, which bank 4's `pc_circ` and bank 6's `PC_ROWS` both read: one copy,
 seen with either bank paged), and for the circle engine's variables `main low`
 (`PFVA%`, in the resident block A's room), `main high` (`PFVH%`, after the
-high resident block) and `bank 4 top` (`PFVS%`, the flight code's home
-bank's last bytes), which the flight code's layout places (and
+high resident block) and `bank 4 top` (`PFVS%`, in the flight code's home
+bank after the blueprint slot, below the quarter squares), which the flight code's layout places (and
 `gfx-bank5.asm` `pf_tilt`'s main high pass, at the same place); no
 renderer file has an `ORG`. `streams.py` writes each file's pass for each place
 it names (`3-assembled-output/<file>-<place>.asm`, the other lines blanked;
@@ -173,14 +177,13 @@ RAM, once.
   The program's layout file assembles the part there and copies its bytes
   into its bank 4 image at `PROGI%` (the flight code's at the start of its
   blueprint slot, which `LOMOD` then loads a set over; the docked code's
-  below its quarter squares); `S%+14` gives where that image is while
-  `PCLI` stages the bank 4 image, and `PCLI` copies it to its place each
-  time it loads the program;
+  below its blueprint slot); `S%+14` gives where that image is while
+  `PCLI` stages the bank 4 image, and `PCLI` copies it to its place each time it loads the program;
 * the hot pass's bank 4 container (`hot`), from `S%` at `&8000` (`HOME%`)
   to the room that the layout keeps at the bank's end: in the flight code
   with `_CIRCLES`, the planet's surface (`CIRCSZ`, 2,717 bytes); then the
-  quarter squares (`QSL`, `QSH`, in both programs: the lighting's `L_REC`
-  reads them) and the blueprint slot;
+  blueprint slot and the quarter squares (`QSL`, `QSH`, which the loader
+  makes: in both programs, the lighting's `L_REC` reads them);
 * the cold pass, bank 7 from `&8000`, then the text tokens `QQ18`, below
   `DFSSAVE%`.
 
@@ -299,7 +302,8 @@ translation table's address into `TRTB%`). As in the original, it shows
 the loading screen with its own interrupt handler (block B, at `&1100`),
 and installs `CATD` at `&0D7A`. In place of the text tokens it installs the
 port's resident block A at `&0400` (`elite-resident.asm`), then finds the
-four banks. Its last part, `LOAD`, runs at `&0B00`, as the original's did
+four banks and makes the quarter squares at the top of the home bank
+(`QSL`, `QSH`, `&BC00-&BFFF`). Its last part, `LOAD`, runs at `&0B00`, as the original's did
 (two pages now): it copies the high resident block to `RESH%`, loads the
 renderer's banks (`R.BANK`, `F.BANK`, through `STAGE%`) and starts the frame
 layer (`F_INIT`), loads the docked code with "L.T.CODE" through `PCLI` and
@@ -408,13 +412,14 @@ what the frames can use, the docked code's are free only while docked.
 | main RAM | `&7FFE-&7FFF` | `VEC` | 2 | 0 |
 | bank 4 (flight) | `&8000-&A862` | `S%` and the hot pass | 10339 | 0 |
 | bank 4 (flight) | `&A863-&B2FF` | the planet's surface (bank 4 passes: `PF_HOOK`, `pc_circ`) | 2706 | 11 |
-| bank 4 (flight) | `&B300-&B6FF` | the quarter squares `QSL`, `QSH` | 1024 | 0 |
-| bank 4 (flight) | `&B700-&BFA1` | the blueprint set (`D.MOx`), its normals and `FC_NORMTAB` | 2210 | 0 |
-| bank 4 (flight) | `&BFA2-&BFFF` | the circle engine's variables (bank 4 top) | 54 | 40 |
+| bank 4 (flight) | `&B300-&BBA1` | the blueprint set (`D.MOx`), its normals and `FC_NORMTAB` (the image holds the main RAM part's image here) | 2210 | 0 |
+| bank 4 (flight) | `&BBA2-&BBFF` | the circle engine's variables (bank 4 top) | 54 | 40 |
+| bank 4 (flight) | `&BC00-&BFFF` | the quarter squares `QSL`, `QSH` (made by the loader) | 1024 | 0 |
 | bank 4 (docked) | `&8000-&AE0F` | `S%` and the hot pass | 8720 | 3072 |
 | bank 4 (docked) | `&AE10-&B2FF` | the main RAM part's image | 1264 | 0 |
-| bank 4 (docked) | `&B300-&B6FF` | the quarter squares `QSL`, `QSH` | 1024 | 0 |
-| bank 4 (docked) | `&B700-&BFA1` | the docked code's blueprints, their normals and `FC_NORMTAB` | 2144 | 66 |
+| bank 4 (docked) | `&B300-&BBA1` | the docked code's blueprints, their normals and `FC_NORMTAB` | 2144 | 66 |
+| bank 4 (docked) | `&BBA2-&BBFF` | (free) | 0 | 94 |
+| bank 4 (docked) | `&BC00-&BFFF` | the quarter squares `QSL`, `QSH` (made by the loader) | 1024 | 0 |
 | bank 7 (flight) | `&8000-&9F5D` | the cold pass, `QQ18` | 8030 | 0 |
 | bank 7 (flight) | `&9F5E-&A3A7` | the overlay region (`D.OV1` 1098 bytes, `D.OV2` 783) | 1098 | 0 |
 | bank 7 (flight) | `&A3A8-&B2FF` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch) | 3910 | 18 |
@@ -435,7 +440,7 @@ what the frames can use, the docked code's are free only while docked.
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher | 46 | 18 |
 
-Free, by place: main RAM 35, main RAM (flight) 5, main RAM (docked) 1248, bank 4 (flight) 51, bank 4 (docked) 3138, bank 7 (flight) 18, bank 7 0, bank 7 (docked) 4731, bank 5 966, bank 6 65.
+Free, by place: main RAM 35, main RAM (flight) 5, main RAM (docked) 1248, bank 4 (flight) 51, bank 4 (docked) 3232, bank 7 (flight) 18, bank 7 0, bank 7 (docked) 4731, bank 5 966, bank 6 65.
 
 **The build's check.** `2-build-files/mapcheck.py`, which `make` runs once
 every program and bank is assembled, fails the build if a place is out of

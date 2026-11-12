@@ -1241,8 +1241,8 @@ ENDIF                   \ (_PLANET_RINGS)
 
 \       Area: bank 4 top
 
-                        \ What one call makes and uses: in the home bank's last
-                        \ bytes, PFVS% (elite-map.asm), as the flight code's
+                        \ What one call makes and uses: in bank 4 after the
+                        \ blueprint slot, PFVS% (elite-map.asm), as the flight code's
 IF _PLANET_MOON OR _PLANET_RINGS   \ layout places them
 .pf_cx SKIP 2           \ the planet's centre and radius (PF_HOOK)
 .pf_cy SKIP 2

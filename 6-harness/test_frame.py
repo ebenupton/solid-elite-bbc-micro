@@ -63,7 +63,7 @@ sys.path.insert(0, os.path.join(REPO, '2-build-files'))
 
 HOME = 4                                         # the banks (the loader finds
 RBANK, FBANK, COLD = 5, 6, 7                     # them; any distinct numbers)
-BPSLOT = 0xB700                                  # (elite-map.asm)
+BPSLOT = SETF = None                             # (elite-map.asm: Mem sets them)
 STUB = None                                      # where the test's caller runs: after
                                                  # the hot pass's last container, or in
                                                  # page &0D (main())
@@ -125,8 +125,13 @@ class Mem:
     def __init__(self, S):
         self.main = bytearray(0x10000)
         self.fcsize = S['FCSLOT_SIZE']
+        global BPSLOT, SETF
+        from test_routines import map_constants, main_part
+        mc = map_constants()
+        BPSLOT, SETF = mc['BPSLOT%'], mc['SETF%']
         cold = open(os.path.join(OUT, 'D.CODEC.bin'), 'rb').read()
-        self.banks = {HOME: bytearray(open(os.path.join(OUT, 'D.CODEH.bin'), 'rb').read()),
+        home = open(os.path.join(OUT, 'D.CODEH.bin'), 'rb').read()
+        self.banks = {HOME: bytearray(home + bytes(0x4000 - len(home))),
                       RBANK: bytearray(open(os.path.join(OUT, 'BANK5.bin'), 'rb').read()),
                       FBANK: bytearray(open(os.path.join(OUT, 'BANK6.bin'), 'rb').read()),
                       COLD: bytearray(cold + bytes(0x4000 - len(cold)))}
@@ -134,9 +139,12 @@ class Mem:
         self.main[0xC000:0x10000] = open(os_rom, 'rb').read()[:0x4000]
         miss = open(os.path.join(OUT, 'MISSILE.bin'), 'rb').read()
         self.main[0x7F00:0x7F00 + len(miss)] = miss
-        from test_routines import map_constants, main_part
-        for a, d in main_part(self.banks[HOME], map_constants()):   # (the main RAM
-            self.main[a:a + len(d)] = d                             # part, as PCLI)
+        for n in range(512):                     # (the quarter squares, as the
+            q = n * n // 4                       # loader makes them)
+            self.banks[HOME][mc['QSL'] - 0x8000 + n] = q & 255
+            self.banks[HOME][mc['QSH'] - 0x8000 + n] = q >> 8
+        for a, d in main_part(self.banks[HOME], mc):   # (the main RAM part, as PCLI)
+            self.main[a:a + len(d)] = d
         self.sel = HOME
         ld = S['loader']                         # the resident block A (the far
         lb = open(os.path.join(OUT, 'ELITE4.bin'), 'rb').read()   # calls), as the loader
@@ -150,7 +158,7 @@ class Mem:
             ok[lo:hi] = b'\1' * (hi - lo)
         self.ok = ok
         game = bytearray(ok)                     # game code (LL9, and what the
-        mc = map_constants()                     # frame runs) also writes the
+                                                 # frame runs) also writes the
         for lo, hi in ((0, 0x100), (0x300, 0x400), (0x900, 0xD00),   # game's zero
                        (mc['PROGM%'], mc['PROGM_END%']),
                        (mc['PFVA%'], mc['GLUE%'])):
@@ -164,8 +172,8 @@ class Mem:
         lists, after the slot's pages, into bank 6's (as PCLI, then LOMOD's
         F_SETLD, do; elite-shipset.asm)"""
         d = open(os.path.join(OUT, 'D.MO%s.bin' % name), 'rb').read()
-        n = 0xC000 - BPSLOT
-        self.banks[HOME][BPSLOT - 0x8000:0x4000] = d[:n]
+        n = SETF - BPSLOT
+        self.banks[HOME][BPSLOT - 0x8000:SETF - 0x8000] = d[:n]
         fcslot = 0xBFC0 - self.fcsize
         self.banks[FBANK][fcslot - 0x8000:fcslot - 0x8000 + self.fcsize] = d[n:n + self.fcsize].ljust(self.fcsize, b'\0')
 

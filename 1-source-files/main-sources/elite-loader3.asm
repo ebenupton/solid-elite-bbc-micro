@@ -655,8 +655,53 @@ ENDIF
 
  JSR PROBE              \ Port: find four sideways RAM banks for the game
 
- \ Port: the quarter squares are in the flight code's home
-                        \ image now (elite-layout-flight.asm)
+                        \ Port: make the quarter squares, QS(n) = INT(n * n / 4)
+                        \ for n = 0 to 511, at the top of the home bank (QSL,
+                        \ QSH: elite-map.asm), where they stay: each program's
+                        \ home image ends below them. QS(n) = QS(n - 1) +
+                        \ INT(n / 2), summed in ZP(1 0)
+
+ LDA &F4                \ Page the home bank in, keeping the paged ROM on the
+ PHA                    \ stack
+ LDA BANK4
+ STA &F4
+ STA VIA+&30
+
+ LDA #0                 \ ZP(1 0) = QS(0) = 0
+ STA ZP
+ STA ZP+1
+
+FOR I%, 0, 1            \ n = 256 * I% + X
+
+ TAX                    \ (A = 0 here: X = 0)
+
+{
+.qs1
+
+ TXA                    \ A = INT(n / 2) = 128 * I% + INT(X / 2)
+ LSR A
+ ORA #128 * I%
+
+ CLC                    \ ZP(1 0) = ZP(1 0) + INT(n / 2) = QS(n)
+ ADC ZP
+ STA ZP
+ STA QSL + 256 * I%,X
+ LDA ZP+1
+ ADC #0
+ STA ZP+1
+ STA QSH + 256 * I%,X
+
+ INX
+ BNE qs1
+
+ TXA                    \ (A = 0 for the next half)
+}
+
+NEXT
+
+ PLA                    \ Page the ROM back in
+ STA &F4
+ STA VIA+&30
 
  LDX #35                \ We now want to copy the disc catalogue routine from
                         \ CATDcode to CATD, so set a counter in X for the 36
@@ -2107,8 +2152,7 @@ NEXT
  INCBIN "3-assembled-output/MISSILE.bin"
 
                         \ Port: the recursive text tokens are in each program's
-                        \ cold bank; the quarter squares and the resident block
-                        \ A follow
+                        \ cold bank; the resident block A follows
 
 
 \ ******************************************************************************

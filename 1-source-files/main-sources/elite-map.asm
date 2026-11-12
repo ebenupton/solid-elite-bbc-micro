@@ -11,9 +11,11 @@
 \
 \   &8000   S%, the program's entry table (as the original's at &11E3), then
 \           the program's home code in the original's order
-\   &B600   the blueprint set (XX21, as the original's at &5600): the flight
+\   &B300   the blueprint set (XX21, as the original's at &5600): the flight
 \           program's is loaded from a D.MOx file, the docked program's is its
 \           own (its blocks tagged "Area: blueprints")
+\   &BC00   the quarter squares, which the loader makes at boot: neither
+\           program's home image reaches them
 \
 \ and their cold banks hold the cold code from &8000 in the original's order,
 \ then the recursive text tokens (QQ18, the original's WORDS file at &0400).
@@ -55,8 +57,8 @@
                         \ hotm's in the source's order, moving hotm's across
                         \ page boundaries, and their branches' cycles)
 
- BPSLOT% = &B700        \ The blueprint set in each home bank, to BPSLOT_END%
- BPSLOT_END% = &BFA2    \ without their edge lists (the EDGE macro), then its
+ BPSLOT% = &B300        \ The blueprint set in each home bank, to BPSLOT_END%
+ BPSLOT_END% = &BBA2    \ without their edge lists (the EDGE macro), then its
                         \ ships' unit normals for the lighting, and their table
                         \ FC_NORMTAB at NORMTAB, at the slot's end (gfx-setdata.asm,
                         \ elite-shipset.asm): the largest set fits (the ship
@@ -64,7 +66,7 @@
 
  NORMTAB = BPSLOT_END% - 2 * 33   \ FC_NORMTAB, by ship type 0 to 32
 
- SETF% = &C000          \ Where a D.MOx file carries its ships' face lists:
+ SETF% = BPSLOT% + &900 \ Where a D.MOx file carries its ships' face lists:
                         \ after the slot's pages (elite-shipset.asm)
  FC_NORMTAB = NORMTAB
 
@@ -76,17 +78,21 @@
                         \ their bank (main RAM &1600 to &55FF, over the top of
                         \ the screens, which the game clears after each load)
 
- QSL = BPSLOT% - &400   \ The quarter squares, QS(n) = INT(n * n / 4) for n = 0
+ QSL = BPSLOT% + &900   \ The quarter squares, QS(n) = INT(n * n / 4) for n = 0
  QSH = QSL + &200       \ to 511: their low bytes at QSL and high bytes at QSH,
                         \ two pages each, page aligned (their users index them
                         \ by an operand's low byte and pick the page by its
-                        \ high bit), in each program's home bank, just below
-                        \ its blueprint slot (elite-layout-*.asm assemble
-                        \ them there): only home code uses them (the game's
-                        \ multiplications, and the renderer's lighting,
-                        \ gfx-light.asm, which the docked code has them for),
-                        \ and main RAM below the screen is the renderer's
-                        \ second buffer (BUF0)
+                        \ high bit), at the top of the home bank, after the
+                        \ blueprint slot's pages: only home code uses them
+                        \ (the game's multiplications, and the renderer's
+                        \ lighting, gfx-light.asm, which the docked code has
+                        \ them for), and main RAM below the screen is the
+                        \ renderer's second buffer (BUF0). The loader makes
+                        \ them at boot (elite-loader3.asm), and nothing loads
+                        \ over them: each program's home image ends below
+                        \ them, and PCLI copies a home image and a blueprint
+                        \ file into the bank no further
+ ASSERT QSL = SETF% AND QSH + &200 = &C000
 
  SCREEN% = &4000        \ The screen: 256 x 192 pixels in four colours (MODE 1's
                         \ format, 64-byte rows, at the 6845's 2 MHz clock)
@@ -307,9 +313,9 @@
  PFVS% = BPSLOT_END%    \ a build with _CIRCLES): 62 bytes at the end of the
                         \ resident block A, before the glue, and 62 after the
                         \ high resident block, to VEC, in main RAM, and what one
-                        \ PF_HOOK call makes and uses in the home bank's last
-                        \ 94 bytes, after the blueprint slot, which a set's
-                        \ file loads over (LOMOD) between iterations
+                        \ PF_HOOK call makes and uses in the 94 bytes after
+                        \ the blueprint slot, to the quarter squares, which a
+                        \ set's file loads over (LOMOD) between iterations
  ASSERT PFVA% + 62 = GLUE%
 
  PF_INWK = &46          \ INWK, for bank 5's part of the planet's surface

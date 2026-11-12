@@ -34,15 +34,15 @@
  INCLUDE "1-source-files/main-sources/gfx-settab.asm"
  ASSERT P% = BPSLOT_END%
 
- ASSERT HI(BPSLOT%) * 256 = BPSLOT% AND SETF% = &C000   \ (part 3 after the slot's pages)
+ ASSERT HI(BPSLOT%) * 256 = BPSLOT% AND SETF% = BPSLOT% + &900   \ (part 3 after the slot's pages)
 
- COPYBLOCK BPSLOT%, &C000, &3000   \ (keep the slot while part 3 is assembled
+ COPYBLOCK BPSLOT%, SETF%, &3000   \ (keep the slot while part 3 is assembled
  CLEAR BPSLOT%, &C000              \ over it, at bank 6's addresses)
  ORG FCSLOT
  INCLUDE "1-source-files/main-sources/gfx-setfaces.asm"
  ASSERT P% <= FCSLOT + FCSLOT_SIZE
  COPYBLOCK FCSLOT, P%, SETF%
  SETF_END% = SETF% + P% - FCSLOT
- COPYBLOCK &3000, &3000 + &C000 - BPSLOT%, BPSLOT%
+ COPYBLOCK &3000, &3000 + SETF% - BPSLOT%, BPSLOT%
 
  PRINT "Set ", SETN, ": slot free ", SETFREE%, ", face lists ", P% - FCSLOT, " of ", FCSLOT_SIZE
