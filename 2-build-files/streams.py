@@ -1195,12 +1195,14 @@ def text_tokens(errors):
 #
 # and runs to the next tag line. The places (RPLACES) are the renderer's
 # banks and the room in them: bank 4 (the flight code's home bank: the
-# planet's surface in game context, elite-layout-flight.asm), bank 5 (the
-# rasteriser's code, gfx-bank5.asm), bank 5 gap (the room below its per-x
-# tables), bank 6 (the frame layer, gfx-bank6.asm), bank 7 (the flight
+# planet's surface in game context, elite-layout-flight.asm), bank 5 runs
+# (the row run pages, made at start, and the state in their tails), bank 5
+# (the rasteriser's code, gfx-bank5.asm), bank 5 gap (the room below its
+# per-x tables), bank 5 end (the code after the disc layer's requests), bank 6 (the frame layer, gfx-bank6.asm), bank 7 (the flight
 # code's cold bank: the renderer's window after its overlays) and main (the
 # resident block A in main RAM: the glue); and for the circle engine's
-# variables, bank 4 top (the flight code's home bank's last bytes, PFVS%),
+# variables, bank 4 top (after the blueprint slot in the flight code's home
+# bank, PFVS%),
 # main low (PFVA%, in the resident block A's room) and main high (PFVH%,
 # after the high resident block), which elite-layout-flight.asm and (for
 # pf_tilt's) gfx-bank5.asm place. The lines before a file's first tag line
@@ -1216,7 +1218,8 @@ RFILES = ("gfx-glue.asm", "gfx-raster_poly.asm", "gfx-raster_line.asm", "gfx-ras
           "gfx-raster_reset.asm", "gfx-planet7.asm", "gfx-merid.asm", "gfx-frame.asm", "gfx-ssun.asm",
           "gfx-flare.asm", "gfx-frame_cold.asm", "gfx-hangar.asm", "gfx-finit.asm",
           "gfx-raster_disc.asm", "gfx-raster_disc2.asm", "gfx-raster_dpatch.asm")
-RPLACES = ("bank 4", "bank 4 top", "bank 5", "bank 5 gap", "bank 6", "bank 7", "main", "main low", "main high")
+RPLACES = ("bank 4", "bank 4 top", "bank 5 runs", "bank 5", "bank 5 gap", "bank 5 end", "bank 6", "bank 7", "main",
+           "main low", "main high")
 
 
 def renderer_passes(errors):

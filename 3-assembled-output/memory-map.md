@@ -39,12 +39,13 @@
 | bank 7 (flight) | `&B300-&BEFF` | each buffer's disc state (not in the image: `DP_BEGIN` sets it up) | 3072 | 0 |
 | bank 7 | `&BF00-&BFFF` | DFS's workspace page between disc commands (`DFSSAVE%`) | 256 | 0 |
 | bank 7 (docked) | `&8000-&BEFF` | the set's face lists, the cold pass, `QQ18` | 11397 | 4731 |
-| bank 5 | `&8000-&8FFF` | `R_POLY`, `R_LINE` | 4049 | 47 |
-| bank 5 | `&9000-&95FF` | the state: the dirty and written extents, `R_POLY`'s edge tables | 1536 | 0 |
-| bank 5 | `&9600-&9932` | `R_SETBUF`, `r_pgfix`, the spans, the arithmetic | 819 | 0 |
-| bank 5 | `&9933-&9BFF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt` | 700 | 17 |
-| bank 5 | `&9C00-&BE98` | the per-x tables, the 24 row runs (the stars' records, variables and some code in their tails; free: the 9 tails with nothing in them, 65 bytes each), the row pages, the stars, `R_INIT`, the repair, `R_GETW` | 8272 | 585 |
-| bank 5 | `&BE99-&BFFF` | `RJT`, the jump table | 42 | 317 |
+| bank 5 | `&8000-&97FF` | the 24 row runs, a page each, made at start by `R_INIT` (not in `R.BANK`); in their tails the stars' records and variables and `R_LINE`'s (free: the 13 tails with nothing in them, 65 bytes each, and the rest of the others) | 5022 | 1122 |
+| bank 5 | `&9800-&A7FF` | `R_POLY`, `R_LINE` | 4049 | 47 |
+| bank 5 | `&A800-&ADFF` | the state: the dirty and written extents, `R_POLY`'s edge tables | 1536 | 0 |
+| bank 5 | `&AE00-&B132` | `R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic | 819 | 0 |
+| bank 5 | `&B133-&B3FF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt` | 700 | 17 |
+| bank 5 | `&B400-&BFD4` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 3029 | 0 |
+| bank 5 | `&BFD5-&BFFF` | `RJT`, the jump table | 42 | 1 |
 | bank 6 | `&8000-&ABEC` | the frame layer's code (bank 6 passes) | 11245 | 0 |
 | bank 6 | `&ABED-&AF0A` | the faces' and the lighting's tables | 798 | 0 |
 | bank 6 | `&AF0B-&B1E8` | the state: the ship records, the zero page `F_FRAME` keeps, the faces' levels, the docking slot, the planet's records kept | 734 | 0 |
@@ -53,4 +54,4 @@
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher | 46 | 18 |
 
-Free, by place: main RAM 35, main RAM (flight) 5, main RAM (docked) 1248, bank 4 (flight) 51, bank 4 (docked) 3232, bank 7 (flight) 18, bank 7 0, bank 7 (docked) 4731, bank 5 966, bank 6 65.
+Free, by place: main RAM 35, main RAM (flight) 5, main RAM (docked) 1248, bank 4 (flight) 51, bank 4 (docked) 3232, bank 7 (flight) 18, bank 7 0, bank 7 (docked) 4731, bank 5 1187, bank 6 65.

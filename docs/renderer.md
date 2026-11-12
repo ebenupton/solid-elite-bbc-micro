@@ -12,10 +12,12 @@ extending its rows' dirty extents, and each buffer repairing its own dirty
 rows at the start of its next frame), in NMOS 6502 code, with buffer 0 at
 `&1000` and no ACCCON. `2-build-files/bank5.py` assembles `gfx-bank5.asm`
 (making long any branch that the longer NMOS code put out of range) and
-writes `3-assembled-output/BANK5.bin` (the 16K bank image) and
-`bank5-symbols.txt`; `make` runs it. The loader's `LOAD` routine loads it
-from the disc's `R.BANK` into bank 5 (through `STAGE%`, as `PCLI` loads a
-program).
+writes `3-assembled-output/BANK5.bin` (the bank's image from `R_POLY` at
+`&9800` to its end: the 24 row runs below it are not shipped, `R_INIT`
+makes them) and `bank5-symbols.txt`; `make` runs it. The loader's `LOAD`
+routine loads it from the disc's `R.BANK` into bank 5 (through `STAGE%`, as
+`PCLI` loads a program), from `R_IMG%` (which `bank5.py` writes to
+`3-assembled-output/bank5-entry.asm`).
 
 ### The memory
 
@@ -25,9 +27,15 @@ program).
 | main `&4000-&6FFF` | buffer 1 (`SCREEN%`, the direct-mode screen) |
 | main `&7E60-&7EFF` | the mailbox, `MBOX`: each call's inputs (below) |
 | zero page `&06-&27` | the colour pair, span ends and clip window (`&06-&0F`), and the rasteriser's scratch (`&10-&27`); the caller saves and restores the game's bytes there around a frame |
-| bank 5 `&8000-&8FFF` | `R_POLY` (both phases) and `R_LINE` (47 bytes free) |
-| bank 5 `&9000-&95FF` | the state: both buffers' dirty extents (`R_DIRTYL0`, `R_DIRTYR0`, `R_DIRTYL1` = `R_DIRTYL0` + `&300`, `R_DIRTYR1`), this frame's written extents (`R_WL`, `R_WR`), `R_POLY`'s edge tables |
-| bank 5 `&9600-&BEC2` | the shared region (`gfx-raster.asm`): `R_SETBUF` and `r_pgfix`, the spans, `R_DOT`, `R_MARKDIRTY`, the per-x tables at `&9C00`, the 24 row runs at `&A000` (with the stars' records and variables in their tails), the row pages, the stars, `R_INIT`, the repair (`R_REPAIR`, `r7_rowrep`), the disc layer's transfer (`R_GETW`, `R_DRAINQ`: `gfx-raster_dq.asm`) and `RJT`, the jump table, at `&BE99` (317 bytes free, to the bank's top); below the per-x tables, `R_LINE`'s cold part, the private state, `R_RESETBUF`, the frame layer's query, `r_wq` (`gfx-raster_dq.asm`'s bank 5 gap pass), and `pf_tilt` (17 bytes free) |
+| bank 5 `&8000-&97FF` | the 24 row runs, a page each (`gfx-raster.asm`'s bank 5 runs pass: a page whose number is a multiple of 32, for the repair), which `R_INIT` makes at start; in their 65-byte tails, the stars' records (each buffer's `r_s0y`, `r_s1y` = `r_s0y` + `&300`, and so on) and variables, and `R_LINE`'s |
+| bank 5 `&9800-&A7FF` | `R_POLY` (both phases) and `R_LINE` (47 bytes free) |
+| bank 5 `&A800-&ADFF` | the state: both buffers' dirty extents (`R_DIRTYL0`, `R_DIRTYR0`, `R_DIRTYL1` = `R_DIRTYL0` + `&300`, `R_DIRTYR1`), this frame's written extents (`R_WL`, `R_WR`), `R_POLY`'s edge tables |
+| bank 5 `&AE00-&BFFE` | the shared region (`gfx-raster.asm`): `R_SETBUF` and `r_pgfix`, the spans' core, the per-x tables at `&B400` (`R_TAB%`), the row pages, the stars, `r_setup`, the repair (`R_REPAIR`, `r7_rowrep`), the disc layer's transfer (`R_GETW`, `R_DRAINQ`: `gfx-raster_dq.asm`), then the bank 5 end passes: `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY` and `R_INIT` (which makes the row runs, then calls `r_setup`), and `RJT`, the jump table, at `&BFD5` (1 byte free, to the bank's top); below the per-x tables, `R_LINE`'s cold part, the private state, `R_RESETBUF`, the frame layer's query, `r_wq` (`gfx-raster_dq.asm`'s bank 5 gap pass), and `pf_tilt` (17 bytes free) |
+
+Each region but the row runs' code and `R_INIT` is where it was when the row
+runs were assembled after the per-x tables, moved by whole pages, so that no
+branch or indexed read crosses a page it did not (the row runs' pages now
+come first, as the repair needs their page number to be a multiple of 32).
 
 Nothing of the rasteriser's state is in main RAM but the mailbox. Bank 5
 uses no zero page outside `&06-&27`: the NMOS conversion's temporaries are
@@ -97,9 +105,10 @@ stars, the repair, the written extents), every result compared pixel for
 pixel and every dirty extent checked. It also checks that every
 instruction naming buffer 0's state is a patch site `R_SETBUF` patches, and
 that nothing outside the zero page `&06-&27`, the stack page, the two
-buffers, the mailbox and bank 5 is written, and that the row runs are left
-as they were (but for `r_pgfix` moving a page's stores to the other
-buffer). The gate runs it with `--quick`.
+buffers, the mailbox and bank 5 is written, that `R_INIT` makes the 24 row
+runs (in bank pages that start with what the RAM held), and that every
+other call leaves them as they were (but for `r_pgfix` moving a page's
+stores to the other buffer). The gate runs it with `--quick`.
 
 ## The frame layer's bank 6
 
@@ -692,7 +701,7 @@ interrupt) and the MOS 8,828. Each frame fills nearly the whole window and
 repairs it on the next: the Master port's kept solid rows take that cost
 away (7.6% to 10.6% over a docking there), and bank 5 has no room for them.
 
-* **`r_pgfix`.** The row runs are unrolled stores assembled for buffer 1;
+* **`r_pgfix`.** The row runs are unrolled stores made for buffer 1;
   each time a run page is used for the other buffer, its 63 stores'
   addresses are patched. Two sets of runs would end this, but bank 5 has
   no room for a second set (4.5K).

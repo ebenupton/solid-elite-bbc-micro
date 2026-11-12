@@ -853,10 +853,10 @@ NEXT
  DEX
  BPL lbk1
 
- JSR pload              \ Load R.BANK to STAGE% and copy it into bank 5
- LDA BANK5
- LDX #64
- LDY #&80
+ JSR pload              \ Load R.BANK to STAGE% and copy it into bank 5, from
+ LDA BANK5              \ R_IMG% (bank5-entry.asm: below it are the row runs,
+ LDX #HI(&C000 - R_IMG%)   \ which R_INIT makes)
+ LDY #HI(R_IMG%)
  JSR bcopy
 
  LDA #'F'               \ Load F.BANK to STAGE% and copy it into bank 6

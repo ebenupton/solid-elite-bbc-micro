@@ -131,8 +131,9 @@ class Mem:
         BPSLOT, SETF = mc['BPSLOT%'], mc['SETF%']
         cold = open(os.path.join(OUT, 'D.CODEC.bin'), 'rb').read()
         home = open(os.path.join(OUT, 'D.CODEH.bin'), 'rb').read()
-        self.banks = {HOME: bytearray(home + bytes(0x4000 - len(home))),
-                      RBANK: bytearray(open(os.path.join(OUT, 'BANK5.bin'), 'rb').read()),
+        r5 = open(os.path.join(OUT, 'BANK5.bin'), 'rb').read()   # (the bank's end: the row
+        self.banks = {HOME: bytearray(home + bytes(0x4000 - len(home))),   # runs before it,
+                      RBANK: bytearray(bytes(0x4000 - len(r5)) + r5),     # F_INIT's R_INIT makes)
                       FBANK: bytearray(open(os.path.join(OUT, 'BANK6.bin'), 'rb').read()),
                       COLD: bytearray(cold + bytes(0x4000 - len(cold)))}
         os_rom = os.path.join(HERE, 'node_modules', 'jsbeeb', 'public', 'roms', 'os.rom')

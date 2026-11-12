@@ -70,7 +70,8 @@ def rws_constants():
 
 
 def build():
-    """bank 5, as the game's build makes it: BANK5.bin and its symbols"""
+    """bank 5, as the game's build makes it: BANK5.bin (from R_IMAGE: the row
+    runs below it are made by R_INIT) and its symbols"""
     r = subprocess.run([sys.executable, os.path.join(REPO, '2-build-files', 'bank5.py'), BEEBASM],
                        capture_output=True, text=True)
     if r.returncode:
@@ -166,7 +167,8 @@ class Machine(tr.Machine):
         self.syms, image, self.sizemsg = build()
         rnd = random.Random(seed)
         self.mem = [rnd.randrange(256) for _ in range(65536)]
-        self.mem[0x8000:0xC000] = list(image)
+        self.mem[self.syms['R_IMAGE']:0xC000] = list(image)   # (below it, the row
+                                                 # runs' pages: what the RAM held)
         self.mpu = MPU(memory=self.mem)
         self.cycles = 0
         self.guard = True
@@ -215,7 +217,7 @@ class Machine(tr.Machine):
                         raise AssertionError('%s wrote &%04X' % (name, a))
             a0 = max(a0, hi)
         r0 = s['r_run0']
-        for r in range(24):
+        for r in range(24 if name != 'R_INIT' else 0):   # (R_INIT makes them)
             b = r0 + 256 * r
             for i in range(189):
                 if mem[b + i] != snap[b + i]:
@@ -354,6 +356,15 @@ def main():
     print(m.sizemsg, '; %d R_SETBUF patch sites' % nsites)
     rnd = random.Random(a.seed)
     m.call('R_INIT')
+    r0 = m.syms['r_run0']                        # (the row runs it made: STA &4000 +
+    for r in range(24):                          # &200 r + 8 c - 8 r, Y for c = 1..63,
+        run = []                                 # RTS, 0: gfx-raster.asm)
+        for c in range(1, 64):
+            a_ = 0x4000 + 0x200 * r + 8 * c - 8 * r
+            run += [0x99, a_ & 255, a_ >> 8]
+        if m.mem[r0 + 256 * r:r0 + 256 * r + len(run) + 2] != run + [0x60, 0]:
+            raise SystemExit('R_INIT: row run %d is not as made' % r)
+    print('R_INIT   ok (the 24 row runs made)')
     t = tr.Tester(m, rnd)
     only = a.only.split(',') if a.only else None
 

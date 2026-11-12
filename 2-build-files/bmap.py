@@ -110,16 +110,19 @@ row("bank 7 (flight)", dpst, dfss, "each buffer's disc state (not in the image: 
 row("bank 7", dfss, 0xC000, "DFS's workspace page between disc commands (`DFSSAVE%`)")
 row("bank 7 (docked)", 0x8000, dfss, "the set's face lists, the cold pass, `QQ18`", DK["COLD_END%"] - 0x8000)
 
-rjt = B5["RJT"]
-row("bank 5", 0x8000, 0x9000, "`R_POLY`, `R_LINE`", B5["R_LOEND"] - 0x8000)
-row("bank 5", 0x9000, 0x9600, "the state: the dirty and written extents, `R_POLY`'s edge tables")
-row("bank 5", 0x9600, B5["r_tfree"], "`R_SETBUF`, `r_pgfix`, the spans, the arithmetic")
-row("bank 5", B5["r_tfree"], B5["r_tables"], "the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt`", B5["R_GAPEND"] - B5["r_tfree"])
+rjt, img, st = B5["RJT"], B5["R_IMAGE"], B5["R_DIRTYL0"]
 run0 = B5["r_run0"]                    # (a run page's tail, after its 190-byte run and the
-empty = [p for p in range(24)           # spare byte: empty if no label is in it)
-         if not any(run0 + 0x100 * p + 191 <= v < run0 + 0x100 * (p + 1) for v in B5.values())]
-row("bank 5", B5["r_tables"], rjt, "the per-x tables, the 24 row runs (the stars' records, variables and some code in their tails; free: the %d tails with nothing in them, 65 bytes each), the row pages, the stars, `R_INIT`, the repair, `R_GETW`" % len(empty),
-    rjt - B5["r_tables"] - 65 * len(empty))
+tails = [sum(1 for v in set(B5.values()) if run0 + 0x100 * p + 191 <= v < run0 + 0x100 * (p + 1))   # spare byte)
+         for p in range(24)]
+tail_used = sum(min(65, max(0, max([v for v in B5.values() if run0 + 0x100 * p + 191 <= v < run0 + 0x100 * (p + 1)] or [run0 + 0x100 * p + 190]) - (run0 + 0x100 * p + 190))) for p in range(24))
+empty = sum(1 for t in tails if t == 0)
+row("bank 5", run0, img, "the 24 row runs, a page each, made at start by `R_INIT` (not in `R.BANK`); in their tails the stars' records and variables and `R_LINE`'s (free: the %d tails with nothing in them, 65 bytes each, and the rest of the others)" % empty,
+    0x1800 - 65 * 24 + (B5["rl_nh"] + 1 - B5["rl_lct"]) + 8 * 48 + 4 + 2 + 9)
+row("bank 5", img, st, "`R_POLY`, `R_LINE`", B5["R_LOEND"] - img)
+row("bank 5", st, st + 0x600, "the state: the dirty and written extents, `R_POLY`'s edge tables")
+row("bank 5", st + 0x600, B5["r_tfree"], "`R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic")
+row("bank 5", B5["r_tfree"], B5["r_tables"], "the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt`", B5["R_GAPEND"] - B5["r_tfree"])
+row("bank 5", B5["r_tables"], rjt, "the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT`")
 row("bank 5", rjt, 0xC000, "`RJT`, the jump table", B5["RJT_END"] - rjt)
 
 fcslot, fjt = C["FCSLOT"], C["FJT"]
