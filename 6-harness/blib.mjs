@@ -478,7 +478,7 @@ export async function runElite(opts) {
 
     const res = { snaps: [], fsDirty: [], screens: [], iterTimes: [], tt100Times: [], tt100AtIter: [], init: null, keyLog: [], events: [], s, cpu, regions, page0d: [] };
     let started = false, done = false, armPatch = false, iter = 0, tt100 = 0, inGame = false;
-    let keysDown = [], lasSaved = -1;
+    let keysDown = [], lasSaved = -1, curProg = "docked";
     const ctxBase = { rb, rd, sy: fsy, iterOf: () => iter, tt100Of: () => tt100 };
     const ask = ctx => {
         const keys = opts.pilot.keys({ ...ctxBase, ...ctx }) || [];
@@ -594,7 +594,7 @@ export async function runElite(opts) {
         const at = cpu.cycleSeconds * 2e6 + cpu.currentCycles;
         if (pc === seenPc && at === seenAt) return false;
         seenPc = pc; seenAt = at;
-        for (const h of hs) if (live(h) && fire(h, pc)) return true;
+        for (const h of hs) if (live(h)) { if (h.prog) curProg = h.prog.name; if (fire(h, pc)) return true; }
         return false;
     };
     // compared offsets
@@ -651,6 +651,7 @@ export async function runElite(opts) {
         if (res.page0d.length < 20) res.page0d.push([iter, pc, a]);
         return false;
     });
+    res.page1 = page1Watch(cpu, sysWriter, () => curProg, () => started);
     cpu.debugInstruction.add(handler);
     const maxSecs = opts.maxSecs || 7200;
     let shotAt = 0;
@@ -661,6 +662,31 @@ export async function runElite(opts) {
     res.emuSecs = emuSecs();
     res.iters = iter; res.tt100 = tt100;
     return res;
+}
+
+// Page 1 (the stack page, which the original shares with XX3, the heap of
+// projected vertices that LL9 fills from &0100 up): page1Watch records, per
+// program ("flight", "docked", as progOf() says), the lowest byte that a push
+// writes (the stack's low-water mark: a push writes &0100+S), the highest
+// byte below the stack that any other write by game code reaches (XX3's
+// high-water mark) and that the filing system's or the MOS's writes reach,
+// once active() is true. It returns the figures, which page1Format() gives
+// with the untouched gap between.
+export function page1Watch(cpu, sysWriter, progOf, active) {
+    const st = {};
+    cpu.debugWrite.add(a => {
+        if (a < 0x100 || a > 0x1ff || !active()) return false;
+        const p = progOf(), t = st[p] ||= { stackLow: 0x200, dataHigh: 0xff, sysHigh: 0xff }, sp = 0x100 + cpu.s;
+        if (a === sp) { if (a < t.stackLow) t.stackLow = a; }
+        else if (a < sp) { if (sysWriter()) { if (a > t.sysHigh) t.sysHigh = a; } else if (a > t.dataHigh) t.dataHigh = a; }
+        return false;
+    });
+    return st;
+}
+export function page1Format(st) {
+    const h = a => "&" + a.toString(16).toUpperCase().padStart(4, "0");
+    return Object.entries(st || {}).map(([p, t]) => `${p}: stack low ${h(t.stackLow)}, XX3 high ${t.dataHigh < 0x100 ? "none" : h(t.dataHigh)}` +
+        `${t.sysHigh >= 0x100 ? `, filing system/MOS below the stack to ${h(t.sysHigh)}` : ""}, untouched between ${Math.max(t.stackLow - Math.max(t.dataHigh, t.sysHigh) - 1, 0)}`).join("; ");
 }
 
 // Snapshot helpers

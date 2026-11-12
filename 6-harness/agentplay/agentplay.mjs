@@ -14,6 +14,7 @@
 // Writes DIR/{config.json, inputs.jsonl, agent.log, journal.jsonl, events.jsonl, summary.json, coverage-*.json, *.png}.
 // Exit status: 0 no findings, 1 a finding (divergence, crash, hang, BRK, page &0D, save file), 2 error.
 import { Session } from "./session.mjs";
+import { page1Format } from "../blib.mjs";
 import { parseArgs } from "../args.mjs";
 import { MODES } from "./styles.mjs";
 import { resolve } from "path";
@@ -35,6 +36,7 @@ try {
     const bad = s.findings.filter(f => f.kind !== "observable" && f.kind !== "hang-both" && f.kind !== "orig-disc-lost");
     console.log(`AGENTPLAY ${bad.length ? "FINDINGS" : "CLEAN"} ${cfg.out}: ${s.gameMinutes} game min, ${s.compared} iterations compared (${s.flight} in flight), ${s.reads} reads (${s.keyReads} with keys), findings ${s.findings.length}` +
         `${s.divergence ? `, first divergence at iteration ${s.divergence.iter}` : ""}; final ${JSON.stringify(s.final)}`);
+    console.log(`page 1 (cand): ${page1Format(S.cand.page1)}`);
     console.log(`features ${JSON.stringify(s.features)} agent ${JSON.stringify(s.agentNotes)}`);
     process.exit(bad.length ? 1 : 0);
 } catch (e) { console.error(e.stack || e); process.exit(2); }

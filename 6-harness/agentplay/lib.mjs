@@ -35,7 +35,7 @@
 // What it watches for besides: BRKs (any BRK instruction run once the game has started,
 // with where it was and the error block after it), writes by game code to page &0D, and
 // the routine labels of each poll (control flow).
-import { progHooks, regionsFor, canonFor, excludeSet, TIMING_EXCLUDE, RELOC_EXCLUDE, DRAW_EXCLUDE, PATCHES, bootModelB, physRead, loadSyms } from "../blib.mjs";
+import { progHooks, regionsFor, canonFor, excludeSet, TIMING_EXCLUDE, RELOC_EXCLUDE, DRAW_EXCLUDE, PATCHES, bootModelB, physRead, loadSyms, page1Watch } from "../blib.mjs";
 import { existsSync, readFileSync } from "fs";
 import { dirname, resolve } from "path";
 export { regionsFor };
@@ -124,6 +124,7 @@ export class BMachine {
         });
         this.written = new Set();
         this.bootWrites = cpu.debugWrite.add(a => { if (this.inGame && !this.started && a < 0x8000) this.written.add(a); return false; });
+        this.page1 = page1Watch(cpu, sysWriter, () => this.prog, () => this.started);
         if (this.opts.watch0d) cpu.debugWrite.add(a => {
             if (!this.inGame || a < 0x0d00 || a > 0x0dff || sysWriter()) return false;
             const pc = cpu.oldPcArray[cpu.oldPcIndex];

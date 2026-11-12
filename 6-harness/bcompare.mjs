@@ -50,7 +50,7 @@
 // Exit status 0 if the game state is identical at every compared iteration
 // (and both runs completed); prints "BCOMPARE PASS <ref it/s> <cand it/s>" or
 // "BCOMPARE FAIL <reason>".
-import { runElite, loadBuild, regionsFor, excludeSet, TIMING_EXCLUDE, RELOC_EXCLUDE, DRAW_EXCLUDE, ROOT, CAND_BUILD, REF_BUILD, WORK } from "./blib.mjs";
+import { runElite, loadBuild, regionsFor, excludeSet, TIMING_EXCLUDE, RELOC_EXCLUDE, DRAW_EXCLUDE, ROOT, CAND_BUILD, REF_BUILD, WORK, page1Format } from "./blib.mjs";
 import { makePilot, patchCommander } from "./bpilot.mjs";
 import { writeFileSync, mkdirSync } from "fs";
 import { makeTracer } from "./btrace.mjs";
@@ -115,7 +115,7 @@ async function cachedRef() {
     const r = await run("ref", rb, null);
     const o = { snaps: r.snaps.map(b => Buffer.from(b).toString("base64")), fsDirty: r.fsDirty, screens: r.screens, init: Buffer.from(r.init).toString("base64"),
         iterTimes: r.iterTimes, tt100Times: r.tt100Times, regions: r.regions, keyLog: r.keyLog,
-        iters: r.iters, tt100: r.tt100, emuSecs: r.emuSecs, error: r.error, phases: r.phases,
+        iters: r.iters, tt100: r.tt100, emuSecs: r.emuSecs, error: r.error, phases: r.phases, page1: r.page1,
         stats: { ...r.stats, systems: [...r.stats.systems] } };
     mkdirSync(dir, { recursive: true });
     // (written whole, then renamed into place: a gate running at the same time in this
@@ -279,6 +279,8 @@ log(`Cycles per flight iteration: ref ${(2e6 / rs.all).toFixed(1)}, cand ${(2e6 
     for (const [p, [k, d]] of Object.entries(pr)) { const c = pc[p] || [0, 1]; log(`  ${p.padEnd(9)} ${String(k).padStart(6)}  ${(k / d).toFixed(2).padStart(6)}  ${(c[0] / c[1]).toFixed(2).padStart(6)}   ${((c[0] / c[1]) / (k / d)).toFixed(3)}`); }
 }
 log(`  emulated time to iteration ${n - 1}: ref ${ref.iterTimes[n - 1]?.toFixed(1)} s, cand ${cand.iterTimes[n - 1]?.toFixed(1)} s`);
+log(`Page 1 (ref): ${page1Format(ref.page1)}`);
+log(`Page 1 (cand): ${page1Format(cand.page1)}`);
 writeFileSync(`${OUT}/report.txt`, report.join("\n") + "\n");
 writeFileSync(`${OUT}/keys-ref.txt`, ref.keyLog.map(k => k.join(" ")).join("\n") + "\n");
 writeFileSync(`${OUT}/keys-cand.txt`, cand.keyLog.map(k => k.join(" ")).join("\n") + "\n");
