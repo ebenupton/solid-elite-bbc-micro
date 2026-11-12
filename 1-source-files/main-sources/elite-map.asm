@@ -37,20 +37,23 @@
                         \ code's layout checks it is there)
 
  PROGM% = &7970         \ Each program's main RAM part (its low pass, then the
- PROGM_END% = &7E00     \ hot pass's main RAM container), after the rupture's
-                        \ code and before the mailbox, in the room that the
-                        \ original's mode 5 dashboard leaves: the program's
-                        \ layout copies it into its bank 4 image at PROGI%
-                        \ (S%+14 gives it, as staged), and PCLI copies it here
-                        \ when it loads the program
+ PROGM_END% = &7E60     \ hot pass's main RAM containers), after the rupture's
+                        \ code, in the room that the original's mode 5
+                        \ dashboard leaves: main RAM's code, one run from the
+                        \ rupture's (RUPT%) to the workspace (MBOX). The
+                        \ program's layout copies it into its bank 4 image at
+                        \ PROGI% (S%+14 gives it, as staged), and PCLI copies
+                        \ it here when it loads the program
 
- PROGX% = &7FA0         \ The rest of each program's main RAM part: the room
- PROGX_END% = &7FFE     \ between the missile's blueprint (which ends there
-                        \ without its edges) and VEC, for the hot pass (its
-                        \ image follows PROGM%'s, and PCLI copies it too)
+ PROGIS% = PROGM_END% - PROGM%   \ The size of the main RAM part's image in
+                        \ bank 4 (PROGI%)
 
- PROGIS% = PROGM_END% - PROGM% + PROGX_END% - PROGX%   \ The size of the main
-                        \ RAM part's image in bank 4 (PROGI%)
+ PROGH% = &7E00         \ Where the main RAM part's first hot container (hotm,
+                        \ after the low pass) ends: the second (hotx) follows
+                        \ hotm's units, to PROGM_END% (as one container, the
+                        \ flow, streams.py, would interleave hotx's units with
+                        \ hotm's in the source's order, moving hotm's across
+                        \ page boundaries, and their branches' cycles)
 
  BPSLOT% = &B700        \ The blueprint set in each home bank, to BPSLOT_END%
  BPSLOT_END% = &BFA2    \ without their edge lists (the EDGE macro), then its
@@ -187,12 +190,19 @@
                         \ static workspace at &1000-&10FF, which PCLI keeps in
                         \ DFSSAVE% between disc commands
 
- MBOX = &7E00           \ The rasteriser's mailbox (&7E00-&7E9F, between the
-                        \ dashboard and the missile's blueprint): its callers'
-                        \ inputs (gfx-rws.asm)
+ MBOX = &7E60           \ The rasteriser's mailbox (&7E60-&7EFF, from the main
+                        \ RAM part's end to the missile's blueprint): its
+                        \ callers' inputs (gfx-rws.asm). Main RAM's workspace
+                        \ is one run from here to VEC, around the missile's
+                        \ blueprint, which stays where the original has it:
+                        \ the mailbox, then after the blueprint the shared
+                        \ variables (GVARS), the palette (RESH%) and the
+                        \ circle engine's variables (PFVH%)
+ ASSERT MBOX = PROGM_END% AND MBOX + &A0 = &7F00
 
- GVARS = &7EA0          \ The filled renderer's shared variables (&7EA0-&7EFF,
-                        \ after the mailbox), which the game's hooks, the
+ GVARS = &7FA0          \ The filled renderer's shared variables (&7FA0-&7FAF,
+                        \ after the missile's blueprint, which ends there
+                        \ without its edges), which the game's hooks, the
                         \ vertical sync interrupt and the frame layer (bank
                         \ 6, gfx-frame.asm) all read or write; none of them
                         \ is game state (docs/renderer.md, "The frame layer's
@@ -278,10 +288,10 @@
                         \ which hold nothing between two calls of R_POLY, and
                         \ nothing draws during a disc command
 
- RESH% = &7EB0          \ The high resident block (&7EB0-&7EFF, after the
-                        \ renderer's shared variables): the screen's palette
-                        \ and the rupture's registers, which the loader's LOAD
-                        \ routine copies there (elite-resident-high.asm)
+ RESH% = GVARS + 16     \ The high resident block (&7FB0-&7FBF, after the
+                        \ renderer's shared variables): the screen's palette,
+                        \ which the loader's LOAD routine copies there
+                        \ (elite-resident-high.asm)
 
  PALCMYK = RESH%        \ The screen's palette (16 bytes), which the vertical
                         \ sync's interrupt writes
@@ -293,10 +303,10 @@
                         \ can be built against it
 
  PFVA% = &06E6          \ The circle engine's variables (gfx-merid.asm and
- PFVH% = &7EC0          \ gfx-planet7.asm, the flight code's planet surface in
+ PFVH% = RESH% + 16     \ gfx-planet7.asm, the flight code's planet surface in
  PFVS% = BPSLOT_END%    \ a build with _CIRCLES): 62 bytes at the end of the
-                        \ resident block A, before the glue, and 64 after the
-                        \ high resident block, in main RAM, and what one
+                        \ resident block A, before the glue, and 62 after the
+                        \ high resident block, to VEC, in main RAM, and what one
                         \ PF_HOOK call makes and uses in the home bank's last
                         \ 94 bytes, after the blueprint slot, which a set's
                         \ file loads over (LOMOD) between iterations

@@ -1,4 +1,4 @@
-hot &8000-&AE11: 118 units, 8720 bytes, 3074 free
+hot &8000-&AE0F: 118 units, 8720 bytes, 3072 free
   &8000    22 S%
   &8016    15 INBAY
   &8025    20 DEEOR
@@ -118,4 +118,4 @@ hot &8000-&AE11: 118 units, 8720 bytes, 3074 free
   &A189   107 LL120..LL123
   &A1F4    28 LL129
 hotm &7980-&7DFF: 0 units, 0 bytes, 1152 free
-hotx &7FA0-&7FFD: 0 units, 0 bytes, 94 free
+hotx &7E00-&7E5F: 0 units, 0 bytes, 96 free

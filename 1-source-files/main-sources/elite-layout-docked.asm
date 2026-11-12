@@ -17,7 +17,7 @@
 \
 \   * the configuration and the workspaces (config);
 \
-\   * the main RAM part, at PROGM% in the resident block: the low pass, then
+\   * the main RAM part, at PROGM% after the rupture's code: the low pass, then
 \     the hot pass's container in main RAM (hotm), which the flow fills once
 \     bank 4 is full; its bytes are copied into the bank 4 image at PROGI%,
 \     and PCLI copies them to PROGM% when it loads the program;
@@ -51,20 +51,14 @@
 
 .LOW_END%
 
- HOTM% = LOW_END%       \ (the hot pass's container in main RAM: the rest of
- HOTM_END% = PROGM_END% \ the main RAM part)
+ HOTM% = LOW_END%       \ (the hot pass's containers in main RAM: hotm to
+ HOTM_END% = PROGH%     \ PROGH%, then hotx, straight after hotm's units, to
+                        \ the main RAM part's end: elite-map.asm)
 
  INCLUDE "3-assembled-output/elite-docked-hotm.asm"
-
-.PROGM_USED%
-
- ORG PROGX%             \ (the hot pass's last container: the room after the
-                        \ missile's blueprint)
  INCLUDE "3-assembled-output/elite-docked-hotx.asm"
 
-.PROGX_USED%
-
- ASSERT PROGX_USED% <= PROGX_END%
+.PROGM_USED%
 
  ASSERT PROGM_USED% <= PROGM_END%
 
@@ -77,7 +71,7 @@
 
 
  PRINT "Docked bank 4: &8000-", ~HOME_END%-1, " (the hot pass), free ", HOT_END%-HOME_END%
- PRINT "Docked main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%, ", then ", PROGX_END%-PROGX_USED%, " free of ", PROGX_END%-PROGX%
+ PRINT "Docked main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%
  ASSERT HOME_END% <= HOT_END%
 
                         \ Port: the quarter squares, QSL and QSH, in bank 4 just
@@ -124,12 +118,10 @@
  ASSERT INBAYJ = INBAYJ%   \ (the flight code's INBAY returns there: elite-map.asm)
 
  COPYBLOCK PROGM%, PROGM_END%, PROGI%
- COPYBLOCK PROGX%, PROGX_END%, PROGI% + PROGM_END% - PROGM%
 
  SAVE "3-assembled-output/T.CODEH.bin", HOME%, &C000, HOME%
  SAVE "3-assembled-output/T.CODEM.bin", PROGM%, PROGM_END%, PROGM%   \ (the main
- SAVE "3-assembled-output/T.CODEX.bin", PROGX%, PROGX_END%, PROGX%   \ RAM part,
-                        \ for the harness: it is on the disc in x.CODEH)
+                        \ RAM part, for the harness: it is on the disc in x.CODEH)
 
  CLEAR &8000, &C000
 

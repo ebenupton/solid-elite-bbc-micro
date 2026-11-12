@@ -339,8 +339,8 @@ ENDIF
 
                         \ Port: without its edges the blueprint ends here, so
  ASSERT P% <= &7FA0     \ the room up to VEC, at &7FFE as in the original, is
- SKIP &7FFE - P%        \ part of the programs' main RAM part, PROGX%
-                        \ (elite-map.asm)
+ SKIP &7FFE - P%        \ main RAM's workspace: the shared variables, the
+                        \ palette and the circle engine's (elite-map.asm)
 
 \ ******************************************************************************
 \

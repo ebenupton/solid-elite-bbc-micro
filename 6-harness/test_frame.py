@@ -26,7 +26,7 @@ stars, text, the sights and our laser beams) and checks that:
 
   * every bank 6 entry writes nothing but the renderer's zero page (&06-&27,
     the frame layer's &D2-&E1), the stack page, the screen buffers, the
-    mailbox and the shared variables (&7E00-&7EFF), the glue's and the far
+    mailbox and the shared variables (MBOX, GVARS on), the glue's and the far
     calls' own bytes, &F4, ROMSEL and banks 5 and 6 (and F_FRAME, which runs
     game code, also the game's zero page and page 1, XX3); that the zero
     page is as it was after every call, but for the drawing's temporaries
@@ -145,14 +145,14 @@ class Mem:
         self.main[S['GLUE%']:S['GLUE%'] + len(g)] = g
         ok = bytearray(0x10000)                  # the write guard's allowed bytes
         for lo, hi in ((0x06, 0x28), (0xD2, 0xE2), (0xF4, 0xF5), (0x100, 0x200), (0x1000, 0x7000),
-                       (0x7E00, 0x7F00), (S['rtA'], S['rtA'] + 3), (S['rtl'] + 1, S['rtl'] + 3), (S['rtj'] + 1, S['rtj'] + 2),
+                       (S['MBOX'], S['MBOX'] + 0xA0), (S['GVARS'], 0x7FFE), (S['rtA'], S['rtA'] + 3), (S['rtl'] + 1, S['rtl'] + 3), (S['rtj'] + 1, S['rtj'] + 2),
                        (ld['fA'], ld['fA'] + 5), (ld['fpc'] + 1, ld['fpc'] + 3), (ld['fpj'] + 1, ld['fpj'] + 3)):
             ok[lo:hi] = b'\1' * (hi - lo)
         self.ok = ok
         game = bytearray(ok)                     # game code (LL9, and what the
         mc = map_constants()                     # frame runs) also writes the
         for lo, hi in ((0, 0x100), (0x300, 0x400), (0x900, 0xD00),   # game's zero
-                       (mc['PROGM%'], mc['PROGM_END%']), (mc['PROGX%'], mc['PROGX_END%']),
+                       (mc['PROGM%'], mc['PROGM_END%']),
                        (mc['PFVA%'], mc['GLUE%'])):
             game[lo:hi] = b'\1' * (hi - lo)     # page, UP, K% and the main RAM part
         self.okgame = game
@@ -935,8 +935,9 @@ def pmath_tests(quick=False):
 
 def main():
     global STUB
-    STUB = syms_of('flight')['PROGX_USED%']       # (main RAM no build uses)
-    if STUB + 9 > 0x7FFE:
+    from test_routines import map_constants
+    STUB = syms_of('flight')['PROGM_USED%']       # (main RAM no build uses)
+    if STUB + 9 > map_constants()['PROGM_END%']:
         STUB = 0x0DA0                             # (or, when the hot pass leaves less than
                                                   # the caller's 9 bytes there, page &0D
                                                   # after CATD: DFS's NMI workspace on the

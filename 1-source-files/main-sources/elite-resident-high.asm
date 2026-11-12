@@ -2,9 +2,9 @@
 \
 \ ELITE HIGH RESIDENT BLOCK (Port)
 \
-\ The Model B port's code and data at RESH% (&7EB0-&7EFF), after the
-\ renderer's shared variables and below the missile's blueprint, in main RAM
-\ that nothing else uses: the loader's LOAD routine copies it there from
+\ The Model B port's data at RESH% (&7FB0-&7FBF), after the renderer's
+\ shared variables, which follow the missile's blueprint, in main RAM's
+\ workspace (elite-map.asm): the loader's LOAD routine copies it there from
 \ RESHcode (elite-loader3.asm). It holds what the vertical sync's and the
 \ rupture's interrupt handler (IRQG, in the resident block A) reads, so that
 \ the resident block A has room for the renderer's glue.

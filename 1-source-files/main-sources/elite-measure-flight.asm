@@ -33,7 +33,7 @@ ENDIF
 .LOW_END%
 
  HOTM% = LOW_END%
- HOTM_END% = PROGM_END%
+ HOTM_END% = PROGH%
 
  CLEAR &8000, &C000
  ORG HOME%
@@ -56,7 +56,7 @@ IF _CIRCLES             \ the circle engine's variables (elite-map.asm): the
  ORG PFVH%              \ main high, main low and bank 4 top passes
  INCLUDE "3-assembled-output/gfx-planet7-mainhigh.asm"
  INCLUDE "3-assembled-output/gfx-merid-mainhigh.asm"
- ASSERT P% <= PFVH% + 64
+ ASSERT P% <= &7FFE          \ (VEC)
  ORG PFVA%
  INCLUDE "3-assembled-output/gfx-merid-mainlow.asm"
  ASSERT P% <= GLUE%
@@ -94,7 +94,7 @@ ENDIF
 .M_HOTM
  ORG HOTM_END%
 .M_HOTM_END
- ORG PROGX%
+ ORG PROGH%
 .M_HOTX
- ORG PROGX_END%
+ ORG PROGM_END%
 .M_HOTX_END

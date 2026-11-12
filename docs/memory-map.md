@@ -156,18 +156,26 @@ RAM, once.
 
 **The containers.** The passes go into these containers:
 
-* the **main RAM part** of the program, in two pieces: `PROGM%` to
-  `PROGM_END%` (`&7970-&7DFF`, after the rupture's code and before the
-  mailbox: room that the original's mode 5 dashboard leaves), with the low
-  pass and then the hot pass's main RAM container (`hotm`), and `PROGX%` to
-  `PROGX_END%` (`&7FA0-&7FFD`, between the missile's blueprint, which ends
-  there without its edges, and `VEC`), a second hot container (`hotx`).
-  The program's layout file assembles them there and copies their bytes
+* the **main RAM part** of the program, `PROGM%` to `PROGM_END%`
+  (`&7970-&7E5F`, after the rupture's code, in the room that the
+  original's mode 5 dashboard leaves: main RAM's code is one run, from
+  the rupture's to the workspace), with the low pass and then the hot
+  pass's main RAM containers: `hotm`, to `PROGH%` (`&7E00`), and `hotx`,
+  straight after `hotm`'s units, to the part's end (two containers in one
+  run: as one, the flow would interleave `hotx`'s units with `hotm`'s in
+  the source's order and move `hotm`'s across page boundaries, and three
+  of their branches, `DVID4`'s among them, would cross pages). Main RAM's
+  workspace is one run
+  from there to `VEC`, around the missile's blueprint, which stays where
+  the original has it (`&7F00`): the mailbox (`&7E60-&7EFF`), then the
+  shared variables (`GVARS`, `&7FA0`), the palette (`RESH%`, `&7FB0`) and
+  the circle engine's variables (`PFVH%`, `&7FC0`, to `VEC`).
+  The program's layout file assembles the part there and copies its bytes
   into its bank 4 image at `PROGI%` (the flight code's at the start of its
   blueprint slot, which `LOMOD` then loads a set over; the docked code's
   below its quarter squares); `S%+14` gives where that image is while
-  `PCLI` stages the bank 4 image, and `PCLI` copies both pieces to their
-  places each time it loads the program;
+  `PCLI` stages the bank 4 image, and `PCLI` copies it to its place each
+  time it loads the program;
 * the hot pass's bank 4 container (`hot`), from `S%` at `&8000` (`HOME%`)
   to the room that the layout keeps at the bank's end: in the flight code
   with `_CIRCLES`, the planet's surface (`CIRCSZ`, 2,717 bytes); then the
@@ -194,12 +202,13 @@ then flows the units by those sizes. A block's size does not depend on
 where it goes. `3-assembled-output/flow-flight.txt` and `flow-docked.txt`
 list every container and its units.
 
-The main RAM part is 1,262 bytes (1,168 and 94): the rest of main RAM is
+The main RAM part is 1,264 bytes (`hotx` 96 of them): the rest of main RAM is
 the screen's (both buffers, `&1000-&6FFF`, and the dashboard,
 `&7000-&76FF`), the rupture's, the workspaces' and the resident block's.
 The low pass holds `WSCAN` and `DELAY`, which the cold pass calls directly.
 Without `_CIRCLES` bank 4 holds the whole of each hot pass, so the main RAM
-containers are empty; with it, the flight code's hot pass fills `hotm` too.
+containers are empty; with it, the flight code's hot pass fills `hotm`, and
+91 bytes of `hotx`.
 A low block may not fall into a cold one (its stub would be in the low
 pass); a hot block that falls into a low one falls into a `JMP` to it at
 its place. The stubs for a cold block go in the copy of the nearest hot
@@ -377,7 +386,7 @@ what the frames can use, the docked code's are free only while docked.
 | main RAM | `&0000-&00FF` | zero page: the game's (the rasteriser's &06-&27 and the frame layer's &D2-&E1 during a frame, kept) | 256 | 0 |
 | main RAM | `&0100-&01FF` | the stack, down from `&01FF`, and `XX3`, the heap of projected vertices, up from `&0100`, sharing the page as in the original (as measured over the gate's runs and an eight-session soak, `page1Watch`: in flight the stack down to `&01BA` and `XX3` up to `&016F`, 74 bytes untouched; docked the stack down to `&01B1`, `XX3` up to `&0193` and the filing system's writes up to `&010B`, 29 untouched) | 256 | 0 |
 | main RAM | `&0300-&03CF` | `UP`, the game's workspace | 208 | 0 |
-| main RAM | `&0400-&06E5` | resident block A (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin`, `dfsout`, `pload`, `WRCHR`, `BRKR`, the last saved commander and the break handler, `IRQG` | 742 | 0 |
+| main RAM | `&0400-&06E5` | resident block A (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin`, `dfsout`, `pload`, `WRCHR`, `BRKR`, the last saved commander and the break handler, `IRQG` | 715 | 27 |
 | main RAM | `&06E6-&0723` | the circle engine's variables (main low: `gfx-merid.asm`) | 62 | 0 |
 | main RAM | `&0724-&07BF` | the glue: the trampolines into bank 5, `GCALL`; then `pcb_o`, the circle engine's table that banks 4 and 6 read (main: `gfx-merid.asm`) | 151 | 5 |
 | main RAM | `&07C0-&07FF` | `SNE`, `ACT` | 64 | 0 |
@@ -389,23 +398,21 @@ what the frames can use, the docked code's are free only while docked.
 | main RAM | `&4000-&6FFF` | buffer 1, the screen | 12288 | 0 |
 | main RAM | `&7000-&76FF` | the dashboard (`P.DIALS`) | 1792 | 0 |
 | main RAM | `&7700-&796F` | the rupture (`elite-rupture.asm`, copied there by the loader): the clock switches, the frames' registers, the flip, the display off during disc commands; its variables after its code | 624 | 0 |
-| main RAM (flight) | `&7970-&7DFF` | the main RAM part: the low pass, then `hotm` | 1168 | 0 |
-| main RAM (docked) | `&7970-&7DFF` | the main RAM part: the low pass, then `hotm` | 16 | 1152 |
-| main RAM | `&7E00-&7E9F` | the mailbox, `MBOX`: the rasteriser's inputs (the stars at its end, `&67-&9F`); sharing its polygon vertices, `PCLI`'s command and OSFILE block, the circle records from `PF_HOOK` to the frame (`&00-&49`, `&52-&5D`) and the disc layer's batches (`&00-&65`) | 160 | 0 |
-| main RAM | `&7EA0-&7EAF` | `GVARS`, the renderer's shared variables (the game's hooks, the interrupt and the frame layer's) | 16 | 0 |
-| main RAM | `&7EB0-&7EBF` | the high resident block: the palette | 16 | 0 |
-| main RAM | `&7EC0-&7EFF` | the circle engine's variables (main high: `gfx-planet7.asm`, `gfx-merid.asm`) | 59 | 5 |
-| main RAM | `&7F00-&7F9F` | the missile's blueprint | 160 | 0 |
-| main RAM (flight) | `&7FA0-&7FFD` | the main RAM part: `hotx` | 91 | 3 |
-| main RAM (docked) | `&7FA0-&7FFD` | the main RAM part: `hotx` | 0 | 94 |
+| main RAM (flight) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 1259 | 5 |
+| main RAM (docked) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 16 | 1248 |
+| main RAM | `&7E60-&7EFF` | the mailbox, `MBOX`: the rasteriser's inputs (the stars at its end, `&67-&9F`); sharing its polygon vertices, `PCLI`'s command and OSFILE block, the circle records from `PF_HOOK` to the frame (`&00-&49`, `&52-&5D`) and the disc layer's batches (`&00-&65`) | 160 | 0 |
+| main RAM | `&7F00-&7F9F` | the missile's blueprint (where the original has it) | 160 | 0 |
+| main RAM | `&7FA0-&7FAF` | `GVARS`, the renderer's shared variables (the game's hooks, the interrupt and the frame layer's) | 16 | 0 |
+| main RAM | `&7FB0-&7FBF` | the high resident block: the palette | 16 | 0 |
+| main RAM | `&7FC0-&7FFD` | the circle engine's variables (main high: `gfx-planet7.asm`, `gfx-merid.asm`) | 59 | 3 |
 | main RAM | `&7FFE-&7FFF` | `VEC` | 2 | 0 |
 | bank 4 (flight) | `&8000-&A862` | `S%` and the hot pass | 10339 | 0 |
 | bank 4 (flight) | `&A863-&B2FF` | the planet's surface (bank 4 passes: `PF_HOOK`, `pc_circ`) | 2706 | 11 |
 | bank 4 (flight) | `&B300-&B6FF` | the quarter squares `QSL`, `QSH` | 1024 | 0 |
 | bank 4 (flight) | `&B700-&BFA1` | the blueprint set (`D.MOx`), its normals and `FC_NORMTAB` | 2210 | 0 |
 | bank 4 (flight) | `&BFA2-&BFFF` | the circle engine's variables (bank 4 top) | 54 | 40 |
-| bank 4 (docked) | `&8000-&AE11` | `S%` and the hot pass | 8720 | 3074 |
-| bank 4 (docked) | `&AE12-&B2FF` | the main RAM part's image | 1262 | 0 |
+| bank 4 (docked) | `&8000-&AE0F` | `S%` and the hot pass | 8720 | 3072 |
+| bank 4 (docked) | `&AE10-&B2FF` | the main RAM part's image | 1264 | 0 |
 | bank 4 (docked) | `&B300-&B6FF` | the quarter squares `QSL`, `QSH` | 1024 | 0 |
 | bank 4 (docked) | `&B700-&BFA1` | the docked code's blueprints, their normals and `FC_NORMTAB` | 2144 | 66 |
 | bank 7 (flight) | `&8000-&9F5D` | the cold pass, `QQ18` | 8030 | 0 |
@@ -428,7 +435,7 @@ what the frames can use, the docked code's are free only while docked.
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher | 46 | 18 |
 
-Free, by place: main RAM 10, main RAM (flight) 3, main RAM (docked) 1246, bank 4 (flight) 51, bank 4 (docked) 3140, bank 7 (flight) 18, bank 7 0, bank 7 (docked) 4731, bank 5 966, bank 6 65.
+Free, by place: main RAM 35, main RAM (flight) 5, main RAM (docked) 1248, bank 4 (flight) 51, bank 4 (docked) 3138, bank 7 (flight) 18, bank 7 0, bank 7 (docked) 4731, bank 5 966, bank 6 65.
 
 **The build's check.** `2-build-files/mapcheck.py`, which `make` runs once
 every program and bank is assembled, fails the build if a place is out of
@@ -442,7 +449,7 @@ of any assembly addresses page `&0D` outside `CATD` (`&0D7A-&0D9D`), what
 the original puts there.
 
 Without `_CIRCLES` (`make circles=off`), the flight code's home bank has
-1,527 bytes free and its main RAM part 1,102 and 94, the planet's surface
+1,527 bytes free and its main RAM part 1,198, the planet's surface
 and the circle engine's variables being absent; the rest is as above.
 
 ## What is not in the original's order

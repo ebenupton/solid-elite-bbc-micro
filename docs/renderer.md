@@ -23,7 +23,7 @@ program).
 |---|---|
 | main `&1000-&3FFF` | buffer 0 (`BUF0`, elite-map.asm) |
 | main `&4000-&6FFF` | buffer 1 (`SCREEN%`, the direct-mode screen) |
-| main `&7E00-&7E9F` | the mailbox, `MBOX`: each call's inputs (below) |
+| main `&7E60-&7EFF` | the mailbox, `MBOX`: each call's inputs (below) |
 | zero page `&06-&27` | the colour pair, span ends and clip window (`&06-&0F`), and the rasteriser's scratch (`&10-&27`); the caller saves and restores the game's bytes there around a frame |
 | bank 5 `&8000-&8FFF` | `R_POLY` (both phases) and `R_LINE` (47 bytes free) |
 | bank 5 `&9000-&95FF` | the state: both buffers' dirty extents (`R_DIRTYL0`, `R_DIRTYR0`, `R_DIRTYL1` = `R_DIRTYL0` + `&300`, `R_DIRTYR1`), this frame's written extents (`R_WL`, `R_WR`), `R_POLY`'s edge tables |
@@ -181,8 +181,8 @@ What differs from the Master port's frame layer:
 | Where | What |
 |---|---|
 | main `&0724-&07B5` | the glue, `GLUE%` (`gfx-glue.asm`): bank 5's trampolines and `GCALL`, at a fixed address at the end of the resident block A, which includes it |
-| main `&7E00-&7E9F` | the mailbox (the rasteriser's inputs; the stars, which the game's hooks write; `f_wq`'s query and answer) |
-| main `&7EA0-&7EAF` | the shared variables, `GVARS` (`elite-map.asm`) |
+| main `&7E60-&7EFF` | the mailbox (the rasteriser's inputs; the stars, which the game's hooks write; `f_wq`'s query and answer) |
+| main `&7FA0-&7FAF` | the shared variables, `GVARS` (`elite-map.asm`), after the missile's blueprint |
 | zero page `&06-&27`, `&D2-&E1` | the rasteriser's, and the frame layer's pointers (`FZ`: the game's `XX2`, `K3` and `K4`, dead between iterations): `F_FRAME` keeps the game's bytes in bank 6 (`f_zsv`) and puts them back |
 | bank 6 `&8000` on | the code: the frame layer, the lens flare, the screens drawn directly (`gfx-frame_cold.asm`), the hangar, `F_INIT`; then the faces' and the lighting's tables (`gfx-faces.asm`, `gfx-light6.asm`) |
 | then | the state: the ship records `F_RP` (29 bytes a ship, a field to an array of `MAXSH` = `NOSH`), the text map's row counts `F_TMR` (whole in a page), `f_zsv`, the faces' levels `F_SR`, the docking slot `F_SLV`, then page-aligned the discs' half-widths `F_HW` (the planet's) and `F_HW2` (the sun's), the text map `F_TM` (24 x 32), and the discs' rows this frame: `R_NDISCR`, `R_NDISCL` (the spans), `R_NDN`, `R_NDX0` to `R_NDX3` (the planet's boundaries) |
@@ -413,7 +413,8 @@ killed, exploding); every other entry is called as the game calls it,
 `LDX #n : JSR GCALL` from main RAM with the home bank paged; and the frame
 runs part 6 on and `PTCLS` in the home bank. It checks that nothing is
 written outside the renderer's zero page, the stack, the buffers,
-`&7E00-&7EFF`, the glue's and the far calls' own bytes, `&F4`, ROMSEL and
+the mailbox, the shared variables, the palette and the circle engine's
+variables (`&7E60-&7EFF`, `&7FA0-&7FFD`), the glue's and the far calls' own bytes, `&F4`, ROMSEL and
 the banks (and, for the frame, the game's zero page, `UP` and `K%`); that
 the zero page is as it was after every entry but `F_FRAME`, and after it
 but for the drawing's temporaries; that Y is kept and the home bank paged

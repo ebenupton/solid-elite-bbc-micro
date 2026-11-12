@@ -79,19 +79,19 @@ hotm &79B2-&7DFF: 32 units, 1102 bytes, 0 free
   &7D77    17 H_DOT
   &7D88    67 H_LL42..H_EE31
   &7DCB    53 MVT6
-hotx &7FA0-&7FFD: 15 units, 91 bytes, 3 free
-  &7FA0     9 LTLI
-  &7FA9    10 CTWOS
-  &7FB3     5 MU6
-  &7FB8     1 MUT2
-  &7FB9    10 MULT12
-  &7FC3    10 DET1
-  &7FCD     1 PLS2
-  &7FCE    13 FAROF..FAROF2
-  &7FDB     7 MAS4
-  &7FE2     4 SHCOL
-  &7FE6     6 RECM
-  &7FEC    11 LL42F
-  &7FF7     1 LL9 (Part 11 of 12)
-  &7FF8     2 LL9 (Part 12 of 12)
-  &7FFA     1 LL9 (Part 12 of 12), drawing
+hotx &7E00-&7E5F: 15 units, 91 bytes, 5 free
+  &7E00     9 LTLI
+  &7E09    10 CTWOS
+  &7E13     5 MU6
+  &7E18     1 MUT2
+  &7E19    10 MULT12
+  &7E23    10 DET1
+  &7E2D     1 PLS2
+  &7E2E    13 FAROF..FAROF2
+  &7E3B     7 MAS4
+  &7E42     4 SHCOL
+  &7E46     6 RECM
+  &7E4C    11 LL42F
+  &7E57     1 LL9 (Part 11 of 12)
+  &7E58     2 LL9 (Part 12 of 12)
+  &7E5A     1 LL9 (Part 12 of 12), drawing

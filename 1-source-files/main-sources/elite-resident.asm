@@ -177,22 +177,6 @@
 
  ASSERT LO(PROGM_END% - PROGM%) <> 0
 
- TXA                    \ Then PROGX% to PROGX_END%, whose image follows (at the
- CLC                    \ address in pcm1, plus X)
- ADC pcm1+1
- STA pcx1+1
- LDA pcm1+2
- ADC #0
- STA pcx1+2
- LDX #PROGX_END%-PROGX%-1
-
-.pcx1
-
- LDA &FFFF,X            \ (the address is set above)
- STA PROGX%,X
- DEX
- BPL pcx1
-
  LDA #'C'               \ Load x.CODEC, the program's cold image, to STAGE%
  STA pcbuf+8
  JSR pload
@@ -219,6 +203,54 @@
  LDA pbank              \ Page the caller's bank back in and return
  STA &F4
  STA VIA+&30
+ RTS
+
+\ ******************************************************************************
+\
+\       Name: bcopy
+\       Type: Subroutine
+\   Category: Loader
+\    Summary: Copy pages from STAGE% into a sideways RAM bank
+\
+\ ------------------------------------------------------------------------------
+\
+\ Arguments:
+\
+\   A                   The bank (ROMSEL)
+\
+\   X                   The number of pages to copy
+\
+\   Y                   The page in the bank to copy to
+\
+\ ******************************************************************************
+
+.bcopy
+
+ STY bc2+2              \ Set the destination page in the STA below
+
+ LDY #HI(STAGE%)        \ Set the source page in the LDA below
+ STY bc1+2
+
+ STA &F4                \ Page the bank in
+ STA VIA+&30
+
+ LDY #0
+
+.bc1
+
+ LDA &FF00,Y            \ (the source page is set above)
+
+.bc2
+
+ STA &FF00,Y            \ (the destination page is set above)
+
+ INY
+ BNE bc1
+ INC bc1+2
+ INC bc2+2
+ DEX
+ BNE bc1
+
  RTS
 
 \ ******************************************************************************
@@ -330,54 +362,6 @@
  EQUW pcbuf+2           \ The file name
  EQUD STAGE%            \ The load address
  EQUB 0                 \ 0: load to the address in the block
-
-\ ******************************************************************************
-\
-\       Name: bcopy
-\       Type: Subroutine
-\   Category: Loader
-\    Summary: Copy pages from STAGE% into a sideways RAM bank
-\
-\ ------------------------------------------------------------------------------
-\
-\ Arguments:
-\
-\   A                   The bank (ROMSEL)
-\
-\   X                   The number of pages to copy
-\
-\   Y                   The page in the bank to copy to
-\
-\ ******************************************************************************
-
-.bcopy
-
- STY bc2+2              \ Set the destination page in the STA below
-
- LDY #HI(STAGE%)        \ Set the source page in the LDA below
- STY bc1+2
-
- STA &F4                \ Page the bank in
- STA VIA+&30
-
- LDY #0
-
-.bc1
-
- LDA &FF00,Y            \ (the source page is set above)
-
-.bc2
-
- STA &FF00,Y            \ (the destination page is set above)
-
- INY
- BNE bc1
- INC bc1+2
- INC bc2+2
- DEX
- BNE bc1
-
- RTS
 
 \ ******************************************************************************
 \

@@ -7,7 +7,7 @@
 \ (gfx-raster*.asm, in NMOS 6502 code), in one sideways RAM bank, 5, with all
 \ of its state. Its caller, the frame layer, is in another bank (6) and
 \ cannot see bank 5, so a call's inputs go through the mailbox, MBOX
-\ (&7E00-&7E9F, main RAM), and its zero page:
+\ (&7E60-&7EFF, main RAM: elite-map.asm), and its zero page:
 \
 \   zero page &06-&27   R_COLE, R_COLO (the colour pair), R_XL, R_XR (span
 \                       ends), R_CL, R_CR, R_CT, R_CB (the clip window), and

@@ -40,13 +40,12 @@ def map_constants():
 
 
 def main_part(home, mc):
-    """the program's main RAM part, PROGM% to PROGM_END% and PROGX% to
-    PROGX_END%, from its image in the home image (S%+14 gives its address
-    as PCLI stages it), as PCLI copies it: [(address, bytes)]"""
+    """the program's main RAM part, PROGM% to PROGM_END%, from its image in
+    the home image (S%+14 gives its address as PCLI stages it), as PCLI
+    copies it: [(address, bytes)]"""
     at = home[14] + 256 * home[15] - mc["STAGE%"]
     n = mc["PROGM_END%"] - mc["PROGM%"]
-    return [(mc["PROGM%"], home[at:at + n]),
-            (mc["PROGX%"], home[at + n:at + n + mc["PROGX_END%"] - mc["PROGX%"]])]
+    return [(mc["PROGM%"], home[at:at + n])]
 
 
 def flight_constants(path):

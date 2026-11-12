@@ -58,7 +58,7 @@ def row(space, start, end, what, used=None):
     rows.append((space, start, end, what, u, n - u))
 
 
-progm, progm_end, progx, progx_end = C["PROGM_P"], C["PROGM_END_P"], C["PROGX_P"], C["PROGX_END_P"]
+progm, progm_end = C["PROGM_P"], C["PROGM_END_P"]
 resa_end, = printed(r"Resident block A: &0400-&([0-9A-F]+)")
 row("main RAM", 0x0000, 0x0100, "zero page: the game's (the rasteriser's &06-&27 and the frame layer's &D2-&E1 during a frame, kept)")
 row("main RAM", 0x0100, 0x0200, "the stack, down from `&01FF`, and `XX3`, the heap of projected vertices, up from `&0100`, sharing the page as in the original (as measured over the gate's runs and an eight-session soak, `page1Watch`: in flight the stack down to `&01BA` and `XX3` up to `&016F`, 74 bytes untouched; docked the stack down to `&01B1`, `XX3` up to `&0193` and the filing system's writes up to `&010B`, 29 untouched)")
@@ -77,15 +77,13 @@ row("main RAM", C["SCREEN_P"], C["PANEL_P"], "buffer 1, the screen")
 row("main RAM", C["PANEL_P"], C["PANEL_P"] + C["PANELROWS"] * 0x100, "the dashboard (`P.DIALS`)")
 row("main RAM", C["RUPT_P"], progm, "the rupture (`elite-rupture.asm`, copied there by the loader): the clock switches, the frames' registers, the flip, the display off during disc commands; its variables after its code", LD["RUPT_END"] - C["RUPT_P"])
 for prog, sy in (("flight", FL), ("docked", DK)):
-    row("main RAM (%s)" % prog, progm, progm_end, "the main RAM part: the low pass, then `hotm`", sy["PROGM_USED%"] - progm)
+    row("main RAM (%s)" % prog, progm, progm_end, "the main RAM part: the low pass, then `hotm` and `hotx` (main RAM\'s code is one run, from the rupture\'s)", sy["PROGM_USED%"] - progm)
 row("main RAM", C["MBOX"], C["MBOX_END"], "the mailbox, `MBOX`: the rasteriser's inputs (the stars at its end, `&67-&9F`); sharing its polygon vertices, `PCLI`'s command and OSFILE block, the circle records from `PF_HOOK` to the frame (`&00-&49`, `&52-&5D`) and the disc layer's batches (`&00-&65`)")
+row("main RAM", 0x7F00, C["GVARS"], "the missile's blueprint (where the original has it)")
 row("main RAM", C["GVARS"], C["RESH_P"], "`GVARS`, the renderer's shared variables (the game's hooks, the interrupt and the frame layer's)", C["PF_CLS"] + 1 - C["GVARS"])
 row("main RAM", C["RESH_P"], C["PFVH_P"], "the high resident block: the palette", LD["RESH_END"] - C["RESH_P"])
 pfvh_used = FL.get("PFVH_END%", C["PFVH_P"]) - C["PFVH_P"]
-row("main RAM", C["PFVH_P"], C["PFVH_P"] + 64, "the circle engine's variables (main high: `gfx-planet7.asm`, `gfx-merid.asm`)", pfvh_used)
-row("main RAM", 0x7F00, progx, "the missile's blueprint")
-for prog, sy in (("flight", FL), ("docked", DK)):
-    row("main RAM (%s)" % prog, progx, progx_end, "the main RAM part: `hotx`", sy["PROGX_USED%"] - progx)
+row("main RAM", C["PFVH_P"], 0x7FFE, "the circle engine's variables (main high: `gfx-planet7.asm`, `gfx-merid.asm`)", pfvh_used)
 row("main RAM", 0x7FFE, 0x8000, "`VEC`")
 
 qsl, bp, bp_end = C["QSL"], C["BPSLOT_P"], C["BPSLOT_END_P"]
@@ -96,7 +94,7 @@ row("bank 4 (flight)", qsl, bp, "the quarter squares `QSL`, `QSH`")
 row("bank 4 (flight)", bp, bp_end, "the blueprint set (`D.MOx`), its normals and `FC_NORMTAB`")
 pfvs_used = FL.get("PFVS_END%", C["PFVS_P"]) - C["PFVS_P"]
 row("bank 4 (flight)", C["PFVS_P"], 0xC000, "the circle engine's variables (bank 4 top)", pfvs_used)
-progis = progm_end - progm + progx_end - progx
+progis = progm_end - progm
 row("bank 4 (docked)", 0x8000, qsl - progis, "`S%` and the hot pass", DK["HOME_END%"] - 0x8000)
 row("bank 4 (docked)", qsl - progis, qsl, "the main RAM part's image")
 row("bank 4 (docked)", qsl, bp, "the quarter squares `QSL`, `QSH`")

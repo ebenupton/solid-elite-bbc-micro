@@ -16,7 +16,7 @@ of the current sources):
     BUF0 and SCREEN%), as the last R_SETBUF chose: the reference model's
     12K screen is that buffer's;
   * the inputs (vertices, line ends, stars) are in the mailbox, MBOX
-    (&7E00), the state in bank R: the model reads and writes them by name, so
+    (MBOX), the state in bank R: the model reads and writes them by name, so
     it needs no change;
   * the write guard allows exactly the renderer's zero page (&06-&27), the
     stack page, the two screen buffers, the mailbox and bank 5; and the row

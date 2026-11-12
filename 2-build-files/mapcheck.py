@@ -102,7 +102,7 @@ def inside(sy, copy, lo, hi, place):
 
 nlab = 0
 # main RAM
-progm, progm_end, progx, progx_end = C["PROGM_P"], C["PROGM_END_P"], C["PROGX_P"], C["PROGX_END_P"]
+progm, progm_end = C["PROGM_P"], C["PROGM_END_P"]
 order("main RAM", [
     ("UP", 0x0300, 0x03D0),
     ("resident block A", 0x0400, C["PFVA_P"]),
@@ -117,11 +117,10 @@ order("main RAM", [
     ("the rupture", C["RUPT_P"], LD["RUPT_END"]),
     ("the main RAM part", progm, progm_end),
     ("the mailbox", C["MBOX"], C["MBOX_END"]),
+    ("the missile's blueprint", 0x7F00, C["GVARS"]),
     ("the shared variables", C["GVARS"], C["RESH_P"]),
     ("the high resident block", C["RESH_P"], LD["RESH_END"]),
     ("the circle engine's variables (main high)", C["PFVH_P"], FL.get("PFVH_END%", C["PFVH_P"])),
-    ("the missile's blueprint", 0x7F00, progx),
-    ("the main RAM part (hotx)", progx, progx_end),
     ("VEC", 0x7FFE, 0x8000)])
 if LD["RUPT_END"] > progm:
     errors.append("main RAM: the rupture (to &%04X) runs into the main RAM part (&%04X)" % (LD["RUPT_END"] - 1, progm))
@@ -131,7 +130,7 @@ for prog, sy in (("flight", FL), ("docked", DK)):
     lo = sy["LOW_END%"]
     nlab += inside(sy, OUT + "elite-%s-low.asm" % prog, progm, lo, "the low pass")
     nlab += inside(sy, OUT + "elite-%s-hotm.asm" % prog, lo, progm_end, "hotm")
-    nlab += inside(sy, OUT + "elite-%s-hotx.asm" % prog, progx, progx_end, "hotx")
+    nlab += inside(sy, OUT + "elite-%s-hotx.asm" % prog, lo, progm_end, "hotx")
 
 # banks 4 and 7, each program's
 qsl, bp, bp_end = C["QSL"], C["BPSLOT_P"], C["BPSLOT_END_P"]
@@ -143,10 +142,10 @@ nlab += inside(FL, OUT + "elite-flight-hot.asm", 0x8000, fhot_end, "the hot pass
 for f in ("gfx-planet7", "gfx-merid"):
     nlab += inside(FL, OUT + "%s-bank4.asm" % f, fhot_end, qsl, "bank 4's planet's surface")
     nlab += inside(FL, OUT + "%s-bank4top.asm" % f, C["PFVS_P"], 0xC000, "bank 4 top")
-    nlab += inside(FL, OUT + "%s-mainhigh.asm" % f, C["PFVH_P"], C["PFVH_P"] + 64, "main high")
+    nlab += inside(FL, OUT + "%s-mainhigh.asm" % f, C["PFVH_P"], 0x7FFE, "main high")
 nlab += inside(FL, OUT + "gfx-merid-mainlow.asm", C["PFVA_P"], C["GLUE_P"], "main low")
-nlab += inside(B5, OUT + "gfx-planet7-mainhigh.asm", C["PFVH_P"], C["PFVH_P"] + 64, "main high")
-order("docked bank 4", [("the hot pass", 0x8000, DK["HOME_END%"]), ("the main RAM part's image", qsl - (progm_end - progm + progx_end - progx), qsl),
+nlab += inside(B5, OUT + "gfx-planet7-mainhigh.asm", C["PFVH_P"], 0x7FFE, "main high")
+order("docked bank 4", [("the hot pass", 0x8000, DK["HOME_END%"]), ("the main RAM part's image", qsl - (progm_end - progm), qsl),
                         ("the quarter squares", qsl, bp), ("the blueprint slot", bp, bp_end)])
 nlab += inside(DK, OUT + "elite-docked-hot.asm", 0x8000, DK["HOME_END%"], "the hot pass")
 nlab += inside(DK, OUT + "elite-docked-blueprints.asm", bp, bp_end, "the blueprint slot")

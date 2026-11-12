@@ -126,7 +126,7 @@
 #   * every stub's line is blank in its copy, and every target is defined in
 #     the program's source (a stub has a place only there);
 #   * every unit fits a container, and the flow fits.
-import os, re, sys
+import glob, os, re, sys
 
 SRCDIR = "1-source-files/main-sources/"
 OUTDIR = "3-assembled-output/"
@@ -1269,6 +1269,10 @@ def main():
         if errors:
             sys.exit(1)
         return
+    if phase == "measure":             # (a build's first run: last build's copies go, so
+        for f in sorted(glob.glob(OUTDIR + "elite-flight-*.asm") + glob.glob(OUTDIR + "elite-docked-*.asm") +
+                        glob.glob(OUTDIR + "gfx-*-*.asm")):   # that none is left that this build
+            os.remove(f)                                       # does not write: mapcheck.py)
     report = [program(p, phase, errors) for p in PROGS] + [text_tokens(errors), renderer_passes(errors)]
     for e in errors:
         print("streams:", e)

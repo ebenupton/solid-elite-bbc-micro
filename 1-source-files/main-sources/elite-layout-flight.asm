@@ -17,7 +17,7 @@
 \
 \   * the configuration and the workspaces (config);
 \
-\   * the main RAM part, at PROGM% in the resident block: the low pass, then
+\   * the main RAM part, at PROGM% after the rupture's code: the low pass, then
 \     the hot pass's container in main RAM (hotm), which the flow fills once
 \     bank 4 is full; its bytes are copied into the bank 4 image at PROGI%,
 \     and PCLI copies them to PROGM% when it loads the program;
@@ -67,20 +67,14 @@ ENDIF
 
 .LOW_END%
 
- HOTM% = LOW_END%       \ (the hot pass's container in main RAM: the rest of
- HOTM_END% = PROGM_END% \ the main RAM part)
+ HOTM% = LOW_END%       \ (the hot pass's containers in main RAM: hotm to
+ HOTM_END% = PROGH%     \ PROGH%, then hotx, straight after hotm's units, to
+                        \ the main RAM part's end: elite-map.asm)
 
  INCLUDE "3-assembled-output/elite-flight-hotm.asm"
-
-.PROGM_USED%
-
- ORG PROGX%             \ (the hot pass's last container: the room after the
-                        \ missile's blueprint)
  INCLUDE "3-assembled-output/elite-flight-hotx.asm"
 
-.PROGX_USED%
-
- ASSERT PROGX_USED% <= PROGX_END%
+.PROGM_USED%
 
  ASSERT PROGM_USED% <= PROGM_END%
 
@@ -113,7 +107,7 @@ IF _CIRCLES             \ the circle engine's variables (elite-map.asm): the
  INCLUDE "3-assembled-output/gfx-planet7-mainhigh.asm"
  INCLUDE "3-assembled-output/gfx-merid-mainhigh.asm"
 .PFVH_END%
- ASSERT P% <= PFVH% + 64
+ ASSERT P% <= &7FFE          \ (VEC)
  ORG PFVA%
  INCLUDE "3-assembled-output/gfx-merid-mainlow.asm"
 .PFVA_END%
@@ -127,7 +121,7 @@ ENDIF
 
 
  PRINT "Flight bank 4: &8000-", ~CIRC_START%-1, " (the hot pass), ", HOME_END%-CIRC_START%, " (the planet's surface), free ", QSL-HOME_END%
- PRINT "Flight main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%, ", then ", PROGX_END%-PROGX_USED%, " free of ", PROGX_END%-PROGX%
+ PRINT "Flight main RAM part: low pass ", ~PROGM%, "-", ~LOW_END%-1, ", hot pass to ", ~PROGM_USED%-1, ", free ", PROGM_END%-PROGM_USED%
  ASSERT HOME_END% <= QSL AND CIRC_START% <= HOT_END% AND HOME_END% - CIRC_START% <= CIRCSZ
 
                         \ Port: the quarter squares, QSL and QSH, in bank 4 just
@@ -149,14 +143,12 @@ IF HOME_END% <= QSL    \ (else the ASSERT above stops the build, having
 ENDIF
 
  ORG PROGI%             \ the main RAM part's image, at the start of the
- COPYBLOCK PROGM%, PROGM_END%, PROGI%
- COPYBLOCK PROGX%, PROGX_END%, PROGI% + PROGM_END% - PROGM%   \ blueprint slot: the D.MOx file loads
+ COPYBLOCK PROGM%, PROGM_END%, PROGI%   \ blueprint slot: the D.MOx file loads
                         \ over it afterwards
 
  SAVE "3-assembled-output/D.CODEH.bin", HOME%, &C000, HOME%
  SAVE "3-assembled-output/D.CODEM.bin", PROGM%, PROGM_END%, PROGM%   \ (the main
- SAVE "3-assembled-output/D.CODEX.bin", PROGX%, PROGX_END%, PROGX%   \ RAM part,
-                        \ for the harness: it is on the disc in x.CODEH)
+                        \ RAM part, for the harness: it is on the disc in x.CODEH)
 
  CLEAR &8000, &C000
  ORG &8000
