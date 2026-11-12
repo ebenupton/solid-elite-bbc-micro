@@ -19316,15 +19316,15 @@ S.ELTC &9F9F  &891E  &8000  &9F9F
      935C   A2 00      LDX #&00
 .ovl2_C
      935E   BD 00 0E   LDA &0E00,X
-     9361   9D 00 3C   STA &3C00,X
+     9361   9D 00 B3   STA &B300,X
      9364   BD 00 0F   LDA &0F00,X
-     9367   9D 00 3D   STA &3D00,X
+     9367   9D 00 B4   STA &B400,X
      936A   E0 90      CPX #&90
      936C   90 09      BCC &9377
      936E   E0 E2      CPX #&E2
      9370   B0 05      BCS &9377
      9372   B5 00      LDA &00,X
-     9374   9D 00 3E   STA &3E00,X
+     9374   9D 00 B5   STA &B500,X
 .ovl3_C
      9377   E8         INX
      9378   D0 E4      BNE &935E
@@ -19358,15 +19358,15 @@ S.ELTC &9F9F  &891E  &8000  &9F9F
      93B2   20 B9 05   JSR &05B9
      93B5   A2 00      LDX #&00
 .ovl5_C
-     93B7   BD 00 3C   LDA &3C00,X
+     93B7   BD 00 B3   LDA &B300,X
      93BA   9D 00 0E   STA &0E00,X
-     93BD   BD 00 3D   LDA &3D00,X
+     93BD   BD 00 B4   LDA &B400,X
      93C0   9D 00 0F   STA &0F00,X
      93C3   E0 90      CPX #&90
      93C5   90 09      BCC &93D0
      93C7   E0 E2      CPX #&E2
      93C9   B0 05      BCS &93D0
-     93CB   BD 00 3E   LDA &3E00,X
+     93CB   BD 00 B5   LDA &B500,X
      93CE   95 00      STA &00,X
 .ovl6_C
      93D0   E8         INX

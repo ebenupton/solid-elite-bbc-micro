@@ -331,10 +331,12 @@ bank. The disc is an 80-track one: it holds 520 sectors.
 
 The flight code also loads its overlays itself, at any time in flight
 (`ovload`, cold pass): it keeps `WP` (`&0E00-&0FFF`) and zero page
-`&90-&E1` in buffer 0 at `OVSTASH` (`&3C00`), puts DFS's workspace back
-(`dfsin`), reloads the catalogue (`CATD`), loads `D.OVn` to `STAGE%` with
-`pload` and copies it to `OVL%`, keeps DFS's workspace (`dfsout`), puts the
-rest back and marks the screen buffers as used (`GSTASH`). The bank 7
+`&90-&E1` in bank 7's workspace at `OVSTASH` (`&B300`, buffer 0's disc
+state, which the load makes dead), puts DFS's workspace back (`dfsin`),
+reloads the catalogue (`CATD`), loads `D.OVn` to `STAGE%` with `pload` and
+copies it to `OVL%`, keeps DFS's workspace (`dfsout`), puts the rest back
+and marks buffer 0 as used (`GSTASH`: the next frame starts it afresh and
+forgets its disc state). The bank 7
 image in `D.CODEC` holds overlay 1, so a load of the flight code starts
 with it (`OVLCUR` = 1). In the gate's run the loads cost about 85 cycles
 an iteration on average (two loads a hyperspace jump at most).
@@ -425,7 +427,7 @@ what the frames can use, the docked code's are free only while docked.
 | bank 7 (flight) | `&8000-&9F5D` | the cold pass, `QQ18` | 8030 | 0 |
 | bank 7 (flight) | `&9F5E-&A3A7` | the overlay region (`D.OV1` 1098 bytes, `D.OV2` 783) | 1098 | 0 |
 | bank 7 (flight) | `&A3A8-&B2FF` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch) | 3910 | 18 |
-| bank 7 (flight) | `&B300-&BEFF` | each buffer's disc state (not in the image: `DP_BEGIN` sets it up) | 3072 | 0 |
+| bank 7 (flight) | `&B300-&BEFF` | the workspace: each buffer's disc state (not in the image: `DP_BEGIN` sets it up), buffer 0's sharing its first `&2E2` bytes with `ovload`'s stash of `WP` and the zero page during an overlay's load (`OVSTASH`) | 3072 | 0 |
 | bank 7 | `&BF00-&BFFF` | DFS's workspace page between disc commands (`DFSSAVE%`) | 256 | 0 |
 | bank 7 (docked) | `&8000-&BEFF` | the set's face lists, the cold pass, `QQ18` | 11397 | 4731 |
 | bank 5 | `&8000-&97FF` | the 24 row runs, a page each, made at start by `R_INIT` (not in `R.BANK`); in their tails the stars' records and variables and `R_LINE`'s (free: the 13 tails with nothing in them, 65 bytes each, and the rest of the others) | 5022 | 1122 |

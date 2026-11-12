@@ -106,7 +106,7 @@ row("bank 7 (flight)", 0x8000, FL["OVL%"], "the cold pass, `QQ18`")
 m = re.search(r"Flight overlays: &([0-9A-F]+) -&([0-9A-F]+)  \(1: (\d+)  bytes, 2: (\d+)", cp)
 row("bank 7 (flight)", FL["OVL%"], FL["WIN7%"], "the overlay region (`D.OV1` %s bytes, `D.OV2` %s)" % (m.group(3), m.group(4)))
 row("bank 7 (flight)", FL["WIN7%"], dpst, "the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch)", FL["WIN7_END%"] - FL["WIN7%"])
-row("bank 7 (flight)", dpst, dfss, "each buffer's disc state (not in the image: `DP_BEGIN` sets it up)")
+row("bank 7 (flight)", dpst, dfss, "the workspace: each buffer's disc state (not in the image: `DP_BEGIN` sets it up), buffer 0's sharing its first `&2E2` bytes with `ovload`'s stash of `WP` and the zero page during an overlay's load (`OVSTASH`)")
 row("bank 7", dfss, 0xC000, "DFS's workspace page between disc commands (`DFSSAVE%`)")
 row("bank 7 (docked)", 0x8000, dfss, "the set's face lists, the cold pass, `QQ18`", DK["COLD_END%"] - 0x8000)
 

@@ -65,6 +65,8 @@
 
 DPST% = DFSSAVE% - &C00 \ the disc state, to DFSSAVE%
  ASSERT LO(DPST%) = 0
+ ASSERT OVSTASH = DPST% AND OVSTASH + &2E2 <= DPST% + &300   \ (ovload's stash:
+                        \ buffer 0's spans, which the load makes dead, elite-map.asm)
 
 R_DISCL0 = DPST%        \ buffer 0's spans (three pages)
 R_S2L0   = DPST% + &0C0

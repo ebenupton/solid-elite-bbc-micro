@@ -70,9 +70,6 @@
                         \ after the slot's pages (elite-shipset.asm)
  FC_NORMTAB = NORMTAB
 
- OVSTASH = &3C00        \ Where the flight code's overlay loader keeps WP and
-                        \ the filing system's zero page during a load (ovload:
-                        \ in buffer 0, above what STAGE% holds of an overlay)
 
  STAGE% = &1600         \ Where files are loaded before they are copied into
                         \ their bank (main RAM &1600 to &55FF, over the top of
@@ -175,6 +172,14 @@
    NEXT
   ENDIF
  ENDMACRO
+
+ OVSTASH = &BF00 - &C00 \ Where the flight code's overlay loader keeps WP and
+                        \ the filing system's zero page during a load (ovload,
+                        \ which runs in bank 7): bank 7's workspace, buffer 0's
+                        \ disc state (DPST%, gfx-raster_disc.asm), which the
+                        \ load makes dead: every disc command has the next
+                        \ frame start buffer 0 afresh (GSTASH: f_b0new), and
+                        \ forget its disc state (DP_BEGIN's PB_RESET)
 
  DFSSAVE% = &BF00       \ DFS's workspace, &1000-&10FF, between disc commands:
                         \ the last page of each program's cold bank, which no

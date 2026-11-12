@@ -26654,9 +26654,10 @@ ENDIF
 \ access is made as LOMOD makes its own (DFS's workspace put back and kept,
 \ CATD reloading the catalogue over WP), but at any time in flight, so what
 \ the original relies on being dead at LOMOD's times is kept: WP and the
-\ zero page that the filing system uses are copied into screen buffer 0
-\ (OVSTASH) and put back afterwards, and the next frame redraws both screen
-\ buffers (GSTASH). The file is loaded to STAGE% and copied into the region.
+\ zero page that the filing system uses are copied into bank 7's workspace
+\ (OVSTASH: buffer 0's disc state, which the load makes dead) and put back
+\ afterwards, and the next frame starts buffer 0 afresh (GSTASH). The file
+\ is loaded to STAGE% and copied into the region.
 \
 \ ******************************************************************************
 
@@ -26695,8 +26696,8 @@ ENDIF
  INX
  BNE ovl2
 
- LDA #&FF               \ The screen buffers have been used (STAGE% and
- STA GSTASH             \ OVSTASH are in buffer 0)
+ LDA #&FF               \ Buffer 0 has been used (STAGE% is in it), and its
+ STA GSTASH             \ disc state (OVSTASH)
 
  JSR dfsin              \ Put DFS's workspace back, reload the catalogue and
  JSR CATD               \ load the file to STAGE%
