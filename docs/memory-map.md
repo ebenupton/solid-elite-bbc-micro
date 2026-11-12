@@ -138,7 +138,9 @@ context, `gfx-planet7.asm` and `gfx-merid.asm`'s first blocks), `bank 5`
 and `bank 5 gap` (the rasteriser's code, and the room below its per-x
 tables), `bank 6` (the frame layer), `bank 7` (the flight code's cold bank:
 the disc layer's painter in the renderer's window) and `main` (the glue, in
-the resident block A), and for the circle engine's variables `main low`
+the resident block A, and after it `gfx-merid.asm`'s `pcb_o`, the records'
+offsets, which bank 4's `pc_circ` and bank 6's `PC_ROWS` both read: one copy,
+seen with either bank paged), and for the circle engine's variables `main low`
 (`PFVA%`, in the resident block A's room), `main high` (`PFVH%`, after the
 high resident block) and `bank 4 top` (`PFVS%`, the flight code's home
 bank's last bytes), which the flight code's layout places (and
@@ -148,8 +150,9 @@ it names (`3-assembled-output/<file>-<place>.asm`, the other lines blanked;
 the lines before a file's first `Area:` line, its header, are in every pass
 and may hold only comments), and each place's layout INCLUDEs its passes:
 `gfx-bank5.asm`, `gfx-bank6.asm`, `elite-layout-flight.asm` and the
-resident block. A block in two places' lists (`gfx-merid.asm`'s definitions
-and `pcb_o`) is assembled in both.
+resident block. A block in two places' lists (`gfx-merid.asm`'s
+definitions) is assembled in both; a table that two banks read is in main
+RAM, once.
 
 **The containers.** The passes go into these containers:
 
@@ -376,7 +379,7 @@ what the frames can use, the docked code's are free only while docked.
 | main RAM | `&0300-&03CF` | `UP`, the game's workspace | 208 | 0 |
 | main RAM | `&0400-&06E5` | resident block A (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin`, `dfsout`, `pload`, `WRCHR`, `BRKR`, the last saved commander and the break handler, `IRQG` | 742 | 0 |
 | main RAM | `&06E6-&0723` | the circle engine's variables (main low: `gfx-merid.asm`) | 62 | 0 |
-| main RAM | `&0724-&07BF` | the glue: the trampolines into bank 5, `GCALL` | 146 | 10 |
+| main RAM | `&0724-&07BF` | the glue: the trampolines into bank 5, `GCALL`; then `pcb_o`, the circle engine's table that banks 4 and 6 read (main: `gfx-merid.asm`) | 151 | 5 |
 | main RAM | `&07C0-&07FF` | `SNE`, `ACT` | 64 | 0 |
 | main RAM | `&0880-&08BF` | `QQ16` | 64 | 0 |
 | main RAM | `&0900-&0CFF` | `K%` and the line heaps (the loader's `LOAD` at `&0B00` before the game) | 1024 | 0 |
@@ -397,7 +400,7 @@ what the frames can use, the docked code's are free only while docked.
 | main RAM (docked) | `&7FA0-&7FFD` | the main RAM part: `hotx` | 0 | 94 |
 | main RAM | `&7FFE-&7FFF` | `VEC` | 2 | 0 |
 | bank 4 (flight) | `&8000-&A862` | `S%` and the hot pass | 10339 | 0 |
-| bank 4 (flight) | `&A863-&B2FF` | the planet's surface (bank 4 passes: `PF_HOOK`, `pc_circ`) | 2711 | 6 |
+| bank 4 (flight) | `&A863-&B2FF` | the planet's surface (bank 4 passes: `PF_HOOK`, `pc_circ`) | 2706 | 11 |
 | bank 4 (flight) | `&B300-&B6FF` | the quarter squares `QSL`, `QSH` | 1024 | 0 |
 | bank 4 (flight) | `&B700-&BFA1` | the blueprint set (`D.MOx`), its normals and `FC_NORMTAB` | 2210 | 0 |
 | bank 4 (flight) | `&BFA2-&BFFF` | the circle engine's variables (bank 4 top) | 54 | 40 |
@@ -417,15 +420,15 @@ what the frames can use, the docked code's are free only while docked.
 | bank 5 | `&9933-&9BFF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt` | 700 | 17 |
 | bank 5 | `&9C00-&BE98` | the per-x tables, the 24 row runs (the stars' records, variables and some code in their tails; free: the 9 tails with nothing in them, 65 bytes each), the row pages, the stars, `R_INIT`, the repair, `R_GETW` | 8272 | 585 |
 | bank 5 | `&BE99-&BFFF` | `RJT`, the jump table | 42 | 317 |
-| bank 6 | `&8000-&ABF1` | the frame layer's code (bank 6 passes) | 11250 | 0 |
-| bank 6 | `&ABF2-&AF0F` | the faces' and the lighting's tables | 798 | 0 |
-| bank 6 | `&AF10-&B1ED` | the state: the ship records, the zero page `F_FRAME` keeps, the faces' levels, the docking slot, the planet's records kept | 734 | 0 |
-| bank 6 | `&B1EE-&B1FF` | (the page alignment of the state that follows) | 0 | 18 |
+| bank 6 | `&8000-&ABEC` | the frame layer's code (bank 6 passes) | 11245 | 0 |
+| bank 6 | `&ABED-&AF0A` | the faces' and the lighting's tables | 798 | 0 |
+| bank 6 | `&AF0B-&B1E8` | the state: the ship records, the zero page `F_FRAME` keeps, the faces' levels, the docking slot, the planet's records kept | 734 | 0 |
+| bank 6 | `&B1E9-&B1FF` | (the page alignment of the state that follows) | 0 | 23 |
 | bank 6 | `&B200-&BC70` | the state, page aligned: the discs' half-widths, the text map, the discs' rows | 2649 | 24 |
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher | 46 | 18 |
 
-Free, by place: main RAM 15, main RAM (flight) 3, main RAM (docked) 1246, bank 4 (flight) 46, bank 4 (docked) 3140, bank 7 (flight) 18, bank 7 0, bank 7 (docked) 4731, bank 5 966, bank 6 60.
+Free, by place: main RAM 10, main RAM (flight) 3, main RAM (docked) 1246, bank 4 (flight) 51, bank 4 (docked) 3140, bank 7 (flight) 18, bank 7 0, bank 7 (docked) 4731, bank 5 966, bank 6 65.
 
 **The build's check.** `2-build-files/mapcheck.py`, which `make` runs once
 every program and bank is assembled, fails the build if a place is out of

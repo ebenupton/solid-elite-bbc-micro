@@ -108,6 +108,7 @@ order("main RAM", [
     ("resident block A", 0x0400, C["PFVA_P"]),
     ("the circle engine's variables (main low)", C["PFVA_P"], FL.get("PFVA_END%", C["PFVA_P"])),
     ("the glue", C["GLUE_P"], LD["GLUE_END"]),
+    ("the circle engine's table (main)", LD["pcb_o"], LD["pcb_o"] + 5),
     ("SNE, ACT", 0x07C0, 0x0800),
     ("CATD", LD["CATD"], 0x0D9E),
     ("buffer 0", C["BUF0"], C["SCREEN_P"]),
@@ -125,6 +126,7 @@ order("main RAM", [
 if LD["RUPT_END"] > progm:
     errors.append("main RAM: the rupture (to &%04X) runs into the main RAM part (&%04X)" % (LD["RUPT_END"] - 1, progm))
 nlab += inside(LD, OUT + "gfx-glue-main.asm", C["GLUE_P"], 0x07C0, "the glue")
+nlab += inside(LD, OUT + "gfx-merid-main.asm", LD["GLUE_END"], 0x07C0, "the glue's room")
 for prog, sy in (("flight", FL), ("docked", DK)):
     lo = sy["LOW_END%"]
     nlab += inside(sy, OUT + "elite-%s-low.asm" % prog, progm, lo, "the low pass")

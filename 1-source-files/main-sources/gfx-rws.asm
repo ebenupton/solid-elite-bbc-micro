@@ -98,7 +98,8 @@ DB_QE    = MBOX + &64   \ (its end)
 DB_PY    = MBOX + &64   \ R_GETW: the row of the batch whose writes it puts
 DB_QN    = MBOX + &65   \ the queue's length in bytes (4 a span)
  ASSERT DB_QN < R_SCOL
-PCB      = MBOX         \ the planet's circles' records (3 of 24 bytes)
+PCB      = MBOX         \ the planet's circles' records (3 of RSZ bytes)
+RSZ      = 24           \ a record's size (its layout: gfx-merid.asm's R_A ..)
 PC_N     = MBOX + &48   \ how many
 pc_inv   = MBOX + &49   \ the base colour
 PC_TU    = MBOX + &52   \ their thresholds T1, T2 unclamped (16-bit, 4 a record)

@@ -95,7 +95,7 @@ R_T1  = 20              \ from row T1 on the limbs in M1 (1 left, 2 right)
 R_T2  = 21              \ are toggled, and from T2 those in M2 (0..192)
 R_M1  = 22
 R_M2  = 23              \ (M1 and M2 last: pr_c + RSZ follows them)
-RSZ   = 24
+ASSERT RSZ = R_M2 + 1   \ (RSZ, the size: gfx-rws.asm, with the mailbox's PCB)
 PCMAX = 3               \ the planet's records (slots 0-2; the moon's in slot 3,
 IF _PLANET_MOON         \ with moon=on)
 PCSLOTS = PCMAX + 1
@@ -1954,7 +1954,8 @@ ASSERT prk1 = prk0 + 6 AND prk3 = prk0 + 18 AND pra3 = pra0 + 18
 \ makes and uses in the home bank's last bytes, at PFVS% (bank 4 top), so
 \ that the code at the home bank's end has the room, each placed by the
 \ flight code's layout (elite-map.asm's addresses); PC_ROWS' in bank 6 (bank
-\ 6's pass); and the records' slots' offsets in both (pcb_o, five bytes)
+\ 6's pass); and the records' slots' offsets, which both read (pcb_o, five
+\ bytes, in main RAM after the glue: the resident block A's main passes)
 
 \       Area: main high
 
@@ -2043,6 +2044,8 @@ pr_tm  = pr_c + R_M1    \ M1, M2, &80, &80
 .pr_lc  EQUB 0          \ the left limb's toggles (pr_nx): how many, their rows
 .pr_lt  SKIP 6          \ (2 a record: at most 6)
 
-\       Area: bank 4, bank 6
+\       Area: main
 
-.pcb_o  EQUB 0, RSZ, 2*RSZ, 3*RSZ, 4*RSZ \ the slots' offsets in PCB (and the end)
+.pcb_o  EQUB 0, RSZ, 2*RSZ, 3*RSZ, 4*RSZ \ the slots' offsets in PCB (and the end):
+ASSERT HI(pcb_o) = HI(pcb_o + 4)         \ in main RAM, as both pc_circ (bank 4) and
+                                         \ the frame's PC_ROWS (bank 6) read it

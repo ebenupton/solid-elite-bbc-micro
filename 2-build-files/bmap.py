@@ -66,7 +66,7 @@ row("main RAM", 0x0300, 0x03D0, "`UP`, the game's workspace")
 row("main RAM", 0x0400, C["PFVA_P"], "resident block A (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin`, `dfsout`, `pload`, `WRCHR`, `BRKR`, the last saved commander and the break handler, `IRQG`", resa_end + 1 - 0x0400)
 pfva_used = FL.get("PFVA_END%", C["PFVA_P"]) - C["PFVA_P"]
 row("main RAM", C["PFVA_P"], C["GLUE_P"], "the circle engine's variables (main low: `gfx-merid.asm`)", pfva_used)
-row("main RAM", C["GLUE_P"], 0x07C0, "the glue: the trampolines into bank 5, `GCALL`", LD["GLUE_END"] - C["GLUE_P"])
+row("main RAM", C["GLUE_P"], 0x07C0, "the glue: the trampolines into bank 5, `GCALL`; then `pcb_o`, the circle engine's table that banks 4 and 6 read (main: `gfx-merid.asm`)", LD["pcb_o"] + 5 - C["GLUE_P"])
 row("main RAM", 0x07C0, 0x0800, "`SNE`, `ACT`")
 row("main RAM", 0x0880, 0x08C0, "`QQ16`")
 row("main RAM", 0x0900, 0x0D00, "`K%` and the line heaps (the loader's `LOAD` at `&0B00` before the game)")

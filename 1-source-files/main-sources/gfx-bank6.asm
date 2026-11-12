@@ -43,7 +43,9 @@
  ORG GLUE%
  GUARD &07C0
  INCLUDE "3-assembled-output/gfx-glue-main.asm"
- SAVE "3-assembled-output/GLUE.bin", GLUE%, GLUE_END, GLUE%
+ INCLUDE "3-assembled-output/gfx-merid-main.asm"
+.GLUE_TOP
+ SAVE "3-assembled-output/GLUE.bin", GLUE%, GLUE_TOP, GLUE%
 
  CLEAR &8000, &C000
  ORG &8000
@@ -127,7 +129,7 @@ ENDIF
 
 
 PRINT "Bank 6 (frame layer): code &8000-", ~F_CODEEND-1, " (", F_CODEEND-&8000, " bytes), tables ", ~F_CODEEND, "-", ~F_TABEND-1, " (", F_TABEND-F_CODEEND, "), state ", ~F_TABEND, "-", ~F_END-1, ", free ", FCSLOT-F_END, ", the face lists' slot ", ~FCSLOT, "-", ~FJT-1, ", the dispatcher ", ~FJT, "-", ~FJT_END-1
-PRINT "Glue (main RAM): ", ~GLUE%, "-", ~GLUE_END-1, " (", GLUE_END-GLUE%, " bytes: trampolines ", rtramp_end-GLUE%, ", GCALL ", GLUE_END-GCALL, ")"
+PRINT "Glue (main RAM): ", ~GLUE%, "-", ~GLUE_TOP-1, " (", GLUE_TOP-GLUE%, " bytes: trampolines ", rtramp_end-GLUE%, ", GCALL ", GLUE_END-GCALL, ", pcb_o ", GLUE_TOP-GLUE_END, ")"
  ASSERT F_END <= FCSLOT
 
  SAVE "3-assembled-output/BANK6.bin", &8000, &C000, &8000

@@ -824,7 +824,9 @@ pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
 \
 \ Port: the renderer's glue (gfx-glue.asm): GCALL, which the game calls bank
 \ 6's entries through, and the trampolines that bank 6 calls bank 5 through,
-\ at GLUE% (which bank 6 is built against, 2-build-files/bank6.py)
+\ at GLUE% (which bank 6 is built against, 2-build-files/bank6.py), then the
+\ circle engine's table that both bank 4 and bank 6 read (gfx-merid.asm's
+\ main pass)
 \
 \ ******************************************************************************
 
@@ -832,6 +834,8 @@ pcbuf = PCBUF           \ PCLI: the command (elite-map.asm)
 
  INCLUDE "1-source-files/main-sources/gfx-rws.asm"
  INCLUDE "3-assembled-output/gfx-glue-main.asm"
+ INCLUDE "3-assembled-output/gfx-merid-main.asm"   \ (pcb_o, which bank 4's pc_circ
+                                                   \ and bank 6's PC_ROWS read)
 
  PRINT "The renderer's glue: ", ~GLUE%, "-", ~P%-1, ", free ", &07C0-P%
  ASSERT P% <= &07C0
