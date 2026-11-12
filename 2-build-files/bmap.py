@@ -61,7 +61,7 @@ def row(space, start, end, what, used=None):
 progm, progm_end, progx, progx_end = C["PROGM_P"], C["PROGM_END_P"], C["PROGX_P"], C["PROGX_END_P"]
 resa_end, = printed(r"Resident block A: &0400-&([0-9A-F]+)")
 row("main RAM", 0x0000, 0x0100, "zero page: the game's (the rasteriser's &06-&27 and the frame layer's &D2-&E1 during a frame, kept)")
-row("main RAM", 0x0100, 0x0200, "the stack")
+row("main RAM", 0x0100, 0x0200, "the stack, down from `&01FF`, and `XX3`, the heap of projected vertices, up from `&0100`, sharing the page as in the original (as measured over the gate's runs and an eight-session soak, `page1Watch`: in flight the stack down to `&01BA` and `XX3` up to `&016F`, 74 bytes untouched; docked the stack down to `&01B1`, `XX3` up to `&0193` and the filing system's writes up to `&010B`, 29 untouched)")
 row("main RAM", 0x0300, 0x03D0, "`UP`, the game's workspace")
 row("main RAM", 0x0400, C["PFVA_P"], "resident block A (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin`, `dfsout`, `pload`, `WRCHR`, `BRKR`, the last saved commander and the break handler, `IRQG`", resa_end + 1 - 0x0400)
 pfva_used = FL.get("PFVA_END%", C["PFVA_P"]) - C["PFVA_P"]
