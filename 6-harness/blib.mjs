@@ -391,6 +391,41 @@ export function progHooks(b, cpu) {
     return { hookOf, hookLd, live, bankOf };
 }
 
+// Filing-system leftovers in a screen buffer (--screen): the bytes of these
+// ranges that hold, at an iteration, what the filing system wrote or the
+// game's own copy of it, are left out of the screen's comparison (the
+// regions' comparison leaves DFS's bytes out the same way: "dirty" below).
+// Only three places in buffer 0 can hold them, the places they have in
+// 8e0c461's build: DFS's workspace page &1000-&10FF, which DFS writes during
+// a disc command and dfsin/dfsout copy to and from bank 7 (its saved page);
+// the first 4K of the staging area, STAGE% (&1600-&25FF), where DFS loads
+// the files that the flight code loads in flight (an overlay, a blueprint
+// file: the program images that are loaded there too are drawn over before
+// the next iteration); and the overlay loader's stash of WP and zero page &90-&E1 at OVSTASH
+// (&3C00-&3EE1: WP's two pages, then the zero page at +&290), which copies
+// the catalogue that CATD read into WP and DFS's scratch bytes (&B0-&BF ..).
+// A byte there is excluded while it holds such a leftover: written by the MOS,
+// a ROM or the NMI routine, or by dfsin/dfsout's copy loop, or by ovload's
+// stash loop from a byte that holds one itself (blib tracks which bytes of
+// main RAM the filing system wrote last; fsTaint 1); or while it holds the
+// rest of ovload's stash (fsTaint 2), the copy of WP and the zero page that
+// ovload puts back after the load and nothing reads again, which a build
+// that keeps its stash elsewhere does not have in buffer 0. Any other write
+// by the game (the frame layer drawing there, a load) ends it. With each iteration's bytes
+// runElite notes whether buffer 0 is on show with the display on (the 6845's
+// R12 = 2, R8 not &30): bcompare fails a candidate whose excluded bytes
+// differ while buffer 0 is on show in either run, so a difference it leaves
+// out is never on the screen at a compared iteration. It also counts the
+// samples (each R12 write and every 50,000 cycles) at which any leftover is
+// in buffer 0 while it is on show: the port shows them for moments, as the
+// reference does (DFS's page between dfsin's copy and the display's
+// blanking; the stash during an overlay's load), and bcompare reports the
+// counts (where samples fall depends on a build's timing).
+// A zero page byte that ovload puts back from its stash, where the stash's
+// byte holds a leftover, is the filing system's for the regions'
+// comparison too (restoredFs; DFS's scratch &B0-&BF and the like).
+export const FSZONE = [[0x1000, 0x1100], [0x1600, 0x2600], [0x3C00, 0x3EE2]];
+
 // Run one build under the pilot.
 //   opts.build (loadBuild), opts.pilot (object with keys(ctx), dks(ctx), observe(ctx)),
 //   opts.onBoot(session) (called once the disc has booted, before the game),
@@ -476,7 +511,7 @@ export async function runElite(opts) {
         return { site: w + 1 - 3, k, romsel };
     };
 
-    const res = { snaps: [], fsDirty: [], screens: [], iterTimes: [], tt100Times: [], tt100AtIter: [], init: null, keyLog: [], events: [], s, cpu, regions, page0d: [] };
+    const res = { snaps: [], fsDirty: [], screens: [], screenZone: [], fsShown: 0, fsShownAt: [], iterTimes: [], tt100Times: [], tt100AtIter: [], init: null, keyLog: [], events: [], s, cpu, regions, page0d: [] };
     let started = false, done = false, armPatch = false, iter = 0, tt100 = 0, inGame = false;
     let keysDown = [], lasSaved = -1, curProg = "docked";
     const ctxBase = { rb, rd, sy: fsy, iterOf: () => iter, tt100Of: () => tt100 };
@@ -616,7 +651,7 @@ export async function runElite(opts) {
     };
     cpu.debugWrite.add(a => {
         if (!inGame || !offOfAddr.has(a)) return false;
-        if (sysWriter()) dirty.add(a); else dirty.delete(a);
+        if (sysWriter() || restoredFs(a)) dirty.add(a); else dirty.delete(a);
         return false;
     });
     // the filing system's bytes above page 0 that the game has not written
@@ -630,10 +665,67 @@ export async function runElite(opts) {
     }
     // opts.screen: a hash of the screen memory at each MLOOP (the original's:
     // the space view and the dashboard at &6000-&7EFF), for builds that draw as
-    // the original does
+    // the original does; FSZONE's bytes are zeroed in it and kept apart, with
+    // which of them hold filing-system leftovers (res.screenZone)
     function screenHash() {
-        return createHash("sha1").update(cpu.ramRomOs.subarray(opts.screenLo ?? 0x6000, opts.screenHi ?? 0x7f00)).digest("hex").slice(0, 16);
+        const lo = opts.screenLo ?? 0x6000, hi = opts.screenHi ?? 0x7f00;
+        const scr = Uint8Array.from(cpu.ramRomOs.subarray(lo, hi));
+        const z = [], t = [];
+        for (const [a0, a1] of FSZONE) for (let a = a0; a < a1; a++) {
+            z.push(cpu.ramRomOs[a]); t.push(fsTaint[a]);
+            if (a >= lo && a < hi) scr[a - lo] = 0;
+        }
+        res.screenZone.push([Buffer.from(z).toString("base64"), Buffer.from(t).toString("base64"), shown0() ? 1 : 0]);
+        return createHash("sha1").update(scr).digest("hex").slice(0, 16);
     }
+    // (FSZONE's filing-system leftovers: see above)
+    const fsBit = new Uint8Array(0x10000), fsTaint = new Uint8Array(0x10000), inZone = new Uint8Array(0x10000);
+    for (const [a0, a1] of FSZONE) inZone.fill(1, a0, a1);
+    const dfsLo = b.loader.dfs2, dfsHi = b.loader.dfs3;
+    const ovC = P.flight.sy.ovload_C, ovRole = P.flight.bank.ovload_C || "C";
+    let ovEnd = ovC;                    // (ovload runs to its file name, "D.OV0")
+    if (ovC !== undefined) {
+        const im = P.flight.images.find(im => im.map === ovRole && ovC >= im.base && ovC < im.base + im.data.length);
+        const i = im ? im.data.indexOf(Buffer.from("D.OV0\r"), ovC - im.base) : -1;
+        ovEnd = i >= 0 ? im.base + i : ovC;
+    }
+    let stashBase = -1, nTaint = 0, crtcSel = 0, r12buf = 1, r8 = 0;
+    const inOvload = () => ovC !== undefined && cpu.pc >= ovC && cpu.pc < ovEnd && (cpu.romsel & 15) === bankOf(ovRole);
+    // (a zero page byte that ovload puts back from a stash byte holding a
+    // filing-system leftover is the filing system's, as it was when stashed)
+    const restoredFs = a => a < 0x100 && stashBase >= 0 && inOvload() && fsTaint[stashBase + 0x200 + a] === 1;
+    const shown0 = () => r12buf === 0 && (r8 & 0x30) !== 0x30;
+    const sampleShown = () => { if (nTaint && shown0() && started) { res.fsShown++; if (res.fsShownAt.length < 10) res.fsShownAt.push(iter); } };
+    cpu.debugWrite.add((a, v) => {
+        if (a === 0xFE00) { crtcSel = v & 31; return false; }
+        if (a === 0xFE01) {
+            if (crtcSel === 12) { if (v === 2) r12buf = 0; else if (v === 8) r12buf = 1; sampleShown(); }
+            else if (crtcSel === 8) r8 = v;
+            return false;
+        }
+        if (a >= 0x8000) return false;
+        const sys = sysWriter();
+        if (inZone[a]) {
+            let t = 0;
+            if (sys) t = 1;
+            else if (dfsLo !== undefined && cpu.pc >= dfsLo && cpu.pc <= dfsHi) t = 1;
+            else if (inOvload()) {
+                const x = cpu.x;
+                if (stashBase < 0) stashBase = a - x;
+                const k = (a - x - stashBase) >> 8;
+                t = fsBit[k === 0 ? 0x0E00 + x : k === 1 ? 0x0F00 + x : x] ? 1 : 2;
+            }
+            if (t !== fsTaint[a]) { nTaint += (t ? 1 : 0) - (fsTaint[a] ? 1 : 0); fsTaint[a] = t; }
+        }
+        // (ovload putting WP and the zero page back from its stash: what it
+        // puts back holds a leftover if its stash's byte did)
+        if (!sys && stashBase >= 0 && inOvload() && (a < 0x100 || (a >= 0x0E00 && a < 0x1000))) {
+            fsBit[a] = fsTaint[stashBase + (a < 0x100 ? 0x200 + a : a - 0x0E00)] === 1 ? 1 : 0;
+            return false;
+        }
+        fsBit[a] = sys ? 1 : 0;
+        return false;
+    });
     function emuSecs() { return cpu.cycleSeconds + cpu.currentCycles / 2e6; }
     // the addresses written between the game's entry and TT170, by the game
     // or by the MOS on its behalf: anything else in the compared state at
@@ -656,7 +748,7 @@ export async function runElite(opts) {
     const maxSecs = opts.maxSecs || 7200;
     let shotAt = 0;
     while (!done && emuSecs() < maxSecs) {
-        for (let k = 0; k < 40 && !done; k++) { if (handler(cpu.pc)) break; cpu.execute(50000); }
+        for (let k = 0; k < 40 && !done; k++) { if (handler(cpu.pc)) break; cpu.execute(50000); sampleShown(); }
         if (opts.shots && iter >= shotAt + opts.shots) { shotAt = iter; await opts.onShot(s, iter); }
     }
     res.emuSecs = emuSecs();

@@ -116,6 +116,7 @@ async function cachedRef() {
     const o = { snaps: r.snaps.map(b => Buffer.from(b).toString("base64")), fsDirty: r.fsDirty, screens: r.screens, init: Buffer.from(r.init).toString("base64"),
         iterTimes: r.iterTimes, tt100Times: r.tt100Times, regions: r.regions, keyLog: r.keyLog,
         iters: r.iters, tt100: r.tt100, emuSecs: r.emuSecs, error: r.error, phases: r.phases, page1: r.page1,
+        screenZone: r.screenZone, fsShown: r.fsShown, fsShownAt: r.fsShownAt,
         stats: { ...r.stats, systems: [...r.stats.systems] } };
     mkdirSync(dir, { recursive: true });
     // (written whole, then renamed into place: a gate running at the same time in this
@@ -217,10 +218,25 @@ if (cand.page0d && cand.page0d.length) {
 // --screen: the screen (shadow RAM) at each iteration, for candidates that
 // draw exactly as the original does
 if (args.screen) {
-    const sd = [];
-    for (let i = 0; i < n; i++) if (ref.screens[i] !== cand.screens[i]) sd.push(i);
+    // (FSZONE's bytes, blib.mjs, apart: equal, or a filing-system leftover in
+    // either run)
+    const sd = [], b64 = x => Buffer.from(x, "base64");
+    let fsx = 0, fsi = 0, fsv = [];
+    for (let i = 0; i < n; i++) {
+        let bad = ref.screens[i] !== cand.screens[i], x = 0;
+        const rz = ref.screenZone?.[i], cz = cand.screenZone?.[i];
+        if (!bad && rz && cz) {
+            const [ra, rt] = rz.slice(0, 2).map(b64), [ca, ct] = cz.slice(0, 2).map(b64);
+            for (let j = 0; j < ra.length; j++) if (ra[j] !== ca[j]) { if (rt[j] || ct[j]) x++; else bad = true; }
+            if (x && (rz[2] || cz[2])) { bad = true; fsv.push(i); }   // (never left out while on show)
+        }
+        if (bad) sd.push(i);
+        if (x) { fsx += x; fsi++; }
+    }
     if (sd.length) { log(`SCREEN DIFFERS at ${sd.length} iterations, the first ${sd.slice(0, 10).join(" ")}`); ok = false; }
     else log(`Screen identical at all ${n} iterations`);
+    log(`Filing-system leftovers in buffer 0 that differ (excluded): ${fsx} bytes over ${fsi} iterations; any leftover on show for moments (samples): ref ${ref.fsShown ?? "?"}, cand ${cand.fsShown}`);
+    if (fsv.length) log(`FILING-SYSTEM LEFTOVERS DIFFER WHILE BUFFER 0 IS ON SHOW at iterations ${fsv.slice(0, 10).join(" ")}`);
 }
 // --dump N: every byte that differs at iteration N, excluded or not
 if (args.dump !== undefined) {
