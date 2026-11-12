@@ -52,10 +52,15 @@
  PUTFILE "3-assembled-output/ELITE4.bin", "ELITE4", &FF1900, &FF197B
 
  PUTFILE "1-source-files/images/P.DIALS.bin", "P.DIALS", PANEL%, PANEL%
- PUTFILE "3-assembled-output/D.CODEH.bin", "D.CODEH", &008000, &008000
- PUTFILE "3-assembled-output/D.CODEC.bin", "D.CODEC", &008000, &008000
+
+ \ Port: the flight code's overlays next, near the catalogue on track 0,
+ \ which CATD reads before each load: ovload loads them in flight, at any
+ \ screen change between their screens, so their seeks are the shortest
+
  PUTFILE "3-assembled-output/D.OV1.bin", "D.OV1", &008000, &008000
  PUTFILE "3-assembled-output/D.OV2.bin", "D.OV2", &008000, &008000
+ PUTFILE "3-assembled-output/D.CODEH.bin", "D.CODEH", &008000, &008000
+ PUTFILE "3-assembled-output/D.CODEC.bin", "D.CODEC", &008000, &008000
  PUTFILE "3-assembled-output/T.CODEH.bin", "T.CODEH", &008000, &008000
  PUTFILE "3-assembled-output/T.CODEC.bin", "T.CODEC", &008000, &008000
 
