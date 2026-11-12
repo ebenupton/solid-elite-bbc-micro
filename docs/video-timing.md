@@ -317,7 +317,12 @@ the keyboard's CA2, none of which the port uses. The two run the port's video id
 same sync intervals, the same switches on the same cycles, the same
 screenshots, byte for byte (`bversions.sh`, below). Runs that load from
 the disc differ in their length between the two (the disc's emulation
-changed), and each passes.
+changed), and each passes. The harness drives the two the same way, though
+their instruction hooks differ: jsbeeb 1.6.0 does not pass the first
+instruction of each `execute` slice to them and jsbeeb 2 does, so
+`blib.mjs` calls its hooks by hand at the start of a slice and ignores a
+second call at the same instruction and cycle (without that, on jsbeeb 2 a
+slice that ended on `MLOOP` counted an iteration twice).
 
 `6-harness/bhsync.mjs` runs the gate's pilot and times every horizontal sync
 and every vertical sync in 2 MHz cycles, from the loader's handover on (the

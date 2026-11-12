@@ -579,9 +579,21 @@ export async function runElite(opts) {
         }
         return false;
     };
+    // The run loop below calls the handler by hand for the first instruction of
+    // each slice of execute(), which jsbeeb 1.6.0 does not pass to its
+    // instruction hooks; jsbeeb 2 does pass it, so there the handler would see
+    // that instruction twice, at the same cycle, whenever a slice ends on a
+    // hooked instruction: an iteration counted twice at MLOOP (every later
+    // snapshot one iteration behind), LASCT decremented twice at M%, the pilot
+    // asked twice. A hook fires once per instruction executed: the second call
+    // at the same PC and the same cycle is ignored.
+    let seenPc = -1, seenAt = -1;
     const handler = pc => {
         const hs = byPc.get(pc);
         if (!hs) return false;
+        const at = cpu.cycleSeconds * 2e6 + cpu.currentCycles;
+        if (pc === seenPc && at === seenAt) return false;
+        seenPc = pc; seenAt = at;
         for (const h of hs) if (live(h) && fire(h, pc)) return true;
         return false;
     };
