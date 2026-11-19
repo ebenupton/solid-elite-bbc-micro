@@ -39,7 +39,7 @@ OUT = "3-assembled-output/"
 WINDOW7 = {"flight": ("gfx-raster_disc-bank7.asm", "gfx-raster_disc2-bank7.asm",
                       "gfx-raster_dpatch-bank7.asm")}   # (bank 7's renderer window, the renderer's
                                                         # bank 7 passes: elite-layout-flight.asm)
-NAMES = ("farC", "farCj", "farC6", "farH", "farHj", "BANK4", "BANK7", "BANK5", "BANK6", "PCLI",
+NAMES = ("farC", "farCj", "farC6", "farC5", "farH", "farHj", "BANK4", "BANK7", "BANK5", "BANK6", "PCLI",
          "IRQG", "NA%", "CHK2", "CHK", "BRBR1", "PANR", "GCALL", "dfsin", "dfsout", "pload",
          "T_GETW", "T_TILT", "T_POLY", "pcb_o")
 
@@ -86,3 +86,5 @@ for prog in ("flight", "docked"):
             f.write("%s H\n" % name)
         for name in labels(OUT + "elite-%s-c6.asm" % prog):     # (the flight code's cold 6
             f.write("%s 6\n" % name)                            # pass, in bank 6)
+        for name in labels(OUT + "elite-%s-c5.asm" % prog):     # (and its cold 5 pass, in
+            f.write("%s 5\n" % name)                            # bank 5's run tails)

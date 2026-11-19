@@ -85,6 +85,10 @@ ENDIF
  ORG C6%                \ labels, which the hot pass's stubs name)
  INCLUDE "3-assembled-output/elite-flight-c6.asm"
 
+ CLEAR &8000, &C000     \ (the cold 5 pass, in one piece: its blocks' sizes,
+ ORG C5TAIL0            \ C5S_k to C5E_k, for streams.py's placing of it in
+ INCLUDE "3-assembled-output/elite-flight-c5.asm"   \ the tails)
+
                         \ The containers' bounds, as labels for the symbols
                         \ (bank 4 also holds the main RAM part's image)
  ORG HOME%

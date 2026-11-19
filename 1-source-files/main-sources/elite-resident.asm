@@ -405,8 +405,7 @@
  PHA
 
  LDA BANK4              \ Page the program's home bank in
- STA &F4
- STA VIA+&30
+ JSR pgin
 
  TSX                    \ Fetch the character from the stack
  LDA &102,X
@@ -414,8 +413,7 @@
  JSR HOME%+6            \ Print it through S%+6
 
  PLA                    \ Page the caller's ROM back in
- STA &F4
- STA VIA+&30
+ JSR pgin
 
  PLA                    \ Restore the character into A and return
  RTS

@@ -43,7 +43,7 @@ import os, re, sys
 OUT = "3-assembled-output/"
 SRC = "1-source-files/main-sources/"
 PROGS = ("flight", "docked")
-FAR = ("farH", "farHj", "farC", "farCj", "farC6", "ovf1", "ovf2", "ovf3")
+FAR = ("farH", "farHj", "farC", "farCj", "farC6", "farC5", "ovf1", "ovf2", "ovf3")
 HOTCOPIES = ("config", "low", "hot", "hotm", "hotx", "blueprints")   # (the hot side's copies: streams.py)
 WINDOW7 = {"flight": (OUT + "gfx-raster_disc-bank7.asm", SRC + "gfx-raster_strips.asm",
                       OUT + "gfx-raster_disc2-bank7.asm", OUT + "gfx-raster_dpatch-bank7.asm")}
@@ -106,9 +106,11 @@ def check(prog, errors):
                   if os.path.exists(OUT + "elite-%s-ovl%d.asm" % (prog, n))})
     if os.path.exists(OUT + "elite-%s-c6.asm" % prog):        # (the flight code's cold 6
         files[OUT + "elite-%s-c6.asm" % prog] = "cold 6"          # pass, in bank 6)
+    if os.path.exists(OUT + "elite-%s-c5.asm" % prog):        # (and its cold 5 pass, in
+        files[OUT + "elite-%s-c5.asm" % prog] = "cold 5"          # bank 5's run tails)
     files.update({OUT + "elite-%s-cold.asm" % prog: "cold", OUT + "elite-tokens-cold.asm": "cold",
                   SRC + "elite-layout-%s.asm" % prog: "home", OUT + "resident.asm": "main"})
-    show = {OUT + "elite-%s-%s.asm" % (prog, a): "elite-source-%s.asm" % prog for a in HOTCOPIES + ("cold", "c6")}
+    show = {OUT + "elite-%s-%s.asm" % (prog, a): "elite-source-%s.asm" % prog for a in HOTCOPIES + ("cold", "c6", "c5")}
     show[OUT + "elite-tokens-cold.asm"] = "elite-text-tokens.asm"
     addr = {}
     try:
@@ -155,7 +157,7 @@ def check(prog, errors):
             if mn is None and re.match(r"^EQUW\b", op.strip(), re.I) and prev == "JSR" and prevop in FAR:
                 prev, prevop = None, None
                 continue                       # the EQUW of a far-call stub
-            if a in ("cold", "cold 6") and re.search(r"\(\s*XX0\s*\)", op):
+            if a in ("cold", "cold 6", "cold 5") and re.search(r"\(\s*XX0\s*\)", op):
                 errors.append("%s: %s:%d: cold code reads a blueprint through XX0 (%s %s)"
                               % (prog, show.get(f, f), n, mn, op.strip()))
             for x in idents(op):
@@ -175,7 +177,7 @@ def check(prog, errors):
                     errors.append("%s: %s: branch from %s to %s %s" % (prog, where, a, b, x))
                 elif op.strip().startswith("#"):
                     continue                   # (an address, not a read)
-                elif a in ("cold", "cold 6"):
+                elif a in ("cold", "cold 6", "cold 5"):
                     if mn in ("JSR", "JMP"):
                         errors.append("%s: %s: %s code calls %s in %s directly (use a stub)" % (prog, where, a, x, b))
                     else:

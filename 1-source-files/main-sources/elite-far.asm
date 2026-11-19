@@ -18,8 +18,9 @@
 \   .TT22 JSR farC : EQUW TT22_C        call (A, X, Y, flags pass both ways)
 \   .TT170 JSR farCj : EQUW TT170_C     jump (the target never returns)
 \
-\ and in the cold bank, under the name the cold code's calls and jumps are
-\ renamed to:
+\ (and farC6, farC5 for the flight code's cold 6 and cold 5 passes, in banks 6
+\ and 5: streams.py) and in the cold bank, under the name the cold code's
+\ calls and jumps are renamed to:
 \
 \   .xh_TT26 JSR farH : EQUW TT26       call, then page the cold bank back in
 \   .jh_BAY JSR farHj : EQUW BAY        jump (the target never returns here)
@@ -74,6 +75,12 @@
  STA fA
  LDA BANK6
  BNE farc               \ Jump to farc (BANK6 is never 0, as in farC)
+
+.farC5
+ PHP                    \ (farC5: the flight code's cold 5 pass, in bank 5's
+ STA fA                 \ row runs' tails)
+ LDA BANK5
+ BNE farc               \ Jump to farc (BANK5 is never 0, as in farC)
 
 .farH
  PHP

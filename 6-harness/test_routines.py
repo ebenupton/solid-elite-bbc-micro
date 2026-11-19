@@ -226,7 +226,9 @@ def load():
     def bank(path):
         d = list(open(os.path.join(REPO, path), "rb").read())
         return d + [0] * (16384 - len(d))
-    cand.banks = {4: bank("3-assembled-output/D.CODEH.bin"), 7: bank("3-assembled-output/D.CODEC.bin")}
+    cand.banks = {4: bank("3-assembled-output/D.CODEH.bin"), 7: bank("3-assembled-output/D.CODEC.bin"),
+                  5: bank("3-assembled-output/BANK5.bin"),   # (the flight code's cold 5 pass,
+                  6: bank("3-assembled-output/BANK6.bin")}   # in the run tails; cold 6's)
     for (a, data) in extra:                       # (the quarter squares, in the home bank)
         if 0x8000 <= a < 0xC000:
             cand.banks[4][a - 0x8000:a - 0x8000 + len(data)] = list(data)

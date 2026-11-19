@@ -116,8 +116,11 @@ tails = [sum(1 for v in set(B5.values()) if run0 + 0x100 * p + 191 <= v < run0 +
          for p in range(24)]
 tail_used = sum(min(65, max(0, max([v for v in B5.values() if run0 + 0x100 * p + 191 <= v < run0 + 0x100 * (p + 1)] or [run0 + 0x100 * p + 190]) - (run0 + 0x100 * p + 190))) for p in range(24))
 empty = sum(1 for t in tails if t == 0) - 4   # (runs 11 to 14's hold DFS's page: DFSTAIL%)
-row("bank 5", run0, img, "the 24 row runs, a page each; in their tails the stars' records and variables, `R_LINE`'s, and DFS's workspace page between disc commands (`DFSTAIL%%`: 64 bytes in each of four; free: the %d tails with nothing in them, 65 bytes each, and the rest of the others)" % empty,
-    0x1800 - 65 * 24 + (B5["rl_nh"] + 1 - B5["rl_lct"]) + 8 * 48 + 4 + 2 + 9 + 4 * 64)
+c5tails = [r for r in range(24) if C["C5TAILS"] >> r & 1]   # (the flight code's cold 5 pass)
+m = re.search(r"^c5 \(.*?: \d+ units and \d+ stubs, (\d+) bytes", open(OUT + "flow-flight.txt").read(), re.M)
+c5used = int(m.group(1)) if m else 0
+row("bank 5", run0, img, "the 24 row runs, a page each; in their tails the stars' records and variables, `R_LINE`'s, DFS's workspace page between disc commands (`DFSTAIL%%`: 64 bytes in each of four), and in tails %s the flight code's cold 5 pass (`Area: cold 5`: `elite-flight-c5.asm`, `C5_r.bin`; `C5TAILS`) (free: the %d other tails with nothing in them, 65 bytes each, the rest of the others, and the cold 5 tails' room)" % (", ".join(map(str, c5tails)), empty - len(c5tails)),
+    0x1800 - 65 * 24 + (B5["rl_nh"] + 1 - B5["rl_lct"]) + 8 * 48 + 4 + 2 + 9 + 4 * 64 + c5used)
 row("bank 5", img, st, "`R_POLY`, `R_LINE`", B5["R_LOEND"] - img)
 row("bank 5", st, st + 0x600, "the state: the dirty and written extents, `R_POLY`'s edge tables")
 row("bank 5", st + 0x600, B5["r_tfree"], "`R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic")

@@ -415,6 +415,7 @@ export function progHooks(b, cpu) {
         if (typeof prog === "string") prog = b.progs[prog];
         if (prog.sy[name + "_C"] !== undefined) name += "_C";
         else if (prog.sy[name + "_6"] !== undefined) name += "_6";   // (in the flight code's cold 6 pass)
+        else if (prog.sy[name + "_5"] !== undefined) name += "_5";   // (in its cold 5 pass, bank 5's tails)
         const a0 = prog.sy[name];
         if (a0 === undefined) return null;
         const a = a0 + off;
@@ -559,7 +560,7 @@ export async function runElite(opts) {
     const deadPend = [];
     let deadSeed = 0x2545F491;
     const deadRnd = () => { deadSeed ^= deadSeed << 13; deadSeed ^= deadSeed >>> 17; deadSeed ^= deadSeed << 5; return deadSeed >>> 0; };
-    if (opts.deadRegs) for (const [n, regs] of DEAD_AFTER) for (const nm of [n, n + "_C", n + "_6"]) {
+    if (opts.deadRegs) for (const [n, regs] of DEAD_AFTER) for (const nm of [n, n + "_C", n + "_6", n + "_5"]) {
         // (the body in another pass too: a caller there calls it directly)
         const a = P.flight.sy[nm];
         if (a === undefined) continue;
@@ -576,7 +577,7 @@ export async function runElite(opts) {
     }
 
     // label lookup for call sites, per program and mapping ("m": main RAM,
-    // or a bank role; a cold body's label, name_C or name_6, is reported as name)
+    // or a bank role; a cold body's label, name_C, name_6 or name_5, is reported as name)
     const labs = {};
     for (const p of [P.flight, P.docked]) {
         const l = {};
@@ -593,7 +594,7 @@ export async function runElite(opts) {
         const lab = labs[prog.name][a < 0x8000 || a >= 0xc000 ? "m" : (roleOf(romsel) || "m")] || [];
         let lo = 0, hi = lab.length - 1, r = null;
         while (lo <= hi) { const m = (lo + hi) >> 1; if (lab[m][1] <= a) { r = lab[m][0]; lo = m + 1; } else hi = m - 1; }
-        return r && /_[C6O]$/.test(r) ? r.slice(0, -2) : r;      // (a cold body, cold 6's, an overlay's copy)
+        return r && /_[C65O]$/.test(r) ? r.slice(0, -2) : r;     // (a cold body, cold 6's or cold 5's, an overlay's copy)
     };
     const stackWord = k => rb(0x100 + ((cpu.s + k) & 0xff)) | (rb(0x100 + ((cpu.s + k + 1) & 0xff)) << 8);
     // the JSR whose return address is at S+k and the ROMSEL it ran with,

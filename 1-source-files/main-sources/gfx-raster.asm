@@ -730,8 +730,9 @@ ENDMACRO
 
 MACRO R_ENDPAGE r
   ASSERT P% <= r_run0 + (r + 1) * &100
-  SKIP r_run0 + (r + 1) * &100 - P%
-ENDMACRO
+  ASSERT ((C5TAILS >> r) AND 1) = 0 OR P% = r_run0 + r * &100 + R_RUNSZ
+  SKIP r_run0 + (r + 1) * &100 - P%   \ (a tail in C5TAILS holds nothing: the
+ENDMACRO                  \ flight code's cold 5 pass, elite-map.asm)
 
 .r_run0 R_RUN 0
 .r_s0y SKIP 48          \ star records, buffer 0: row
@@ -811,6 +812,7 @@ FOR r, 17, 23
   R_RUN r
   R_ENDPAGE r
 NEXT
+ASSERT C5TAIL0 = r_run0 + R_RUNSZ AND C5TSZ = &100 - R_RUNSZ
 ASSERT (HI(r_run0) AND 31) = 0   \ (the repair: the row's run page is Y DIV 8 OR HI(r_run0))
 
 \       Area: bank 5

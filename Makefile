@@ -109,6 +109,7 @@ all:
 	$(PYTHON) 2-build-files/layout-info.py
 	$(BEEBASM) -i 1-source-files/main-sources/elite-layout-flight.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-layout-flight.asm -d | grep "^\[{" > 3-assembled-output/flight-symbols.txt
+	$(PYTHON) 2-build-files/bank5.py $(BEEBASM)
 	$(PYTHON) 2-build-files/sunref.py $(BEEBASM) >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-layout-docked.asm -v >> 3-assembled-output/compile.txt
 	$(BEEBASM) -i 1-source-files/main-sources/elite-layout-docked.asm -d | grep "^\[{" > 3-assembled-output/docked-symbols.txt

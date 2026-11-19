@@ -65,6 +65,23 @@
                         \ it grows by 256 bytes at a time, so that the frame
                         \ layer after it keeps its page offsets, and with
                         \ them its branches' and indexed reads' cycles)
+ C5TAIL0 = &80BF        \ The flight code's cold 5 pass, in bank 5's row runs'
+ C5TSZ = 65             \ tails (the 65 bytes after each run, gfx-raster.asm's
+                        \ "The store runs": tail r is C5TSZ bytes at C5TAIL0 +
+                        \ &100 * r, and C5TAILS has bit r set for each tail the
+                        \ pass may use, whole). The flight code's layout
+                        \ assembles each tail's blocks there (streams.py packs
+                        \ them: Area: cold 5) and saves it as C5_r.bin, which
+                        \ bank 5's assembly takes in (gfx-bank5.asm), so the
+                        \ image the loader loads, R.BANK, holds them; a far
+                        \ call, farC5, reaches them. A tail listed here must
+                        \ hold nothing else (gfx-raster.asm's R_ENDPAGE checks
+                        \ it), and tails 11 to 14 hold DFS's workspace page
+                        \ (DFSTAIL%). To give the pass a tail that holds some
+                        \ variables, move them to a tail that is not listed
+ C5TAILS = (1 << 7) + (1 << 15) + (1 << 17) + (1 << 18) + (1 << 19) + (1 << 20) + (1 << 21) + (1 << 22) + (1 << 23)
+ ASSERT (C5TAILS AND &7800) = 0 AND C5TAILS < (1 << 24)
+
  FHV% = &BFF4           \ The hangar's background's four jumps into bank 6
                         \ (gfx-bank6.asm's FHV, the bank's last 12 bytes,
                         \ after the dispatcher: gfx-hangar.asm)

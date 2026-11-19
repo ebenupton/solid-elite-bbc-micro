@@ -184,6 +184,21 @@ if B5["R_LOEND"] > st or B5["R_GAPEND"] > B5["r_tables"] or B5["RJT_END"] > 0xC0
 if B5["R_IMAGE"] != 0x8000 or os.path.getsize(OUT + "BANK5.bin") != 0x4000:
     errors.append("bank 5: its image is not the whole bank")
 nlab += inside(B5, OUT + "gfx-raster-bank5runs.asm", B5["r_run0"], img, "bank 5's row runs' pages")
+# the flight code's cold 5 pass: its labels in the tails C5TAILS lists, and
+# no label of bank 5's own there (R_ENDPAGE checks it in the assembly too)
+c5t = [C["C5TAIL0"] + 0x100 * r for r in range(24) if C["C5TAILS"] >> r & 1]
+c5in = lambda a: any(t <= a < t + C["C5TSZ"] for t in c5t)
+if os.path.exists(OUT + "elite-flight-c5.asm"):
+    for l in labels(OUT + "elite-flight-c5.asm"):
+        a = FL.get(l)
+        if a is None:
+            continue
+        nlab += 1
+        if not c5in(a):
+            errors.append("%selite-flight-c5.asm: %s (&%04X) is in no tail of C5TAILS" % (OUT, l, a))
+for l, a in B5.items():
+    if c5in(a):
+        errors.append("bank 5: %s (&%04X) is in a tail that C5TAILS gives the flight code's cold 5 pass" % (l, a))
 for f in ("gfx-raster_poly", "gfx-raster_line"):
     nlab += inside(B5, OUT + "%s-bank5.asm" % f, img, st, "bank 5's R_POLY and R_LINE")
 for f in ("gfx-raster", "gfx-raster_init", "gfx-raster_rep", "gfx-raster_dq"):

@@ -121,6 +121,30 @@ Master port, each program is emitted in three passes, **low**, **hot** and
   are in bank 6 as loaded once at boot, not reloaded with the flight code:
   a block that relies on its assembled data at each load does not belong
   here.
+* **`Area: cold 5`** (flight code only) is the third cold pass, in bank
+  5's row runs' tails: the 65 bytes after each run (`C5TAIL0`, `C5TSZ`),
+  in the tails that `C5TAILS` lists (`elite-map.asm`: at present tails 7,
+  15 and 17 to 23, the ones that hold nothing else; `gfx-raster.asm`'s
+  `R_ENDPAGE` fails the build if a listed tail holds a variable, and tails
+  11 to 14 hold DFS's page). It is cold 6 again in another bank: its copy,
+  `elite-flight-c5.asm`, has its labels named `X_5`, and it is reached
+  through `.X JSR farC5 : EQUW X_5` in the hot copies and `.xs5_X` in the
+  cold copy, and reaches out through `.x5_H` (`farH`) and `.x5c_C`
+  (`farC`) in its own; the same rules hold (no fall into it, no branch
+  across its edge, it reads only main RAM and itself, its variables are
+  loaded once at boot), and cold 6 and cold 5 do not call each other. As
+  the tails are not one room, `streams.py` places the copy in pieces: each
+  unit (blocks that fall, branch or run on into one another, with the stub
+  its last block falls into and any stub between its blocks) whole in one
+  tail, then each other stub, first fit, the largest first, by the sizes
+  the measure gives (`C5S_k`, `C5E_k` at each block's ends, the copy
+  assembled in one piece); it writes an `ORG` at each piece and an `ASSERT`
+  at each unit's end that it is as measured, and the packing, tail by tail,
+  at the end of `3-assembled-output/flow-flight.txt`. A unit that fits no
+  tail fails the build, naming itself and the room in each tail. The
+  flight code's layout saves each tail as `C5_r.bin`, and `bank5.py`, run
+  again after the flight code, assembles bank 5 with them in, so that
+  `R.BANK` (the whole bank) carries them.
 * **`Area: overlay N`** (flight code only) is cold code that only runs at
   events: overlay 1 holds the charts, the hyperspace jump with the
   mis-jump, the launch and the escape pod; overlay 2 the data, status,
@@ -217,7 +241,7 @@ which takes the `RTS` that ends `WP1`, the block before `WPLS`). `S%`'s
 unit goes first, at the start of bank 4 (the entry table), and then each
 other unit, the largest first, into the first container with room for it:
 `hot`, `hotm`, `hotx` (code runs as fast in main RAM as in bank 4), but
-a unit that the cold side or cold 6 reads (a table such as `UNIV`, not a
+a unit that the cold side, cold 6 or cold 5 reads (a table such as `UNIV`, not a
 call, which goes through a stub) goes into `hotm` or `hotx`, as bank 4 is
 not paged in there. Each
 container's copy assembles its units in the source's order. The sizes are
@@ -316,12 +340,13 @@ Then `2-build-files/mapcheck.py` checks the map ("The map", below).
 |---|---|---|
 | `farC` and `farCj` stubs (`.TT22 JSR farC : EQUW TT22_C`), generated into the home copies | each at its cold routine's place | the cold bank in, then the caller's bank back |
 | `farC6` stubs (`.DET1 JSR farC6 : EQUW DET1_6`, or `.xs_DET1` in the cold copy), generated into the home and cold copies | each at its cold 6 routine's place | bank 6 in, then the caller's bank back |
+| `farC5` stubs (`.TAS4 JSR farC5 : EQUW TAS4_5`, or `.xs5_X` in the cold copy), generated into the home and cold copies | each at its cold 5 routine's place | bank 5 in, then the caller's bank back |
 | `farH` and `farHj` stubs (`.xh_TT26 JSR farH : EQUW TT26`), generated into the cold copies | each at its home routine's place | the home bank in, then the cold bank back |
 | `WRCHR` (WRCHV) | the resident block | the home bank in, then `JSR S%+6` (`JMP TT26` in the flight code, `JMP CHPR` in the docked code), then the caller's ROM back |
 | `BRKR` (BRKV) | the resident block | the home bank in, then `JMP S%+11` (`JMP BRBR1`, or in the docked code the handler that `BRKBK` and `SVE` set) |
 | `PCLI` (the programs' `OSCLI`) | the resident block | loads a program or a blueprint file into its banks through `STAGE%`, or passes the command to the MOS from main RAM |
 
-A far call costs about 110 cycles (`farC6` as `farC`) and three bytes of stack, and passes A, X,
+A far call costs about 110 cycles (`farC6` and `farC5` as `farC`) and three bytes of stack, and passes A, X,
 Y and the flags both ways. The harness (`6-harness/blib.mjs`) sees through
 far-call frames by the label `farret`.
 

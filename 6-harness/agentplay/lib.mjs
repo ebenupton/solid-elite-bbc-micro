@@ -117,7 +117,7 @@ export class BMachine {
         // opts.deadRegs (blib's DEAD_AFTER, as runElite's): each routine's entry in the
         // flight program (and its body in another pass), noting the return
         this.deadPend = []; this.deadN = {}; this.deadSeed = 0x2545F491;
-        if (this.opts.deadRegs) for (const [n, regs] of DEAD_AFTER) for (const nm of [n, n + "_C", n + "_6"]) {
+        if (this.opts.deadRegs) for (const [n, regs] of DEAD_AFTER) for (const nm of [n, n + "_C", n + "_6", n + "_5"]) {
             const a = P.flight.sy[nm];
             if (a === undefined) continue;
             const role = P.flight.bank[nm];
@@ -289,7 +289,7 @@ export class BMachine {
         const lab = this.labs[prog][a < 0x8000 || a >= 0xc000 ? "m" : (this._roleOf(romsel) || "m")] || [];
         let lo = 0, hi = lab.length - 1, r = null;
         while (lo <= hi) { const m = (lo + hi) >> 1; if (lab[m][1] <= a) { r = lab[m][0]; lo = m + 1; } else hi = m - 1; }
-        return r && /_[CO6]$/.test(r) ? r.slice(0, -2) : r;     // (a cold body, name_C or name_6, or an overlay's copy, name_O: the name)
+        return r && /_[CO65]$/.test(r) ? r.slice(0, -2) : r;     // (a cold body, name_C, name_6 or name_5, or an overlay's copy, name_O: the name)
     }
     _stackWord(k) { const s = this.cpu.s; return this.rb(0x100 + ((s + k) & 0xff)) | (this.rb(0x100 + ((s + k + 1) & 0xff)) << 8); }
     // the JSR whose return address is at S+k, through far-call frames (blib's callerAt)

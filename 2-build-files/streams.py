@@ -34,6 +34,9 @@
 #     calls it directly, with no stub (direct_calls).
 #   * "Area: cold": the cold pass, sideways RAM bank 7 from &8000, below the
 #     renderer's window at the bank's top.
+#   * "Area: cold 6" and "Area: cold 5" (the flight code only): cold code in
+#     bank 6 (C6%) and in bank 5's row runs' tails (C5TAILS), each a side of
+#     its own reached through stubs (coldx, c5_place, below).
 #   * "Area: blueprints": the docked code's own ship blueprints, in bank 4's
 #     blueprint slot at BPSLOT% (the flight code loads its set from a D.MOx
 #     file there instead).
@@ -141,7 +144,7 @@ import glob, os, re, sys
 SRCDIR = "1-source-files/main-sources/"
 OUTDIR = "3-assembled-output/"
 PROGS = ("flight", "docked")
-TAGS = {"hot": "hot", "low": "low", "cold": "cold", "cold 6": "c6", "blueprints": "blueprints", "none": "none"}
+TAGS = {"hot": "hot", "low": "low", "cold": "cold", "cold 6": "c6", "cold 5": "c5", "blueprints": "blueprints", "none": "none"}
 TOKENS = SRCDIR + "elite-text-tokens.asm"
 TOKTAGS = {"cold": "cold", "resident": "resident"}
 STAR = re.compile(r"^\\ \*{70,}\s*$")
@@ -535,7 +538,7 @@ def direct_calls(lines, bl, eff, cold, hot):
     return out
 
 
-def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, c6falls=()):
+def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, xfalls={}):
     """the stubs between the sides, written into the copies at their places;
     returns (stubs into the cold pass, stubs out of it, the direct calls)"""
     noreturn = NORETURN[prog]
@@ -731,7 +734,12 @@ def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, c
     nh = place_stubs(groups, ("hot", "low", "blueprints"), "hot")
     no = overlay_stubs(prog, src, copies, errors, lines, bl, eff, copy_of, hotcopies, cold, hot, direct,
                        where, barea, host, macros, noreturn)
-    no += cold6(src, copies, errors, cold, hot, direct, alias, noreturn, where, host, hotcopies, c6falls)
+    xinfo = {}
+    for kind in COLDX:
+        nx, stubline, fallstub = coldx(kind, src, copies, errors, cold, hot, direct, alias, noreturn, where, host,
+                                       hotcopies, xfalls.get(kind, ()))
+        no += nx
+        xinfo[kind] = (stubline, fallstub)
     # a cold block that falls into a low routine the cold pass calls directly
     # falls into a jump to it, at that routine's place in the cold copy
     for side, entry in falls:
@@ -741,7 +749,7 @@ def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, c
                 errors.append("%s:%d: the seam into %s: its line is not blank in the cold copy" % (src, i + 1, entry))
             else:
                 cc[i] = " JMP %s                \\ (the fall-through into %s, in the low pass)" % (entry, entry)
-    return nc, nh + no, direct
+    return nc, nh + no, direct, xinfo
 
 
 # ---------------------------------------------------------------- overlays
@@ -850,7 +858,7 @@ def overlay_stubs(prog, src, copies, errors, lines, bl, eff, copy_of, hotcopies,
     return n
 
 
-# ---------------------------------------------------------------- cold 6
+# ---------------------------------------------------------------- cold 6, cold 5
 #
 # "Area: cold 6" (the flight code only): cold code in bank 6, after the room
 # the frame layer leaves (C6%, elite-map.asm), its own pass and copy,
@@ -872,15 +880,40 @@ def overlay_stubs(prog, src, copies, errors, lines, bl, eff, copy_of, hotcopies,
 # nothing may fall into a cold 6 block, and no branch crosses its area's
 # edge. It calls the low pass's routines that need nothing of the hot side
 # directly.
+#
+# "Area: cold 5" (the flight code only) is the same in bank 5, in the row
+# runs' tails (C5TAILS, elite-map.asm), with its labels named X_5 and its
+# stubs .X / .xs5_X (JSR farC5 : EQUW X_5), .x5_H and .x5c_C; neither of
+# the two calls the other. The tails are not one room, so the cold 5 copy,
+# elite-flight-c5.asm, is placed in pieces (c5_place): each unit (blocks
+# that fall, branch or run on into one another, with the stub its last
+# block falls into) whole in one tail, and each stub that is only called
+# anywhere in them, first fit, the largest first, by the sizes the measure
+# gave (C5S_k, C5E_k at each block's ends: the measure assembles the copy
+# in one piece), with an ORG at each piece and an ASSERT at each unit's end
+# that it is the size it was measured.
+
+COLDX = {
+    "c6": {"n": "6", "name": "cold 6", "far": "farC6", "xs": "xs_", "x": "x6_", "j": "j6_", "xc": "x6c_",
+           "jc": "j6c_"},
+    "c5": {"n": "5", "name": "cold 5", "far": "farC5", "xs": "xs5_", "x": "x5_", "j": "j5_", "xc": "x5c_",
+           "jc": "j5c_"},
+}
 
 
-def cold6(src, copies, errors, cold, hot, direct, alias, noreturn, where, host, hotcopies, c6falls=()):
-    """the cold 6 copy's names and stubs, and the stubs into it; returns how
-    many stubs"""
-    if "c6" not in copies:
-        return 0
-    cc = copies["c6"]
+def coldx(kind, src, copies, errors, cold, hot, direct, alias, noreturn, where, host, hotcopies, xfalls=()):
+    """the cold 6 or cold 5 copy's names and stubs, and the stubs into it;
+    returns (how many stubs, {stub: its line in the copy}, {fall target:
+    (its stub's label or None for a JMP, its size)})"""
+    if kind not in copies:
+        return 0, {}, {}
+    K = COLDX[kind]
+    cc = copies[kind]
     own = {n for n, i in defined(cc)}
+    other = set()                            # (the other bank's cold pass)
+    for k2 in COLDX:
+        if k2 != kind and k2 in copies:
+            other.update(n for n, i in defined(copies[k2]) if not n.endswith("_" + COLDX[k2]["n"]))
     ovl = set()
     for c in [c for c in copies if c.startswith("ovl")]:
         ovl.update(n[:-2] for n, i in defined(copies[c]) if n.endswith("_O"))
@@ -895,18 +928,22 @@ def cold6(src, copies, errors, cold, hot, direct, alias, noreturn, where, host, 
             if m and m.group(4) not in own and m.group(4) not in direct:
                 t = m.group(4)
                 if m.group(5).strip():
-                    errors.append("%s:%d: %s %s%s from cold 6: a stub can only call a label"
-                                  % (src, i + 1, m.group(2), t, m.group(5)))
+                    errors.append("%s:%d: %s %s%s from %s: a stub can only call a label"
+                                  % (src, i + 1, m.group(2), t, m.group(5), K["name"]))
                 place = alias.get(t, t)
                 nr = place in noreturn or t in noreturn
                 if t in ovl:
-                    errors.append("%s:%d: cold 6 calls %s, in an overlay" % (src, i + 1, t))
+                    errors.append("%s:%d: %s calls %s, in an overlay" % (src, i + 1, K["name"], t))
+                    stub = t
+                elif t in other:
+                    errors.append("%s:%d: %s calls %s, in the other cold pass in a renderer's bank"
+                                  % (src, i + 1, K["name"], t))
                     stub = t
                 elif t in cold:
-                    stub = ("j6c_" if nr else "x6c_") + t
+                    stub = (K["jc"] if nr else K["xc"]) + t
                     out.setdefault(stub, ("farCj" if nr else "farC", t + "_C", t))
                 elif t in hot:
-                    stub = ("j6_" if nr else "x6_") + t
+                    stub = (K["j"] if nr else K["x"]) + t
                     out.setdefault(stub, ("farHj" if nr else "farH", t, t))
                 else:
                     stub = t
@@ -915,21 +952,28 @@ def cold6(src, copies, errors, cold, hot, direct, alias, noreturn, where, host, 
                 continue
             for a, b, name in tokens(st):
                 if name in own and not mnemonic(st, a):
-                    new += code[pos:off + a] + name + "_6"
+                    new += code[pos:off + a] + name + "_" + K["n"]
                     pos = off + b
             new += code[pos:off + len(st)]
             pos = off + len(st)
         cc[i] = new + code[pos:] + comment
-    for t in c6falls:                        # (a fall into another side's routine
+    fallstub = {}
+    for t in xfalls:                         # (a fall into another side's routine
         place = alias.get(t, t)              # falls into its stub, as the cold
         nr = place in noreturn or t in noreturn   # pass's falls do)
         if t in cold:
-            out.setdefault(("j6c_" if nr else "x6c_") + t, ("farCj" if nr else "farC", t + "_C", t))
+            stub = (K["jc"] if nr else K["xc"]) + t
+            out.setdefault(stub, ("farCj" if nr else "farC", t + "_C", t))
+            fallstub[t] = (stub, 5)
         elif t in direct:
             out.setdefault(t, None)
+            fallstub[t] = (None, 3)
         else:
-            out.setdefault(("j6_" if nr else "x6_") + t, ("farHj" if nr else "farH", t, t))
+            stub = (K["j"] if nr else K["x"]) + t
+            out.setdefault(stub, ("farHj" if nr else "farH", t, t))
+            fallstub[t] = (stub, 5)
     n = 0
+    stubline = {}
 
     def put(c, i, text):
         if code_part(copies[c][i]) and not copies[c][i].lstrip().startswith("."):
@@ -941,17 +985,18 @@ def cold6(src, copies, errors, cold, hot, direct, alias, noreturn, where, host, 
 
     for stub, v in sorted(out.items()):
         if v is None:                        # (a fall into a low routine: a JMP to it)
-            put("c6", where[stub], " JMP %s" % stub)
+            put(kind, where[stub], " JMP %s" % stub)
             continue
         far, target, place = v
         i = where.get(place)
         if i is None:
-            errors.append("%s: no place for the cold 6 stub %s" % (src, stub))
+            errors.append("%s: no place for the %s stub %s" % (src, K["name"], stub))
             continue
-        put("c6", i, ".%s JSR %s : EQUW %s" % (stub, far, target))
+        put(kind, i, ".%s JSR %s : EQUW %s" % (stub, far, target))
+        stubline[stub] = i
         n += 1
-    # the stubs into cold 6: the hot copies' references, and the cold copy's
-    # and the overlays' calls (renamed xs_X)
+    # the stubs into the pass: the hot copies' references, and the cold copy's
+    # and the overlays' calls (renamed xs_X, xs5_X)
     need = {}
     for c in hotcopies + ["config"]:
         for l in copies[c]:
@@ -964,20 +1009,108 @@ def cold6(src, copies, errors, cold, hot, direct, alias, noreturn, where, host, 
             new, pos = "", 0
             for a, b, name in tokens(code):
                 if name in own and not mnemonic(code, a):
-                    new += code[pos:a] + "xs_" + name
+                    new += code[pos:a] + K["xs"] + name
                     pos = b
                     need.setdefault(name, set()).add("cold")
             copies[c][j] = new + code[pos:] + comment
     for name, sides in sorted(need.items()):
         i = where.get(name)
-        far = "farC6j" if name in noreturn else "farC6"
+        far = K["far"] + ("j" if name in noreturn else "")
         for sd in sorted(sides):
             if sd == "hot":
-                put(host(i), i, ".%s JSR %s : EQUW %s_6" % (name, far, name))
+                put(host(i), i, ".%s JSR %s : EQUW %s_%s" % (name, far, name, K["n"]))
             else:
-                put("cold", i, ".xs_%s JSR %s : EQUW %s_6" % (name, far, name))
+                put("cold", i, ".%s%s JSR %s : EQUW %s_%s" % (K["xs"], name, far, name, K["n"]))
             n += 1
-    return n
+    return n, stubline, fallstub
+
+
+def c5_tails():
+    """[(tail number, address)] for the tails in C5TAILS, and their size
+    (elite-map.asm)"""
+    txt = open(SRCDIR + "elite-map.asm", encoding="latin-1").read()
+    v = {}
+    for name in ("C5TAIL0", "C5TSZ", "C5TAILS"):
+        m = re.search(r"^\s*%s\s*=\s*([^\\\n]+)" % name, txt, re.M)
+        v[name] = eval(re.sub(r"&([0-9A-Fa-f]+)", r"0x\1", m.group(1)).strip(), {})
+    return [(r, v["C5TAIL0"] + 0x100 * r) for r in range(24) if v["C5TAILS"] >> r & 1], v["C5TSZ"]
+
+
+def c5_place(prog, src, copies, errors, lines, bl, eff, units, fallk, stubline, fallstub, report):
+    """the cold 5 copy's pieces in the tails (see above): an ORG at each, and
+    an ASSERT at each unit's end; the packing goes in the report"""
+    cc = copies["c5"]
+    sy = measured(prog)
+    tails, tsz = c5_tails()
+    items = []                               # (size, kind, key, name)
+    infall = set()
+    for u in units:
+        size = 0
+        for k in u:
+            e = sy.get("C5S_%d" % (k + 1)) if eff[k + 1:k + 2] == ["c5"] and ASM[k + 1] else sy.get("C5E_%d" % k)
+            if "C5S_%d" % k not in sy or e is None:
+                errors.append("%s: cold 5: the measure has no size for %s" % (src, bl[k].name))
+                return
+            size += e - sy["C5S_%d" % k]
+        last = u[-1]
+        fs = fallstub.get(fallk.get(last))
+        if fs:
+            size += fs[1]
+            if fs[0]:
+                infall.add(fs[0])
+        for stub, i in stubline.items():     # (a stub between the unit's blocks,
+            if bl[u[0]].s <= i < bl[last].e and stub not in infall:   # at the place
+                size += 5                    # of a routine of another side: in it)
+                infall.add(stub)
+        names = bl[u[0]].name + (".." + bl[last].name if len(u) > 1 else "")
+        items.append((size, 0, u[0], names, u, fs))
+    for stub, i in sorted(stubline.items(), key=lambda x: x[1]):
+        if stub not in infall:
+            items.append((5, 1, i, stub, None, None))
+    fill = {r: 0 for r, a in tails}
+    used = {r: [] for r, a in tails}
+    at = {}
+    for size, kd, key, names, u, fs in sorted(items, key=lambda x: (-x[0], x[1], x[2])):
+        r = next((r for r, a in tails if fill[r] + size <= tsz), None)
+        if r is None:
+            errors.append("%s: cold 5: %s (%d bytes) does not fit in a tail (%s; %d bytes each: C5TAILS, "
+                          "elite-map.asm)" % (src, names, size, ", ".join(
+                              "%d: %d free" % (t, tsz - fill[t]) for t, a in tails), tsz))
+            continue
+        a = dict(tails)[r] + fill[r]
+        fill[r] += size
+        used[r].append((a, size, names))
+        at[(kd, key)] = (a, size)
+    if errors:
+        return
+    pre = {}                                 # line -> directives before its code
+    post = {}                                # line -> directives after it
+    for size, kd, key, names, u, fs in items:
+        a, size = at[(kd, key)]
+        if kd == 1:
+            cc[key] = cc[key].replace(".%s JSR" % names, "ORG &%04X : .%s JSR" % (a, names), 1)
+            continue
+        pre.setdefault(bl[u[0]].s, []).append("ORG &%04X" % a)
+        chk = "ASSERT P%% = &%04X   \\ (streams.py: %s, %d bytes, as measured)" % (a + size, names, size)
+        if fs:
+            post.setdefault(stubline[fs[0]] if fs[0] else where_of(lines, fallk[u[-1]]), []).append(chk)
+        else:
+            pre.setdefault(bl[u[-1]].e, []).insert(0, chk)
+    for i, ds in pre.items():
+        code = code_part(cc[i])
+        cc[i] = " " + " : ".join(ds + ([cc[i].strip()] if code else []))
+    for i, ds in post.items():
+        cc[i] = cc[i].rstrip() + " : " + " : ".join(ds)
+    report.append("c5 (the tails C5TAILS: %d bytes each): %d units and %d stubs, %d bytes, %d free" % (
+        tsz, len(units), sum(1 for x in items if x[1] == 1), sum(fill.values()), tsz * len(tails) - sum(fill.values())))
+    for r, a0 in tails:
+        report.append("  &%04X-&%04X tail %d: %d bytes, %d free" % (a0, a0 + tsz - 1, r, fill[r], tsz - fill[r]))
+        for a, size, names in sorted(used[r]):
+            report.append("  &%04X   %5d %s" % (a, size, names))
+
+
+def where_of(lines, name):
+    return next(i for n, i in defined(lines) if n == name and ACTIVE[i])
 
 
 ASM = []
@@ -1064,9 +1197,10 @@ def program(prog, phase, errors):
     eff = ["config" if k < first else b.area for k, b in enumerate(bl)]
     if any(eff[k] != "hot" for k in range(first, first + 1)):
         errors.append("%s: S%%'s block must be in the hot pass" % src)
-    side = lambda p: p if p in ("cold", "c6") or p.startswith("ovl") else "hot"
-    if prog != "flight" and "c6" in eff:
-        errors.append("%s: Area: cold 6 is the flight code's only" % src)
+    side = lambda p: p if p in ("cold",) + tuple(COLDX) or p.startswith("ovl") else "hot"
+    for kind in COLDX:
+        if prog != "flight" and kind in eff:
+            errors.append("%s: Area: %s is the flight code's only" % (src, COLDX[kind]["name"]))
     # the hot pass's blocks that assemble, in the source's order, and its units
     hot = [k for k in range(len(bl)) if eff[k] == "hot" and ASM[k]]
     pos = {k: n for n, k in enumerate(hot)}
@@ -1090,7 +1224,23 @@ def program(prog, phase, errors):
     # thing in the falling block's pass
     falls = []
     hotfalls = []                          # (k, k2): hot block k falls into hot block k2
-    c6falls = []                           # the entry labels cold 6 blocks fall into
+    xfalls = {kind: [] for kind in COLDX}  # the entry labels cold 6 and cold 5 blocks fall into
+    fallk = {}                             # cold 5 block -> the entry label it falls into
+    c5par = {}                             # cold 5's units: blocks that fall, branch or run on
+                                           # into one another (union-find by block)
+
+    def c5find(x):
+        while c5par.setdefault(x, x) != x:
+            x = c5par[x]
+        return x
+
+    def c5join(a, b):
+        for x in range(min(a, b), max(a, b)):
+            if eff[x] == "c5" and ASM[x]:
+                y = next(y for y in range(x + 1, len(bl)) if eff[y] == "c5" and ASM[y])
+                ra, rb = c5find(x), c5find(y)
+                if ra != rb:
+                    c5par[max(ra, rb)] = min(ra, rb)
     lowseams = []
     ovlseams = []                          # (overlay copy, cold label, by a branch)
     for k, b in enumerate(bl):
@@ -1110,14 +1260,16 @@ def program(prog, phase, errors):
                 if eff[k] == "hot":
                     join(pos[k], pos[k2])
                     hotfalls.append((k, k2))
-            elif eff[k] == "c6" and not bit_skip(st) and not b.runson and not eff[k2].startswith("ovl") \
-                    and entry_label(lines, b2.s, b2.e, macros):
-                c6falls.append(entry_label(lines, b2.s, b2.e, macros))   # (into its stub in the
-                                                                         # cold 6 copy)
-            elif "c6" in (eff[k], eff[k2]):
-                errors.append("%s:%d: %s (%s) can fall through its end (%s) into %s (%s): a cold 6 block may "
-                              "only fall into an entry label of the hot or cold side, and nothing may fall into "
-                              "it" % (src, b.e, b.name, eff[k], st, b2.name, eff[k2]))
+                elif eff[k] == "c5":
+                    c5join(k, k2)
+            elif eff[k] in COLDX and not bit_skip(st) and not b.runson and not eff[k2].startswith("ovl") \
+                    and eff[k2] not in COLDX and entry_label(lines, b2.s, b2.e, macros):
+                xfalls[eff[k]].append(entry_label(lines, b2.s, b2.e, macros))   # (into its stub in the
+                fallk[k] = entry_label(lines, b2.s, b2.e, macros)              # cold 6 or 5 copy)
+            elif eff[k] in COLDX or eff[k2] in COLDX:
+                errors.append("%s:%d: %s (%s) can fall through its end (%s) into %s (%s): a cold 6 or cold 5 "
+                              "block may only fall into an entry label of the hot or cold side, and nothing may "
+                              "fall into it" % (src, b.e, b.name, eff[k], st, b2.name, eff[k2]))
             elif bit_skip(st) or b.runson:
                 errors.append("%s:%d: %s (%s) %s %s (%s): they must be in one pass"
                               % (src, b.e, b.name, eff[k], "runs on into" if b.runson else "skips into",
@@ -1204,6 +1356,8 @@ def program(prog, phase, errors):
                     continue
                 if eff[k] == "hot":
                     join(pos[k], pos[k2])
+                elif eff[k] == "c5":
+                    c5join(k, k2)
                 if (k, k2) not in behind:
                     behind.append((k, k2))
     # branches: a hot block that branches into another keeps the blocks from
@@ -1230,9 +1384,11 @@ def program(prog, phase, errors):
                 if eff[k3] == eff[k]:
                     if k in pos:
                         join(pos[k], pos[k3])
-                elif "c6" in (eff[k], eff[k3]):
-                    errors.append("%s:%d: %s branches to %s in another area (%s): cold 6 branches stay in it"
-                                  % (src, i + 1, b.name, m.group(2), eff[k3]))
+                    elif eff[k] == "c5":
+                        c5join(k, k3)
+                elif eff[k] in COLDX or eff[k3] in COLDX:
+                    errors.append("%s:%d: %s branches to %s in another area (%s): cold 6 and cold 5 branches "
+                                  "stay in their area" % (src, i + 1, b.name, m.group(2), eff[k3]))
                 elif eff[k].startswith("ovl") and eff[k3] == "cold":
                     ovlseams.append((eff[k], m.group(2), True))   # (a JMP to it in reach: the
                                                                   # overlay's copy, at its place)
@@ -1291,7 +1447,7 @@ def program(prog, phase, errors):
         # bank 4 is not paged in there: its unit skips bank 4's container
         mainonly = set()
         for k, b in enumerate(bl):
-            if eff[k] not in ("cold", "c6") or not ASM[k]:
+            if eff[k] not in ("cold",) + tuple(COLDX) or not ASM[k]:
                 continue
             for i in range(b.s, b.e):
                 if not ACTIVE[i]:
@@ -1338,7 +1494,7 @@ def program(prog, phase, errors):
                 report.append("  &%04X %5d %s" % (a + off, size, names))
     copies = {}
     ovls = sorted(set(e for e in eff if e.startswith("ovl")))
-    allc = ["config", "low", "cold", "blueprints"] + ovls + (["c6"] if prog == "flight" else []) + \
+    allc = ["config", "low", "cold", "blueprints"] + ovls + (list(COLDX) if prog == "flight" else []) + \
         (["measure"] if phase == "measure" else [c[0] for c in CONTAINERS])
     for a in allc:
         copies[a] = []
@@ -1378,7 +1534,26 @@ def program(prog, phase, errors):
             else:
                 copies[copy_of[k]][spot[0]] = "FALL_%d = P%%" % (b.e + 1) + note % (b.name, b2.name)
                 copies[copy_of[k2]][spot2[0]] = " ASSERT P% = FALL_" + str(b.e + 1) + note % (b.name, b2.name)
-    nstubs = glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, c6falls)
+    nstubs = glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, xfalls)
+    c5blocks = [k for k in range(len(bl)) if eff[k] == "c5" and ASM[k]]
+    if c5blocks and phase == "measure":
+        # each cold 5 block's ends, for its size (the measure assembles the
+        # copy in one piece): C5S_k at its first line, C5E_k at the next
+        # block's (or that block's C5S_, if it is cold 5 too)
+        for k in c5blocks:
+            copies["c5"][bl[k].s] = ".C5S_%d" % k
+        for k in c5blocks:
+            if not (k + 1 < len(bl) and eff[k + 1] == "c5" and ASM[k + 1]):
+                if code_part(copies["c5"][bl[k].e]):
+                    errors.append("%s:%d: cold 5: no line for %s's end" % (src, bl[k].e + 1, bl[k].name))
+                else:
+                    copies["c5"][bl[k].e] = ".C5E_%d" % k
+    elif c5blocks:
+        units = {}
+        for k in c5blocks:
+            units.setdefault(c5find(k), []).append(k)
+        c5_place(prog, src, copies, errors, lines, bl, eff, sorted(units.values()), fallk,
+                 nstubs[3]["c5"][0], nstubs[3]["c5"][1], report)
     seams = {}
     for c, entry, br in ovlseams:          # (a branch's JMP serves a fall too)
         seams[(c, entry)] = seams.get((c, entry), False) or br
@@ -1539,8 +1714,9 @@ def main():
         return
     if phase == "measure":             # (a build's first run: last build's copies go, so
         for f in sorted(glob.glob(OUTDIR + "elite-flight-*.asm") + glob.glob(OUTDIR + "elite-docked-*.asm") +
-                        glob.glob(OUTDIR + "gfx-*-*.asm")):   # that none is left that this build
-            os.remove(f)                                       # does not write: mapcheck.py)
+                        glob.glob(OUTDIR + "gfx-*-*.asm") +   # that none is left that this build
+                        glob.glob(OUTDIR + "C5_*.bin")):      # does not write, mapcheck.py, and
+            os.remove(f)                                       # bank 5's first build has no cold 5)
     report = [program(p, phase, errors) for p in PROGS] + [text_tokens(errors), renderer_passes(errors)]
     for e in errors:
         print("streams:", e)

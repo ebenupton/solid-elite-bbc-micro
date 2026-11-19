@@ -198,3 +198,12 @@ ENDIF
  PRINT "Flight cold 6: ", ~C6%, "-", ~C6_END%-1, " (", C6_END%-C6%, " bytes), free ", C6% + C6SZ - C6_END%
  ASSERT C6_END% <= C6% + C6SZ
  SAVE "3-assembled-output/C6.bin", C6%, C6% + C6SZ, C6%
+
+ CLEAR &8000, &9800     \ the cold 5 pass, in bank 5's row runs' tails
+ INCLUDE "3-assembled-output/elite-flight-c5.asm"   \ (streams.py: Area: cold
+                        \ 5, placed in pieces, each with its ORG), saved as
+FOR r, 0, 23            \ C5_r.bin for each tail r in C5TAILS, which bank 5's
+ IF (C5TAILS >> r) AND 1   \ assembly takes in (gfx-bank5.asm)
+  SAVE "3-assembled-output/C5_" + STR$(r) + ".bin", C5TAIL0 + &100 * r, C5TAIL0 + &100 * r + C5TSZ, C5TAIL0 + &100 * r
+ ENDIF
+NEXT

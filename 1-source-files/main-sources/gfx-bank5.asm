@@ -63,6 +63,15 @@
  INCLUDE "3-assembled-output/gfx-raster-bank5runs.asm"
  ASSERT P% = R_LO%
 
+ INCLUDE "3-assembled-output/bank5-c5.asm"   \ (bank5.py: C5BIN, TRUE once the
+FOR r, 0, 23            \ flight code's layout has made the cold 5 pass's
+ IF C5BIN AND ((C5TAILS >> r) AND 1)   \ tails, C5_r.bin, which go in here:
+  CLEAR C5TAIL0 + &100 * r, C5TAIL0 + &100 * r + C5TSZ   \ R_ENDPAGE checks
+  ORG C5TAIL0 + &100 * r                                \ they hold nothing
+  INCBIN "3-assembled-output/C5_" + STR$(r) + ".bin"    \ else: elite-map.asm)
+ ENDIF
+NEXT
+
  ORG R_ST%
 
 .R_DIRTYL0 SKIP 192     \ buffer 0's dirty extents (empty: L = 255, R = 0)
