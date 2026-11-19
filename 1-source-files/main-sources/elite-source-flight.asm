@@ -27157,6 +27157,43 @@ ENDIF
 
 \ ******************************************************************************
 \
+\       Name: FT_DPROWS
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Port: the frame layer's call of the disc layer's painter for a
+\             batch of rows (DP_ROWS, in bank 7), without a far call
+\       Area: low
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the frame layer (bank 6: gfx-frame.asm's f_dbat) calls the painter's
+\ DP_ROWS (gfx-raster_disc.asm, in this program's bank 7) for each batch of a
+\ disc's rows, up to about 25 times an iteration. A far call (farC) costs
+\ about 170 cycles; this pages bank 7 in, calls DP_ROWS with X and Y as they
+\ are (its only inputs) and pages bank 6, its only caller's, back, in about
+\ 40. A and the flags are not kept (f_dbat reads neither after it). In main
+\ RAM, as it must be visible in both banks; only the flight code's frames
+\ call it (2-build-files/bank6.py gives bank 6 its address).
+\
+\ ******************************************************************************
+
+.FT_DPROWS
+
+ LDA BANK7              \ Page bank 7 in (&F4 first, as elite-far.asm)
+ STA &F4
+ STA VIA+&30
+
+ JSR DP_ROWS            \ The painter's batch, with X and Y (bankcheck: ok, as
+                        \ bank 7 is paged in above)
+
+ LDA BANK6              \ Page bank 6, the frame layer's, back in
+ STA &F4
+ STA VIA+&30
+
+ RTS                    \ Return from the subroutine
+
+\ ******************************************************************************
+\
 \       Name: ovf1
 \       Type: Subroutine
 \   Category: Loader

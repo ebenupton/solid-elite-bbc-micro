@@ -2031,7 +2031,7 @@ FC_PLLE = &5F : FC_PLLO = &AF
  LDX f_dn
  BIT f_dmd
  BMI fdb9
- JSR f_dprows
+ JSR FT_DPROWS          \ (DP_ROWS, without a far call: elite-source-flight.asm)
  JMP fdb10
 .fdb9
  LDA f_dc2
@@ -2054,9 +2054,6 @@ FC_PLLE = &5F : FC_PLLO = &AF
 .f_dpbegin              \ the painter's entries, in the flight code's bank 7
  JSR farC               \ (gfx-raster_disc.asm, gfx-raster_disc2.asm)
  EQUW DP_BEGIN
-.f_dprows
- JSR farC
- EQUW DP_ROWS
 .f_dpdisc2
  JSR farC
  EQUW DP_DISC2
