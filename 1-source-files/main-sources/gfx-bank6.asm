@@ -63,6 +63,12 @@
  INCLUDE "1-source-files/main-sources/gfx-faces.asm"
  INCLUDE "1-source-files/main-sources/gfx-light6.asm"
 .F_TABEND
+F_ALSZ = 2 * 256 + 768 + 7 * 192 + 24 + 11   \ the page-aligned state's size (F_HW
+F_AL = (FCSLOT - F_ALSZ) AND &FF00           \ to F_END), as high as it goes
+F_SMSZ = 44 * MAXSH + &22 + 16 + 52 + PCX_END - MBOX   \ the size of the state
+F_SM = F_AL - F_SMSZ    \ that need not be aligned, which ends where the
+ ASSERT P% <= F_SM      \ aligned state starts: the room is before it, for
+ SKIP F_SM - P%         \ the code and its tables
 .F_RP   SKIP 29 * MAXSH \ the ship records (F_SHIP): INWK 0-8, XX16, XX0, each
 F_SZL = F_RP + 6 * MAXSH  \ a field to an array of MAXSH (the ship's z, INWK
 F_SZH = F_RP + 7 * MAXSH  \ 6-7: the sort's)
@@ -73,16 +79,16 @@ F_SRN = MAXSH * 15      \ (the most faces is 15)
                         \ (f_poly2, f_slot: gfx-frame_cold.asm; x high of
                         \ vertex 0, F_SLV+16, &80: none)
 .f_hcb  SKIP PCX_END-MBOX \ f_hrec's: the planet's records kept (the mailbox's
-.f_hcx  SKIP 4          \ &00 to PC_TU's end), the disc's centre then, and
-.f_hval SKIP 1          \ whether there are any (bit 7)
-.f_pph  SKIP 1          \ F_PFHOLD's: bit 7, records were made; the radius,
-.f_plr  SKIP 1          \ TYPE, VIEW and MCNT of its last call
-.f_plt  SKIP 1
-.f_plv  SKIP 1
-.f_plm  SKIP 1
- ALIGN &100
+                        \ &00 to PC_TU's end)
+.F_SMEND
+ ASSERT P% = F_AL
 .F_HW   SKIP 256        \ the planet's half-widths (f_hwbuild)
-.F_HW2  SKIP 256        \ the sun's
+.F_HW2                  \ the sun's, with F_INIT's code in their room until
+                        \ they are first written (gfx-finit.asm)
+ INCLUDE "3-assembled-output/gfx-finit-bank6init.asm"
+.F_INITEND
+ ASSERT F_INITEND <= F_HW2 + 256
+ SKIP F_HW2 + 256 - P%
 .F_TM   SKIP 768        \ the text map: desired characters, 24 rows of 32
  ASSERT LO(F_TM) = 0    \ (f_cell adds only the high byte)
 .R_NDISCR SKIP 192      \ the discs' rows this frame (f_discspans: the layer's,
@@ -97,7 +103,15 @@ IF HI(P%) <> HI(P% + 23) \ (F_TMR whole in a page: f_text2 reads it every
 ENDIF
 .F_TMR  SKIP 24         \ the text map's non-empty cells per row
 .f_tcol SKIP 1          \ (f_char1's column)
+.f_hcx  SKIP 4          \ f_hrec's: the disc's centre when the planet's
+.f_hval SKIP 1          \ records were kept, and whether any are (bit 7)
+.f_pph  SKIP 1          \ F_PFHOLD's: bit 7, records were made; the radius,
+.f_plr  SKIP 1          \ TYPE, VIEW and MCNT of its last call
+.f_plt  SKIP 1
+.f_plv  SKIP 1
+.f_plm  SKIP 1
 .F_END
+ ASSERT F_END - F_HW = F_ALSZ
  ASSERT F_END <= FCSLOT \ the face lists of the blueprint set loaded, to FJT
                         \ (FCSLOT and its size: gfx-faces.asm; F_SETLD)
 

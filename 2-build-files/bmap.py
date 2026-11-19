@@ -130,9 +130,10 @@ fcslot, fjt = C["FCSLOT"], C["FJT"]
 row("bank 6", C["C6_P"], B6["F_START"], "the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`)", FL["C6_END%"] - C["C6_P"])
 row("bank 6", B6["F_START"], B6["F_CODEEND"], "the frame layer's code (bank 6 passes)")
 row("bank 6", B6["F_CODEEND"], B6["F_TABEND"], "the faces' and the lighting's tables")
-row("bank 6", B6["F_TABEND"], B6["f_plm"] + 1, "the state: the ship records, the zero page `F_FRAME` keeps, the faces' levels, the docking slot, the planet's records kept")
-row("bank 6", B6["f_plm"] + 1, B6["F_HW"], "(the page alignment of the state that follows)", 0)
-row("bank 6", B6["F_HW"], fcslot, "the state, page aligned: the discs' half-widths, the text map, the discs' rows", B6["F_END"] - B6["F_HW"])
+if B6["F_RP"] > B6["F_TABEND"]:
+    row("bank 6", B6["F_TABEND"], B6["F_RP"], "(free: the state that follows is placed as high as it goes)", 0)
+row("bank 6", B6["F_RP"], B6["F_SMEND"], "the state: the ship records, the zero page `F_FRAME` keeps, the faces' levels, the docking slot, the planet's records kept")
+row("bank 6", B6["F_HW"], fcslot, "the state, page aligned: the discs' half-widths (`F_INIT`'s code in the sun's until they are first written), the text map, the discs' rows", B6["F_END"] - B6["F_HW"])
 row("bank 6", fcslot, fjt, "`FCSLOT`: the face lists of the set loaded")
 row("bank 6", fjt, 0xC000, "`FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`)", B6["FJT_END"] - fjt + 12)
 

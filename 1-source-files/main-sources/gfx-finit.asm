@@ -11,7 +11,10 @@
 \ clears it (f_b0new). The text map, F_TCH and the notes are all zero, as
 \ loaded: no text, none shown, none noted.
 \
-\       Area: bank 6
+\ It runs once, so its code is in the room of state that is first written
+\ after it: the sun's half-widths (F_HW2: gfx-bank6.asm).
+\
+\       Area: bank 6 init
 \
 \ ******************************************************************************
 
@@ -49,6 +52,7 @@
  STA GSTASH
  JMP f_reset            \ (no docking slot, the lists empty; Y kept)
 
+\       Area: bank 6
 \ ============================================================================
 \ F_SETLD (FG_SETLD): copy a blueprint set's face lists (FC_FACETAB,
 \ FC_DETTAB and their lists, FCSLOT_SIZE bytes) into their slot, FCSLOT,
