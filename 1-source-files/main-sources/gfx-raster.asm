@@ -516,14 +516,10 @@ ASSERT HI(r_run0) >= &80   \ (r_pgfix: the carry out of 2 x a run page)
 .r_sbpoly
   LDA r_sbh_dl,X          \ group r_dl
   STA r_pt60+2
-  STA r_pt410+2
   STA r_pt61+2
-  STA r_pt411+2
   LDA r_sbh_dr,X          \ group r_dr
   STA r_pt62+2
-  STA r_pt412+2
   STA r_pt63+2
-  STA r_pt413+2
   RTS
 
 
@@ -713,6 +709,7 @@ R_ENDPAGE 6
 .r_run7 R_RUN 7
 R_ENDPAGE 7
 .r_run8 R_RUN 8
+.r_c8 SKIP 8            \ R_POLY's phase B: the colours by line (row AND 7)
 .r_m0 SKIP 1            \ r_div8: quotient
 .r_v0 SKIP 1            \ r_div8: divisor
 R_ENDPAGE 8
