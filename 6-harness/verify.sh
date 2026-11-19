@@ -139,10 +139,19 @@ echo "regressions: PASS (redock, savetest, views, screens)"
 # requires keepRand's restores and has its own control, the reference
 # without keepRand, which must differ
 if [ -f 3-assembled-output/sunref.json ]; then
+    # the steps that fly only the reference, with the patch and without: they
+    # depend on the reference, the patch's files, the harness and the
+    # iterations, not on the candidate's code, so a pass is kept under the
+    # hash of those (6-harness/work/refonly) and taken from there when the
+    # same inputs come again (NOCACHE=1 in the environment runs them anyway)
+    RKEY=$( (find 4-reference-binaries/sth -type f | sort | xargs cat; cat 3-assembled-output/sunref*.json 3-assembled-output/sunref.bin 6-harness/blib.mjs 6-harness/bcompare.mjs 6-harness/bsunref.mjs 6-harness/bpilot.mjs 6-harness/args.mjs 6-harness/jsbeeb.mjs 6-harness/verify.sh; echo "$ITERS") | shasum | cut -c1-40)
+    R=4-reference-binaries/sth/build.json
+    if [ -z "${NOCACHE:-}" ] && [ -f "6-harness/work/refonly/$RKEY" ]; then
+        echo "sunref, the reference's own runs: PASS before with these inputs ($RKEY: $(cat "6-harness/work/refonly/$RKEY"))"
+    else
     node 6-harness/bsunref.mjs --iters "$ITERS" > "$LOG/sunref.log" 2>&1
     grep -E "^audit|^patch applied" "$LOG/sunref.log"
     grep -q "^BSUNREF PASS" "$LOG/sunref.log" || { grep "BSUNREF" "$LOG/sunref.log"; echo "sunref: FAIL"; fail sunref; }
-    R=4-reference-binaries/sth/build.json
     node 6-harness/bcompare.mjs --iters "$ITERS" --loose --ref $R --cand $R --refpatch none \
         --candpatch 3-assembled-output/sunref-passive.json --out "$LOG/passive" > "$LOG/passive.log" 2>&1
     grep -q "^BCOMPARE PASS" "$LOG/passive.log" || { grep -A8 "FIRST DIVERGENCE" "$LOG/passive.log" | head -10; echo "sunref passive: FAIL"; fail passive; }
@@ -156,6 +165,10 @@ if [ -f 3-assembled-output/sunref.json ]; then
         node 6-harness/bcompare.mjs --iters 1500 --loose --views --maxsecs 600 --ref $R --cand $R --refpatch none \
             --candpatch 3-assembled-output/sunref-edge.json --out "$LOG/edge-views" > "$LOG/edge-views.log" 2>&1
         grep -q "^BCOMPARE PASS" "$LOG/edge-views.log" || { grep -A8 "FIRST DIVERGENCE" "$LOG/edge-views.log" | head -10; echo "sunref edge views: FAIL"; fail edge; }
+    fi
+    mkdir -p 6-harness/work/refonly; date "+%Y-%m-%d %H:%M" > "6-harness/work/refonly/$RKEY"
+    fi
+    if [ -f 3-assembled-output/sunref-edge.json ]; then
         node 6-harness/bsunedge.mjs > "$LOG/sunedge.log" 2>&1
         grep -E "^(edge|control|port):" "$LOG/sunedge.log"
         grep -q "^BSUNEDGE PASS" "$LOG/sunedge.log" || { echo "sunref edge with the sun on the screen: FAIL"; fail edge; }

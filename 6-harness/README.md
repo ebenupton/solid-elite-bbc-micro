@@ -48,7 +48,7 @@ the stardust's skips, `MAD`), those are scrambled, so a read of any of them
 diverges. It also builds the option with plain disc planets (`make
 circles=off`) in a copy of the tree, which must build and fly 1,500
 iterations in step with the reference, so that the option cannot break
-unseen. It prints `VERIFY PASS` with the speed of both builds in
+unseen. The steps that fly only the reference (`bsunref.mjs` and the release against the release with the passive and the edge variants) depend on the reference, the patch's files, the harness and the iteration count, not on the candidate's code: a pass is kept under the hash of those in `6-harness/work/refonly` and taken from there when the same inputs come again (`NOCACHE=1` in the environment runs them anyway). It prints `VERIFY PASS` with the speed of both builds in
 flight-loop iterations per emulated second, their ratio, and the new build's
 cycles per flight iteration.
 
