@@ -107,7 +107,7 @@ class Machine:
             self.base[addr:addr + len(data)] = list(data)
         self.mpu = MPU()
 
-    def call(self, routine, a=0, x=0, y=0, c=0, mem=None, limit=200000):
+    def call(self, routine, a=0, x=0, y=0, c=0, mem=None, limit=200000, stop=None):
         mpu = self.mpu
         if getattr(self, "banks", None):          # (the port: main RAM and its banks)
             bank = self.cold_bank if routine in self.cold_labels else self.home_bank
@@ -126,6 +126,8 @@ class Machine:
         mpu.sp = 0xFD
         mpu.pc = self.sy[routine]
         n = 0
+        if stop is not None:                      # (run to the label stop, not to the routine's return)
+            ret = self.sy[stop]
         while mpu.pc != ret:
             mpu.step()
             n += 1
@@ -476,6 +478,88 @@ def mvs5_half(cand):
     return 0
 
 
+def ll9_ship(rnd):
+    """a random ship for LL9: (blueprint bytes, faces, vertices, memory by
+    name). The blueprint has its vertex data at byte #20 and its face data
+    after it; the ship's coordinates and orientation vectors are either any
+    bytes at all or as the game has them (in front of us, |x| and |y| below
+    z, the vectors' high bytes up to 96)"""
+    nf, nv = rnd.randrange(1, 17), rnd.randrange(1, 29)
+    wild = rnd.random() < 0.3
+    verts = []
+    for _ in range(nv):
+        mag = (lambda: rnd.randrange(256)) if wild or rnd.random() < 0.1 else (lambda: rnd.randrange(160))
+        verts += [mag(), mag(), mag(), rnd.randrange(8) << 5 | rnd.choice([31, 31, rnd.randrange(32)]),
+                  rnd.randrange(16) << 4 | rnd.randrange(16), rnd.randrange(16) << 4 | rnd.randrange(16)]
+    faces = []
+    for _ in range(nf):
+        faces += [rnd.randrange(8) << 5 | rnd.choice([31, 31, rnd.randrange(32)]), rnd.randrange(256), rnd.randrange(256), rnd.randrange(256)]
+    fo = 20 + len(verts)
+    bp = [0] * 20
+    bp[4], bp[17], bp[6], bp[8], bp[12], bp[13], bp[18] = fo & 255, fo >> 8, 4 * rnd.randrange(nv), 6 * nv, 4 * nf, rnd.randrange(256), rnd.randrange(4)
+    mem = {"XX4": rnd.randrange(32), "INWK+31": 0}
+    if wild:
+        for k in range(27):
+            mem["INWK+%d" % k] = rnd.randrange(256)
+    else:
+        z = rnd.choice([rnd.randrange(1, 0x200), rnd.randrange(1, 0x2000), rnd.randrange(1, 0xC000)])
+        for k, v in ((0, rnd.randrange(z)), (3, rnd.randrange(z)), (6, z)):
+            mem["INWK+%d" % k], mem["INWK+%d" % (k + 1)], mem["INWK+%d" % (k + 2)] = v & 255, v >> 8, rnd.choice([0, 0x80]) if k < 6 else 0
+        for k in range(9, 27, 2):
+            mem["INWK+%d" % k], mem["INWK+%d" % (k + 1)] = rnd.randrange(256), rnd.choice([0, 0x80]) | rnd.randrange(0x61)
+    return bp + verts + faces, nf, nv, mem
+
+
+def ll9_parts(ref, cand):
+    """LL9 from LL17 to LL72 (the orientation vectors' scaling in part 2,
+    the faces' visibility in part 5 and the vertices' projection in parts 6
+    to 8), for random ships, in the original and in the port (whose H_LL42,
+    the ship's record for the renderer, is made to return at once): the
+    faces' visibility in XX2 and the vertices' screen coordinates in XX3;
+    returns 1 on a failure"""
+    if "H_LL42" not in cand.sy:
+        print("%-10s skipped (not in the port's symbols)" % "LL9")
+        return 0
+    rnd = random.Random(9)
+    at = 0x7000                                   # (the blueprint: free in both machines)
+    n = fails = 0
+    first = None
+    for _ in range(600 if QUICK else 20000):
+        bp, nf, nv, mem = ll9_ship(rnd)
+        mem = dict(mem, XX0=at & 255, **{"XX0+1": at >> 8}, **{"&%X" % (at + k): v for k, v in enumerate(bp)})
+        outs = ["XX2*%d" % nf, "XX3*%d" % (4 * nv)]
+        ref.call("LL17", 0, 0, 0, 0, mem, stop="LL72")
+        r = ref.out(outs)
+        cand.call("LL17", 0, 0, 0, 0, dict(mem, H_LL42=0x60), stop="LL72")
+        k = cand.out(outs)
+        if "hll5" in cand.sy and r == k:
+            # (the gun vertex alone, as H_LL42 projects it for a ship firing
+            # at us: with XX16 and the faces' visibility as parts 3 and 5
+            # left them, it must be as the whole loop left it; the other
+            # vertices are not written)
+            g = bp[6]
+            mem2 = dict(mem, **{"XX2+15": 255})
+            mem2.update({"XX2+%d" % i: v for i, v in enumerate(k[outs[0]])})
+            mem2.update({"XX16+%d" % i: v for i, v in enumerate(cand.out(["XX16*18"])["XX16*18"])})
+            cand.call("hll5", 0, 0, 0, 0, mem2, stop="LL72")
+            x3 = cand.out([outs[1]])[outs[1]]
+            want = tuple(v if g <= i < g + 4 else 0 for i, v in enumerate(k[outs[1]]))
+            if x3 != want:
+                k = dict(k, **{outs[1]: x3})
+                r = dict(r, **{outs[1]: want})
+        n += 1
+        if r != k:
+            fails += 1
+            if first is None:
+                first = (mem, r, k)
+    if fails:
+        mem, r, k = first
+        print("%-10s FAIL %d of %d; first: %s: (original, port) %s" % ("LL9", fails, n, mem, {o: (r[o], k[o]) for o in r if r[o] != k[o]}))
+        return 1
+    print("%-10s pass (%d inputs)" % ("LL9", n))
+    return 0
+
+
 def main():
     names = [a for a in sys.argv[1:] if not a.startswith("--")]
     ref, cand = load()
@@ -513,6 +597,8 @@ def main():
             print("%-10s pass (%d inputs)" % (name, n))
     if not names or "MVS5H" in names:
         bad += mvs5_half(cand)
+    if not names or "LL9" in names:
+        bad += ll9_parts(ref, cand)
     print("TEST_ROUTINES %s" % ("FAIL" if bad else "PASS"))
     sys.exit(1 if bad else 0)
 

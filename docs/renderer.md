@@ -255,7 +255,7 @@ entry. Not from an interrupt.
 | 8 | `F_CHAR`: a character at (`XC` - 1, `YC`): into the text map in record or space mode; noted, or given to the cells buffer 0 may show, otherwise | A = the character |
 | 9 | `F_DELCHAR`: clear a cell of the text map | A = column, Y = row |
 | 10 | `F_CLRTEXT`: clear rows of the text map | A = first row, Y = last row |
-| 11 | `F_GUN`: set up part 6's loop for a firing ship's gun vertex alone (`H_LL42`); returns Y = its offset in the vertex data | A = byte #6 of the blueprint; `XX0`, `XX16` |
+| 11 | `F_GUN`: set up part 6's loop for a firing ship's gun vertex alone (the docked code's `H_LL42`; the flight code's sets its own loop up, `L5SET`); returns Y = its offset in the vertex data | A = byte #6 of the blueprint; `XX0`, `XX16` |
 | 12 | `F_HANG0`: empty the lists before the hangar's ships are recorded | |
 | 13 | `F_HANGAR`: the hangar's frame | |
 | 14 | `F_CLOUD`: an explosion cloud in record mode (`H_PTCLS`, C set: noted for the frame; `H_PTCLSE`, C clear): what the game keeps of `PTCLS` | `XX19`, `INF`, `XSAV` |
@@ -612,7 +612,8 @@ lights the faces (`L_REC`: their levels in `XX2`) and records the ship
 levels). `LL9` then returns through `H_EE31`, which sets byte #31 as `EE31`
 does and records the ship's laser beam if it fires at us (`HEE31`, clipped
 by `LL145`, from the gun vertex, which part 6 has projected alone:
-`F_GUN`). The frame projects the ship as it draws it: it puts the record
+`H_LL42` sets the loop on it in the flight code, `F_GUN` in the docked
+code). The frame projects the ship as it draws it: it puts the record
 back and calls `LL42F` (`S% + 16`), which runs part 6 on with `GPRJ` set, so
 that `H_EE31` returns at once; part 6 on changes nothing the game reads but
 `XX3`, and the frame keeps and puts back the game's zero page it changes
@@ -635,7 +636,7 @@ particle the original draws.
 |---|---|---|
 | `TT100`, `DEATH` (`MFRAME`), `ESCAPE` (`LL9F`) | home, cold | after each `M%` (or `LL9`), `L_SUN` (the light for the next iteration's ships, in a space view) and `F_FRAME` (`hframe`: A, X, Y and the flags as they were) |
 | `LL9` part 5 | home | `GFAR` set when a face is shown without testing its normal |
-| `LL9` part 6 (`H_LL42`), `S_SHIP`, `SPLV`, `SHAND`, `L_REC` | home, cold | the ship is recorded (above); a ship firing at us has its gun vertex projected (`F_GUN`, `LL48`) |
+| `LL9` part 6 (`H_LL42`), `S_SHIP`, `SPLV`, `SHAND`, `L_REC` | home, cold | the ship is recorded (above); a ship firing at us has its gun vertex projected (`LL48`) |
 | `LL9` part 9 (`EE31`: `H_EE31`, `HEE31`) | home, cold | byte #31 set as `EE31` sets it, the beam recorded (`F_LINE`); returns as `LL155` |
 | `LL155` | home | returns at once, with C set |
 | `SHPPT` | home | the distant ship's dot is recorded (`F_SHPPT`) |

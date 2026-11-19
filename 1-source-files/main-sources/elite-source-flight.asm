@@ -30725,6 +30725,196 @@ ENDMACRO
 
 \ ******************************************************************************
 \
+\       Name: L5SET
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: set up the vertex loop of LL9's part 6 for a ship
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the vertex loop of LL9's parts 6 to 8 (LL48 to LL50) does a vertex's
+\ three dot products with the orientation vectors in line, with no calls, and
+\ keeps its working values in zero page (below): the original's LL51, FMLTU
+\ and LL38, and their results, bit for bit.
+\ The macros here are its parts:
+\
+\   * L5MUL, a multiplication of a vertex's coordinate x by a magnitude m from
+\     XX16, from the quarter squares QS(n) = INT(n * n / 4) (QSL, QSH):
+\
+\       x * m = QS(x + m) - QS(|x - m|)
+\
+\     exactly. The loop puts x into the macro's instructions for each vertex:
+\     the operand of the SBC that makes |x - m|, and the low bytes of the
+\     addresses of the two reads of QS(x + m), which are indexed by m;
+\
+\   * L5ADD, the sum of two sign-magnitude numbers, as LL38.
+\
+\ This routine sets what is the same for every vertex of a ship: the address of
+\ the ship's vertex data, XX0(1 0) + 20, plus 0 to 5, into the loop's reads of
+\ a vertex's six bytes, and XX4, the ship's distance, into the comparison at
+\ l5x4.
+\
+\ ------------------------------------------------------------------------------
+\
+\ Arguments:
+\
+\   XX0                 The address of the ship's blueprint
+\
+\   XX4                 The ship's distance, 0 to 31
+\
+\ ******************************************************************************
+
+MACRO L5MUL k
+
+                        \ Set A = x * m / 256, for the magnitude m in XX16+k+Y
+                        \ and the x that the vertex loop puts in the three
+                        \ operands marked. X and Y are changed, and C is set
+                        \ at the end, as the subtraction cannot borrow
+
+ LDX XX16+k,Y           \ Set A = X = m
+
+ TXA
+
+ SEC                    \ Set A = m - x, with C set if m >= x
+ SBC #0                 \ (x, at offset 5)
+
+ BCS P%+6               \ If m < x, negate A (C is clear, so the ADC adds 1 to
+ EOR #&FF               \ the one's complement), so A = |x - m|
+ ADC #1
+
+ TAY                    \ Set Y = |x - m|
+
+ LDA QSL,X              \ Set A = the high byte of QS(x + m) - QS(|x - m|),
+ SEC                    \ subtracting the low bytes first for the borrow (QSL +
+ SBC QSL,Y              \ x, at offset 14, and QSH + x, at offset 21)
+ LDA QSH,X
+ SBC QSH,Y
+
+ENDMACRO
+
+MACRO L5ADD s, k
+
+                        \ Set (l5g A) = (l5g l5t) + (the sign in s, EOR the sign
+                        \ of XX16+k+l5i; A), as LL38 does: signs are in bit 7.
+                        \ Returns Y = l5i; X is changed
+
+ TAX                    \ Keep the magnitude in X
+
+ LDY l5i                \ Set Y to the axis's offset
+
+ LDA s                  \ If the two signs are different, jump to l5as
+ EOR XX16+k,Y
+ EOR l5g
+ BMI l5as
+
+ TXA                    \ Set A = l5t + A, keeping the sign in l5g
+ CLC
+ ADC l5t
+
+ JMP l5ad               \ Jump to l5ad, as we are done
+
+.l5as
+
+ TXA                    \ Set A = A - l5t
+ SEC
+ SBC l5t
+
+ BEQ l5ad               \ If the result is zero, the sign in l5g stays
+
+ BCC l5an               \ If A < l5t, jump to l5an
+
+ TAX                    \ A > l5t, so the result is A - l5t with the sign in
+ LDA l5g                \ l5g flipped
+ EOR #%10000000
+ STA l5g
+ TXA
+
+ BCS l5ad               \ Jump to l5ad (this BCS is effectively a JMP, as C is
+                        \ still set)
+
+.l5an
+
+ EOR #&FF               \ The result is l5t - A, with the sign in l5g (C is
+ ADC #1                 \ clear, so the ADC adds 1 to the one's complement)
+
+.l5ad
+
+ENDMACRO
+
+MACRO L5PB site
+
+                        \ Put the next address in (Y X) into the read at site
+
+ INX
+ BNE P%+3
+ INY
+ STX site+1
+ STY site+2
+
+ENDMACRO
+
+.L5SET
+
+ LDA XX0                \ Set (Y X) = XX0(1 0) + 20, the address of the ship's
+ CLC                    \ vertex data, and put it into the read of a vertex's
+ ADC #20                \ byte #0
+ TAX
+ LDA XX0+1
+ ADC #0
+ TAY
+ STX l5b0+1
+ STY l5b0+2
+
+ L5PB l5b1              \ And the addresses that follow it into the reads of
+ L5PB l5b2              \ bytes #1 to #5 (byte #3 is read twice)
+ INX
+ BNE P%+3
+ INY
+ STX l5b3+1
+ STY l5b3+2
+ STX l5b3s+1
+ STY l5b3s+2
+ L5PB l5b4
+ L5PB l5b5
+
+ LDA XX4                \ Put XX4 into the comparison at l5x4
+ STA l5x4+1
+
+ RTS                    \ Return from the subroutine
+
+                        \ The loop's working values, in zero page, in the
+                        \ temporaries that the original's parts 6 to 8 use:
+
+l5i = XX12+5            \ The axis of the dot product: 0, 2 or 4 for x, y or z
+                        \ (the offset in XX16 of that coordinate of sidev)
+
+l5s = XX12              \ The signs of the vertex's x, y and z-coordinates, in
+                        \ bit 7 (3 bytes)
+
+l5t = T                 \ A dot product's sum so far (its magnitude)
+
+l5g = S                 \ and its sign, in bit 7
+
+l5n = XX12+3            \ Bit 7 set if the vertex's x-coordinate (l5n) or
+                        \ y-coordinate (l5n+1) has the opposite sign to the
+                        \ ship's (2 bytes)
+
+l5x = XX15              \ The vertex's x-coordinate, 16 bits (its magnitude;
+                        \ the original's XX15(1 0))
+
+l5y = XX15+2            \ The vertex's y-coordinate, 16 bits (the original's
+                        \ XX15(4 3))
+
+l5z = XX15+4            \ The vertex's z-coordinate, 16 bits (the original's
+                        \ (U T))
+
+l5c = CNT               \ The pointer into the heap at XX3 (the original's CNT)
+
+l5p = P                 \ Temporary storage (a vertex's face numbers; X around
+                        \ the call of LL61)
+
+\ ******************************************************************************
+\
 \       Name: SHCOL
 \       Type: Variable
 \   Category: Drawing ships
@@ -31093,7 +31283,7 @@ ENDIF
 \ projects them (LL42F, from bank 6's f_proj, when it draws the ship, after
 \ those further away), so LL9 goes on to H_EE31 at once, or, if the ship is
 \ firing at us, after part 6 has projected just the gun vertex for the beam
-\ (F_GUN sets part 6's loop on that one vertex, LL48). Part 6 on changes
+\ (part 6's loop is set on that one vertex, LL48). Part 6 on changes
 \ nothing the game reads but XX3, which only DOEXP (an exploding ship: its
 \ cloud's vertices, all projected) and H_EE31 (the beam: the gun vertex)
 \ read.
@@ -31121,10 +31311,22 @@ ENDIF
  BIT XX1+31             \ Not firing at us: on to H_EE31 (as LL72)
  BVC H_EE31
 
- LDY #6                 \ Firing: its gun vertex (byte #6: 4 * its number)
- LDA (XX0),Y            \ alone, through part 6's loop (F_GUN: LL42P's matrix
- LDX #FG_GUN            \ and the loop's set-up for it, returning Y = its
- JSR GCALL              \ offset in the vertex data)
+.hll5
+
+ JSR L5SET              \ Firing: its gun vertex alone, through part 6's loop,
+                        \ set up for the ship as LL42P sets it
+
+ LDY #6                 \ l5c = its offset in XX3 (byte #6: 4 * its number),
+ LDA (XX0),Y            \ named CNT here, as this block may be assembled
+ STA CNT                \ before l5c's equate (in main RAM's copy)
+
+ LSR A                  \ Y = its offset in the vertex data, 6 * its number
+ ADC CNT                \ (C is clear: bit 0 of 4 * the number)
+ TAY
+
+ ADC #6                 \ The loop's end: the offset after it (C is still
+ STA ll50n+1            \ clear: 6 * the number is a byte)
+
  JMP LL48
 
 .hll9
@@ -32506,139 +32708,37 @@ LIGHT_SUN = TRUE
 
 .LL42P
 
-                        \ The first task is to set up the inverse matrix, ready
-                        \ for us to send to the dot product routine at LL51.
-                        \ Back up in part 3, we set up the following variables:
-                        \
-                        \   * XX16(1 0) = sidev_x
-                        \   * XX16(3 2) = sidev_y
-                        \   * XX16(5 4) = sidev_z
-                        \
-                        \   * XX16(7 6) = roofv_x
-                        \   * XX16(9 8) = roofv_y
-                        \   * XX16(11 10) = roofv_z
-                        \
-                        \   * XX16(13 12) = nosev_x
-                        \   * XX16(15 14) = nosev_y
-                        \   * XX16(17 16) = nosev_z
-                        \
-                        \ and we then scaled the vectors to give the following:
-                        \
-                        \   * XX16   = scaled |sidev_x|
-                        \   * XX16+2 = scaled |sidev_y|
-                        \   * XX16+4 = scaled |sidev_z|
-                        \
-                        \   * XX16+6  = scaled |roofv_x|
-                        \   * XX16+8  = scaled |roofv_y|
-                        \   * XX16+10 = scaled |roofv_z|
-                        \
-                        \   * XX16+12 = scaled |nosev_x|
-                        \   * XX16+14 = scaled |nosev_y|
-                        \   * XX16+16 = scaled |nosev_z|
-                        \
-                        \ We now need to rearrange these locations so they
-                        \ effectively transpose the matrix into its inverse
-
- LDY XX16+2             \ Set XX16+2 = XX16+6 = scaled |roofv_x|
- LDX XX16+3             \ Set XX16+3 = XX16+7 = roofv_x_hi
- LDA XX16+6             \ Set XX16+6 = XX16+2 = scaled |sidev_y|
- STA XX16+2             \ Set XX16+7 = XX16+3 = sidev_y_hi
- LDA XX16+7
- STA XX16+3
- STY XX16+6
- STX XX16+7
-
- LDY XX16+4             \ Set XX16+4 = XX16+12 = scaled |nosev_x|
- LDX XX16+5             \ Set XX16+5 = XX16+13 = nosev_x_hi
- LDA XX16+12            \ Set XX16+12 = XX16+4 = scaled |sidev_z|
- STA XX16+4             \ Set XX16+13 = XX16+5 = sidev_z_hi
- LDA XX16+13
- STA XX16+5
- STY XX16+12
- STX XX16+13
-
- LDY XX16+10            \ Set XX16+10 = XX16+14 = scaled |nosev_y|
- LDX XX16+11            \ Set XX16+11 = XX16+15 = nosev_y_hi
- LDA XX16+14            \ Set XX16+14 = XX16+10 = scaled |roofv_z|
- STA XX16+10            \ Set XX16+15 = XX16+11 = roofv_z
- LDA XX16+15
- STA XX16+11
- STY XX16+14
- STX XX16+15
-
-                        \ So now we have the following sign-magnitude variables
-                        \ containing parts of the scaled orientation vectors:
-                        \
-                        \   XX16(1 0)   = scaled sidev_x
-                        \   XX16(3 2)   = scaled roofv_x
-                        \   XX16(5 4)   = scaled nosev_x
-                        \
-                        \   XX16(7 6)   = scaled sidev_y
-                        \   XX16(9 8)   = scaled roofv_y
-                        \   XX16(11 10) = scaled nosev_y
-                        \
-                        \   XX16(13 12) = scaled sidev_z
-                        \   XX16(15 14) = scaled roofv_z
-                        \   XX16(17 16) = scaled nosev_z
-                        \
-                        \ which is what we want, as the various vectors are now
-                        \ arranged so we can use LL51 to multiply by the
-                        \ transpose (i.e. the inverse of the matrix)
+ JSR L5SET              \ Port: set up the loop below for this ship (L5SET): the
+                        \ address of the blueprint's vertex data into its reads,
+                        \ and XX4 into its comparison. The original transposes
+                        \ the matrix in XX16 here, into its inverse; the loop
+                        \ reads XX16 as the transpose instead
 
  LDY #8                 \ Fetch byte #8 of the ship's blueprint, which is the
- LDA (XX0),Y            \ number of vertices * 8, and store it in XX20
- STA XX20
-
-                        \ We now set V(1 0) = XX0(1 0) + 20, so V(1 0) points
-                        \ to byte #20 of the ship's blueprint, which is always
-                        \ where the vertex data starts (i.e. just after the 20
-                        \ byte block that define the ship's characteristics)
-
- LDA XX0                \ We start with the low bytes
- CLC
- ADC #20
- STA V
-
- LDA XX0+1              \ And then do the high bytes
- ADC #0
- STA V+1
+ LDA (XX0),Y            \ number of vertices * 6, and store it in the comparison
+ STA ll50n+1            \ that ends the loop (the original's XX20)
 
  LDY #0                 \ We are about to step through all the vertices, using
                         \ Y as a counter. There are six data bytes for each
                         \ vertex, so we will increment Y by 6 for each iteration
-                        \ so it can act as an offset from V(1 0) to the current
-                        \ vertex's data
+                        \ so it can act as an offset from the vertex data to the
+                        \ current vertex's data
 
- STY CNT                \ Set CNT = 0, which we will use as a pointer to the
-                        \ heap at XX3, starting it at zero so the heap starts
-                        \ out empty
+ STY l5c                \ Set l5c = 0 (the original's CNT), which we will use as
+                        \ a pointer to the heap at XX3, starting it at zero so
+                        \ the heap starts out empty
 
 .LL48
 
- STY XX17               \ Set XX17 = Y, so XX17 now contains the offset of the
-                        \ current vertex's data
+ STY ll50y+1            \ Store Y, the offset of the current vertex's data, in
+                        \ the LDA at ll50y (the original's XX17)
 
- LDA (V),Y              \ Fetch byte #0 for this vertex into XX15, so:
- STA XX15               \
-                        \   XX15 = magnitude of the vertex's x-coordinate
+.l5b3
 
- INY                    \ Increment Y to point to byte #1
-
- LDA (V),Y              \ Fetch byte #1 for this vertex into XX15+2, so:
- STA XX15+2             \
-                        \   XX15+2 = magnitude of the vertex's y-coordinate
-
- INY                    \ Increment Y to point to byte #2
-
- LDA (V),Y              \ Fetch byte #2 for this vertex into XX15+4, so:
- STA XX15+4             \
-                        \   XX15+4 = magnitude of the vertex's z-coordinate
-
- INY                    \ Increment Y to point to byte #3
-
- LDA (V),Y              \ Fetch byte #3 for this vertex into T, so:
- STA T                  \
-                        \   T = %xyz vvvvv, where:
+ LDA &FFFF,Y            \ Fetch byte #3 for this vertex (the address is set by
+                        \ L5SET), so:
+                        \
+                        \   A = %xyz vvvvv, where:
                         \
                         \     * Bits 0-4 = visibility distance, beyond which the
                         \                  vertex is not shown
@@ -32647,17 +32747,20 @@ LIGHT_SUN = TRUE
 
  AND #%00011111         \ Extract bits 0-4 to get the visibility distance
 
- CMP XX4                \ If XX4 > the visibility distance, where XX4 contains
+.l5x4
+
+ CMP #0                 \ If XX4 > the visibility distance, where XX4 contains
  BCC LL49-3             \ the ship's z-distance reduced to 0-31 (which we set in
-                        \ part 2), then this vertex is too far away to be
-                        \ visible, so jump down to LL50 (via the JMP instruction
-                        \ in LL49-3) to move on to the next vertex
+                        \ part 2, and L5SET in this CMP), then this vertex is
+                        \ too far away to be visible, so jump down to LL50 (via
+                        \ the JMP instruction in LL49-3) to move on to the next
+                        \ vertex
 
- INY                    \ Increment Y to point to byte #4
+.l5b4
 
- LDA (V),Y              \ Fetch byte #4 for this vertex into P, so:
- STA P                  \
-                        \  P = %ffff ffff, where:
+ LDA &FFFF,Y            \ Fetch byte #4 for this vertex into l5p, so:
+ STA l5p                \
+                        \  l5p = %ffff ffff, where:
                         \
                         \    * Bits 0-3 = the number of face 1
                         \
@@ -32669,7 +32772,7 @@ LIGHT_SUN = TRUE
  LDA XX2,X              \ If XX2+X is non-zero then we decided in part 5 that
  BNE LL49               \ face 1 is visible, so jump to LL49
 
- LDA P                  \ Fetch byte #4 for this vertex into A
+ LDA l5p                \ Fetch byte #4 for this vertex into A
 
  LSR A                  \ Shift right four times to extract the number of face 2
  LSR A                  \ from bits 4-7 into X
@@ -32680,23 +32783,23 @@ LIGHT_SUN = TRUE
  LDA XX2,X              \ If XX2+X is non-zero then we decided in part 5 that
  BNE LL49               \ face 2 is visible, so jump to LL49
 
- INY                    \ Increment Y to point to byte #5
+.l5b5
 
- LDA (V),Y              \ Fetch byte #5 for this vertex into P, so:
- STA P                  \
-                        \  P = %ffff ffff, where:
+ LDA &FFFF,Y            \ Fetch byte #5 for this vertex into l5p, so:
+ STA l5p                \
+                        \  l5p = %ffff ffff, where:
                         \
                         \    * Bits 0-3 = the number of face 3
                         \
                         \    * Bits 4-7 = the number of face 4
 
- AND #%00001111         \ Extract the number of face 1 into X
+ AND #%00001111         \ Extract the number of face 3 into X
  TAX
 
  LDA XX2,X              \ If XX2+X is non-zero then we decided in part 5 that
  BNE LL49               \ face 3 is visible, so jump to LL49
 
- LDA P                  \ Fetch byte #5 for this vertex into A
+ LDA l5p                \ Fetch byte #5 for this vertex into A
 
  LSR A                  \ Shift right four times to extract the number of face 4
  LSR A                  \ from bits 4-7 into X
@@ -32714,187 +32817,226 @@ LIGHT_SUN = TRUE
 
 .LL49
 
- LDA T                  \ Fetch byte #5 for this vertex into A and store it, so
- STA XX15+1             \ XX15+1 now has the sign of the vertex's x-coordinate
+.l5b3s
 
- ASL A                  \ Shift A left and store it, so XX15+3 now has the sign
- STA XX15+3             \ of the vertex's y-coordinate
+ LDA &FFFF,Y            \ Fetch byte #3 for this vertex again, and put the sign
+ STA l5s                \ of the vertex's x-coordinate into bit 7 of l5s, that
+ ASL A                  \ of its y-coordinate into bit 7 of l5s+1 and that of
+ STA l5s+1              \ its z-coordinate into bit 7 of l5s+2
+ ASL A
+ STA l5s+2
 
- ASL A                  \ Shift A left and store it, so XX15+5 now has the sign
- STA XX15+5             \ of the vertex's z-coordinate
+                        \ Port: the original now calls LL51 for the dot products
+                        \ of this vector with the three transposed orientation
+                        \ vectors in XX16, and then adds the ship's coordinates
+                        \ to each. Here the code at l5ax does one dot product
+                        \ in line, with no calls, and it is run for each axis in
+                        \ turn, followed by that axis's addition:
+                        \
+                        \   [ x ]   [ sidev_x ]
+                        \   [ y ] . [ roofv_x ] + x-coordinate of the ship
+                        \   [ z ]   [ nosev_x ]
+                        \
+                        \ and the same for y and z. The vertex's coordinates
+                        \ are put into its three multiplications (the macro
+                        \ L5MUL), which read the orientation vectors from XX16
+                        \ as part 2 leaves it, as the transpose. The products,
+                        \ the sums and their signs are the original's (FMLTU and
+                        \ LL38)
 
-                        \ By this point we have the following:
-                        \
-                        \   XX15(1 0) = vertex x-coordinate
-                        \   XX15(3 2) = vertex y-coordinate
-                        \   XX15(5 4) = vertex z-coordinate
-                        \
-                        \   XX16(1 0)   = scaled sidev_x
-                        \   XX16(3 2)   = scaled roofv_x
-                        \   XX16(5 4)   = scaled nosev_x
-                        \
-                        \   XX16(7 6)   = scaled sidev_y
-                        \   XX16(9 8)   = scaled roofv_y
-                        \   XX16(11 10) = scaled nosev_y
-                        \
-                        \   XX16(13 12) = scaled sidev_z
-                        \   XX16(15 14) = scaled roofv_z
-                        \   XX16(17 16) = scaled nosev_z
+.l5b0
 
- JSR LL51               \ Call LL51 to set XX12 to the dot products of XX15 and
-                        \ XX16, as follows:
-                        \
-                        \   XX12(1 0) = [ x y z ] . [ sidev_x roofv_x nosev_x ]
-                        \
-                        \   XX12(3 2) = [ x y z ] . [ sidev_y roofv_y nosev_y ]
-                        \
-                        \   XX12(5 4) = [ x y z ] . [ sidev_z roofv_z nosev_z ]
-                        \
-                        \ XX12 contains the vector from the ship's centre to
-                        \ the vertex, transformed from the orientation vector
-                        \ space to the universe orientated around our ship. So
-                        \ we can refer to this vector below, let's call it
-                        \ vertv, so:
-                        \
-                        \   vertv_x = [ x y z ] . [ sidev_x roofv_x nosev_x ]
-                        \
-                        \   vertv_y = [ x y z ] . [ sidev_y roofv_y nosev_y ]
-                        \
-                        \   vertv_z = [ x y z ] . [ sidev_z roofv_z nosev_z ]
-                        \
-                        \ To finish the calculation, we now want to calculate:
-                        \
-                        \   vertv + [ x y z ]
-                        \
-                        \ So let's start with the vertv_x + x
+ LDA &FFFF,Y            \ Fetch byte #0 for this vertex, the magnitude of its
+ STA l5m0+5             \ x-coordinate, into the first multiplication
+ STA l5m0+14
+ STA l5m0+21
 
- LDA XX1+2              \ Set A = x_sign of the ship's location
+.l5b1
 
- STA XX15+2             \ Set XX15+2 = x_sign
+ LDA &FFFF,Y            \ Fetch byte #1 for this vertex, the magnitude of its
+ STA l5m1+5             \ y-coordinate, into the second multiplication
+ STA l5m1+14
+ STA l5m1+21
 
- EOR XX12+1             \ If the sign of x_sign * the sign of vertv_x is
- BMI LL52               \ negative (i.e. they have different signs), skip to
-                        \ LL52
+.l5b2
 
- CLC                    \ Set XX15(2 1 0) = XX1(2 1 0) + XX12(1 0)
- LDA XX12               \                 = (x_sign x_hi x_lo) + vertv_x
- ADC XX1                \
- STA XX15               \ Starting with the low bytes
+ LDA &FFFF,Y            \ Fetch byte #2 for this vertex, the magnitude of its
+ STA l5m2+5             \ z-coordinate, into the third multiplication
+ STA l5m2+14
+ STA l5m2+21
 
- LDA XX1+1              \ And then doing the high bytes (we can add 0 here as
- ADC #0                 \ we know the sign byte of vertv_x is 0)
- STA XX15+1
+ LDA #0                 \ Clear bit 7 of l5n and l5n+1: the vertex's x and
+ STA l5n                \ y-coordinates have the signs of the ship's, so far
+ STA l5n+1
+
+ TAY                    \ Set Y = l5i = 0, for the x-axis: the offset in XX16 of
+ STY l5i                \ the x-coordinates of the three orientation vectors
+
+.l5ax
+
+ LDA l5s                \ Set l5g to the sign of x * sidev (bit 7), for this
+ EOR XX16+1,Y           \ axis
+ STA l5g
+
+.l5m0
+
+ L5MUL 0                \ Set l5t = x * |sidev| / 256
+ STA l5t
+
+ LDY l5i                \ Set Y to the axis's offset once more
+
+.l5m1
+
+ L5MUL 6                \ Set A = y * |roofv| / 256
+
+ L5ADD l5s+1, 7         \ Set (l5g l5t) = (l5g l5t) + y * roofv / 256
+ STA l5t
+
+.l5m2
+
+ L5MUL 12               \ Set A = z * |nosev| / 256
+
+ L5ADD l5s+2, 13        \ Set (l5g A) = (l5g l5t) + z * nosev / 256, which is
+                        \ the original's XX12 for this axis: vertv_x, vertv_y or
+                        \ vertv_z (and Y is the axis's offset)
+
+ CPY #2                 \ If this is the y-axis, jump to l5ya to add the ship's
+ BEQ l5ya               \ y-coordinate, and if it is the x-axis, to l5xa for its
+ BCC l5xa               \ x-coordinate
+
+                        \ Otherwise this is the z-axis: vertv_z + z
+
+ BIT l5g                \ If vertv_z is negative, jump down to LL56 in part 7
+ BPL P%+5
+ JMP LL56
+
+ CLC                    \ Set l5z(1 0) = XX1(7 6) + vertv_z, the original's
+ ADC XX1+6              \ (U T), starting with the low bytes
+ STA l5z
+
+ LDA XX1+7              \ And then doing the high bytes (we can add 0 here as
+ ADC #0                 \ we know the high byte of vertv_z is 0)
+ STA l5z+1
+
+ JMP LL57               \ We've added the z-coordinates, so jump to LL57
+
+.l5xa
+
+ TAX                    \ Keep vertv_x in X
+
+ LDA l5g                \ If the sign of vertv_x is not the ship's x_sign, jump
+ EOR XX1+2              \ to LL52 to subtract
+ BMI LL52
+
+ TXA                    \ Set l5x(1 0) = XX1(1 0) + vertv_x, the magnitude of
+ CLC                    \ the original's XX15(2 1 0), whose sign is the ship's
+ ADC XX1                \ x_sign
+ STA l5x
+ LDA XX1+1
+ ADC #0
+ STA l5x+1
 
  JMP LL53               \ We've added the x-coordinates, so jump to LL53 to do
                         \ the y-coordinates
 
 .LL52
 
-                        \ If we get here then x_sign and vertv_x have different
-                        \ signs, so we need to subtract them to get the result
+                        \ If we get here then we need to subtract vertv_x from
+                        \ the ship's x-coordinate
 
- LDA XX1                \ Set XX15(2 1 0) = XX1(2 1 0) - XX12(1 0)
- SEC                    \                 = (x_sign x_hi x_lo) - vertv_x
- SBC XX12               \
- STA XX15               \ Starting with the low bytes
+ TXA                    \ Set l5x(1 0) = XX1(1 0) - vertv_x, starting with the
+ EOR #&FF               \ low bytes (x_lo + ~vertv_x + 1)
+ SEC
+ ADC XX1
+ STA l5x
 
  LDA XX1+1              \ And then doing the high bytes (we can subtract 0 here
- SBC #0                 \ as we know the sign byte of vertv_x is 0)
- STA XX15+1
+ SBC #0                 \ as we know the high byte of vertv_x is 0)
+ STA l5x+1
 
  BCS LL53               \ If the subtraction didn't underflow, then the sign of
-                        \ the result is the same sign as x_sign, and that's what
-                        \ we want, so we can jump down to LL53 to do the
-                        \ y-coordinates
+                        \ the result is the same sign as x_sign, so jump down
+                        \ to LL53 to do the y-coordinates
 
  EOR #%11111111         \ Otherwise we need to negate the result using two's
- STA XX15+1             \ complement, so first we flip the bits of the high byte
+ STA l5x+1              \ complement, so first we flip the bits of the high byte
 
- LDA #1                 \ And then subtract the low byte from 1
- SBC XX15
- STA XX15
+ LDA #1                 \ And then subtract the low byte from 1 (C is clear, so
+ SBC l5x                \ this is -lo, with C set only if lo = 0)
+ STA l5x
 
  BCC P%+4               \ If the above subtraction underflowed then we need to
- INC XX15+1             \ bump the high byte of the result up by 1
+ INC l5x+1              \ bump the high byte of the result up by 1
 
- LDA XX15+2             \ And now we flip the sign of the result to get the
- EOR #%10000000         \ correct result
- STA XX15+2
+ LDA #%10000000         \ And now we note that the sign of the result is the
+ STA l5n                \ opposite of x_sign, in bit 7 of l5n
 
 .LL53
 
                         \ Now for the y-coordinates, vertv_y + y
 
- LDA XX1+5              \ Set A = y_sign of the ship's location
+ LDY #2                 \ Set Y = l5i = 2, for the y-axis, and jump back to l5ax
+ STY l5i                \ for vertv_y, which comes back to l5ya
+ JMP l5ax
 
- STA XX15+5             \ Set XX15+5 = y_sign
+.l5ya
 
- EOR XX12+3             \ If the sign of y_sign * the sign of vertv_y is
- BMI LL54               \ negative (i.e. they have different signs), skip to
-                        \ LL54
+ TAX                    \ Keep vertv_y in X
 
- CLC                    \ Set XX15(5 4 3) = XX1(5 4 3) + XX12(3 2)
- LDA XX12+2             \                 = (y_sign y_hi y_lo) + vertv_y
- ADC XX1+3              \
- STA XX15+3             \ Starting with the low bytes
+ LDA l5g                \ If the sign of vertv_y is not the ship's y_sign, jump
+ EOR XX1+5              \ to LL54 to subtract
+ BMI LL54
 
- LDA XX1+4              \ And then doing the high bytes (we can add 0 here as
- ADC #0                 \ we know the sign byte of vertv_y is 0)
- STA XX15+4
+ TXA                    \ Set l5y(1 0) = XX1(4 3) + vertv_y, the magnitude of
+ CLC                    \ the original's XX15(5 4 3), whose sign is the ship's
+ ADC XX1+3              \ y_sign
+ STA l5y
+ LDA XX1+4
+ ADC #0
+ STA l5y+1
 
  JMP LL55               \ We've added the y-coordinates, so jump to LL55 to do
                         \ the z-coordinates
 
 .LL54
 
-                        \ If we get here then y_sign and vertv_y have different
-                        \ signs, so we need to subtract them to get the result
+                        \ If we get here then we need to subtract vertv_y from
+                        \ the ship's y-coordinate
 
- LDA XX1+3              \ Set XX15(5 4 3) = XX1(5 4 3) - XX12(3 2)
- SEC                    \                 = (y_sign y_hi y_lo) - vertv_y
- SBC XX12+2             \
- STA XX15+3             \ Starting with the low bytes
+ TXA                    \ Set l5y(1 0) = XX1(4 3) - vertv_y, starting with the
+ EOR #&FF               \ low bytes (y_lo + ~vertv_y + 1)
+ SEC
+ ADC XX1+3
+ STA l5y
 
  LDA XX1+4              \ And then doing the high bytes (we can subtract 0 here
- SBC #0                 \ as we know the sign byte of vertv_z is 0)
- STA XX15+4
+ SBC #0                 \ as we know the high byte of vertv_y is 0)
+ STA l5y+1
 
  BCS LL55               \ If the subtraction didn't underflow, then the sign of
-                        \ the result is the same sign as y_sign, and that's what
-                        \ we want, so we can jump down to LL55 to do the
-                        \ z-coordinates
+                        \ the result is the same sign as y_sign, so jump down
+                        \ to LL55 to do the z-coordinates
 
  EOR #%11111111         \ Otherwise we need to negate the result using two's
- STA XX15+4             \ complement, so first we flip the bits of the high byte
+ STA l5y+1              \ complement, so first we flip the bits of the high byte
 
- LDA #1                 \ And then negate the low byte: the carry is clear here
- SBC XX15+3             \ (BCS LL55 was not taken), so this calculates 1 - lo - 1
- STA XX15+3             \ = -lo, with carry set only if lo = 0, as ADC #1 did
+ LDA #1                 \ And then subtract the low byte from 1 (C is clear, so
+ SBC l5y                \ this is -lo, with C set only if lo = 0)
+ STA l5y
 
- LDA XX15+5             \ And now we flip the sign of the result to get the
- EOR #%10000000         \ correct result
- STA XX15+5
+ BCC P%+4               \ If the above subtraction underflowed then we need to
+ INC l5y+1              \ bump the high byte of the result up by 1
 
- BCC LL55               \ If the above subtraction underflowed then we need to
- INC XX15+4             \ bump the high byte of the result up by 1
+ LDA #%10000000         \ And now we note that the sign of the result is the
+ STA l5n+1              \ opposite of y_sign, in bit 7 of l5n+1
 
 .LL55
 
-                        \ Now for the z-coordinates, vertv_z + z
+                        \ Now for the z-coordinates
 
- LDA XX12+5             \ If vertv_z_hi is negative, jump down to LL56
- BMI LL56
-
- LDA XX12+4             \ Set (U T) = XX1(7 6) + XX12(5 4)
- CLC                    \           = (z_hi z_lo) + vertv_z
- ADC XX1+6              \
- STA T                  \ Starting with the low bytes
-
- LDA XX1+7              \ And then doing the high bytes (we can add 0 here as
- ADC #0                 \ we know the sign byte of vertv_y is 0)
- STA U
-
- JMP LL57               \ We've added the z-coordinates, so jump to LL57
+ LDY #4                 \ Set Y = l5i = 4, for the z-axis, and jump back to l5ax
+ STY l5i                \ for vertv_z, which comes back to l5za
+ JMP l5ax
 
                         \ The adding process is continued in part 7, after a
                         \ couple of subroutines that we don't need quite yet
@@ -32977,6 +33119,25 @@ LIGHT_SUN = TRUE
 
  RTS                    \ Return from the subroutine
 
+.ll60f
+
+                        \ Port: part 8's call of LL61, for a coordinate in A
+                        \ that is not less than z_lo (in Q): this returns the
+                        \ result (U R) as (Y R), with X unchanged
+
+ STX l5p                \ Keep X in l5p
+
+ LDX #0                 \ Set U = 0, as the original has it at this point
+ STX U
+
+ JSR LL61               \ Call LL61 to calculate (U R) = 256 * A / Q
+
+ LDY U                  \ Set Y = U
+
+ LDX l5p                \ Restore X
+
+ JMP ll60s              \ Jump back to part 8 to store the result
+
 \ ******************************************************************************
 \
 \       Name: LL62
@@ -33002,25 +33163,8 @@ LIGHT_SUN = TRUE
 \
 \ ******************************************************************************
 
-.LL62
-
- LDA #128               \ Calculate 128 - (U R), starting with the low bytes
- SEC
- SBC R
-
- STA XX3,X              \ Store the low byte of the result in the X-th byte of
-                        \ the heap at XX3
-
- INX                    \ Increment the heap pointer in X to point to the next
-                        \ byte
-
- LDA #0                 \ And then subtract the high bytes
- SBC U
-
- STA XX3,X              \ Store the low byte of the result in the X-th byte of
-                        \ the heap at XX3
-
- JMP LL66               \ Jump down to LL66
+                        \ Port: this is in line in part 8 (LL62), where the
+                        \ result is (Y R) and X is the heap pointer l5c
 
 \ ******************************************************************************
 \
@@ -33063,52 +33207,57 @@ LIGHT_SUN = TRUE
 
 .LL56
 
- LDA XX1+6              \ Set (U T) = XX1(7 6) - XX12(5 4)
- SEC                    \           = (z_hi z_lo) - vertv_z
- SBC XX12+4             \
- STA T                  \ Starting with the low bytes
+                        \ Port: A is vertv_z
+
+ EOR #&FF               \ Set l5z(1 0) = XX1(7 6) - vertv_z, the original's
+ SEC                    \ (U T), starting with the low bytes (z_lo + ~vertv_z
+ ADC XX1+6              \ + 1)
+ STA l5z
 
  LDA XX1+7              \ And then doing the high bytes (we can subtract 0 here
- SBC #0                 \ as we know the sign byte of vertv_z is 0)
- STA U
+ SBC #0                 \ as we know the high byte of vertv_z is 0)
+ STA l5z+1
 
  BCC LL140              \ If the subtraction just underflowed, skip to LL140 to
                         \ set (U T) to the minimum value of 4
 
- BNE LL57               \ If U is non-zero, jump down to LL57
+ BNE LL57               \ If the high byte is non-zero, jump down to LL57
 
- LDA T                  \ If T >= 4, jump down to LL57
+ LDA l5z                \ If the low byte >= 4, jump down to LL57
  CMP #4
  BCS LL57
 
 .LL140
 
  LDA #0                 \ If we get here then either (U T) < 4 or the
- STA U                  \ subtraction underflowed, so set (U T) = 4
+ STA l5z+1              \ subtraction underflowed, so set (U T) = 4
  LDA #4
- STA T
+ STA l5z
 
 .LL57
 
                         \ By this point we have our results, so now to scale
                         \ the 16-bit results down into 8-bit values
 
- LDA U                  \ If the high bytes of the result are all zero, we are
- ORA XX15+1             \ done, so jump down to LL60 for the next stage
- ORA XX15+4
+ LDA l5z+1              \ If the high bytes of the result are all zero, we are
+ ORA l5x+1              \ done, so jump down to LL60 for the next stage
+ ORA l5y+1
  BEQ LL60
 
- LSR XX15+1             \ Shift XX15(1 0) to the right
- ROR XX15
+.ll57
 
- LSR XX15+4             \ Shift XX15(4 3) to the right
- ROR XX15+3
+ LSR l5x+1              \ Shift l5x(1 0) to the right
+ ROR l5x
 
- LSR U                  \ Shift (U T) to the right
- ROR T
+ LSR l5y+1              \ Shift l5y(1 0) to the right
+ ROR l5y
 
- JMP LL57               \ Jump back to LL57 to see if we can shift the result
-                        \ any more
+ LSR l5z+1              \ Shift l5z(1 0) to the right
+ ROR l5z
+
+ LSR A                  \ Shift A, the three high bytes ORed together, to the
+ BNE ll57               \ right, and loop back to ll57 if any of them is still
+                        \ non-zero
 
 \ ******************************************************************************
 \
@@ -33151,188 +33300,162 @@ LIGHT_SUN = TRUE
 
 .LL60
 
- LDA T                  \ Set Q = z_lo
- STA Q
+ LDX l5z                \ Set Q = z_lo
+ STX Q
 
- LDA XX15               \ Set A = x_lo
+ LDA l5x                \ Set A = x_lo
 
- CMP Q                  \ If x_lo < z_lo jump to LL69
- BCC LL69
+ LDX #0                 \ Set X = 0, to say that this is the x-coordinate (both
+                        \ coordinates are divided by z_lo by the code at ll60d)
 
- JSR LL61               \ Call LL61 to calculate:
-                        \
-                        \   (U R) = 256 * A / Q
-                        \         = 256 * x / z
-                        \
-                        \ which we can do as x >= z
+.ll60d
 
- JMP LL65               \ Jump to LL65 to skip the division for x_lo < z_lo
+ CMP Q                  \ If A >= z_lo, jump to ll60f to call LL61 for the
+ BCS ll60f              \ division, which returns to ll60s with the result in
+                        \ (Y R)
 
-.LL69
-
- JSR LL28               \ Call LL28 to calculate:
+ JSR LL31               \ Call LL28's division (as A < Q, and its steps set
+                        \ every bit of R) to calculate:
                         \
                         \   R = 256 * A / Q
-                        \     = 256 * x / z
                         \
-                        \ Because x < z, the result fits into one byte, and we
-                        \ also know that U = 0, so (U R) also contains the
-                        \ result
+                        \ which keeps X
+
+ LDY #0                 \ Set Y = 0, the high byte of the result (the original's
+                        \ U)
+
+.ll60s
+
+ TXA                    \ If this is the y-coordinate, jump to LL68 to store it
+ BNE LL68
 
 .LL65
 
-                        \ At this point we have:
+                        \ We now want to calculate:
                         \
-                        \   (U R) = x / z
+                        \   centre x-coordinate + (Y R)
                         \
-                        \ so (U R) contains the vertex's x-coordinate projected
-                        \ on screen
+                        \ if the x-coordinate is positive, or:
                         \
-                        \ The next task is to convert (U R) to a pixel screen
-                        \ coordinate and stick it on the XX3 heap.
+                        \   centre x-coordinate - (Y R)
                         \
-                        \ We start with the x-coordinate. To convert the
-                        \ x-coordinate to a screen pixel we add 128, the
-                        \ x-coordinate of the centre of the screen, because the
-                        \ projected value is relative to an origin at the centre
-                        \ of the screen, but the origin of the screen pixels is
-                        \ at the top-left of the screen
+                        \ if it is negative, and store it in XX3, the heap of
+                        \ screen coordinates
 
- LDX CNT                \ Fetch the pointer to the end of the XX3 heap from CNT
-                        \ into X
+ LDX l5c                \ Fetch the pointer to the end of the XX3 heap into X
 
- LDA XX15+2             \ If x_sign is negative, jump up to LL62, which will
- BMI LL62               \ store 128 - (U R) on the XX3 heap and return by
-                        \ jumping down to LL66 below
+ LDA XX1+2              \ If the x-coordinate is negative (the ship's x_sign,
+ EOR l5n                \ flipped if bit 7 of l5n is set), jump down to LL62
+ BMI LL62
 
- LDA R                  \ Calculate 128 + (U R), starting with the low bytes
+ LDA R                  \ Calculate 128 + (Y R), starting with the low bytes
  CLC
  ADC #128
 
  STA XX3,X              \ Store the low byte of the result in the X-th byte of
                         \ the heap at XX3
 
- INX                    \ Increment the heap pointer in X to point to the next
-                        \ byte
-
- LDA U                  \ And then add the high bytes
+ TYA                    \ And then add the high bytes
  ADC #0
 
- STA XX3,X              \ Store the high byte of the result in the X-th byte of
-                        \ the heap at XX3
+ STA XX3+1,X            \ Store the high byte of the result in the X+1-th byte
+                        \ of the heap at XX3
 
 .LL66
 
                         \ We've just stored the screen x-coordinate of the
                         \ vertex on the XX3 heap, so now for the y-coordinate
 
- LDA #0                 \ Set U = 0
- STA U
+ LDA l5y                \ Set A = y_lo
 
- LDA XX15+3             \ Set A = y_lo (Q is still z_lo from LL60, as LL61 and
-                        \ LL28 do not change it)
+ LDX #2                 \ Set X = 2, to say that this is the y-coordinate
 
- CMP Q                  \ If y_lo < z_lo jump to LL67
- BCC LL67
+ JMP ll60d              \ Jump back to ll60d to divide it by z_lo
 
- JSR LL61               \ Call LL61 to calculate:
-                        \
-                        \   (U R) = 256 * A / Q
-                        \         = 256 * y / z
-                        \
-                        \ which we can do as y >= z
+.LL62
 
- JMP LL68               \ Jump to LL68 to skip the division for y_lo < z_lo
-
-.LL70
-
-                        \ This gets called from below when y_sign is negative
-
- LDA #Y                 \ Calculate #Y + (U R), starting with the low bytes
- CLC
- ADC R
-
- STA XX3,X              \ Store the low byte of the result in the X-th byte of
-                        \ the heap at XX3
-
- INX                    \ Increment the heap pointer in X to point to the next
-                        \ byte
-
- LDA #0                 \ And then add the high bytes
- ADC U
-
- STA XX3,X              \ Store the high byte of the result in the X-th byte of
-                        \ the heap at XX3
-
- JMP LL50               \ Jump to LL50 to move on to the next vertex
-
-.LL67
-
- JSR LL28               \ Call LL28 to calculate:
-                        \
-                        \   R = 256 * A / Q
-                        \     = 256 * y / z
-                        \
-                        \ Because y < z, the result fits into one byte, and we
-                        \ also know that U = 0, so (U R) also contains the
-                        \ result
-
-.LL68
-
-                        \ At this point we have:
-                        \
-                        \   (U R) = y / z
-                        \
-                        \ so (U R) contains the vertex's y-coordinate projected
-                        \ on screen
-                        \
-                        \ We now want to convert this to a screen y-coordinate
-                        \ and stick it on the XX3 heap, much like we did with
-                        \ the x-coordinate above. Again, we convert the
-                        \ coordinate by adding or subtracting the y-coordinate
-                        \ of the centre of the screen, which is in the constant
-                        \ #Y, but this time we do the opposite, as a positive
-                        \ projected y-coordinate, i.e. up the space y-axis and
-                        \ up the screen, converts to a low y-coordinate, which
-                        \ is the opposite way round to the x-coordinates
-
- LDX CNT                \ Set X = CNT + 2, the heap pointer for the y-coordinate
- INX                    \ (we are one past the stored x_hi, which is at CNT+1)
- INX
-
- LDA XX15+5             \ If y_sign is negative, jump up to LL70, which will
- BMI LL70               \ store #Y + (U R) on the XX3 heap and return by jumping
-                        \ down to LL50 below
-
- LDA #Y                 \ Calculate #Y - (U R), starting with the low bytes
+ LDA #128               \ Calculate 128 - (Y R), starting with the low bytes
  SEC
  SBC R
 
  STA XX3,X              \ Store the low byte of the result in the X-th byte of
                         \ the heap at XX3
 
- INX                    \ Increment the heap pointer in X to point to the next
-                        \ byte
+ TYA                    \ And then subtract the high bytes (0 - Y - (1 - C) is
+ EOR #&FF               \ ~Y + C)
+ ADC #0
 
- LDA #0                 \ And then subtract the high bytes
- SBC U
+ STA XX3+1,X            \ Store the high byte of the result in the X+1-th byte
+                        \ of the heap at XX3
 
- STA XX3,X              \ Store the high byte of the result in the X-th byte of
+ JMP LL66               \ Jump back to LL66 for the y-coordinate
+
+.LL70
+
+                        \ This routine stores #Y + (Y R) on the XX3 heap
+
+ LDA #Y                 \ Calculate #Y + (Y R), starting with the low bytes
+ CLC
+ ADC R
+
+ STA XX3+2,X            \ Store the low byte of the result in the X+2-th byte of
                         \ the heap at XX3
+
+ TYA                    \ And then add the high bytes
+ ADC #0
+
+ STA XX3+3,X            \ Store the high byte of the result in the X+3-th byte
+                        \ of the heap at XX3
+
+ JMP LL50               \ Jump to LL50 to move on to the next vertex
+
+.LL68
+
+                        \ We now want to calculate:
+                        \
+                        \   centre y-coordinate - (Y R)
+                        \
+                        \ if the y-coordinate is positive, or:
+                        \
+                        \   centre y-coordinate + (Y R)
+                        \
+                        \ if it is negative, and store it in XX3
+
+ LDX l5c                \ Fetch the pointer to the end of the XX3 heap into X
+
+ LDA XX1+5              \ If the y-coordinate is negative (the ship's y_sign,
+ EOR l5n+1              \ flipped if bit 7 of l5n+1 is set), jump up to LL70
+ BMI LL70
+
+ LDA #Y                 \ Calculate #Y - (Y R), starting with the low bytes
+ SEC
+ SBC R
+
+ STA XX3+2,X            \ Store the low byte of the result in the X+2-th byte of
+                        \ the heap at XX3
+
+ TYA                    \ And then subtract the high bytes (0 - Y - (1 - C) is
+ EOR #&FF               \ ~Y + C)
+ ADC #0
+
+ STA XX3+3,X            \ Store the high byte of the result in the X+3-th byte
+                        \ of the heap at XX3
 
 .LL50
 
-                        \ By the time we get here, the XX3 heap contains four
-                        \ bytes containing the screen coordinates of the current
-                        \ vertex, in the order: x_lo, x_hi, y_lo, y_hi
+                        \ By the time we get here, the XX3 heap contains the
+                        \ 16-bit screen coordinates for this vertex, or the
+                        \ vertex is not visible
 
- CLC                    \ Set CNT = CNT + 4, so the heap pointer points to the
- LDA CNT                \ next free byte on the heap
+ CLC                    \ Set l5c = l5c + 4, so the heap pointer points to the
+ LDA l5c                \ next free byte on the heap
  ADC #4
- STA CNT
+ STA l5c
 
- LDA XX17               \ Set A to the offset of the current vertex's data,
-                        \ which we set in part 6
+.ll50y
+
+ LDA #0                 \ Set A to the offset of the current vertex's data,
+                        \ which LL48 stored here
 
  ADC #6                 \ Set Y = A + 6, so Y now points to the data for the
  TAY                    \ next vertex
@@ -33341,9 +33464,11 @@ LIGHT_SUN = TRUE
                         \ to access vertex #43, jump to LL72, as the maximum
                         \ number of vertices allowed is 42
 
- CMP XX20               \ If Y >= number of vertices * 6 (which we stored in
- BCS LL72               \ XX20 in part 6), jump to LL72, as we have processed
-                        \ all the vertices for this ship
+.ll50n
+
+ CMP #0                 \ If Y >= number of vertices * 6 (which part 6 stored
+ BCS LL72               \ here), jump to LL72, as we have processed all the
+                        \ vertices for this ship
 
  JMP LL48               \ Loop back to LL48 in part 6 to calculate visibility
                         \ and screen coordinates for the next vertex
