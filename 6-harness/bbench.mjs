@@ -55,15 +55,18 @@
 // the line heaps their blueprints ask for.
 //
 // node 6-harness/bbench.mjs [--build build.json] [--scene a,b] [--n 128]
-//      [--warm 8] [--out file.json]
+//      [--warm 8] [--out file.json] [--dump DIR]
+// --dump DIR writes main RAM &1000-&76FF (both screen buffers and the
+// dashboard) at three iterations of each scene's first window, as
+// DIR/<scene>-<n>.bin: two builds that draw the same have the same files.
 // Prints "scene: cycles/iteration it/s" per scene.
 import { runElite, loadBuild, regionsFor, physRead, progHooks, CAND_BUILD } from "./blib.mjs";
 import { makePilot, patchCommander } from "./bpilot.mjs";
 import { parseArgs } from "./args.mjs";
-import { writeFileSync } from "fs";
+import { writeFileSync, mkdirSync } from "fs";
 import { resolve } from "path";
 
-const a = parseArgs({ build: "value", scene: "value", n: "value", warm: "value", out: "value" });
+const a = parseArgs({ build: "value", scene: "value", n: "value", warm: "value", out: "value", dump: "value" });
 const BUILD = resolve(a.build || CAND_BUILD);
 const b = loadBuild(BUILD);
 const sy = b.progs.flight.sy;
@@ -176,6 +179,10 @@ opts.onIter = (i, s, res) => {
     }
     if (snap) {
         times.push(res.iterTimes[res.iterTimes.length - 1]);
+        // --dump DIR: both buffers and the dashboard (&1000-&76FF) as they are
+        // at three iterations of the scene's first window, to compare two
+        // builds' pictures byte for byte
+        if (a.dump && [M / 2, M - 2, M - 1].includes(times.length)) { mkdirSync(a.dump, { recursive: true }); writeFileSync(`${a.dump}/${which[si]}-${times.length}.bin`, ram.subarray(0x1000, 0x7700)); }
         if (times.length > N) {
             const per = (times[times.length - 1] - times[0]) / (times.length - 1) * 2e6;
             results[which[si]] = { cycles: Math.round(per), its: +(2e6 / per).toFixed(3), n: times.length - 1, ships: used };
