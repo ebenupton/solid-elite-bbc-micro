@@ -495,15 +495,15 @@ what the frames can use, the docked code's are free only while docked.
 | bank 5 | `&B400-&BF99` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 2970 | 0 |
 | bank 5 | `&BF9A-&BFFF` | `RJT`, the jump table; at the top, the cold 5 pass's place `C5HI%` (35 bytes) | 77 | 25 |
 | bank 6 | `&8000-&80BB` | the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`) | 188 | 0 |
-| bank 6 | `&80BC-&AB9E` | the frame layer's code (bank 6 passes) | 10979 | 0 |
-| bank 6 | `&AB9F-&AEBC` | the faces' and the lighting's tables | 798 | 0 |
-| bank 6 | `&AEBD-&AF2B` | (free: the state that follows is placed as high as it goes) | 0 | 111 |
+| bank 6 | `&80BC-&ABCA` | the frame layer's code (bank 6 passes) | 11023 | 0 |
+| bank 6 | `&ABCB-&AEE8` | the faces' and the lighting's tables | 798 | 0 |
+| bank 6 | `&AEE9-&AF2B` | (free: the state that follows is placed as high as it goes) | 0 | 67 |
 | bank 6 | `&AF2C-&B1FF` | the state: the ship records, the zero page `F_FRAME` keeps, the faces' levels, the docking slot, the planet's records kept | 724 | 0 |
 | bank 6 | `&B200-&BC70` | the state, page aligned: the discs' half-widths (`F_INIT`'s code in the sun's until they are first written), the text map, the discs' rows | 2659 | 14 |
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 43, main RAM (flight) 634, main RAM (docked) 1070, bank 4 (flight) 63, bank 4 (docked) 3165, bank 7 (flight) 19, bank 7 (docked) 4987, bank 5 228, bank 6 131.
+Free, by place: main RAM 43, main RAM (flight) 634, main RAM (docked) 1070, bank 4 (flight) 63, bank 4 (docked) 3165, bank 7 (flight) 19, bank 7 (docked) 4987, bank 5 228, bank 6 87.
 
 **The build's check.** `2-build-files/mapcheck.py`, which `make` runs once
 every program and bank is assembled, fails the build if a place is out of

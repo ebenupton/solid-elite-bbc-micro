@@ -1724,9 +1724,11 @@ f_cx = fpr_cx + 1       \ (the operand of ADC # in the slow disc loop)
 
 \ f_hrec: the planet's records for f_bounds. PF_HOOK makes them only on some
 \ iterations (F_PFHOLD); on those (PF_CLS bit 7, not bit
-\ 6) the mailbox's records and their unclamped thresholds (&00 to PC_TU's
-\ end) are kept here, with the disc's centre; on the others (PF_CLS bits 7
-\ and 6) the kept records are put back in the mailbox moved with the disc's
+\ 6) the mailbox's records, their count and base colour and their unclamped
+\ thresholds (PC_TU), as many as there are, are kept here, with the disc's
+\ centre; on the others (PF_CLS bits 7 and 6) the kept records, their count
+\ and base colour (all that PC_ROWS reads) are put back in the mailbox moved
+\ with the disc's
 \ centre since (dx, dy: their centre lines C0, centre rows Yc and thresholds
 \ T1, T2, clamped to 0..192 again, exactly as if made at the new centre with
 \ the planet as it was), or if none are kept (a disc command used the
@@ -1744,12 +1746,27 @@ fh_k = &14              \ F_FRAME has kept)
  BIT PF_CLS
  BPL fhr8
  BVS fhr2
- LDX #PCX_END-MBOX-1    \ this iteration's: kept
+ LDX PC_N               \ this iteration's: kept, their count and base colour,
+ STX f_hcb+PC_N-MBOX    \ the records and their thresholds
+ LDA pc_inv
+ STA f_hcb+pc_inv-MBOX
+ LDY pcb_o,X
+ BEQ fhr1b              \ (no record: a base colour)
 .fhr1
- LDA MBOX,X
- STA f_hcb,X
+ LDA PCB-1,Y
+ STA f_hcb+PCB-MBOX-1,Y
+ DEY
+ BNE fhr1
+ TXA                    \ (four bytes a record)
+ ASL A
+ ASL A
+ TAX
+.fhr1c
+ LDA PC_TU-1,X
+ STA f_hcb+PC_TU-MBOX-1,X
  DEX
- BPL fhr1
+ BNE fhr1c
+.fhr1b
  LDX #3
 .fhr1a
  LDA F_PLX,X
@@ -1778,13 +1795,19 @@ fh_k = &14              \ F_FRAME has kept)
  DEX
  DEX
  BPL fhr3
- LDX #pc_inv-MBOX       \ the records, their count and base colour, into the
-.fhr4                   \ mailbox for f_bounds' PC_ROWS
- LDA f_hcb,X
- STA MBOX,X
- DEX
- BPL fhr4
- INX                    \ each record (X) moved
+ LDX f_hcb+PC_N-MBOX    \ the records, their count and base colour, into the
+ STX PC_N               \ mailbox for f_bounds' PC_ROWS
+ LDA f_hcb+pc_inv-MBOX
+ STA pc_inv
+ LDY pcb_o,X
+ BEQ fhr4b
+.fhr4
+ LDA f_hcb+PCB-MBOX-1,Y
+ STA PCB-1,Y
+ DEY
+ BNE fhr4
+.fhr4b
+ LDX #0                 \ each record (X) moved
 .fhr5
  CPX PC_N
  BCS fhr7
