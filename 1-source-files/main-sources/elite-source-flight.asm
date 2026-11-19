@@ -11311,7 +11311,7 @@ ENDIF
 \   Category: Maths (Geometry)
 \    Summary: Calculate the dot product of XX15 and one of the space station's
 \             orientation vectors
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11688,7 +11688,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Tactics
 \    Summary: Launch a ship straight ahead of us, below the laser sights
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -12188,7 +12188,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Moving
 \    Summary: Move a ship in space along one of the coordinate axes
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -15048,7 +15048,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Work out if we have space for one tonne of cargo
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -15099,7 +15099,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Work out if we have space for a specific amount of cargo
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -17994,7 +17994,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Market
 \    Summary: Calculate QQ19+3 = economy * |economic_factor|
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -21103,7 +21103,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Take some damage
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -21979,7 +21979,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Draw a specific indicator in the dashboard's missile bar
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -23980,7 +23980,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Draw a horizontal line given a centre and a half-width
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -24668,7 +24668,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Set the selected system to the current system
-\       Area: cold
+\       Area: cold 5
 \
 \ ******************************************************************************
 
@@ -25677,7 +25677,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Initialise the INWK workspace to a fairly aggressive ship
-\       Area: cold
+\       Area: cold 5
 \  Deep dive: Fixing ship positions
 \             Aggression and hostility in ship tactics
 \
@@ -30993,7 +30993,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Port: record the laser beam of a ship firing at us
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -31129,7 +31129,7 @@ ENDIF
 \   Category: Drawing ships
 \    Summary: Port: show all the splinter's faces for LL9's vertices and the
 \             renderer
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -34674,7 +34674,7 @@ LIGHT_SUN = TRUE
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate Q = XX12+2, A = S EOR XX12+3 and (S R) = |S R|
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -36588,7 +36588,7 @@ LIGHT_SUN = TRUE
 \       Type: Subroutine
 \   Category: Drawing the screen
 \    Summary: Clear the bottom three text rows of the space view
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \

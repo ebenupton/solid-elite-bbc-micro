@@ -95,3 +95,39 @@ hotx &7E00-&7E5F: 14 units, 49 bytes, 47 free
   &7E2D     1 LL9 (Part 11 of 12)
   &7E2E     2 LL9 (Part 12 of 12)
   &7E30     1 LL9 (Part 12 of 12), drawing
+c5 (the tails C5TAILS: 65 bytes each): 14 units and 12 stubs, 563 bytes, 22 free
+  &87BF-&87FF tail 7: 63 bytes, 2 free
+  &87BF      63 HEE31
+  &8FBF-&8FFF tail 15: 64 bytes, 1 free
+  &8FBF      59 OOPS
+  &8FFA       5 x5_MULT12
+  &91BF-&91FF tail 17: 62 bytes, 3 free
+  &91BF      57 CLYNS
+  &91F8       5 x5_MAD
+  &92BF-&92FF tail 18: 61 bytes, 4 free
+  &92BF      49 EDGES
+  &92F0      12 ping
+  &93BF-&93FF tail 19: 65 bytes, 0 free
+  &93BF      40 Ze
+  &93E7      25 var
+  &94BF-&94FF tail 20: 63 bytes, 2 free
+  &94BF      38 FRS1
+  &94E5      25 MSBAR
+  &95BF-&95FF tail 21: 64 bytes, 1 free
+  &95BF      34 TAS4
+  &95E1      30 SPLV
+  &96BF-&96FF tail 22: 62 bytes, 3 free
+  &96BF      34 tnpr1..tnpr
+  &96E1      28 LL129
+  &97BF-&97FF tail 23: 59 bytes, 6 free
+  &97BF       9 SFS2
+  &97C8       5 x5c_TT67
+  &97CD       5 x5_NWSHP
+  &97D2       5 x5_ZINF
+  &97D7       5 x5_DORND
+  &97DC       5 j5c_DEATH
+  &97E1       5 x5_EXNO3
+  &97E6       5 x5c_OUCH
+  &97EB       5 x5c_LL145
+  &97F0       5 x5_MVT1
+  &97F5       5 x5c_LYN
