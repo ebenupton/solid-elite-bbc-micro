@@ -50,7 +50,7 @@ CONFIG = {}
 tr.NSTARS = int(re.search(r'^\s*NOST\s*=\s*(\d+)', open(os.path.join(MS, 'elite-source-flight.asm'),
                 encoding='latin-1').read(), re.M).group(1)) + 1   # (the stars the game records: MB_SX ..)
 ENTRIES = ['R_INIT', 'R_SETBUF', 'R_RESETBUF', 'R_REPAIR', 'R_SPAN', 'R_MARKDIRTY', 'R_DOT',
-           'R_POLY', 'R_LINE', 'R_STARERASE', 'R_STARPLOT']
+           'R_POLY', 'R_LINE', 'R_STARERASE', 'R_STARPLOT', 'R_MARKBOX', 'R_GETW']
 
 
 def rws_constants():
@@ -334,7 +334,111 @@ def test_lines(self, n):
             raise AssertionError('line row range %s' % (pts,))
 
 
+def rand_extents(self, b):
+    """random per-row extents in R_WL/R_WR and buffer b's dirty arrays
+    (each row empty, a narrow extent or a wide one), the buffer's row range
+    set to all rows; returns (wl, wr, dl, dr) as lists"""
+    m, rnd, s = self.m, self.rnd, self.m.syms
+    m.call('R_SETBUF', a=b)
+    out = []
+    for nm in ('R_WL', 'R_DIRTYL0'):
+        lo = [], []
+        for y in range(192):
+            k = rnd.random()
+            if k < 0.5:
+                l, r = 255, 0
+            else:
+                l = rnd.randrange(1, 255)
+                r = rnd.randrange(l, 255) if k < 0.8 else min(254, l + rnd.randrange(8))
+            lo[0].append(l)
+            lo[1].append(r)
+        a = s[nm] + (0x300 * b if nm == 'R_DIRTYL0' else 0)
+        a2 = (s['R_WR'] if nm == 'R_WL' else s['R_DIRTYR0'] + 0x300 * b)
+        m.mem[a:a + 192] = lo[0]
+        m.mem[a2:a2 + 192] = lo[1]
+        out += lo
+    m.wr('R_PRDYT', 0, b)
+    m.wr('R_PRDYB', 191, b)
+    return out
+
+
+def test_query(self, n):
+    """R_GETW with A = &40 (r_wq, the frame layer's query) against its
+    specification (gfx-raster_dq.asm): per text row asked for, the union of
+    the written and dirty extents over its eight lines; the sights' test"""
+    m, rnd, mb = self.m, self.rnd, self.m.syms['MBOX']
+    for it in range(n):
+        b = rnd.randrange(2)
+        wl, wr, dl, dr = self.rand_extents(b)
+        k = rnd.random()
+        mask = [rnd.randrange(256) if k < 0.6 else rnd.choice((0, 255, 1 << rnd.randrange(8)))
+                for _ in range(3)]
+        sights = rnd.randrange(2)
+        m.mem[mb + 0x30:mb + 0x34] = mask + [sights]
+        before = m.mem[mb:mb + 0x30]
+        m.call('R_GETW', a=0x40)
+        for r in range(24):
+            if mask[r >> 3] >> (r & 7) & 1:
+                lo, hi = 255, 0
+                for y in range(8 * r, 8 * r + 8):
+                    for l, rr in ((wl[y], wr[y]), (dl[y], dr[y])):
+                        if rr:
+                            lo, hi = min(lo, l), max(hi, rr)
+                want = [lo, hi]
+            else:
+                want = before[2 * r:2 * r + 2]
+            if m.mem[mb + 2 * r:mb + 2 * r + 2] != want:
+                raise AssertionError('query: row %d %s, want %s' % (r, m.mem[mb + 2 * r:mb + 2 * r + 2], want))
+        hit = False
+        if sights:
+            for l, rr in ((wl[96], wr[96]), (dl[96], dr[96])):
+                hit |= rr != 0 and rr >= 108 and l < 149
+            for y in range(76, 117):
+                for l, rr in ((wl[y], wr[y]), (dl[y], dr[y])):
+                    hit |= rr >= 128 and l <= 128
+        if m.mem[mb + 0x34] != (0x80 if hit else 0):
+            raise AssertionError('query: sights %02X, want %s' % (m.mem[mb + 0x34], hit))
+    return '%d queries' % n
+
+
+def test_markbox(self, n):
+    """R_MARKBOX (rows Y .. R_BY1, or row Y if R_BY1 is less) and
+    R_MARKDIRTY (row Y) against their specification: each row's dirty
+    extent widened by R_XL..R_XR, the buffer's row range by the rows"""
+    m, rnd = self.m, self.rnd
+    for it in range(n):
+        b = rnd.randrange(2)
+        wl, wr, dl, dr = self.rand_extents(b)
+        t, bt = rnd.randrange(192), rnd.randrange(192)
+        m.wr('R_PRDYT', t, b)
+        m.wr('R_PRDYB', bt, b)
+        y = rnd.randrange(192)
+        by1 = rnd.randrange(192) if rnd.random() < 0.8 else min(191, y + rnd.randrange(3))
+        xl = rnd.randrange(1, 255)
+        xr = rnd.randrange(xl, 255)
+        m.wzp('R_XL', xl)
+        m.wzp('R_XR', xr)
+        one = rnd.random() < 0.3
+        if one:
+            m.call('R_MARKDIRTY', y=y)
+            rows = [y]
+        else:
+            m.wr('R_BY1', by1)
+            m.call('R_MARKBOX', y=y)
+            rows = list(range(y, max(y, by1) + 1))
+        for r in rows:
+            dl[r], dr[r] = min(dl[r], xl), max(dr[r], xr)
+        if self.dirty(b) != list(zip(dl, dr)):
+            raise AssertionError('markbox rows %d..%d: dirty differs' % (rows[0], rows[-1]))
+        if (m.rd('R_PRDYT', b), m.rd('R_PRDYB', b)) != (min(t, rows[0]), max(bt, rows[-1])):
+            raise AssertionError('markbox rows %d..%d: row range' % (rows[0], rows[-1]))
+    return '%d boxes' % n
+
+
 tr.Machine = Machine
+tr.Tester.rand_extents = rand_extents
+tr.Tester.test_query = test_query
+tr.Tester.test_markbox = test_markbox
 tr.check_patch_sites = check_patch_sites
 tr.star_ref = star_ref
 tr.Tester.set_col = set_col
@@ -377,6 +481,8 @@ def main():
     run('polys', t.test_polys, int(3000 * scale))
     run('meshes', t.test_meshes, int(60 * scale))
     run('lines', t.test_lines, int(2000 * scale))
+    run('query', t.test_query, int(400 * scale))
+    run('markbox', t.test_markbox, int(600 * scale))
     for _ in range(4):
         run('frames', t.test_frames, int(40 * scale) + 4, 'none')
     print(tr.summarize(t.stats))
