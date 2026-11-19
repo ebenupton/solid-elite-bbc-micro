@@ -32,6 +32,24 @@
 //   zone       the safe zone: the station near and ahead, the sun parked
 //              behind us, two ships
 //   rear       the beach ball in the rear view, with ships
+//   approach   the gate's run's long approach to a planet (nearly half its
+//              iterations): a crater planet (TYPE 130, radius 62) turning as
+//              the game turns it, across the left edge of the view, swung
+//              round the view's centre by our roll, which is held (about 5
+//              pixels an iteration: from the bottom left to the top left in
+//              a window); the sun far behind, full speed, no ships
+//   departure  the gate's run after a launch (a fifth of its cycles): the
+//              beach ball dead ahead (radius 105), still but turning as the
+//              game turns it (about the axis and at a phase of the run's),
+//              the station behind us, the sun parked
+// The first seven scenes' planet turns once and stops (its roll and pitch
+// counters 1), and our roll and pitch die away under the keyboard's damping
+// (the scene's alpha and beta are JSTX and JSTY, which recentre within a
+// few iterations); a scene's planet with roll and pitch 127 turns on every
+// iteration, as the game's (SOLAR's), and a scene with hold has the damping
+// off (DAMP) so that its roll and pitch stay. The approach scene's snapshot
+// puts the disc back where the window started: each window's first two
+// iterations paint it whole, in each buffer.
 // The ships are of the types the launch system's blueprint file has (each
 // scene's wanted types, in order, else the next fighter the file has), with
 // the line heaps their blueprints ask for.
@@ -83,6 +101,10 @@ const SCENES = {
         ships: [[VIPER, { x: 500, y: 300, z: 2000, speed: 15, roll: 2 }], [CYL, { x: -800, y: 200, z: 3500, speed: 12 }]], view: 0, delta: 15, alpha: 2, beta: 1 },
     rear: { planet: { x: 0, y: R(100) * 0.3, z: -R(100) }, slot1: { type: 129, x: R(10), y: 0, z: R(10) },
         ships: [[CYL, { x: 500, y: 300, z: -2500, speed: 10, roll: 2 }], [ADA, { x: -700, y: -300, z: -3500, speed: 12 }]], view: 1, delta: 10, alpha: 2, beta: 0 },
+    approach: { planet: { type: 130, x: -R(62) * 0.265, y: -R(62) * 0.353, z: R(62), roll: 127, pitch: 127 }, slot1: { type: 129, x: 400000, y: 300000, z: -700000 },
+        ships: [], view: 0, delta: 38, alpha: 6, beta: 0, hold: true },
+    departure: { planet: { x: 0, y: 0, z: R(105), roll: 127, pitch: 127, nose: [0.708, 0.643, -0.292], roof: [-0.643, 0.416, -0.643], side: [-0.292, 0.643, 0.708] },
+        slot1: { type: SST, x: 0, y: -1, z: -5000, roll: 255 }, park: { x: -65280, y: 0, z: -530000 }, ships: [], view: 0, delta: 18, alpha: 0, beta: 0 },
 };
 const which = (a.scene || Object.keys(SCENES).join(",")).split(",");
 
@@ -105,7 +127,7 @@ function pose(sc) {
     for (let i = 0; i <= 12; i++) ram[sy.FRIN + i] = 0;
     for (let i = 0; i < 32; i++) ram[sy.MANY + i] = 0;
     ram[sy.JUNK] = 0; ram[sy.SSPR] = 0;
-    put(0, 128, blockBytes({ ...sc.planet, roll: 1, pitch: 1 }));
+    put(0, sc.planet.type || 128, blockBytes({ roll: 1, pitch: 1, ...sc.planet }));
     put(1, sc.slot1.type, blockBytes({ ...sc.slot1, heap: sy.LSO }));
     if (sc.slot1.type === SST) ram[sy.SSPR] = 1;
     if (sy.SUNPK !== undefined) {
@@ -125,12 +147,14 @@ function pose(sc) {
     ram[sy.SLSP] = heap & 255; ram[sy.SLSP + 1] = heap >> 8;
     ram[sy.VIEW] = sc.view; ram[sy.DELTA] = sc.delta;
     ram[sy.JSTX] = 128 + 8 * sc.alpha; ram[sy.JSTY] = 128 + 8 * sc.beta;
+    if (damp === null) damp = ram[sy.DAMP];
+    ram[sy.DAMP] = sc.hold ? 0xff : damp;
     ram[sy.ENERGY] = 255; ram[sy.FSH] = 255; ram[sy.ASH] = 255; ram[sy.MCNT] = 1;
     return used;
 }
 
 const results = {};
-let si = 0, k = -1, snap = null, times = [], posed = false, rand, many, slsp, junk, slspTop = 0, launchedAt = -1, used = null;
+let si = 0, k = -1, snap = null, times = [], posed = false, rand, many, slsp, junk, slspTop = 0, launchedAt = -1, used = null, damp = null;
 opts.onBoot = s => { cpu = s._machine.processor; ph = progHooks(b, cpu); };
 opts.onIter = (i, s, res) => {
     const ram = cpu.ramRomOs;
