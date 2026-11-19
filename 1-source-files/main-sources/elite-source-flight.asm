@@ -2738,10 +2738,13 @@ ENDIF
 
  STA TYPE               \ Store the ship type in TYPE
 
- JSR GINF               \ Call GINF to fetch the address of the ship data block
-                        \ for the ship in slot X and store it in INF. The data
-                        \ block is in the K% workspace, which is where all the
-                        \ ship data blocks are stored
+ TXA                    \ Fetch the address of the ship data block for the
+ ASL A                  \ ship in slot X and store it in INF, as GINF does
+ TAY                    \ (Port: GINF in line, as hot code). The data block is
+ LDA UNIV,Y             \ in the K% workspace, which is where all the ship data
+ STA INF                \ blocks are stored
+ LDA UNIV+1,Y
+ STA INF+1
 
                         \ Next we want to copy the ship data block from INF to
                         \ the zero-page workspace at INWK, so we can process it
@@ -2749,14 +2752,19 @@ ENDIF
 
 .MAL1g
 
+ LDA INF                \ Port: patch the block's address into the loop below,
+ STA MAL2+1             \ whose LDA abs,Y takes a cycle less a byte than LDA
+ LDA INF+1              \ (INF),Y
+ STA MAL2+2
+
  LDY #NI%-1             \ There are NI% bytes in each ship data block (and in
                         \ the INWK workspace, so we set a counter in Y so we can
                         \ loop through them
 
 .MAL2
 
- LDA (INF),Y            \ Load the Y-th byte of INF and store it in the Y-th
- STA INWK,Y             \ byte of INWK
+ LDA &FFFF,Y            \ (patched: INF) Load the Y-th byte of INF and store
+ STA INWK,Y             \ it in the Y-th byte of INWK
 
  DEY                    \ Decrement the loop counter
 
@@ -2857,13 +2865,18 @@ ENDIF
                         \ do the reverse of the copy we did before, this time
                         \ copying from INWK to INF
 
+ LDA INF                \ Port: patch the block's address into the loop below,
+ STA MAL3+4             \ as for MAL2 (INF again: MVEIT's TACTICS can spawn
+ LDA INF+1              \ ships, which moves it)
+ STA MAL3+5
+
  LDY #NI%-1             \ Set a counter in Y so we can loop through the NI%
                         \ bytes in the ship data block
 
 .MAL3
 
  LDA INWK,Y             \ Load the Y-th byte of INWK and store it in the Y-th
- STA (INF),Y            \ byte of INF
+ STA &FFFF,Y            \ byte of INF (patched: INF)
 
  DEY                    \ Decrement the loop counter
 
@@ -2896,7 +2909,9 @@ ENDIF
  AND #%10100000         \ exploding?) and bit 7 (has ship been killed?) from
                         \ ship byte #31 into A
 
- JSR MAS4               \ Or this value with x_hi, y_hi and z_hi
+ ORA INWK+1             \ Or this value with x_hi, y_hi and z_hi (Port: MAS4
+ ORA INWK+4             \ in line, as hot code)
+ ORA INWK+7
 
  BNE MA65               \ If this value is non-zero, then either the ship is
                         \ far away (i.e. has a non-zero high byte in at least
