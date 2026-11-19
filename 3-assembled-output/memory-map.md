@@ -29,14 +29,14 @@
 | bank 4 (flight) | `&B300-&BBA1` | the blueprint set (`D.MOx`), its normals and `FC_NORMTAB` (the image holds the main RAM part's image here) | 2210 | 0 |
 | bank 4 (flight) | `&BBA2-&BBFF` | the circle engine's variables (bank 4 top) | 35 | 59 |
 | bank 4 (flight) | `&BC00-&BFFF` | the quarter squares `QSL`, `QSH` (made by the loader) | 1024 | 0 |
-| bank 4 (docked) | `&8000-&AE0F` | `S%` and the hot pass | 8719 | 3073 |
+| bank 4 (docked) | `&8000-&AE0F` | `S%` and the hot pass | 8787 | 3005 |
 | bank 4 (docked) | `&AE10-&B2FF` | the main RAM part's image | 1264 | 0 |
 | bank 4 (docked) | `&B300-&BBA1` | the docked code's blueprints, their normals and `FC_NORMTAB` | 2144 | 66 |
 | bank 4 (docked) | `&BBA2-&BBFF` | (free) | 0 | 94 |
 | bank 4 (docked) | `&BC00-&BFFF` | the quarter squares `QSL`, `QSH` (made by the loader) | 1024 | 0 |
-| bank 7 (flight) | `&8000-&9E43` | the cold pass, `QQ18` | 7748 | 0 |
-| bank 7 (flight) | `&9E44-&A28D` | the overlay region (`D.OV1` 1098 bytes, `D.OV2` 793) | 1098 | 0 |
-| bank 7 (flight) | `&A28E-&B3FF` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch) | 3910 | 556 |
+| bank 7 (flight) | `&8000-&9E87` | the cold pass, `QQ18` | 7816 | 0 |
+| bank 7 (flight) | `&9E88-&A2D1` | the overlay region (`D.OV1` 1098 bytes, `D.OV2` 793) | 1098 | 0 |
+| bank 7 (flight) | `&A2D2-&B3FF` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch) | 3910 | 488 |
 | bank 7 (flight) | `&B400-&BFFF` | the workspace: each buffer's disc state (not in the image: `DP_BEGIN` sets it up), buffer 0's sharing its first `&2E2` bytes with `ovload`'s stash of `WP` and the zero page during an overlay's load (`OVSTASH`) | 3072 | 0 |
 | bank 7 (docked) | `&8000-&BFFF` | the set's face lists, the cold pass, `QQ18` | 11397 | 4987 |
 | bank 5 | `&8000-&97FF` | the 24 row runs, a page each; in their tails the stars' records and variables, `R_LINE`'s, DFS's workspace page between disc commands (`DFSTAIL%`: 64 bytes in each of four), and in tails 7, 15, 17, 18, 19, 20, 21, 22, 23 the flight code's cold 5 pass (`Area: cold 5`: `elite-flight-c5.asm`, `C5_r.bin`; `C5TAILS`) (free: the 0 other tails with nothing in them, 65 bytes each, the rest of the others, and the cold 5 tails' room) | 5841 | 303 |
@@ -55,4 +55,4 @@
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 31, main RAM (flight) 27, main RAM (docked) 1096, bank 4 (flight) 59, bank 4 (docked) 3233, bank 7 (flight) 556, bank 7 (docked) 4987, bank 5 463, bank 6 105.
+Free, by place: main RAM 31, main RAM (flight) 27, main RAM (docked) 1096, bank 4 (flight) 59, bank 4 (docked) 3165, bank 7 (flight) 488, bank 7 (docked) 4987, bank 5 463, bank 6 105.

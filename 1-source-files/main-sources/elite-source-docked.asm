@@ -8081,6 +8081,12 @@ ENDIF
  STA SC+1               \ one showing our speed (Port: the dashboard is at
                         \ PANEL%, the original's &7800)
 
+ LDX #0                 \ Port: set DLIX = 0, the number of the indicator that
+ STX DLIX               \ DIL and DIL2 draw next (DL6 and DIL2 count them: 0
+                        \ speed, 1 roll, 2 pitch, 3 to 6 the energy banks, 7
+                        \ to 12 the forward and aft shields, fuel, cabin and
+                        \ laser temperatures, altitude), for DLAST
+
  JSR PZW                \ Call PZW to set A to the colour for dangerous values
                         \ and X to the colour for safe values
 
@@ -8503,6 +8509,21 @@ ENDIF
 
  STA COL                \ Store the colour of the indicator in COL
 
+                        \ Port: if the indicator is already drawn with this
+                        \ length and colour, leave it and just move on to the
+                        \ next one: DLAST keeps each indicator's last length and
+                        \ colour, as Q + bit 7 of the colour (Q is 0 to 20, the
+                        \ colour &F0 or &0F)
+
+ AND #&80               \ Set A = Q + (COL AND &80)
+ ORA Q
+
+ LDX DLIX               \ If DLAST for this indicator is A, it is drawn: jump
+ CMP DLAST,X            \ to dl31a to move on to the next one
+ BEQ dl31a
+
+ STA DLAST,X            \ Otherwise note it, and draw it
+
  LDY #2                 \ We want to start drawing the indicator on the third
                         \ line in this character row, so set Y to point to that
                         \ row's offset
@@ -8606,6 +8627,8 @@ ENDIF
 
 .DL6
 
+ INC DLIX               \ Port: count the indicator done
+
  INC SC+1               \ Increment the high byte of SC to point to the next
                         \ character row on-screen (as each row takes up exactly
                         \ one page of 256 bytes) - so this sets up SC to point
@@ -8615,6 +8638,18 @@ ENDIF
 .DL9
 
  RTS                    \ Return from the subroutine
+
+.dl31a
+
+                        \ Port: the indicator is unchanged: leave X, Y and the
+                        \ C and V flags as drawing it does (X = &FF, Y = 34, C
+                        \ and V clear; A is not read after DIL), and move on
+
+ LDX #&FF
+ LDY #34
+ CLC
+ CLV
+ BCC DL6                \ (this BCC is effectively a JMP as C is clear)
 
 \ ******************************************************************************
 \
@@ -8650,6 +8685,27 @@ ENDIF
 \ ******************************************************************************
 
 .DIL2
+
+                        \ Port: if the indicator is already drawn with its bar
+                        \ at A, leave it and just move on to the next one, with
+                        \ X, Y and the flags as drawing it leaves them: X = A
+                        \ AND 3 (the bar's pixel in its block: A is 1 to 15),
+                        \ Y = 33, C set and V clear (A is not read after DIL2)
+
+ LDX DLIX               \ If DLAST for this indicator is A, jump to dl2a
+ CMP DLAST,X
+ BNE dl2a
+
+ AND #3                 \ Set X, Y and the flags as drawing the indicator leaves
+ TAX                    \ them, and jump to dl2b to move on to the next
+ LDY #33                \ indicator
+ SEC
+ CLV
+ BCS dl2b               \ (this BCS is effectively a JMP as C is set)
+
+.dl2a
+
+ STA DLAST,X            \ Note the bar's position in DLAST, and draw it
 
  LDY #1                 \ We want to start drawing the vertical indicator bar on
                         \ the second line in the indicator's character block, so
@@ -8737,6 +8793,10 @@ ENDIF
  BCC DLL10              \ blocks to draw, so loop back to DLL10 to display the
                         \ next one along
 
+.dl2b
+
+ INC DLIX               \ Port: count the indicator done
+
  INC SC+1               \ Increment the high byte of SC to point to the next
                         \ character row on-screen (as each row takes up exactly
                         \ one page of 256 bytes) - so this sets up SC to point
@@ -8744,6 +8804,17 @@ ENDIF
                         \ just drew
 
  RTS                    \ Return from the subroutine
+
+.DLIX
+
+ EQUB 0                 \ Port: the indicator that DIL or DIL2 draws next (DIALS)
+
+.DLAST
+
+ FOR I%, 0, 12          \ Port: each indicator's last length and colour (DIL)
+  EQUB &FF              \ or bar position (DIL2), as drawn; &FF matches none, so
+ NEXT                   \ each is drawn once after the program is loaded (and
+                        \ nothing else draws on them)
 
 \ ******************************************************************************
 \
