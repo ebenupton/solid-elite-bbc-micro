@@ -360,19 +360,46 @@ c_DZ  = &27
   JMP R_MARKDIRTY
 
 \ ============================================================================
-\ R_MARKBOX (Model B): R_MARKDIRTY for rows Y .. R_BY1, each by R_XL..R_XR
-\ (the lens flare's ghosts, which bank 6 draws itself)
+\ R_MARKBOX (Model B): R_MARKDIRTY for rows Y .. R_BY1 (the one row Y if
+\ R_BY1 is less), each by R_XL..R_XR (the lens flare's ghosts, which bank 6
+\ draws itself): the buffer's row range extended by the rows once, then
+\ each row's dirty extent in one loop, the left end in X
 \ ============================================================================
 .R_MARKBOX
 {
-  STY rmb_y
+  LDA R_BY1               \ the last row: R_BY1, or Y if that is more
+  STA lim+1
+  CPY lim+1
+  BCC P%+5
+  STY lim+1
+  LDX R_PRBUF
+  TYA
+  CMP R_PRDYT,X
+  BCS n3
+  STA R_PRDYT,X
+.n3
+  LDA lim+1
+  CMP R_PRDYB,X
+  BCC n4
+  STA R_PRDYB,X
+.n4
+  LDX R_XL
 .lp
-  JSR R_MARKDIRTY
-  LDY rmb_y
-  CPY R_BY1
+  TXA
+.^r_pt09 CMP r_dl,Y
+  BCS n1
+.^r_pt10 STA r_dl,Y
+.n1
+  LDA R_XR
+.^r_pt11 CMP r_dr,Y
+  BCC n2
+.^r_pt12 STA r_dr,Y
+.n2
+.lim
+  CPY #0                  \ (the last row)
+  BCS done
   INY
-  STY rmb_y
-  BCC lp
+  BNE lp                  \ (always)
+.done
   RTS
-.rmb_y EQUB 0
 }

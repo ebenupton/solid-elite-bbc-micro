@@ -282,6 +282,8 @@ r_dr1 = R_DIRTYR1
   STA r_pt06+2
   STA r_pt601+2           \ (R_GETW's: gfx-raster_dq.asm)
   STA r_pt602+2
+  STA r_pt09+2            \ (R_MARKBOX's: gfx-raster_rep.asm)
+  STA r_pt10+2
   LDA r_sbh_dr,X          \ group r_dr
   STA r_pt03+2
   STA r_pt04+2
@@ -289,6 +291,8 @@ r_dr1 = R_DIRTYR1
   STA r_pt08+2
   STA r_pt603+2
   STA r_pt604+2
+  STA r_pt11+2
+  STA r_pt12+2
   LDA r_sbh_s0a,X          \ group r_s0a
   STA r_pt32+2
   STA r_pt36+2
