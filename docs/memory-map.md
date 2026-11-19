@@ -494,15 +494,15 @@ what the frames can use, the docked code's are free only while docked.
 | bank 5 | `&B400-&BF99` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 2970 | 0 |
 | bank 5 | `&BF9A-&BFFF` | `RJT`, the jump table | 42 | 60 |
 | bank 6 | `&8000-&8102` | the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`) | 259 | 0 |
-| bank 6 | `&8103-&AB9F` | the frame layer's code (bank 6 passes) | 10909 | 0 |
-| bank 6 | `&ABA0-&AEBD` | the faces' and the lighting's tables | 798 | 0 |
-| bank 6 | `&AEBE-&AF2B` | (free: the state that follows is placed as high as it goes) | 0 | 110 |
+| bank 6 | `&8103-&ABFF` | the frame layer's code (bank 6 passes) | 11005 | 0 |
+| bank 6 | `&AC00-&AF1D` | the faces' and the lighting's tables | 798 | 0 |
+| bank 6 | `&AF1E-&AF2B` | (free: the state that follows is placed as high as it goes) | 0 | 14 |
 | bank 6 | `&AF2C-&B1FF` | the state: the ship records, the zero page `F_FRAME` keeps, the faces' levels, the docking slot, the planet's records kept | 724 | 0 |
 | bank 6 | `&B200-&BC70` | the state, page aligned: the discs' half-widths (`F_INIT`'s code in the sun's until they are first written), the text map, the discs' rows | 2659 | 14 |
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 31, main RAM (flight) 27, main RAM (docked) 1096, bank 4 (flight) 59, bank 4 (docked) 3165, bank 7 (flight) 463, bank 7 (docked) 4987, bank 5 568, bank 6 130.
+Free, by place: main RAM 31, main RAM (flight) 27, main RAM (docked) 1096, bank 4 (flight) 59, bank 4 (docked) 3165, bank 7 (flight) 463, bank 7 (docked) 4987, bank 5 568, bank 6 34.
 
 **The build's check.** `2-build-files/mapcheck.py`, which `make` runs once
 every program and bank is assembled, fails the build if a place is out of
