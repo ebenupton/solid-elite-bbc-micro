@@ -94,11 +94,14 @@
 \ ============================================================================
 .r_pf8
 {
-  \ rows ystart..ylast
+  \ rows ystart..ylast (Y: the edges' rows are all inside the window, 0,
+  \ or some are clipped: e_sel's branch to e_ch)
+  LDY #0
   LDA r_yminL
   CMP R_CT
   BCS y1
   LDA R_CT
+  LDY #LO(e_ch - (e_sel + 2))
 .y1
   STA r_ystart
   CMP r_ymaxL
@@ -112,10 +115,12 @@
   CPX R_CB
   BCC y3
   LDX R_CB
+  LDY #LO(e_ch - (e_sel + 2))
 .y3
   STX r_ylast
   INX
   STX r_yend
+  STY e_sel+1
   \ chain A: forward into r_ta
   LDA #HI(r_ta)
   STA r_lsh_t+2
@@ -142,6 +147,18 @@
   BEQ r_ex
   BCC r_ex
   JMP clipped
+.e_ch                     \ an edge of a polygon whose rows the window clips (A
+  CMP r_yend              \ = y1): its end row, and its start row if it is
+  BCC e1                  \ inside
+  LDA r_yend
+.e1
+  STA RZ_T2               \ end row (exclusive)
+  LDA R_PYL,Y
+  CMP RZ_T2
+  BCS r_ex                \ y0 >= end row
+  CMP r_ystart
+  BCC cl                  \ y0 < ystart (if y0 >= ystart then RZ_T2 > y0 >= ystart)
+  BCS e2                  \ (always)
 .cad
   \ chain B: backward into r_tb
   LDA #HI(r_tb)
@@ -181,6 +198,7 @@
   LDX #0
 .ca1
   STX r_i1
+  ASSERT e_ch - (e_sel + 2) >= -128
 
 \ r_e8: the edge from vertex Y (i0) to vertex X (i1 = r_i1) of an 8-bit
 \ polygon into the chain's table, then r_ex
@@ -189,16 +207,11 @@
   CMP R_PYL,Y
   BCC r_ex
   BEQ r_ex                \ not going down
-  CMP r_yend
-  BCC e1
-  LDA r_yend
-.e1
-  STA RZ_T2               \ end row (exclusive)
-  LDA R_PYL,Y
-  CMP RZ_T2
-  BCS r_ex                \ y0 >= end row
-  CMP r_ystart
-  BCC cl                  \ y0 < ystart (if y0 >= ystart then RZ_T2 > y0 >= ystart)
+.e_sel
+  BNE P%+2                \ (always; patched: to e_ch if the window clips the
+  STA RZ_T2               \ polygon's rows, r_pf8) the end row is y1's
+  LDA R_PYL,Y             \ (C = 1 still)
+.e2
   STA RZ_T3               \ start row (A = y0, C = 1)
   EOR #&FF
   ADC R_PYL,X             \ dy = y1 - y0; C stays 1 (y1 > y0)
