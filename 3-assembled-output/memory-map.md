@@ -34,9 +34,9 @@
 | bank 4 (docked) | `&B300-&BBA1` | the docked code's blueprints, their normals and `FC_NORMTAB` | 2144 | 66 |
 | bank 4 (docked) | `&BBA2-&BBFF` | (free) | 0 | 94 |
 | bank 4 (docked) | `&BC00-&BFFF` | the quarter squares `QSL`, `QSH` (made by the loader) | 1024 | 0 |
-| bank 7 (flight) | `&8000-&9F06` | the cold pass, `QQ18` | 7943 | 0 |
-| bank 7 (flight) | `&9F07-&A350` | the overlay region (`D.OV1` 1098 bytes, `D.OV2` 783) | 1098 | 0 |
-| bank 7 (flight) | `&A351-&B3FF` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch) | 3910 | 361 |
+| bank 7 (flight) | `&8000-&A017` | the cold pass, `QQ18` | 8216 | 0 |
+| bank 7 (flight) | `&A018-&A461` | the overlay region (`D.OV1` 1098 bytes, `D.OV2` 783) | 1098 | 0 |
+| bank 7 (flight) | `&A462-&B3FF` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch) | 3910 | 88 |
 | bank 7 (flight) | `&B400-&BFFF` | the workspace: each buffer's disc state (not in the image: `DP_BEGIN` sets it up), buffer 0's sharing its first `&2E2` bytes with `ovload`'s stash of `WP` and the zero page during an overlay's load (`OVSTASH`) | 3072 | 0 |
 | bank 7 (docked) | `&8000-&BFFF` | the set's face lists, the cold pass, `QQ18` | 11397 | 4987 |
 | bank 5 | `&8000-&97FF` | the 24 row runs, a page each, made at start by `R_INIT` (not in `R.BANK`); in their tails the stars' records and variables, `R_LINE`'s, and DFS's workspace page between disc commands (`DFSTAIL%`: 64 bytes in each of four; free: the 9 tails with nothing in them, 65 bytes each, and the rest of the others) | 5278 | 866 |
@@ -46,13 +46,13 @@
 | bank 5 | `&B133-&B3FF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt` | 692 | 25 |
 | bank 5 | `&B400-&BFD4` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 3029 | 0 |
 | bank 5 | `&BFD5-&BFFF` | `RJT`, the jump table | 42 | 1 |
-| bank 6 | `&8000-&8245` | the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`) | 582 | 0 |
-| bank 6 | `&8246-&AA99` | the frame layer's code (bank 6 passes) | 10324 | 0 |
-| bank 6 | `&AA9A-&ADB7` | the faces' and the lighting's tables | 798 | 0 |
-| bank 6 | `&ADB8-&AF2B` | (free: the state that follows is placed as high as it goes) | 0 | 372 |
+| bank 6 | `&8000-&8145` | the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`) | 284 | 42 |
+| bank 6 | `&8146-&ABE7` | the frame layer's code (bank 6 passes) | 10914 | 0 |
+| bank 6 | `&ABE8-&AF05` | the faces' and the lighting's tables | 798 | 0 |
+| bank 6 | `&AF06-&AF2B` | (free: the state that follows is placed as high as it goes) | 0 | 38 |
 | bank 6 | `&AF2C-&B1FF` | the state: the ship records, the zero page `F_FRAME` keeps, the faces' levels, the docking slot, the planet's records kept | 724 | 0 |
 | bank 6 | `&B200-&BC70` | the state, page aligned: the discs' half-widths (`F_INIT`'s code in the sun's until they are first written), the text map, the discs' rows | 2659 | 14 |
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 16, main RAM (flight) 47, main RAM (docked) 1096, bank 4 (flight) 40, bank 4 (docked) 3233, bank 7 (flight) 361, bank 7 (docked) 4987, bank 5 961, bank 6 392.
+Free, by place: main RAM 16, main RAM (flight) 47, main RAM (docked) 1096, bank 4 (flight) 40, bank 4 (docked) 3233, bank 7 (flight) 88, bank 7 (docked) 4987, bank 5 961, bank 6 100.

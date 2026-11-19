@@ -20600,7 +20600,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Update the compass
-\       Area: cold 6
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -20634,7 +20634,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (Y X) = A / 10
-\       Area: cold 6
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -20732,7 +20732,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Draw the space station on the compass
-\       Area: cold 6
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -20749,7 +20749,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Draw a dot on the compass, given the planet/station vector
-\       Area: cold 6
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -28134,7 +28134,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Status
 \    Summary: Process us making a kill
-\       Area: cold 6
+\       Area: cold
 \  Deep dive: Combat rank
 \
 \ ------------------------------------------------------------------------------
@@ -28168,7 +28168,7 @@ ENDIF
 \   Category: Sound
 \    Summary: Make the sound of a laser strike on another ship or a ship
 \             explosion
-\       Area: cold 6
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
