@@ -205,7 +205,7 @@ for f in ("gfx-raster", "gfx-raster_init", "gfx-raster_rep", "gfx-raster_dq"):
     nlab += inside(B5, OUT + "%s-bank5.asm" % f, st + 0x600, rjt, "bank 5's high region")
 for f in ("gfx-raster", "gfx-raster_init"):
     nlab += inside(B5, OUT + "%s-bank5end.asm" % f, st + 0x600, rjt, "bank 5's high region")
-for f in ("gfx-raster_lcold", "gfx-raster_reset", "gfx-raster_dq", "gfx-planet7"):
+for f in ("gfx-raster_lcold", "gfx-raster_reset", "gfx-raster_dq", "gfx-raster_rep", "gfx-planet7"):
     nlab += inside(B5, OUT + "%s-bank5gap.asm" % f, B5["r_tfree"], B5["r_tables"], "bank 5's room below the per-x tables")
 
 # bank 6

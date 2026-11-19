@@ -360,10 +360,13 @@ c_DZ  = &27
   JMP R_MARKDIRTY
 
 \ ============================================================================
-\ R_MARKBOX (Model B): R_MARKDIRTY for rows Y .. R_BY1 (the one row Y if
+\ R_MARKBOX (in the room below the per-x tables, for room): R_MARKDIRTY for
+\ rows Y .. R_BY1 (the one row Y if
 \ R_BY1 is less), each by R_XL..R_XR (the lens flare's ghosts, which bank 6
 \ draws itself): the buffer's row range extended by the rows once, then
 \ each row's dirty extent in one loop, the left end in X
+\
+\       Area: bank 5 gap
 \ ============================================================================
 .R_MARKBOX
 {

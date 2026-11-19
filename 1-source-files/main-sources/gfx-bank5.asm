@@ -120,6 +120,7 @@ NEXT
  INCLUDE "3-assembled-output/gfx-raster_lcold-bank5gap.asm"
  INCLUDE "3-assembled-output/gfx-raster_reset-bank5gap.asm"
  INCLUDE "3-assembled-output/gfx-raster_dq-bank5gap.asm"
+ INCLUDE "3-assembled-output/gfx-raster_rep-bank5gap.asm"   \ (R_MARKBOX)
  INCLUDE "3-assembled-output/gfx-planet7-bank5gap.asm"  \ (pf_tilt, which the flight
                         \ code's PF_HOOK calls through T_TILT)
 .R_GAPEND

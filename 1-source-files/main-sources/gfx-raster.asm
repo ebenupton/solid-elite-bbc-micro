@@ -499,14 +499,16 @@ ASSERT HI(r_run0) >= &80   \ (r_pgfix: the carry out of 2 x a run page)
 
 \ ============================================================================
 \ r_pset: X = x, Y = y (inside the clip window): pixel in the colour pair's
-\ dither, extends DIRTY[y] and the buffer's row range.  Clobbers A, RZ_PP,
-\ RZ_T6, RZ_T7; keeps X, Y.
+\ dither, extends DIRTY[y].  Clobbers A, RZ_PP, RZ_T4, RZ_T6, RZ_T7; keeps
+\ X, Y.
 \ ============================================================================
 
 \ r_pclip: X = x, Y = y: r_pset (and row range) if inside the clip window
 
 \ ============================================================================
-\ R_DOT: X = x, Y = y, A = size (1 = 1x1, 2 = 2x1, 3 = 2x2)
+\ R_DOT: X = x, Y = y, A = size (1 = 1x1, 2 = 2x1, 3 = 2x2).  A dot of two
+\ pixels a row inside the window, whose two pixels share a byte, has each
+\ row drawn once, both pixels in one mask (r_pm); any other, pixel by pixel.
 \ ============================================================================
 
 \ ============================================================================
@@ -1125,8 +1127,13 @@ ASSERT HI(r_ypg) = HI(r_ypg + 191) AND HI(r_ypg0) = HI(r_ypg0 + 191)
   BEQ ok2
   BCS out
 .ok2
-  TYA                     \ extend the buffer's row range by row Y
-  LDY R_PRBUF
+  LDA r_lm,X              \ the pixel's mask; it is its row's right end too
+  AND r_rm,X
+  STA RZ_T6
+  STX RZ_T4
+.^r_pm                    \ X = x, Y = y inside the window, RZ_T6 = the mask,
+  TYA                     \ RZ_T4 = the right end: r_psetm, the buffer's row
+  LDY R_PRBUF             \ range extended by row Y
   CMP R_PRDYT,Y
   BCS n3
   STA R_PRDYT,Y
@@ -1136,7 +1143,7 @@ ASSERT HI(r_ypg) = HI(r_ypg + 191) AND HI(r_ypg0) = HI(r_ypg0 + 191)
   STA R_PRDYB,Y
 .n4
   TAY                     \ Y = row again
-  JMP r_pset1             \ tail call (NMOS: past r_pset's TYA, A = row)
+  JMP r_psetm1            \ tail call (NMOS: past r_psetm's TYA, A = row)
 .out
   RTS
 }
@@ -1154,9 +1161,17 @@ ASSERT LO(r_s0y) = LO(r_s1y)
 .r_sbh_s0b EQUB HI(r_s0b), HI(r_s1b)
 ASSERT LO(r_s0b) = LO(r_s1b)
 .r_pset
+  LDA r_lm,X              \ the pixel's mask; it is its row's right end too
+  AND r_rm,X
+  STA RZ_T6
+  STX RZ_T4
+\ r_psetm: X = x, Y = y (inside the clip window): the pixels of x's byte in
+\ the mask RZ_T6 in the colour pair's dither, DIRTY[y] extended by x ..
+\ RZ_T4.  Clobbers A, RZ_PP, RZ_T7; keeps X, Y.
+.r_psetm
 {
   TYA                     \ RZ_PP + (Y AND 1) = screen address of (X, Y)
-.^r_pset1
+.^r_psetm1
   AND #6                  \ (NMOS: the row's bit 0 is the index below)
   ORA r_xo,X
   STA RZ_PP
@@ -1165,9 +1180,6 @@ ASSERT LO(r_s0b) = LO(r_s1b)
   CPX #&80
   ADC #0
   STA RZ_PP+1
-  LDA r_lm,X
-  AND r_rm,X
-  STA RZ_T6
   STY RZ_T7               \ (NMOS: Y kept here)
 ASSERT R_COLO = R_COLE + 1
   TYA
@@ -1184,6 +1196,7 @@ ASSERT R_COLO = R_COLE + 1
   BCS n1
 .^r_pt02 STA r_dl,Y
 .n1
+  LDA RZ_T4
 .^r_pt03 CMP r_dr,Y
   BCC n2
 .^r_pt04 STA r_dr,Y
@@ -1211,6 +1224,30 @@ ASSERT R_COLO = R_COLE + 1
   STA r_dsz
   STX r_dx
   STY r_dy
+  CMP #2                  \ a dot of two pixels a row, inside the window and in
+  BCC gen                 \ one byte: each row's two pixels at once
+  CPX R_CL
+  BCC gen
+  CPX R_CR
+  BCS gen
+  CPY R_CT
+  BCC gen
+  CPY R_CB
+  BCS gen                 \ (y + 1 inside too, for the second row)
+  LDA r_lm,X
+  AND r_rm+1,X            \ x and x + 1: 0 only when split across bytes
+  BEQ gen
+  STA RZ_T6
+  INX
+  STX RZ_T4
+  DEX
+  JSR r_pm
+  LDA r_dsz
+  CMP #3
+  BCC done
+  INY
+  JMP r_pm
+.gen
   JSR r_pclip
   LDA r_dsz
   CMP #2
