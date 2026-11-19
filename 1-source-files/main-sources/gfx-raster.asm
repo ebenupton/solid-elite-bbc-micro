@@ -296,8 +296,6 @@ r_dr1 = R_DIRTYR1
   LDA r_sbh_s0a,X          \ group r_s0a
   STA r_pt32+2
   STA r_pt36+2
-  STA r_pt416+2
-  STA r_pt418+2
   LDA r_sbh_s0b,X          \ group r_s0b
   STA r_pt33+2
   STA r_pt37+2
@@ -308,6 +306,7 @@ r_dr1 = R_DIRTYR1
   LDA r_sbh_s0y,X          \ group r_s0y
   STA r_pt30+2
   STA r_pt34+2
+  STA r_pt38+2
   STA r_pt414+2
   LDA r_sbl_ypg,X         \ Model B: the screen's row pages, r_ypg0 (buffer 0,
   STA r_yp1+1             \ BUF0) or r_ypg (buffer 1, SCREEN%)
@@ -783,23 +782,41 @@ NEXT
 
 \ ============================================================================
 \ R_STARERASE: black the pixels R_STARPLOT set last time in this buffer.
-\ Records: row (+&80: also the next byte), x, mask set in x's byte.
+\ Records: the byte's address (bit 7 of its high byte: one byte, which was
+\ black but for the star: R_STARPLOT's fast path) and, for the others, the
+\ inverse masks of the pixels set in it and in the next column's byte.  A
+\ one-byte record's byte holds the star's pixels and nothing else (it was
+\ all black when the star was set, and the stars are a frame's last
+\ drawing, erased first in the buffer's next frame), so it is blacked by a
+\ store, without reading the screen.
 \ ============================================================================
 .R_STARERASE
 {
   LDY R_PRBUF             \ NMOS: the records last to first (the ANDs
-  LDX R_PRSCNT,Y          \ commute), Y = 0 for (RZ_PP),Y
-  BEQ edone               \ (none: the count is 0 already)
+  LDX R_PRSCNT,Y          \ commute), Y = 0 for (RZ_PP),Y and the one-byte
+  BEQ edone               \ records' store (none: the count is 0 already)
   LDA #0
   STA R_PRSCNT,Y
   TAY
   DEX
 .el
-.^r_pt30 LDA r_s0y,X      \ byte address (bit 7 of the high byte: one byte)
-  STA RZ_PP
-.^r_pt31 LDA r_s0x,X
-  BMI e1
+.^r_pt31 LDA r_s0x,X      \ the byte's address (bit 7 of the high byte: one byte)
+  BPL e2
+  AND #&7F
+  STA e1+2
+.^r_pt30 LDA r_s0y,X
+  STA e1+1
+.e1
+  STY &FFFF               \ (Y = 0: the byte black again)
+.en
+  DEX
+  BPL el                  \ (fewer than 48 records)
+.edone
+  RTS
+.e2
   STA RZ_PP+1
+.^r_pt38 LDA r_s0y,X
+  STA RZ_PP
   LDA (RZ_PP),Y
 .^r_pt32 AND r_s0a,X      \ inverse mask
   STA (RZ_PP),Y
@@ -811,17 +828,6 @@ NEXT
   STA (RZ_PP),Y
   LDY #0
   BEQ en                  \ (always)
-.e1
-  AND #&7F
-  STA RZ_PP+1
-  LDA (RZ_PP),Y
-.^r_pt418 AND r_s0a,X
-  STA (RZ_PP),Y
-.en
-  DEX
-  BPL el                  \ (fewer than 48 records)
-.edone
-  RTS
 }
 
 .r_ypg0                   \ (Model B) buffer 0 (BUF0)
@@ -860,6 +866,8 @@ ASSERT HI(r_ypg) = HI(r_ypg + 191) AND HI(r_ypg0) = HI(r_ypg0 + 191)
   LDA R_SN                \ star count (only ever 0 or 19, so <= 24)
   STA sl+1                \ (patched: the loop limit)
   STA nl+1                \ (and its copy at .nl)
+  LDA R_SCOL              \ the stars' colour byte, into the fast path's load
+  STA sc1+1
   LDX #0                  \ (NMOS: no STZ) no records yet; RZ_PA's low byte
   STX r_k                 \ 0 for the fast path's (RZ_PA),Y
   STX RZ_PA
@@ -913,17 +921,15 @@ ASSERT HI(r_ypg) = HI(r_ypg + 191) AND HI(r_ypg0) = HI(r_ypg0 + 191)
   LDA (RZ_PA),Y           \ the whole byte black?
   BNE nx
   LDX r_k                 \ (< 48 always: R_SN <= 24, <= 2 records a star)
-  LDA R_SCOL
+.sc1
+  LDA #0                  \ (R_SCOL)
   AND RZ_SB
   STA (RZ_PA),Y
   TYA
 .^r_pt414 STA r_s0y,X
   LDA RZ_PA+1
-  ORA #&80                \ (bit 7: no second byte)
-.^r_pt415 STA r_s0x,X
-  LDA RZ_SB
-  EOR #&FF
-.^r_pt416 STA r_s0a,X
+  ORA #&80                \ (bit 7: one byte, black but for the star: R_STARERASE
+.^r_pt415 STA r_s0x,X      \ stores 0 there)
   INC r_k
 .nx
   LDA RZ_TA               \ size 3: the next row
