@@ -14,7 +14,8 @@
 \   &9800-&A7FF  R_POLY (both phases) and R_LINE (gfx-raster_poly.asm,
 \                gfx-raster_line.asm)
 \   &A800-&ADFF  the state: each buffer's dirty extents, this frame's written
-\                extents (R_WL, R_WR) and R_POLY's edge tables
+\                extents (R_WL, R_WR) and R_POLY's edge tables (each within
+\                a page)
 \   &AE00 on     the shared region (gfx-raster.asm): R_SETBUF and r_pgfix,
 \                the spans' core, the arithmetic; in the room below the
 \                per-x tables, R_LINE's cold part, the private state,
@@ -77,12 +78,13 @@ NEXT
 .R_DIRTYL0 SKIP 192     \ buffer 0's dirty extents (empty: L = 255, R = 0)
 .R_DIRTYR0 SKIP 192
 .R_WL      SKIP 192     \ this frame's written extents (R = 0: none)
-.R_WR      SKIP 192
-.R_DIRTYL1 SKIP 192     \ buffer 1's: buffer 0's + &300 (R_SETBUF patches only
-.R_DIRTYR1 SKIP 192     \ operands' high bytes)
-.R_PTA     SKIP 192     \ R_POLY's edge tables
-.R_PTB     SKIP 192
+.R_PTA     SKIP 192     \ R_POLY's edge tables, each within a page, &300 apart
+.R_DIRTYL1 SKIP 192     \ (the steep edges' loops count a store's low byte up
+.R_DIRTYR1 SKIP 192     \ a table, and only high bytes tell them apart);
+.R_WR      SKIP 192     \ buffer 1's dirty extents: buffer 0's + &300
+.R_PTB     SKIP 192     \ (R_SETBUF patches only operands' high bytes)
  ASSERT R_DIRTYL1 = R_DIRTYL0 + &300 AND R_DIRTYR1 = R_DIRTYR0 + &300
+ ASSERT LO(R_PTA) = LO(R_PTB) AND HI(R_PTA) = HI(R_PTA + 191) AND HI(R_PTB) = HI(R_PTB + 191)
  ASSERT P% = R_ST% + &600
 
  INCLUDE "3-assembled-output/gfx-raster-bank5.asm"

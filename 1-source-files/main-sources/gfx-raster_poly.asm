@@ -83,7 +83,11 @@
 \ in line in the chain (r_e8, entered by a jump or by falling into it), and
 \ its DDA loop ends with a jump back to the chain it is of (r_ex): an edge
 \ makes no call, unless it starts above the window (r7_e8c) or its quotient
-\ is 16 or more with a divisor under 16 (r_div8).  Phase B (r_pcbd) fills
+\ is 16 or more with a divisor under 16 (r_div8).  There are four loops:
+\ r_lz for an edge with no remainder (x += a each row), r_sp and r_sn for a
+\ steep edge (|dx| < dy: x in X steps by one when the error in A wraps, and
+\ is stored through an operand whose low byte counts up the table, which is
+\ within a page: gfx-bank5.asm), and r_lsh for the rest.  Phase B (r_pcbd) fills
 \ each row from the left table to the right one (exclusive), keeping the
 \ RTS planted in the current character row's store run until its position
 \ changes.
@@ -113,12 +117,11 @@
   INX
   STX r_yend
   \ chain A: forward into r_ta
-  LDA #LO(r_ta)
-  STA r_lsh_t+1
-  STA r_lz_t+1
   LDA #HI(r_ta)
   STA r_lsh_t+2
   STA r_lz_t+2
+  STA r_sp_t+2
+  STA r_sn_t+2
   LDA #LO(ca)
   STA r_exj+1
   LDA #HI(ca)
@@ -141,12 +144,11 @@
   JMP clipped
 .cad
   \ chain B: backward into r_tb
-  LDA #LO(r_tb)
-  STA r_lsh_t+1
-  STA r_lz_t+1
   LDA #HI(r_tb)
   STA r_lsh_t+2
   STA r_lz_t+2
+  STA r_sp_t+2
+  STA r_sn_t+2
   LDA #LO(cb)
   STA r_exj+1
   LDA #HI(cb)
@@ -212,10 +214,73 @@
 .pos
   CMP RZ_T1
   BCS div
-  LDX #0                  \ steep: q = 0, r = |dx|
-  CMP #0
-  BEQ rz
-  BNE rnz                 \ (always)
+  TAX                     \ steep: q = 0, r = |dx|
+  BNE st
+  STX r_lz_a+1            \ vertical: the loop with no remainder, a = 0
+  JMP r_lzgo
+.st
+  CPY #&80
+  BCS sneg
+  STX r_sp_b+1            \ dx > 0: each row the error -= |dx|, and on a borrow
+  LDA RZ_T1               \ += dy, x += 1
+  STA r_sp_d+1
+  SEC                     \ Y = the rows: the end row - the first (C = 1 after)
+  LDA RZ_T2
+  SBC RZ_T3
+  TAY
+  LDA RZ_T3               \ the table's first row (C = 0 after)
+  ADC #LO(r_ta) - 1
+  STA r_sp_t+1
+  LDX RZ_T0
+  LDA #0
+  SEC
+.r_sp                     \ X = x, A = the error, Y = rows to go, C = 1
+.r_sp_t
+  STX &FF00               \ (the table's row: its low byte counts up)
+  INC r_sp_t+1
+.r_sp_b
+  SBC #0                  \ |dx|
+  BCS sp1
+.r_sp_d
+  ADC #0                  \ dy (C = 0, then 1)
+  INX
+.sp1
+  DEY
+  BNE r_sp
+  JMP r_ex
+.sneg                     \ dx < 0: each row the error -= dy - |dx|, and x -= 1
+  EOR #&FF                \ unless it borrows (then the error += dy)
+  ADC RZ_T1               \ (C = 1: dy - |dx|)
+  STA r_sn_b+1
+  LDA RZ_T1
+  STA r_sn_d+1
+  SEC                     \ (as above)
+  LDA RZ_T2
+  SBC RZ_T3
+  TAY
+  LDA RZ_T3
+  ADC #LO(r_ta) - 1
+  STA r_sn_t+1
+  LDX RZ_T0
+  LDA #0
+  SEC
+.r_sn                     \ X = x, A = the error, Y = rows to go, C = 1
+.r_sn_t
+  STX &FF00               \ (the table's row: its low byte counts up)
+  INC r_sn_t+1
+.r_sn_b
+  SBC #0                  \ dy - |dx|
+  BCC sn1
+  DEX
+  DEY
+  BNE r_sn
+  JMP r_ex
+.sn1
+.r_sn_d
+  ADC #0                  \ dy (C = 0, then 1)
+  DEY
+  BNE r_sn
+  JMP r_ex
 \ |dx| / dy (|dx| >= dy >= 1) -> X quotient, A remainder (Z set if it is 0).
 \ Repeated subtraction when the quotient is small (divisor >= 16).
 .div
@@ -320,7 +385,7 @@
 \ The DDA loops (Y = row, run to the patched end row)
 .^r_lz                    \ b = 0: A = x
 .^r_lz_t
-  STA &FFFF,Y
+  STA &FF00 + LO(r_ta),Y  \ (the chain's table: its high byte patched)
   INY
 .^r_lz_a
   ADC #0                  \ a (C = 0)
@@ -345,7 +410,7 @@
   CLC
 .^r_lsh                   \ A = x, RZ_TA = error
 .^r_lsh_t
-  STA &FFFF,Y
+  STA &FF00 + LO(r_ta),Y
   INY
   TAX
   LDA RZ_TA
@@ -392,21 +457,16 @@
   BCC os
   RTS                     \ no pixels
 .aleft
-  LDX #0
-  BEQ ori                 \ (always)
+  LDA #HI(r_ta)
+  LDX #HI(r_tb)
+  BNE ori                 \ (always)
 .bleft
-  LDX #2
+  LDA #HI(r_tb)
+  LDX #HI(r_ta)
 .ori
-  LDA otab,X
-  STA r_pbl1+1
-  LDA otab+1,X
   STA r_pbl1+2
-  LDA otab+2,X
-  STA r_pbr1+1
-  STA r_pbr2+1
-  LDA otab+3,X
-  STA r_pbr1+2
-  STA r_pbr2+2
+  STX r_pbr1+2
+  STX r_pbr2+2
   \ horizontal clip: clamp both tables into CL..CR+1
   LDA r_xclip
   BEQ nocl
@@ -493,8 +553,6 @@
   STA r_c8+3
   STA r_c8+7
   JMP r_pbx               \ (Y = RZ_Y)
-.otab
-  EQUW r_ta, r_tb, r_ta
 }
 
 
@@ -534,13 +592,13 @@
   STA RZ_PB
 .r_pbx
 .r_pbl1
-  LDA &FFFF,Y
+  LDA &FF00 + LO(r_ta),Y  \ (the left table, the right: r_pcbd)
 .r_pbr1
-  CMP &FFFF,Y
+  CMP &FF00 + LO(r_ta),Y
   BCS pb_skip+2           \ empty row: Y = RZ_Y already, skip the LDY RZ_Y
   TAX
 .r_pbr2
-  LDA &FFFF,Y             \ NMOS: the right end first, while C = 0 (from
+  LDA &FF00 + LO(r_ta),Y             \ NMOS: the right end first, while C = 0 (from
   SBC #0                  \ the BCS): - 1 by SBC #0, not DEC A
   STA R_XR
 .r_pt62 CMP r_dr,Y
@@ -811,11 +869,6 @@ r7_eb = rp_ov + 15
   STA r_exj+1             \ r_cr1)
   LDA #HI(r_exr)
   STA r_exj+2
-  LDA #LO(r_ta)
-  STA r_lsh_t+1
-  STA r_lz_t+1
-  STA r7_x16_t+1
-  STA r7_x16_f+1
   LDA #HI(r_ta)
   STA r_lsh_t+2
   STA r_lz_t+2
@@ -845,11 +898,6 @@ r7_eb = rp_ov + 15
   LDX r7_i1
   BPL ca                  \ (always: X < 16)
 .cad
-  LDA #LO(r_tb)
-  STA r_lsh_t+1
-  STA r_lz_t+1
-  STA r7_x16_t+1
-  STA r7_x16_f+1
   LDA #HI(r_tb)
   STA r_lsh_t+2
   STA r_lz_t+2
@@ -1009,7 +1057,7 @@ r7_eb = rp_ov + 15
   LDA R_CL
 .st
 .^r7_x16_t
-  STA &FFFF,Y
+  STA &FF00 + LO(r_ta),Y
   INY
 .ye
   CPY #0
@@ -1054,7 +1102,7 @@ r7_eb = rp_ov + 15
   LDA R_CL
 .fi
 .^r7_x16_f
-  STA &FFFF,Y
+  STA &FF00 + LO(r_ta),Y
   INY
   CPY ye+1
   BCC fi
