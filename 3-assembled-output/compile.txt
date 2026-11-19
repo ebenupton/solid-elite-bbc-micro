@@ -9178,7 +9178,7 @@ End macro FNE
      0B47   A0 80      LDY #&80
      0B49   20 96 05   JSR &0596
      0B4C   A2 00      LDX #&00
-     0B4E   20 9C 07   JSR &079C
+     0B4E   20 88 07   JSR &0788
      0B51   A2 F4      LDX #&F4
      0B53   A0 0B      LDY #&0B
      0B55   20 C9 04   JSR &04C9
@@ -9792,7 +9792,7 @@ LOAD: &B00 -&CFD , free 2
      0519   4C 8D 05   JMP &058D
 .pprog
      051C   A2 01      LDX #&01
-     051E   20 9C 07   JSR &079C
+     051E   20 88 07   JSR &0788
      0521   A9 48      LDA #&48
      0523   8D 68 7E   STA &7E68
      0526   A9 0D      LDA #&0D
@@ -10057,133 +10057,128 @@ LOAD: &B00 -&CFD , free 2
 .pbank
      06E2   00
 Resident block A: &0400-&6E2 , free 3  (then the circle engine's variables, the renderer's glue, SNE and ACT)
-.rtA
+.rtB
      0724   00
-.rtX
-     0725   00
-.rtY
-     0726   00
-.rtgo
-     0727   8D 24 07   STA &0724
-     072A   8E 25 07   STX &0725
-     072D   8C 26 07   STY &0726
-     0730   68         PLA
-     0731   8D 3B 07   STA &073B
-     0734   68         PLA
-     0735   8D 3C 07   STA &073C
-     0738   A2 01      LDX #&01
-.rtl
-     073A   BD FF FF   LDA &FFFF,X
-     073D   8D 55 07   STA &0755
-     0740   A5 F4      LDA &F4
-     0742   48         PHA
-     0743   AD 02 04   LDA &0402
-     0746   85 F4      STA &F4
-     0748   8D 30 FE   STA &FE30
-     074B   AD 24 07   LDA &0724
-     074E   AE 25 07   LDX &0725
-     0751   AC 26 07   LDY &0726
-.rtj
-     0754   20 94 BF   JSR &BF94
-     0757   8D 24 07   STA &0724
-     075A   68         PLA
-     075B   85 F4      STA &F4
-     075D   8D 30 FE   STA &FE30
-     0760   AD 24 07   LDA &0724
-     0763   60         RTS
 .T_INIT
 Macro RTRAMP:
-     0764   20 27 07   JSR &0727
-     0767   94
+     0725   48         PHA
+     0726   A9 94      LDA #&94
+     0728   D0 3F      BNE &0769
 End macro RTRAMP
 .T_SETBUF
 Macro RTRAMP:
-     0768   20 27 07   JSR &0727
-     076B   97
+     072A   48         PHA
+     072B   A9 97      LDA #&97
+     072D   D0 3A      BNE &0769
 End macro RTRAMP
 .T_RESETBUF
 Macro RTRAMP:
-     076C   20 27 07   JSR &0727
-     076F   9A
+     072F   48         PHA
+     0730   A9 9A      LDA #&9A
+     0732   D0 35      BNE &0769
 End macro RTRAMP
 .T_REPAIR
 Macro RTRAMP:
-     0770   20 27 07   JSR &0727
-     0773   9D
+     0734   48         PHA
+     0735   A9 9D      LDA #&9D
+     0737   D0 30      BNE &0769
 End macro RTRAMP
 .T_SPAN
 Macro RTRAMP:
-     0774   20 27 07   JSR &0727
-     0777   A0
+     0739   48         PHA
+     073A   A9 A0      LDA #&A0
+     073C   D0 2B      BNE &0769
 End macro RTRAMP
 .T_MARKDIRTY
 Macro RTRAMP:
-     0778   20 27 07   JSR &0727
-     077B   A3
+     073E   48         PHA
+     073F   A9 A3      LDA #&A3
+     0741   D0 26      BNE &0769
 End macro RTRAMP
 .T_DOT
 Macro RTRAMP:
-     077C   20 27 07   JSR &0727
-     077F   A6
+     0743   48         PHA
+     0744   A9 A6      LDA #&A6
+     0746   D0 21      BNE &0769
 End macro RTRAMP
 .T_POLY
 Macro RTRAMP:
-     0780   20 27 07   JSR &0727
-     0783   A9
+     0748   48         PHA
+     0749   A9 A9      LDA #&A9
+     074B   D0 1C      BNE &0769
 End macro RTRAMP
 .T_LINE
 Macro RTRAMP:
-     0784   20 27 07   JSR &0727
-     0787   AC
+     074D   48         PHA
+     074E   A9 AC      LDA #&AC
+     0750   D0 17      BNE &0769
 End macro RTRAMP
 .T_STARERASE
 Macro RTRAMP:
-     0788   20 27 07   JSR &0727
-     078B   AF
+     0752   48         PHA
+     0753   A9 AF      LDA #&AF
+     0755   D0 12      BNE &0769
 End macro RTRAMP
 .T_STARPLOT
 Macro RTRAMP:
-     078C   20 27 07   JSR &0727
-     078F   B2
+     0757   48         PHA
+     0758   A9 B2      LDA #&B2
+     075A   D0 0D      BNE &0769
 End macro RTRAMP
 .T_MARKBOX
 Macro RTRAMP:
-     0790   20 27 07   JSR &0727
-     0793   B5
+     075C   48         PHA
+     075D   A9 B5      LDA #&B5
+     075F   D0 08      BNE &0769
 End macro RTRAMP
 .T_GETW
 Macro RTRAMP:
-     0794   20 27 07   JSR &0727
-     0797   B8
+     0761   48         PHA
+     0762   A9 B8      LDA #&B8
+     0764   D0 03      BNE &0769
 End macro RTRAMP
 .T_TILT
-Macro RTRAMP:
-     0798   20 27 07   JSR &0727
-     079B   BB
-End macro RTRAMP
+     0766   48         PHA
+     0767   A9 BB      LDA #&BB
+.rtgo
+     0769   8D 7B 07   STA &077B
+     076C   A5 F4      LDA &F4
+     076E   8D 24 07   STA &0724
+     0771   AD 02 04   LDA &0402
+     0774   85 F4      STA &F4
+     0776   8D 30 FE   STA &FE30
+     0779   68         PLA
+.rtj
+     077A   20 94 BF   JSR &BF94
+     077D   48         PHA
+     077E   AD 24 07   LDA &0724
+     0781   85 F4      STA &F4
+     0783   8D 30 FE   STA &FE30
+     0786   68         PLA
+     0787   60         RTS
 .rtramp_end
 .GCALL
-     079C   8D AE 7F   STA &7FAE
-     079F   A5 F4      LDA &F4
-     07A1   48         PHA
-     07A2   AD 01 04   LDA &0401
-     07A5   85 F4      STA &F4
-     07A7   8D 30 FE   STA &FE30
-     07AA   20 C0 BF   JSR &BFC0
-     07AD   AA         TAX
-     07AE   68         PLA
-     07AF   85 F4      STA &F4
-     07B1   8D 30 FE   STA &FE30
-     07B4   8A         TXA
-     07B5   60         RTS
+     0788   8D AE 7F   STA &7FAE
+     078B   A5 F4      LDA &F4
+     078D   48         PHA
+     078E   AD 01 04   LDA &0401
+     0791   85 F4      STA &F4
+     0793   8D 30 FE   STA &FE30
+     0796   20 C0 BF   JSR &BFC0
+     0799   AA         TAX
+     079A   68         PLA
+     079B   85 F4      STA &F4
+     079D   8D 30 FE   STA &FE30
+     07A0   8A         TXA
+     07A1   60         RTS
 .GLUE_END
 .pcb_o
-     07B6   00
-     07B7   18
-     07B8   30
-     07B9   48
-     07BA   60
-The renderer's glue: &724 -&7BA , free 5 
+     07A2   00
+     07A3   18
+     07A4   30
+     07A5   48
+     07A6   60
+The renderer's glue: &724 -&7A6 , free 25 
 .SNE
      07C0   00
      07C1   19
@@ -11835,7 +11830,7 @@ S.ELTH &96FD  &79B2  &8000  &96FD
      7CD9   05 65      ORA &65
      7CDB   85 65      STA &65
      7CDD   A2 07      LDX #&07
-     7CDF   20 9C 07   JSR &079C
+     7CDF   20 88 07   JSR &0788
      7CE2   4C 2E 7E   JMP &7E2E
      7CE5   68         PLA
      7CE6   68         PLA
@@ -11930,7 +11925,7 @@ S.ELTH &96FD  &79B2  &8000  &96FD
      7D69   D0 03      BNE &7D6E
      7D6B   20 F3 9B   JSR &9BF3
      7D6E   A2 02      LDX #&02
-     7D70   20 9C 07   JSR &079C
+     7D70   20 88 07   JSR &0788
      7D73   68         PLA
      7D74   A8         TAY
      7D75   68         PLA
@@ -11949,7 +11944,7 @@ S.ELTH &96FD  &79B2  &8000  &96FD
      7D88   D0 08      BNE &7D92
      7D8A   38         SEC
      7D8B   A2 0E      LDX #&0E
-     7D8D   20 9C 07   JSR &079C
+     7D8D   20 88 07   JSR &0788
      7D90   68         PLA
      7D91   68         PLA
 .hpt9
@@ -11959,7 +11954,7 @@ S.ELTH &96FD  &79B2  &8000  &96FD
      7D96   D0 06      BNE &7D9E
      7D98   18         CLC
      7D99   A2 0E      LDX #&0E
-     7D9B   4C 9C 07   JMP &079C
+     7D9B   4C 88 07   JMP &0788
 .hpe9
      7D9E   4C BC 92   JMP &92BC
 .H_DOT
@@ -11969,7 +11964,7 @@ S.ELTH &96FD  &79B2  &8000  &96FD
      7DA7   68         PLA
      7DA8   8A         TXA
      7DA9   A2 05      LDX #&05
-     7DAB   4C 9C 07   JMP &079C
+     7DAB   4C 88 07   JMP &0788
 .hdt8
      7DAE   68         PLA
      7DAF   4C B7 84   JMP &84B7
@@ -11997,7 +11992,7 @@ S.ELTH &96FD  &79B2  &8000  &96FD
      7DD5   A0 06      LDY #&06
      7DD7   B1 1E      LDA (&1E),Y
      7DD9   A2 0B      LDX #&0B
-     7DDB   20 9C 07   JSR &079C
+     7DDB   20 88 07   JSR &0788
      7DDE   4C 8A A2   JMP &A28A
 .hll9
      7DE1   60         RTS
@@ -15976,7 +15971,7 @@ S.ELTE &A247  &96D2  &8000  &A247
      9B4F   90 01      BCC &9B52
      9B51   60         RTS
      9B52   A2 06      LDX #&06
-     9B54   20 9C 07   JSR &079C
+     9B54   20 88 07   JSR &0788
      9B57   20 6E A8   JSR &A86E
      9B5A   A9 00      LDA #&00
      9B5C   8D C0 0E   STA &0EC0
@@ -16046,7 +16041,7 @@ S.ELTE &A247  &96D2  &8000  &A247
 .ssh3
      9BD1   20 98 9E   JSR &9E98
      9BD4   A2 03      LDX #&03
-     9BD6   20 9C 07   JSR &079C
+     9BD6   20 88 07   JSR &0788
      9BD9   A5 8C      LDA &8C
      9BDB   C9 08      CMP #&08
      9BDD   D0 03      BNE &9BE2
@@ -17840,7 +17835,7 @@ S.ELTE &A247  &96D2  &8000  &A247
      A8AC   8E A8 7E   STX &7EA8
      A8AF   AD D5 BB   LDA &BBD5
      A8B2   A2 10      LDX #&10
-     A8B4   20 9C 07   JSR &079C
+     A8B4   20 88 07   JSR &0788
      A8B7   B0 21      BCS &A8DA
      A8B9   AD AF 7F   LDA &7FAF
      A8BC   D0 09      BNE &A8C7
@@ -17882,7 +17877,7 @@ S.ELTE &A247  &96D2  &8000  &A247
      A8F5   A0 00      LDY #&00
      A8F7   8C D7 BB   STY &BBD7
      A8FA   98         TYA
-     A8FB   20 98 07   JSR &0798
+     A8FB   20 66 07   JSR &0766
      A8FE   68         PLA
      A8FF   8D D6 BB   STA &BBD6
      A902   4C 53 A9   JMP &A953
@@ -17900,7 +17895,7 @@ S.ELTE &A247  &96D2  &8000  &A247
      A919   29 07      AND #&07
      A91B   A2 09      LDX #&09
      A91D   A0 15      LDY #&15
-     A91F   20 98 07   JSR &0798
+     A91F   20 66 07   JSR &0766
      A922   AD B7 03   LDA &03B7
      A925   20 41 A9   JSR &A941
      A928   68         PLA
@@ -17914,7 +17909,7 @@ S.ELTE &A247  &96D2  &8000  &A247
      A934   4A         LSR A
      A935   A2 15      LDX #&15
      A937   A0 0F      LDY #&0F
-     A939   20 98 07   JSR &0798
+     A939   20 66 07   JSR &0766
      A93C   AD B7 03   LDA &03B7
      A93F   4A         LSR A
      A940   4A         LSR A
@@ -18376,7 +18371,7 @@ S.ELTE &A247  &96D2  &8000  &A247
      AD0E   9D B5 7E   STA &7EB5,X
      AD11   AE A8 7E   LDX &7EA8
      AD14   EE A8 7E   INC &7EA8
-     AD17   BC B7 07   LDY &07B7,X
+     AD17   BC A3 07   LDY &07A3,X
      AD1A   A2 17      LDX #&17
 .pcy0
      AD1C   88         DEY
@@ -20191,7 +20186,7 @@ Saving file '3-assembled-output/D.CODEM.bin'
      84AC   A8         TAY
      84AD   A5 D2      LDA &D2
      84AF   A2 08      LDX #&08
-     84B1   20 9C 07   JSR &079C
+     84B1   20 88 07   JSR &0788
      84B4   A5 87      LDA &87
      84B6   0D A5 7F   ORA &7FA5
      84B9   F0 0F      BEQ &84CA
@@ -21659,7 +21654,7 @@ S.ELTC &9E85  &88DC  &8000  &9E85
      8E98   20 55 96   JSR &9655
      8E9B   D0 05      BNE &8EA2
      8E9D   A2 06      LDX #&06
-     8E9F   20 9C 07   JSR &079C
+     8E9F   20 88 07   JSR &0788
      8EA2   A9 BF      LDA #&BF
      8EA4   A6 1D      LDX &1D
      8EA6   D0 0A      BNE &8EB2
@@ -22205,7 +22200,7 @@ S.ELTC &9E85  &88DC  &8000  &9E85
      929B   20 C9 04   JSR &04C9
      929E   A9 1F      LDA #&1F
      92A0   A2 0F      LDX #&0F
-     92A2   4C 9C 07   JMP &079C
+     92A2   4C 88 07   JMP &0788
 .SHIPI_C
      92A5   4C 2E 44 ...
      92AC   0D
@@ -23327,7 +23322,7 @@ S.ELTF &96D2  &964B  &8000  &96D2
      99F5   85 87      STA &87
 .TTX66_C
      99F7   A2 01      LDX #&01
-     99F9   20 9C 07   JSR &079C
+     99F9   20 88 07   JSR &0788
      99FC   A9 80      LDA #&80
      99FE   85 72      STA &72
      9A00   20 EE 8C   JSR &8CEE
@@ -29480,7 +29475,7 @@ Saving file '3-assembled-output/C6.bin'
      87F3   20 EB 97   JSR &97EB
      87F6   B0 05      BCS &87FD
      87F8   A2 04      LDX #&04
-     87FA   4C 9C 07   JMP &079C
+     87FA   4C 88 07   JMP &0788
 .hb9_5
      87FD   60         RTS
 .SPLV_5
@@ -29541,7 +29536,7 @@ S.ELTG &964B  &96FD  &8000  &964B
      91C6   A9 15      LDA #&15
      91C8   A0 16      LDY #&16
      91CA   A2 0A      LDX #&0A
-     91CC   20 9C 07   JSR &079C
+     91CC   20 88 07   JSR &0788
      91CF   A5 87      LDA &87
      91D1   0D A5 7F   ORA &7FA5
      91D4   F0 1C      BEQ &91F2
@@ -38580,7 +38575,7 @@ S.ELTC &8A24  &7980  &8000  &8A24
      79FF   8D 62 7E   STA &7E62
      7A02   A9 04      LDA #&04
      7A04   8D A8 7E   STA &7EA8
-     7A07   4C 80 07   JMP &0780
+     7A07   4C 48 07   JMP &0748
 .fh_t
      7A0A   00
 .fh_u
@@ -38622,7 +38617,7 @@ S% workspace (docked) from &8000 to &8015 inclusive
 .DEEOR
      8025   A9 16      LDA #&16
      8027   A2 0F      LDX #&0F
-     8029   20 9C 07   JSR &079C
+     8029   20 88 07   JSR &0788
      802C   4C 39 80   JMP &8039
 .DOENTRY
      802F   20 81 04   JSR &0481
@@ -39829,7 +39824,7 @@ S.ELTA &8000  &82A1  &8000  &8000
      8814   20 43 8B   JSR &8B43
      8817   08         PHP
      8818   A2 0C      LDX #&0C
-     881A   20 9C 07   JSR &079C
+     881A   20 88 07   JSR &0788
      881D   28         PLP
      881E   20 8A 90   JSR &908A
      8821   10 29      BPL &884C
@@ -39873,7 +39868,7 @@ S.ELTA &8000  &82A1  &8000  &8000
      8860   84 85      STY &85
      8862   20 F9 88   JSR &88F9
      8865   A2 0D      LDX #&0D
-     8867   4C 9C 07   JMP &079C
+     8867   4C 88 07   JMP &0788
 .HANGER
 .HAL1
 .HA2
@@ -42123,7 +42118,7 @@ S.ELTF &9927  &9781  &8000  &9927
      979A   05 65      ORA &65
      979C   85 65      STA &65
      979E   A2 07      LDX #&07
-     97A0   20 9C 07   JSR &079C
+     97A0   20 88 07   JSR &0788
      97A3   4C 0B A1   JMP &A10B
      97A6   68         PLA
      97A7   68         PLA
@@ -42311,7 +42306,7 @@ S.ELTF &9927  &9781  &8000  &9927
      98BE   8A         TXA
      98BF   48         PHA
      98C0   A2 02      LDX #&02
-     98C2   20 9C 07   JSR &079C
+     98C2   20 88 07   JSR &0788
      98C5   68         PLA
      98C6   AA         TAX
      98C7   68         PLA
@@ -42341,7 +42336,7 @@ S.ELTF &9927  &9781  &8000  &9927
      98ED   A0 06      LDY #&06
      98EF   B1 1E      LDA (&1E),Y
      98F1   A2 0B      LDX #&0B
-     98F3   20 9C 07   JSR &079C
+     98F3   20 88 07   JSR &0788
      98F6   4C FA 9D   JMP &9DFA
 .hll9
      98F9   60         RTS
@@ -42392,7 +42387,7 @@ S.ELTF &9927  &9781  &8000  &9927
 .ssh3
      994A   20 09 9A   JSR &9A09
      994D   A2 03      LDX #&03
-     994F   20 9C 07   JSR &079C
+     994F   20 88 07   JSR &0788
      9952   A5 8C      LDA &8C
      9954   C9 08      CMP #&08
      9956   D0 0A      BNE &9962
@@ -48119,7 +48114,7 @@ Saving file '3-assembled-output/T.CODEM.bin'
      892F   A8         TAY
      8930   A5 D2      LDA &D2
      8932   A2 08      LDX #&08
-     8934   20 9C 07   JSR &079C
+     8934   20 88 07   JSR &0788
      8937   20 AC 9A   JSR &9AAC
      893A   F0 10      BEQ &894C
      893C   98         TYA
@@ -48144,7 +48139,7 @@ Saving file '3-assembled-output/T.CODEM.bin'
      895C   A5 2C      LDA &2C
      895E   A4 2D      LDY &2D
      8960   A2 09      LDX #&09
-     8962   20 9C 07   JSR &079C
+     8962   20 88 07   JSR &0788
      8965   A0 00      LDY #&00
      8967   20 AC 9A   JSR &9AAC
      896A   F0 1E      BEQ &898A
@@ -48498,7 +48493,7 @@ S.ELTB &82A1  &8A24  &8000  &82A1
      8BDB   85 87      STA &87
 .TTX66_C
      8BDD   A2 01      LDX #&01
-     8BDF   20 9C 07   JSR &079C
+     8BDF   20 88 07   JSR &0788
      8BE2   20 DA 84   JSR &84DA
      8BE5   A9 80      LDA #&80
      8BE7   85 72      STA &72
@@ -48559,7 +48554,7 @@ S.ELTB &82A1  &8A24  &8000  &82A1
      8C58   A9 15      LDA #&15
      8C5A   A0 17      LDY #&17
      8C5C   A2 0A      LDX #&0A
-     8C5E   20 9C 07   JSR &079C
+     8C5E   20 88 07   JSR &0788
      8C61   20 AC 9A   JSR &9AAC
      8C64   F0 1C      BEQ &8C82
      8C66   A2 6A      LDX #&6A
@@ -50630,7 +50625,7 @@ End macro ITEM
      9AEA   20 F5 9A   JSR &9AF5
      9AED   B0 05      BCS &9AF4
      9AEF   A2 04      LDX #&04
-     9AF1   4C 9C 07   JMP &079C
+     9AF1   4C 88 07   JMP &0788
 .hb9_C
      9AF4   60         RTS
 .xh_LL145
@@ -63077,132 +63072,127 @@ End macro CHAR
 .COLD_END%
 Docked bank 7: &8000-&AC84  (the cold pass), free 4987 
 Saving file '3-assembled-output/T.CODEC.bin'
-.rtA
+.rtB
      0724   00
-.rtX
-     0725   00
-.rtY
-     0726   00
-.rtgo
-     0727   8D 24 07   STA &0724
-     072A   8E 25 07   STX &0725
-     072D   8C 26 07   STY &0726
-     0730   68         PLA
-     0731   8D 3B 07   STA &073B
-     0734   68         PLA
-     0735   8D 3C 07   STA &073C
-     0738   A2 01      LDX #&01
-.rtl
-     073A   BD FF FF   LDA &FFFF,X
-     073D   8D 55 07   STA &0755
-     0740   A5 F4      LDA &F4
-     0742   48         PHA
-     0743   AD 02 04   LDA &0402
-     0746   85 F4      STA &F4
-     0748   8D 30 FE   STA &FE30
-     074B   AD 24 07   LDA &0724
-     074E   AE 25 07   LDX &0725
-     0751   AC 26 07   LDY &0726
-.rtj
-     0754   20 94 BF   JSR &BF94
-     0757   8D 24 07   STA &0724
-     075A   68         PLA
-     075B   85 F4      STA &F4
-     075D   8D 30 FE   STA &FE30
-     0760   AD 24 07   LDA &0724
-     0763   60         RTS
 .T_INIT
 Macro RTRAMP:
-     0764   20 27 07   JSR &0727
-     0767   94
+     0725   48         PHA
+     0726   A9 94      LDA #&94
+     0728   D0 3F      BNE &0769
 End macro RTRAMP
 .T_SETBUF
 Macro RTRAMP:
-     0768   20 27 07   JSR &0727
-     076B   97
+     072A   48         PHA
+     072B   A9 97      LDA #&97
+     072D   D0 3A      BNE &0769
 End macro RTRAMP
 .T_RESETBUF
 Macro RTRAMP:
-     076C   20 27 07   JSR &0727
-     076F   9A
+     072F   48         PHA
+     0730   A9 9A      LDA #&9A
+     0732   D0 35      BNE &0769
 End macro RTRAMP
 .T_REPAIR
 Macro RTRAMP:
-     0770   20 27 07   JSR &0727
-     0773   9D
+     0734   48         PHA
+     0735   A9 9D      LDA #&9D
+     0737   D0 30      BNE &0769
 End macro RTRAMP
 .T_SPAN
 Macro RTRAMP:
-     0774   20 27 07   JSR &0727
-     0777   A0
+     0739   48         PHA
+     073A   A9 A0      LDA #&A0
+     073C   D0 2B      BNE &0769
 End macro RTRAMP
 .T_MARKDIRTY
 Macro RTRAMP:
-     0778   20 27 07   JSR &0727
-     077B   A3
+     073E   48         PHA
+     073F   A9 A3      LDA #&A3
+     0741   D0 26      BNE &0769
 End macro RTRAMP
 .T_DOT
 Macro RTRAMP:
-     077C   20 27 07   JSR &0727
-     077F   A6
+     0743   48         PHA
+     0744   A9 A6      LDA #&A6
+     0746   D0 21      BNE &0769
 End macro RTRAMP
 .T_POLY
 Macro RTRAMP:
-     0780   20 27 07   JSR &0727
-     0783   A9
+     0748   48         PHA
+     0749   A9 A9      LDA #&A9
+     074B   D0 1C      BNE &0769
 End macro RTRAMP
 .T_LINE
 Macro RTRAMP:
-     0784   20 27 07   JSR &0727
-     0787   AC
+     074D   48         PHA
+     074E   A9 AC      LDA #&AC
+     0750   D0 17      BNE &0769
 End macro RTRAMP
 .T_STARERASE
 Macro RTRAMP:
-     0788   20 27 07   JSR &0727
-     078B   AF
+     0752   48         PHA
+     0753   A9 AF      LDA #&AF
+     0755   D0 12      BNE &0769
 End macro RTRAMP
 .T_STARPLOT
 Macro RTRAMP:
-     078C   20 27 07   JSR &0727
-     078F   B2
+     0757   48         PHA
+     0758   A9 B2      LDA #&B2
+     075A   D0 0D      BNE &0769
 End macro RTRAMP
 .T_MARKBOX
 Macro RTRAMP:
-     0790   20 27 07   JSR &0727
-     0793   B5
+     075C   48         PHA
+     075D   A9 B5      LDA #&B5
+     075F   D0 08      BNE &0769
 End macro RTRAMP
 .T_GETW
 Macro RTRAMP:
-     0794   20 27 07   JSR &0727
-     0797   B8
+     0761   48         PHA
+     0762   A9 B8      LDA #&B8
+     0764   D0 03      BNE &0769
 End macro RTRAMP
 .T_TILT
-Macro RTRAMP:
-     0798   20 27 07   JSR &0727
-     079B   BB
-End macro RTRAMP
+     0766   48         PHA
+     0767   A9 BB      LDA #&BB
+.rtgo
+     0769   8D 7B 07   STA &077B
+     076C   A5 F4      LDA &F4
+     076E   8D 24 07   STA &0724
+     0771   AD 02 04   LDA &0402
+     0774   85 F4      STA &F4
+     0776   8D 30 FE   STA &FE30
+     0779   68         PLA
+.rtj
+     077A   20 94 BF   JSR &BF94
+     077D   48         PHA
+     077E   AD 24 07   LDA &0724
+     0781   85 F4      STA &F4
+     0783   8D 30 FE   STA &FE30
+     0786   68         PLA
+     0787   60         RTS
 .rtramp_end
 .GCALL
-     079C   8D AE 7F   STA &7FAE
-     079F   A5 F4      LDA &F4
-     07A1   48         PHA
-     07A2   AD 01 04   LDA &0401
-     07A5   85 F4      STA &F4
-     07A7   8D 30 FE   STA &FE30
-     07AA   20 C0 BF   JSR &BFC0
-     07AD   AA         TAX
-     07AE   68         PLA
-     07AF   85 F4      STA &F4
-     07B1   8D 30 FE   STA &FE30
-     07B4   8A         TXA
-     07B5   60         RTS
+     0788   8D AE 7F   STA &7FAE
+     078B   A5 F4      LDA &F4
+     078D   48         PHA
+     078E   AD 01 04   LDA &0401
+     0791   85 F4      STA &F4
+     0793   8D 30 FE   STA &FE30
+     0796   20 C0 BF   JSR &BFC0
+     0799   AA         TAX
+     079A   68         PLA
+     079B   85 F4      STA &F4
+     079D   8D 30 FE   STA &FE30
+     07A0   8A         TXA
+     07A1   60         RTS
 .GLUE_END
 .pcb_o
-     07B6   00
-     07B7   18
-     07B8   30
-     07B9   48
-     07BA   60
+     07A2   00
+     07A3   18
+     07A4   30
+     07A5   48
+     07A6   60
 .GLUE_TOP
 Saving file '3-assembled-output/GLUE.bin'
      8000   20 24 04 ... INCBIN "3-assembled-output/C6.bin"
@@ -63643,7 +63633,7 @@ Saving file '3-assembled-output/GLUE.bin'
      854D   2A         ROL A
      854E   49 03      EOR #&03
 .fpd1
-     8550   20 7C 07   JSR &077C
+     8550   20 43 07   JSR &0743
      8553   AC 57 85   LDY &8557
      8556   60         RTS
 .f_pdy
@@ -63806,7 +63796,7 @@ Saving file '3-assembled-output/GLUE.bin'
      86BE   20 E3 88   JSR &88E3
      86C1   20 4A 88   JSR &884A
      86C4   AD 46 81   LDA &8146
-     86C7   20 68 07   JSR &0768
+     86C7   20 2A 07   JSR &072A
      86CA   20 11 89   JSR &8911
      86CD   20 B4 96   JSR &96B4
      86D0   20 F8 98   JSR &98F8
@@ -63818,7 +63808,7 @@ Saving file '3-assembled-output/GLUE.bin'
 .ff2
      86E0   AD A2 7F   LDA &7FA2
      86E3   D0 FB      BNE &86E0
-     86E5   20 88 07   JSR &0788
+     86E5   20 52 07   JSR &0752
      86E8   20 FA 8E   JSR &8EFA
 .ff_lin
      86EB   20 E0 91   JSR &91E0
@@ -63836,7 +63826,7 @@ Saving file '3-assembled-output/GLUE.bin'
      8709   20 B7 AA   JSR &AAB7
      870C   30 03      BMI &8711
 .ffs1
-     870E   20 8C 07   JSR &078C
+     870E   20 57 07   JSR &0757
 .ff_stars9
      8711   2C 19 9C   BIT &9C19
      8714   10 03      BPL &8719
@@ -64027,8 +64017,8 @@ Saving file '3-assembled-output/GLUE.bin'
      88C1   8D 46 81   STA &8146
      88C4   8E F7 98   STX &98F7
      88C7   8E 3F 83   STX &833F
-     88CA   20 68 07   JSR &0768
-     88CD   20 6C 07   JSR &076C
+     88CA   20 2A 07   JSR &072A
+     88CD   20 2F 07   JSR &072F
      88D0   A2 01      LDX #&01
      88D2   20 71 91   JSR &9171
      88D5   A9 00      LDA #&00
@@ -64838,7 +64828,7 @@ Saving file '3-assembled-output/GLUE.bin'
      8E98   EC A8 7E   CPX &7EA8
      8E9B   B0 39      BCS &8ED6
      8E9D   86 14      STX &14
-     8E9F   BC B6 07   LDY &07B6,X
+     8E9F   BC A2 07   LDY &07A2,X
      8EA2   18         CLC
      8EA3   B9 6F 7E   LDA &7E6F,Y
      8EA6   65 10      ADC &10
@@ -64930,7 +64920,7 @@ Saving file '3-assembled-output/GLUE.bin'
      8F49   9D A4 91   STA &91A4,X
      8F4C   AD 98 91   LDA &9198
      8F4F   AC 99 91   LDY &9199
-     8F52   20 70 07   JSR &0770
+     8F52   20 34 07   JSR &0734
      8F55   AE 46 81   LDX &8146
      8F58   AD 95 91   LDA &9195
      8F5B   D0 11      BNE &8F6E
@@ -65017,7 +65007,7 @@ Saving file '3-assembled-output/GLUE.bin'
      9006   20 DE 90   JSR &90DE
      9009   A9 00      LDA #&00
      900B   AE 9C 91   LDX &919C
-     900E   4C 94 07   JMP &0794
+     900E   4C 61 07   JMP &0761
 .f_bbit
      9011   01
      9012   02
@@ -65037,7 +65027,7 @@ Saving file '3-assembled-output/GLUE.bin'
      902D   0D 9D 91   ORA &919D
      9030   AC 98 91   LDY &9198
      9033   AE 9C 91   LDX &919C
-     9036   20 94 07   JSR &0794
+     9036   20 61 07   JSR &0761
      9039   A2 00      LDX #&00
      903B   AC 98 91   LDY &9198
 .fdb3
@@ -65266,7 +65256,7 @@ Saving file '3-assembled-output/GLUE.bin'
      91D4   8D A3 7E   STA &7EA3
      91D7   8D A5 7E   STA &7EA5
      91DA   8D A7 7E   STA &7EA7
-     91DD   4C 84 07   JMP &0784
+     91DD   4C 4D 07   JMP &074D
 .f_lines
      91E0   AD AA 81   LDA &81AA
      91E3   F0 29      BEQ &920E
@@ -65398,7 +65388,7 @@ Saving file '3-assembled-output/GLUE.bin'
      92D2   A6 25      LDX &25
      92D4   A4 24      LDY &24
      92D6   A9 03      LDA #&03
-     92D8   4C 7C 07   JMP &077C
+     92D8   4C 43 07   JMP &0743
 .fsq9
      92DB   60         RTS
 .fsd_div
@@ -65540,7 +65530,7 @@ Saving file '3-assembled-output/GLUE.bin'
      93DE   20 6E 9A   JSR &9A6E
      93E1   90 03      BCC &93E6
 .fsh_draw
-     93E3   20 80 07   JSR &0780
+     93E3   20 48 07   JSR &0748
 .fsh_next
      93E6   A5 DF      LDA &DF
      93E8   38         SEC
@@ -65635,7 +65625,7 @@ Saving file '3-assembled-output/GLUE.bin'
      9499   8D A6 7E   STA &7EA6
      949C   AD 91 7E   LDA &7E91
      949F   8D A7 7E   STA &7EA7
-     94A2   20 84 07   JSR &0784
+     94A2   20 4D 07   JSR &074D
 .fit8
      94A5   A0 03      LDY #&03
      94A7   B1 D4      LDA (&D4),Y
@@ -65733,7 +65723,7 @@ Saving file '3-assembled-output/GLUE.bin'
      954A   20 B5 94   JSR &94B5
      954D   A9 03      LDA #&03
      954F   8D A8 7E   STA &7EA8
-     9552   20 80 07   JSR &0780
+     9552   20 48 07   JSR &0748
 .ffi8
      9555   A5 D4      LDA &D4
      9557   18         CLC
@@ -65839,7 +65829,7 @@ Saving file '3-assembled-output/GLUE.bin'
      962C   BD DC 81   LDA &81DC,X
      962F   AA         TAX
      9630   A9 03      LDA #&03
-     9632   20 7C 07   JSR &077C
+     9632   20 43 07   JSR &0743
 .fdo4
      9635   EE 6A 96   INC &966A
      9638   D0 D5      BNE &960F
@@ -65955,7 +65945,7 @@ Saving file '3-assembled-output/GLUE.bin'
      96FE   C8         INY
      96FF   09 07      ORA #&07
      9701   8D B1 7E   STA &7EB1
-     9704   20 90 07   JSR &0790
+     9704   20 5C 07   JSR &075C
 .ft16
      9707   A4 E1      LDY &E1
      9709   A6 DE      LDX &DE
@@ -66022,7 +66012,7 @@ Saving file '3-assembled-output/GLUE.bin'
      9776   98         TYA
      9777   D0 01      BNE &977A
      9779   C8         INY
-     977A   20 90 07   JSR &0790
+     977A   20 5C 07   JSR &075C
      977D   AE 85 97   LDX &9785
 .ftm8
      9780   CA         DEX
@@ -66135,7 +66125,7 @@ Saving file '3-assembled-output/GLUE.bin'
      9837   BD F6 98   LDA &98F6,X
      983A   8D 93 7E   STA &7E93
      983D   A9 40      LDA #&40
-     983F   4C 94 07   JMP &0794
+     983F   4C 61 07   JMP &0761
 .f_bits
      9842   01
      9843   02
@@ -66273,14 +66263,14 @@ Saving file '3-assembled-output/GLUE.bin'
      990C   A9 94      LDA #&94
      990E   85 09      STA &09
      9910   A0 60      LDY #&60
-     9912   20 78 07   JSR &0778
+     9912   20 3E 07   JSR &073E
      9915   A9 80      LDA #&80
      9917   85 08      STA &08
      9919   85 09      STA &09
      991B   A9 74      LDA #&74
      991D   8D B1 7E   STA &7EB1
      9920   A0 4C      LDY #&4C
-     9922   4C 90 07   JMP &0790
+     9922   4C 5C 07   JMP &075C
 .fsg9
      9925   60         RTS
 .f_sight2
@@ -66303,13 +66293,13 @@ Saving file '3-assembled-output/GLUE.bin'
      994B   A9 75      LDA #&75
      994D   85 09      STA &09
      994F   A0 60      LDY #&60
-     9951   20 74 07   JSR &0774
+     9951   20 39 07   JSR &0739
      9954   A9 8B      LDA #&8B
      9956   85 08      STA &08
      9958   A9 94      LDA #&94
      995A   85 09      STA &09
      995C   A0 60      LDY #&60
-     995E   20 74 07   JSR &0774
+     995E   20 39 07   JSR &0739
      9961   AD 11 82   LDA &8211
      9964   29 88      AND #&88
      9966   85 E0      STA &E0
@@ -66867,7 +66857,7 @@ Saving file '3-assembled-output/GLUE.bin'
      9DB9   EC 25 A4   CPX &A425
      9DBC   B0 26      BCS &9DE4
      9DBE   86 13      STX &13
-     9DC0   BD B6 07   LDA &07B6,X
+     9DC0   BD A2 07   LDA &07A2,X
      9DC3   AA         TAX
 Macro PR_LT:
      9DC4   BD 76 7E   LDA &7E76,X
@@ -66947,7 +66937,7 @@ End macro PR_LT
      9E43   60         RTS
 .pcr3
      9E44   EE 24 A4   INC &A424
-     9E47   BC B7 07   LDY &07B7,X
+     9E47   BC A3 07   LDY &07A3,X
      9E4A   A2 17      LDX #&17
 .prc1
      9E4C   88         DEY
@@ -68099,7 +68089,7 @@ End macro PR_FLIP
      A679   A5 09      LDA &09
      A67B   C5 08      CMP &08
      A67D   90 03      BCC &A682
-     A67F   4C 90 07   JMP &0790
+     A67F   4C 5C 07   JMP &075C
 .fbx9
      A682   60         RTS
 .fl_inpl
@@ -68638,7 +68628,7 @@ End macro FLHW
      A974   CD 09 93   CMP &9309
      A977   A9 01      LDA #&01
      A979   90 10      BCC &A98B
-     A97B   20 80 07   JSR &0780
+     A97B   20 48 07   JSR &0748
      A97E   A2 33      LDX #&33
 .fpo3
      A980   BD 60 7E   LDA &7E60,X
@@ -68662,12 +68652,12 @@ End macro FLHW
      A9A1   A5 E1      LDA &E1
      A9A3   A2 03      LDX #&03
      A9A5   20 B3 A9   JSR &A9B3
-     A9A8   20 84 07   JSR &0784
+     A9A8   20 4D 07   JSR &074D
      A9AB   A5 E1      LDA &E1
      A9AD   D0 E3      BNE &A992
      A9AF   60         RTS
 .fpo8
-     A9B0   4C 80 07   JMP &0780
+     A9B0   4C 48 07   JMP &0748
 .fpo_ld
      A9B3   09 30      ORA #&30
      A9B5   A8         TAY
@@ -68814,8 +68804,8 @@ End macro FLHW
      AAAA   29 7F      AND #&7F
      AAAC   8D AF 7F   STA &7FAF
      AAAF   A9 00      LDA #&00
-     AAB1   20 68 07   JSR &0768
-     AAB4   4C 6C 07   JMP &076C
+     AAB1   20 2A 07   JSR &072A
+     AAB4   4C 2F 07   JMP &072F
 .f_slot
      AAB7   A2 FF      LDX #&FF
      AAB9   8E 4F AB   STX &AB4F
@@ -68887,7 +68877,7 @@ End macro FLHW
      AB39   9D ED 7E   STA &7EED,X
      AB3C   F0 D0      BEQ &AB0E
 .s3
-     AB3E   20 8C 07   JSR &078C
+     AB3E   20 57 07   JSR &0757
      AB41   AE AB 7E   LDX &7EAB
      AB44   CA         DEX
 .r
@@ -69816,7 +69806,7 @@ End macro FLHW
      B307   9D 88 B0   STA &B088,X
      B30A   CA         DEX
      B30B   10 F8      BPL &B305
-     B30D   20 64 07   JSR &0764
+     B30D   20 25 07   JSR &0725
      B310   A2 21      LDX #&21
 .fin4
      B312   BD 88 B0   LDA &B088,X
@@ -69928,7 +69918,7 @@ End macro FLHW
      BFFA   4C AC AB   JMP &ABAC
      BFFD   4C E0 91   JMP &91E0
 Bank 6: the flight code's cold 6 pass &8000-&8145 , the frame layer's code &8146 -&ABE7  (10914  bytes), tables &ABE8 -&AF05  (798 ), state &AF06 -&BC62 , free 14 , the face lists' slot &BC71 -&BFBF , the dispatcher &BFC0 -&BFED 
-Glue (main RAM): &724 -&7BA  (151  bytes: trampolines 120 , GCALL 26 , pcb_o 5 )
+Glue (main RAM): &724 -&7A6  (131  bytes: trampolines 100 , GCALL 26 , pcb_o 5 )
 Saving file '3-assembled-output/BANK6.bin'
 Including file 1-source-files/main-sources/elite-build-options.asm
 Processed file '1-source-files/main-sources/elite-build-options.asm' ok

@@ -5,7 +5,7 @@
 | main RAM | `&0300-&03CF` | `UP`, the game's workspace | 208 | 0 |
 | main RAM | `&0400-&06E5` | resident block A (`elite-resident.asm`): `BANKS`, the far calls, `PCLI` with `dfsin`, `dfsout`, `pload`, `WRCHR`, `BRKR`, the last saved commander and the break handler, `IRQG` | 739 | 3 |
 | main RAM | `&06E6-&0723` | the circle engine's variables (main low: `gfx-merid.asm`) | 62 | 0 |
-| main RAM | `&0724-&07BF` | the glue: the trampolines into bank 5, `GCALL`; then `pcb_o`, the circle engine's table that banks 4 and 6 read (main: `gfx-merid.asm`) | 151 | 5 |
+| main RAM | `&0724-&07BF` | the glue: the trampolines into bank 5, `GCALL`; then `pcb_o`, the circle engine's table that banks 4 and 6 read (main: `gfx-merid.asm`) | 131 | 25 |
 | main RAM | `&07C0-&07FF` | `SNE`, `ACT` | 64 | 0 |
 | main RAM | `&0880-&08BF` | `QQ16` | 64 | 0 |
 | main RAM | `&0900-&0CFF` | `K%` and the line heaps (the loader's `LOAD` at `&0B00` before the game) | 1024 | 0 |
@@ -55,4 +55,4 @@
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 11, main RAM (flight) 47, main RAM (docked) 1096, bank 4 (flight) 40, bank 4 (docked) 3233, bank 7 (flight) 556, bank 7 (docked) 4987, bank 5 463, bank 6 100.
+Free, by place: main RAM 31, main RAM (flight) 47, main RAM (docked) 1096, bank 4 (flight) 40, bank 4 (docked) 3233, bank 7 (flight) 556, bank 7 (docked) 4987, bank 5 463, bank 6 100.

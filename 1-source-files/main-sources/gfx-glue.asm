@@ -33,54 +33,23 @@ FJT = &BFC0             \ bank 6's dispatcher (gfx-bank6.asm)
 \ The trampolines into bank 5, the rasteriser: the frame layer, in bank 6,
 \ calls T_INIT, T_POLY and so on: each pages bank 5 in (BANK5, elite-far.asm),
 \ calls the routine through bank 5's jump table, RJT, and pages the caller's
-\ bank back (whatever was in &F4: so any bank may call them). Each T_n is four
-\ bytes, a JSR to the shared body, rtgo, and the low byte of RJT's entry. A, X
-\ and Y are passed through to the routine; nothing is returned in them
-\ (results, if any, are in the mailbox or the zero page). Not re-entrant:
-\ interrupt handlers must not call them.
+\ bank back (whatever was in &F4: so any bank may call them). Each T_n pushes
+\ A and puts the low byte of RJT's entry n in A, then branches to the shared
+\ body, rtgo (the last falls into it), which patches it into its JSR: five
+\ bytes a trampoline, and about 73 cycles a call besides the routine's own.
+\ A, X and Y are passed through to the routine, and A, X, Y, C and V come
+\ back as it left them (N and Z as A). Not re-entrant (the caller's bank is
+\ kept in rtB): no routine they call calls them, and interrupt handlers must
+\ not call them.
 \
 \ ******************************************************************************
 
-.rtA    EQUB 0          \ A, X and Y across the paging
-.rtX    EQUB 0
-.rtY    EQUB 0
-
-.rtgo                   \ the trampolines' body: entered by a JSR from T_n,
-                        \ which is followed by RJT's offset for routine n
- STA rtA                \ keep A, X and Y
- STX rtX
- STY rtY
- PLA                    \ take T_n's return address (its JSR's last byte) off
- STA rtl+1              \ the stack, so that this returns to T_n's caller, and
- PLA                    \ read the offset after it
- STA rtl+2
- LDX #1
-.rtl
- LDA &FFFF,X            \ (the address is set above)
- STA rtj+1              \ the JSR below calls RJT's entry (whose low byte this
-                        \ is: RJT is in one page)
- LDA &F4                \ keep the caller's bank on the stack and page bank 5
- PHA                    \ in
- LDA BANK5
- STA &F4
- STA &FE30
- LDA rtA                \ put A, X and Y back for the routine
- LDX rtX
- LDY rtY
-.rtj
- JSR RJT                \ (the low byte is set above)
- STA rtA                \ page the caller's bank back in, keeping A
- PLA
- STA &F4
- STA &FE30
- LDA rtA
- RTS
-
- ASSERT HI(RJT) = HI(RJT + 3 * 13)
+.rtB    EQUB 0          \ the caller's bank across the call
 
 MACRO RTRAMP n
- JSR rtgo
- EQUB LO(RJT) + 3 * n   \ (the low byte of RJT's entry n)
+ PHA                    \ keep A
+ LDA #LO(RJT) + 3 * n   \ the low byte of RJT's entry n (never 0: RJT is at
+ BNE rtgo               \ the top of bank 5), and to the body
 ENDMACRO
 
 .T_INIT       RTRAMP 0  \ (RJT's order, gfx-bank5.asm)
@@ -96,8 +65,29 @@ ENDMACRO
 .T_STARPLOT   RTRAMP 10
 .T_MARKBOX    RTRAMP 11
 .T_GETW       RTRAMP 12 \ (the disc layer's and the text's, gfx-raster_dq.asm)
-.T_TILT       RTRAMP 13 \ (the planet's surface's pf_tilt, gfx-planet7.asm: from
-                        \ the game's PF_HOOK, in the home bank)
+.T_TILT                 \ (the planet's surface's pf_tilt, gfx-planet7.asm: from
+ PHA                    \ the game's PF_HOOK, in the home bank; RTRAMP 13,
+ LDA #LO(RJT) + 3 * 13  \ falling into the body)
+
+.rtgo                   \ the trampolines' body: A = the low byte of RJT's
+ STA rtj+1              \ entry, the routine's A on the stack; the JSR below
+                        \ calls the entry (RJT is in one page)
+ LDA &F4                \ keep the caller's bank and page bank 5 in
+ STA rtB
+ LDA BANK5
+ STA &F4
+ STA &FE30
+ PLA                    \ A back for the routine
+.rtj
+ JSR RJT                \ (the low byte is set above)
+ PHA                    \ page the caller's bank back in, keeping A
+ LDA rtB
+ STA &F4
+ STA &FE30
+ PLA
+ RTS
+
+ ASSERT HI(RJT) = HI(RJT + 3 * 13) AND LO(RJT) <> 0
 .rtramp_end
 
 .GCALL
