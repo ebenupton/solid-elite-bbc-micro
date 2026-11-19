@@ -137,6 +137,6 @@
 .COLD_END%
 
  PRINT "Docked bank 7: &8000-", ~COLD_END%-1, " (the cold pass), free ", DFSSAVE%-COLD_END%
- ASSERT COLD_END% <= DFSSAVE%      \ (Port: PCLI keeps DFS's workspace in the last page)
+ ASSERT COLD_END% <= DFSSAVE%      \ (Port: the end of the bank, DFSSAVE%)
 
  SAVE "3-assembled-output/T.CODEC.bin", &8000, COLD_END%, &8000

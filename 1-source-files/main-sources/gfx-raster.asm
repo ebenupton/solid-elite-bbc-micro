@@ -773,10 +773,11 @@ R_ENDPAGE 9
 .r_ymaxH SKIP 1
 .r_top SKIP 1
 R_ENDPAGE 10
-FOR r, 11, 15
-  R_RUN r
-  R_ENDPAGE r
+FOR r, 11, 15             \ (the last 64 bytes of runs 11 to 14's pages hold
+  R_RUN r                 \ DFS's workspace page between disc commands,
+  R_ENDPAGE r             \ DFSTAIL%: dfsin and dfsout, elite-resident.asm)
 NEXT
+ASSERT DFSTAIL% = r_run0 + 11 * &100 + &C0 AND R_RUNSZ <= &C0
 .r_run16 R_RUN 16
 \ R_LINE's variables (gfx-raster_line.asm, gfx-raster_lcold.asm)
 .rl_lct SKIP 8          \ R_LINE: colour byte by row AND 7

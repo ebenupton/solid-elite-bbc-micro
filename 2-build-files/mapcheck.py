@@ -159,15 +159,14 @@ dfss = C["DFSSAVE_P"]
 dpst = dfss - 0xC00
 ovl_end = FL["WIN7%"]
 order("flight bank 7", [("the cold pass", 0x8000, FL["COLD_END%"]), ("the overlay region", FL["OVL%"], ovl_end),
-                        ("the renderer's window", FL["WIN7%"], FL["WIN7_END%"]), ("the disc state", dpst, dfss),
-                        ("DFS's workspace", dfss, 0xC000)])
+                        ("the renderer's window", FL["WIN7%"], FL["WIN7_END%"]), ("the disc state", dpst, dfss)])
 for c in ("cold",):
     nlab += inside(FL, OUT + "elite-flight-%s.asm" % c, 0x8000, FL["COLD_END%"], "the cold pass")
 for n in (1, 2):
     nlab += inside(FL, OUT + "elite-flight-ovl%d.asm" % n, FL["OVL%"], ovl_end, "the overlay region")
 for f in ("gfx-raster_disc", "gfx-raster_disc2", "gfx-raster_dpatch"):
     nlab += inside(FL, OUT + "%s-bank7.asm" % f, FL["WIN7%"], dpst, "the renderer's window")
-order("docked bank 7", [("the face lists and the cold pass", 0x8000, DK["COLD_END%"]), ("DFS's workspace", dfss, 0xC000)])
+order("docked bank 7", [("the face lists and the cold pass", 0x8000, DK["COLD_END%"])])
 nlab += inside(DK, OUT + "elite-docked-cold.asm", 0x8000, DK["COLD_END%"], "the cold pass")
 
 # bank 5

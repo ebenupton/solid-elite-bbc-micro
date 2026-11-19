@@ -186,8 +186,8 @@ ENDIF
 .WIN7_END%
 
  PRINT "Flight bank 7: &8000-", ~COLD_END%-1, " (the cold pass), the overlays to ", ~OVL_END%-1, ", the renderer's window ", ~WIN7%, "-", ~WIN7_END%-1, " and its state ", ~DPST%, "-", ~DFSSAVE%-1, ", free ", DPST%-WIN7_END%
- ASSERT WIN7_END% <= DPST%         \ (the disc state, to DFSSAVE%: Port: PCLI keeps
-                                   \ DFS's workspace in the last page)
+ ASSERT WIN7_END% <= DPST%         \ (the disc state, to DFSSAVE%: Port:
+                                   \ the end of the bank)
 
  SAVE "3-assembled-output/D.CODEC.bin", &8000, WIN7_END%, &8000
 

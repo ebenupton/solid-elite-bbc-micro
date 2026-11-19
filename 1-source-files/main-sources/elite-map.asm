@@ -185,7 +185,7 @@
   ENDIF
  ENDMACRO
 
- OVSTASH = &BF00 - &C00 \ Where the flight code's overlay loader keeps WP and
+ OVSTASH = &C000 - &C00   \ Where the flight code's overlay loader keeps WP and
                         \ the filing system's zero page during a load (ovload,
                         \ which runs in bank 7): bank 7's workspace, buffer 0's
                         \ disc state (DPST%, gfx-raster_disc.asm), which the
@@ -193,9 +193,15 @@
                         \ frame start buffer 0 afresh (GSTASH: f_b0new), and
                         \ forget its disc state (DP_BEGIN's PB_RESET)
 
- DFSSAVE% = &BF00       \ DFS's workspace, &1000-&10FF, between disc commands:
-                        \ the last page of each program's cold bank, which no
-                        \ cold image reaches (elite-layout-*.asm)
+ DFSSAVE% = &C000       \ The end of the flight code's bank 7 workspace (each
+                        \ buffer's disc state, gfx-raster_disc.asm) and of the
+                        \ docked code's cold image
+
+ DFSTAIL% = &8BC0       \ DFS's workspace, &1000-&10FF, between disc commands:
+                        \ in bank 5, which no program's load touches, the
+                        \ last 64 bytes of four of the row runs' pages (runs
+                        \ 11 to 14: gfx-raster.asm), a quarter in each
+                        \ (dfsin, dfsout: elite-resident.asm)
 
 
  PANELROWS = 7          \ The dashboard's character rows
@@ -211,7 +217,7 @@
                         \ rasteriser (bank 5, gfx-rws.asm) draws into; it
                         \ covers DFS's
                         \ static workspace at &1000-&10FF, which PCLI keeps in
-                        \ DFSSAVE% between disc commands
+                        \ DFSTAIL% between disc commands
 
  MBOX = &7E60           \ The rasteriser's mailbox (&7E60-&7EFF, from the main
                         \ RAM part's end to the missile's blueprint): its

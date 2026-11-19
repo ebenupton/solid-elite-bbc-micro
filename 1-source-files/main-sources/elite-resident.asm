@@ -194,8 +194,7 @@
 
  JSR dfsout             \ Otherwise keep DFS's workspace and run the program at
  LDA BANK4              \ S% in its home bank
- STA &F4
- STA VIA+&30
+ JSR pgin
  JMP HOME%
 
 .prest
@@ -203,9 +202,7 @@
  JSR dfsout             \ Keep DFS's workspace
 
  LDA pbank              \ Page the caller's bank back in and return
- STA &F4
- STA VIA+&30
- RTS
+ JMP pgin
 
 \ ******************************************************************************
 \
@@ -233,8 +230,7 @@
  LDY #HI(STAGE%)        \ Set the source page in the LDA below
  STY bc1+2
 
- STA &F4                \ Page the bank in
- STA VIA+&30
+ JSR pgin               \ Page the bank in
 
  LDY #0
 
@@ -266,13 +262,16 @@
 \ ------------------------------------------------------------------------------
 \
 \ Port: the renderer's second screen buffer (BUF0, &1000-&3FFF) covers
-\ DFS's static workspace at &1000-&10FF, so PCLI keeps that page in the last
-\ page of the cold bank (DFSSAVE%) between disc commands: dfsin copies it
-\ back before each command, and dfsout copies it out after (the command
-\ may have loaded new images into the banks: dfsout then rewrites the copy
-\ in the new cold image's last page, which no image reaches). Until the
-\ first dfsout (dfsok = 0), DFS's workspace has not been taken, and dfsin
-\ leaves it. Both leave the caller's bank paged in.
+\ DFS's static workspace at &1000-&10FF, so PCLI keeps that page in bank 5
+\ between disc commands, in the last 64 bytes of four of the row runs' pages
+\ (DFSTAIL%, a quarter in each: nothing else is there, and no program's load
+\ touches the bank): dfsin copies it back before each command, and dfsout
+\ copies it out after. Until the first dfsout (dfsok = 0), DFS's workspace
+\ has not been taken, and dfsin leaves it. Both leave the caller's bank
+\ paged in. The copy's loop is one for both ways: the instruction on the
+\ bank's byte (dfsb) between two on the page's byte (dfsa, dfsc), a load
+\ and two stores (the first of a stale A, which the second puts right) or
+\ a store and two loads.
 \
 \ ******************************************************************************
 
@@ -284,8 +283,8 @@
  LDA dfsok              \ If DFS's workspace has not been kept yet, leave it
  BEQ dfs3
 
- LDX #HI(DFSSAVE%)      \ Copy DFSSAVE% to &1000
- LDY #&10
+ LDA #&BD               \ Copy DFSTAIL% to &1000: LDA DFSTAIL%,X and STA
+ LDX #&99               \ &1000,Y
  BNE dfs1               \ (this BNE is effectively a JMP)
 
 .dfsout
@@ -295,37 +294,54 @@
  LDA #&FF               \ Note that DFS's workspace is kept
  STA dfsok
 
- LDX #&10               \ Copy &1000 to DFSSAVE%
- LDY #HI(DFSSAVE%)
+ LDA #&9D               \ Copy &1000 to DFSTAIL%: STA DFSTAIL%,X and LDA
+ LDX #&B9               \ &1000,Y
 
 .dfs1
 
- STX dfsa+2             \ Set the source page (X) in the LDA and the
- STY dfsb+2             \ destination page (Y) in the STA below
+ STA dfsb               \ Set the instructions' opcodes, and the first
+ STX dfsa               \ quarter's page
+ STX dfsc
+ LDA #HI(DFSTAIL%)
+ STA dfsb+2
 
- LDA &F4                \ Page the cold bank in, keeping the paged bank on the
- PHA                    \ stack
- LDA BANK7
- STA &F4
- STA VIA+&30
+ LDA &F4                \ Page bank 5 in, keeping the paged bank on the stack
+ PHA
+ LDA BANK5
+ JSR pgin
 
- LDY #0
+ LDX #LO(DFSTAIL%)      \ X is the byte in the run's page, Y the byte in
+ LDY #0                 \ DFS's page
 
 .dfs2
 
 .dfsa
 
- LDA &FF00,Y            \ (the pages are set above)
+ LDA &1000,Y            \ (the opcodes are set above)
 
 .dfsb
 
- STA &FF00,Y
+ STA DFSTAIL% AND &FF00,X   \ (and the page)
+
+.dfsc
+
+ LDA &1000,Y
+
+ INX                    \ After a run's page's last byte, the next run's
+ BNE dfs4
+ LDX #LO(DFSTAIL%)
+ INC dfsb+2
+
+.dfs4
 
  INY
  BNE dfs2
 
- PLA                    \ Page the bank back in
- STA &F4
+ PLA                    \ Page the bank back in (pgin) and return
+
+.pgin
+
+ STA &F4                \ Page bank A in
  STA VIA+&30
 
 .dfs3
@@ -426,8 +442,7 @@
                         \ disc command ended here with an error
 
  LDA BANK4              \ Page the program's home bank in
- STA &F4
- STA VIA+&30
+ JSR pgin
 
  JMP HOME%+11           \ Go on to the program's handler
 
