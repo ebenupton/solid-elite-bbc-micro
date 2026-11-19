@@ -66,7 +66,7 @@ import { parseArgs } from "./args.mjs";
 import { writeFileSync, mkdirSync } from "fs";
 import { resolve } from "path";
 
-const a = parseArgs({ build: "value", scene: "value", n: "value", warm: "value", out: "value", dump: "value" });
+const a = parseArgs({ build: "value", scene: "value", n: "value", warm: "value", out: "value", dump: "value", prof: "value" });
 const BUILD = resolve(a.build || CAND_BUILD);
 const b = loadBuild(BUILD);
 const sy = b.progs.flight.sy;
@@ -158,7 +158,23 @@ function pose(sc) {
 
 const results = {};
 let si = 0, k = -1, snap = null, times = [], posed = false, rand, many, slsp, junk, slspTop = 0, launchedAt = -1, used = null, damp = null;
-opts.onBoot = s => { cpu = s._machine.processor; ph = progHooks(b, cpu); };
+// --prof FILE: each scene's profile over its N iterations, by what was mapped
+// at the PC ("m:<pc>" main RAM, "b<n>:<pc>" sideways RAM bank n, "rom:<pc>"),
+// as bprofile.mjs keys it: the cycles from each instruction to the next and
+// the times it ran, per iteration, into FILE as JSON (6-harness/bbprof.py
+// sums them by label)
+const prof = {};
+let pc_c = null, pc_n = null, lastIdx = -1, lastCyc = 0;
+const cycNow = () => cpu.cycleSeconds * 2e6 + cpu.currentCycles;
+const profIdx = pc => pc < 0x8000 ? pc : pc < 0xc000 && cpu.model.swram[cpu.romsel & 15] ? (1 + (cpu.romsel & 15)) * 65536 + pc : 17 * 65536 + pc;
+const profKey = k => (k >> 16) === 0 ? `m:${(k & 0xffff).toString(16)}` : (k >> 16) === 17 ? `rom:${(k & 0xffff).toString(16)}` : `b${(k >> 16) - 1}:${(k & 0xffff).toString(16)}`;
+opts.onBoot = s => {
+    cpu = s._machine.processor; ph = progHooks(b, cpu);
+    if (a.prof) cpu.debugInstruction.add(pc => {
+        if (pc_c) { const now = cycNow(); if (lastIdx >= 0) { pc_c[lastIdx] += now - lastCyc; pc_n[lastIdx]++; } lastCyc = now; lastIdx = profIdx(pc); }
+        return false;
+    });
+};
 opts.onIter = (i, s, res) => {
     const ram = cpu.ramRomOs;
     if (!benching) {
@@ -173,6 +189,7 @@ opts.onIter = (i, s, res) => {
     k++;
     if (!posed) { used = pose(sc); posed = true; k = 0; return; }
     if (k === WARM) {
+        if (a.prof) { pc_c = new Float64Array(18 * 65536); pc_n = new Float64Array(18 * 65536); lastIdx = -1; }
         snap = regions.map(([q, n]) => Array.from(ram.subarray(q, q + n)));
         rand = Array.from(ram.subarray(sy.RAND, sy.RAND + 4)); many = Array.from(ram.subarray(sy.MANY, sy.MANY + 32));
         slsp = [ram[sy.SLSP], ram[sy.SLSP + 1]]; junk = ram[sy.JUNK];
@@ -185,6 +202,12 @@ opts.onIter = (i, s, res) => {
         if (a.dump && [M / 2, M - 2, M - 1].includes(times.length)) { mkdirSync(a.dump, { recursive: true }); writeFileSync(`${a.dump}/${which[si]}-${times.length}.bin`, ram.subarray(0x1000, 0x7700)); }
         if (times.length > N) {
             const per = (times[times.length - 1] - times[0]) / (times.length - 1) * 2e6;
+            if (pc_c) {
+                const n = times.length - 1, c = {}, e = {};
+                for (let x = 0; x < pc_c.length; x++) if (pc_n[x]) { c[profKey(x)] = pc_c[x] / n; e[profKey(x)] = pc_n[x] / n; }
+                prof[which[si]] = { cyclesPerIteration: per, cycles: c, execs: e };
+                pc_c = pc_n = null;
+            }
             results[which[si]] = { cycles: Math.round(per), its: +(2e6 / per).toFixed(3), n: times.length - 1, ships: used };
             console.log(`${which[si].padEnd(10)} ${String(Math.round(per)).padStart(7)} cycles/iteration  ${(2e6 / per).toFixed(2).padStart(6)} it/s   (ships ${used.join(",") || "none"})`);
             si++; k = -1; snap = null; times = []; posed = false;
@@ -201,5 +224,10 @@ opts.onIter = (i, s, res) => {
 };
 const r = await runElite(opts);
 if (r.error) console.log(`error: ${r.error}`);
+if (a.prof) {
+    const banks = {};
+    for (const n of ["BANK4", "BANK5", "BANK6", "BANK7"]) if (b.loader[n] !== undefined) banks[n] = cpu.ramRomOs[b.loader[n]];
+    writeFileSync(a.prof, JSON.stringify({ build: BUILD, banks, scenes: prof }));
+}
 if (a.out) writeFileSync(a.out, JSON.stringify({ build: BUILD, N, WARM, results }, null, 1));
 process.exit(Object.keys(results).length === which.length ? 0 : 1);
