@@ -43,7 +43,7 @@
 | bank 5 | `&9800-&A7FF` | `R_POLY`, `R_LINE` | 3916 | 180 |
 | bank 5 | `&A800-&ADFF` | the state: the dirty and written extents, `R_POLY`'s edge tables | 1536 | 0 |
 | bank 5 | `&AE00-&B0A2` | `R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic | 675 | 0 |
-| bank 5 | `&B0A3-&B3FF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt` | 836 | 25 |
+| bank 5 | `&B0A3-&B3FF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `R_MARKBOX`, `pf_tilt` | 836 | 25 |
 | bank 5 | `&B400-&BF99` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 2970 | 0 |
 | bank 5 | `&BF9A-&BFFF` | `RJT`, the jump table | 42 | 60 |
 | bank 6 | `&8000-&8145` | the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`) | 284 | 42 |

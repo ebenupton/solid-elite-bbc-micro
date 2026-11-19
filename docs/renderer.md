@@ -27,9 +27,9 @@ routine loads it from the disc's `R.BANK` into bank 5 (through `STAGE%`, as
 | main `&7E60-&7EFF` | the mailbox, `MBOX`: each call's inputs (below) |
 | zero page `&06-&27` | the colour pair, span ends and clip window (`&06-&0F`), and the rasteriser's scratch (`&10-&27`); the caller saves and restores the game's bytes there around a frame |
 | bank 5 `&8000-&97FF` | the 24 row runs, a page each (`gfx-raster.asm`'s bank 5 runs pass: a page whose number is a multiple of 32, for the repair); in their 65-byte tails, the stars' records (each buffer's `r_s0y`, `r_s1y` = `r_s0y` + `&300`, and so on) and variables, and `R_LINE`'s |
-| bank 5 `&9800-&A7FF` | `R_POLY` (both phases) and `R_LINE` (10 bytes free) |
+| bank 5 `&9800-&A7FF` | `R_POLY` (both phases) and `R_LINE` (180 bytes free) |
 | bank 5 `&A800-&ADFF` | the state: both buffers' dirty extents (`R_DIRTYL0`, `R_DIRTYR0`, `R_DIRTYL1` = `R_DIRTYL0` + `&300`, `R_DIRTYR1`), this frame's written extents (`R_WL`, `R_WR`), `R_POLY`'s edge tables |
-| bank 5 `&AE00-&BFFE` | the shared region (`gfx-raster.asm`): `R_SETBUF` and `r_pgfix`, the spans' core, the per-x tables at `&B400` (`R_TAB%`), the row pages, the stars, `r_setup`, the repair (`R_REPAIR`, `r7_rowrep`), the disc layer's transfer (`R_GETW`, `R_DRAINQ`: `gfx-raster_dq.asm`), then the bank 5 end passes: `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY` and `R_INIT` (which calls `r_setup`), and `RJT`, the jump table, at `&BF94` (66 bytes free, to the bank's top); below the per-x tables, `R_LINE`'s cold part, the private state, `R_RESETBUF`, the frame layer's query, `r_wq` (`gfx-raster_dq.asm`'s bank 5 gap pass), and `pf_tilt` (95 bytes free) |
+| bank 5 `&AE00-&BFFE` | the shared region (`gfx-raster.asm`): `R_SETBUF` and `r_pgfix`, the spans' core, the per-x tables at `&B400` (`R_TAB%`), the row pages, the stars, `r_setup`, the repair (`R_REPAIR`, `r7_rowrep`), the disc layer's transfer (`R_GETW`, `R_DRAINQ`: `gfx-raster_dq.asm`), then the bank 5 end passes: `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY` and `R_INIT` (which calls `r_setup`), and `RJT`, the jump table, at `&BFD1` (5 bytes free, to the bank's top); below the per-x tables, `R_LINE`'s cold part, the private state, `R_RESETBUF`, the frame layer's query, `r_wq` (`gfx-raster_dq.asm`'s bank 5 gap pass), `R_MARKBOX` (`gfx-raster_rep.asm`'s) and `pf_tilt` (90 bytes free) |
 
 Each region but the row runs' code and `R_INIT` is where it was when the row
 runs were assembled after the per-x tables, moved by whole pages, so that no
@@ -39,6 +39,33 @@ come first, as the repair needs their page number to be a multiple of 32).
 Nothing of the rasteriser's state is in main RAM but the mailbox. Bank 5
 uses no zero page outside `&06-&27`: the NMOS conversion's temporaries are
 in bank 5 (`R_NTMP`, `R_NTMPY`, `R_NTMPX`).
+
+### The row runs and the polygons
+
+Each character row has a run in its own page: 63 unrolled stores, `STA B +
+8 c, Y` for the columns c = 1 to 63 (B the character row's address in
+column 0, Y the row's line, row AND 7), then an `RTS` and a spare 0. A
+row's whole bytes are written by a `JSR` to the store of its first whole
+byte, with an `RTS` planted at the store after its last (taken out again
+after; phase B keeps it planted while the right end stays in one column).
+The runs are assembled for buffer 1; `r_pgfix` moves a page to the other
+buffer the first time it is used for it, writing its stores' high bytes
+straight: the character row's page for columns 1 to 31, the next page for
+32 to 63, eight stores a pass (about 7 cycles a store).
+
+`R_POLY` scans the vertices once (their high bytes, the top vertex, the
+largest y and whether the window clips any x); phase A walks both chains
+from the top vertex, each edge's set-up and division in line in its chain
+and its DDA loop ending with a jump back to the chain, so that an edge
+makes no call (unless it starts above the window, `r7_e8c`, or has a
+quotient of 16 or more with a divisor under 16, `r_div8`), and an edge of
+a polygon whose rows the window does not clip skips the tests of its rows
+(`e_sel`). Its loops: `r_lz` for an edge with no remainder, `r_sp` and
+`r_sn` for a steep one (x in X, the error in A, x stored through an
+operand whose low byte counts up the edge table: the tables are each within
+a page, `&300` apart), `r_lsh` for the rest. Phase B is one row loop, a
+row's colour read from the four rows' colours (`r_c8`, by line) where its
+edges and its run use it.
 
 ### The interface
 
@@ -104,10 +131,11 @@ stars, the repair, the written extents), every result compared pixel for
 pixel and every dirty extent checked. It also checks that every
 instruction naming buffer 0's state is a patch site `R_SETBUF` patches, and
 that nothing outside the zero page `&06-&27`, the stack page, the two
-buffers, the mailbox and bank 5 is written, that `R_INIT` makes the 24 row
-runs (in bank pages that start with what the RAM held), and that every
-other call leaves them as they were (but for `r_pgfix` moving a page's
-stores to the other buffer). The gate runs it with `--quick`.
+buffers, the mailbox and bank 5 is written, that the 24 row runs are as
+assembled, and that every call leaves them as they were (but for `r_pgfix`
+moving a page's stores to the other buffer); and it checks `R_GETW`'s query
+(`r_wq`) and `R_MARKBOX` against their specifications. The gate runs it
+with `--quick`.
 
 ## The frame layer's bank 6
 
@@ -761,8 +789,8 @@ repairs it on the next: the Master port's kept solid rows take that cost
 away (7.6% to 10.6% over a docking there), and bank 5 has no room for them.
 
 * **`r_pgfix`.** The row runs are unrolled stores made for buffer 1;
-  each time a run page is used for the other buffer, its 63 stores'
-  addresses are patched. Two sets of runs would end this, but bank 5 has
+  each time a run page is used for the other buffer, its 63 stores' high
+  bytes are written (about 450 cycles a page). Two sets of runs would end this, but bank 5 has
   no room for a second set (4.5K).
 * **The frames' gain** is the Master port's: no ship line heap, clipping or
   projection in the game's iteration (the frame projects only the ships it

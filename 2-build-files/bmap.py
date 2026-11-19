@@ -124,7 +124,7 @@ row("bank 5", run0, img, "the 24 row runs, a page each; in their tails the stars
 row("bank 5", img, st, "`R_POLY`, `R_LINE`", B5["R_LOEND"] - img)
 row("bank 5", st, st + 0x600, "the state: the dirty and written extents, `R_POLY`'s edge tables")
 row("bank 5", st + 0x600, B5["r_tfree"], "`R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic")
-row("bank 5", B5["r_tfree"], B5["r_tables"], "the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt`", B5["R_GAPEND"] - B5["r_tfree"])
+row("bank 5", B5["r_tfree"], B5["r_tables"], "the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `R_MARKBOX`, `pf_tilt`", B5["R_GAPEND"] - B5["r_tfree"])
 row("bank 5", B5["r_tables"], rjt, "the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT`")
 row("bank 5", rjt, 0xC000, "`RJT`, the jump table", B5["RJT_END"] - rjt)
 
