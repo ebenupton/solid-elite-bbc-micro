@@ -174,20 +174,28 @@ QSGIN = 20
   STA sr1+2
   LDA #0
   STA MBOX+&34
-  LDX #23                 \ the text rows, 23 down to 0
-.row
-  TXA
-  LSR A
-  LSR A
-  LSR A
-  TAY
-  TXA
-  AND #7
-  STX RZ_T2
-  TAX
+  LDY #3                  \ the mask's bytes, 2 down to 0, each read once
+.nb
+  DEY
+  BPL byt
+  JMP sgt
+.byt
   LDA MBOX+&30,Y
-  AND bits,X
-  BEQ next
+  BEQ nb                  \ (none of its eight rows)
+  STY RZ_T5
+  STA RZ_T4
+  TYA                     \ X = its last row
+  ASL A
+  ASL A
+  ASL A
+  ORA #7
+  TAX
+  LDA RZ_T4
+.bit                      \ A = the rows still to look at, the next in bit 7
+  ASL A
+  BCC nob
+  STA RZ_T4
+  STX RZ_T2
   LDA #255                \ the union over the row's eight lines
   STA RZ_T0
   LDA #0
@@ -232,10 +240,16 @@ QSGIN = 20
   STA MBOX,X
   LDA RZ_T1
   STA MBOX+1,X
-.next
   LDX RZ_T2
+  LDA RZ_T4
+.nob
+  BEQ nbr                 \ (no more rows in this byte)
   DEX
-  BPL row
+  BPL bit                 \ (always)
+.nbr
+  LDY RZ_T5
+  JMP nb
+.sgt
   LDA MBOX+&33            \ the sights
   BEQ done
   LDY #QSGY               \ row 96: an extent meeting 108..148
@@ -282,5 +296,4 @@ QSGIN = 20
   LDA #&80
   STA MBOX+&34
   RTS
-.bits EQUB 1, 2, 4, 8, 16, 32, 64, 128
 }
