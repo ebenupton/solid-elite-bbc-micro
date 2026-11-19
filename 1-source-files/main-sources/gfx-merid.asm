@@ -55,8 +55,8 @@
 \     circle's record into the next slot of PCB, from the axis pcv (pf_tilt's
 \     sign-magnitude words), its scale pcn, the cosine pcc and its sign
 \     pcneg and the body pcbx, pcby, pcr; its part of the base colour into
-\     pc_inv. It uses Elite's zero page &10-&26, which PF_HOOK saves, and
-\     reads main RAM only for the quarter squares (QSL, QSH);
+\     pc_inv. It uses Elite's zero page &10-&26 (PF_HOOK keeps the XX0 and
+\     INF in it), and reads main RAM only for the quarter squares (QSL, QSH);
 \
 \   * PC_ROWS (the planet's records), in the frame (bank 6's f_bounds; the
 \     Master port's through T_CAPS): the disc layer's boundaries for rows
@@ -2283,7 +2283,7 @@ O_RC = pv_rc - pv
 
 \       Area: bank 4 top
 
-.pm_zsave SKIP 23       \ Elite's &10-&26 while PF_HOOK uses them
+.pm_zsave SKIP 4        \ XX0 and INF (in Elite's &10-&26) while PF_HOOK runs
 .wr     SKIP RSZ        \ the record being made
 .pcbx   SKIP 2          \ the body: its centre and radius
 .pcby   SKIP 2

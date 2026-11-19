@@ -17811,29 +17811,29 @@ S.ELTE &A247  &96D2  &8000  &A247
      A87C   A5 40      LDA &40
      A87E   C9 06      CMP #&06
      A880   90 66      BCC &A8E8
-     A882   8D D5 BB   STA &BBD5
+     A882   8D C2 BB   STA &BBC2
      A885   8A         TXA
      A886   48         PHA
      A887   98         TYA
      A888   48         PHA
-     A889   A2 16      LDX #&16
+     A889   A2 03      LDX #&03
 .pfh0
-     A88B   B5 10      LDA &10,X
+     A88B   B5 1E      LDA &1E,X
      A88D   9D A2 BB   STA &BBA2,X
      A890   CA         DEX
      A891   10 F8      BPL &A88B
      A893   A5 D2      LDA &D2
-     A895   8D D1 BB   STA &BBD1
+     A895   8D BE BB   STA &BBBE
      A898   A5 D3      LDA &D3
-     A89A   8D D2 BB   STA &BBD2
+     A89A   8D BF BB   STA &BBBF
      A89D   A5 E0      LDA &E0
-     A89F   8D D3 BB   STA &BBD3
+     A89F   8D C0 BB   STA &BBC0
      A8A2   A5 E1      LDA &E1
-     A8A4   8D D4 BB   STA &BBD4
+     A8A4   8D C1 BB   STA &BBC1
      A8A7   A2 00      LDX #&00
      A8A9   8E A9 7E   STX &7EA9
      A8AC   8E A8 7E   STX &7EA8
-     A8AF   AD D5 BB   LDA &BBD5
+     A8AF   AD C2 BB   LDA &BBC2
      A8B2   A2 10      LDX #&10
      A8B4   20 88 07   JSR &0788
      A8B7   B0 21      BCS &A8DA
@@ -17852,10 +17852,10 @@ S.ELTE &A247  &96D2  &8000  &A247
      A8D5   09 80      ORA #&80
      A8D7   8D AF 7F   STA &7FAF
 .pfh7
-     A8DA   A2 16      LDX #&16
+     A8DA   A2 03      LDX #&03
 .pfh1
      A8DC   BD A2 BB   LDA &BBA2,X
-     A8DF   95 10      STA &10,X
+     A8DF   95 1E      STA &1E,X
      A8E1   CA         DEX
      A8E2   10 F8      BPL &A8DC
      A8E4   68         PLA
@@ -17875,11 +17875,11 @@ S.ELTE &A247  &96D2  &8000  &A247
 .pf_one
      A8F4   48         PHA
      A8F5   A0 00      LDY #&00
-     A8F7   8C D7 BB   STY &BBD7
+     A8F7   8C C4 BB   STY &BBC4
      A8FA   98         TYA
      A8FB   20 66 07   JSR &0766
      A8FE   68         PLA
-     A8FF   8D D6 BB   STA &BBD6
+     A8FF   8D C3 BB   STA &BBC3
      A902   4C 53 A9   JMP &A953
 .pf_craters
      A905   A2 0F      LDX #&0F
@@ -17917,7 +17917,7 @@ S.ELTE &A247  &96D2  &8000  &A247
      A941   29 03      AND #&03
      A943   AA         TAX
      A944   BD 4E A9   LDA &A94E,X
-     A947   8D D6 BB   STA &BBD6
+     A947   8D C3 BB   STA &BBC3
      A94A   4C 53 A9   JMP &A953
 .pfc9
      A94D   60         RTS
@@ -17968,7 +17968,7 @@ S.ELTE &A247  &96D2  &8000  &A247
      A99A   A2 07      LDX #&07
 .pcl2
      A99C   BD E9 06   LDA &06E9,X
-     A99F   9D B9 BB   STA &BBB9,X
+     A99F   9D A6 BB   STA &BBA6,X
      A9A2   CA         DEX
      A9A3   10 F7      BPL &A99C
      A9A5   AD C7 7F   LDA &7FC7
@@ -17986,9 +17986,9 @@ S.ELTE &A247  &96D2  &8000  &A247
      A9C1   8E D9 7F   STX &7FD9
      A9C4   8E DB 7F   STX &7FDB
      A9C7   8E DF 7F   STX &7FDF
-     A9CA   AD D5 BB   LDA &BBD5
+     A9CA   AD C2 BB   LDA &BBC2
      A9CD   8D DE 7F   STA &7FDE
-     A9D0   AE D6 BB   LDX &BBD6
+     A9D0   AE C3 BB   LDX &BBC3
      A9D3   20 99 B1   JSR &B199
      A9D6   8D DD 7F   STA &7FDD
      A9D9   AD 09 07   LDA &0709
@@ -18006,7 +18006,7 @@ S.ELTE &A247  &96D2  &8000  &A247
      A9F7   AD FA 7F   LDA &7FFA
      A9FA   4A         LSR A
      A9FB   6A         ROR A
-     A9FC   4D D7 BB   EOR &BBD7
+     A9FC   4D C4 BB   EOR &BBC4
      A9FF   29 80      AND #&80
      AA01   8D 0C 07   STA &070C
      AA04   A2 00      LDX #&00
@@ -18033,11 +18033,11 @@ S.ELTE &A247  &96D2  &8000  &A247
      AA29   AD 11 07   LDA &0711
      AA2C   C9 80      CMP #&80
      AA2E   AD 12 07   LDA &0712
-     AA31   7D D1 BB   ADC &BBD1,X
-     AA34   9D C8 BB   STA &BBC8,X
+     AA31   7D BE BB   ADC &BBBE,X
+     AA34   9D B5 BB   STA &BBB5,X
      AA37   AD 13 07   LDA &0713
-     AA3A   7D D2 BB   ADC &BBD2,X
-     AA3D   9D C9 BB   STA &BBC9,X
+     AA3A   7D BF BB   ADC &BBBF,X
+     AA3D   9D B6 BB   STA &BBB6,X
      AA40   E8         INX
      AA41   E8         INX
      AA42   E0 04      CPX #&04
@@ -18046,8 +18046,8 @@ S.ELTE &A247  &96D2  &8000  &A247
 .pcl4z
      AA48   A2 03      LDX #&03
 .pcl4w
-     AA4A   BD D1 BB   LDA &BBD1,X
-     AA4D   9D C8 BB   STA &BBC8,X
+     AA4A   BD BE BB   LDA &BBBE,X
+     AA4D   9D B5 BB   STA &BBB5,X
      AA50   CA         DEX
      AA51   10 F7      BPL &AA4A
      AA53   30 14      BMI &AA69
@@ -18065,7 +18065,7 @@ S.ELTE &A247  &96D2  &8000  &A247
      AA6B   8D EA 7F   STA &7FEA
      AA6E   A5 1B      LDA &1B
      AA70   8D EB 7F   STA &7FEB
-     AA73   AD D5 BB   LDA &BBD5
+     AA73   AD C2 BB   LDA &BBC2
      AA76   AA         TAX
      AA77   20 99 B1   JSR &B199
      AA7A   8D E9 7F   STA &7FE9
@@ -18083,12 +18083,12 @@ S.ELTE &A247  &96D2  &8000  &A247
      AA9A   A2 03      LDX #&03
 .pcl6
      AA9C   B5 18      LDA &18,X
-     AA9E   9D C1 BB   STA &BBC1,X
+     AA9E   9D AE BB   STA &BBAE,X
      AAA1   CA         DEX
      AAA2   10 F8      BPL &AA9C
-     AAA4   AD C3 BB   LDA &BBC3
+     AAA4   AD B0 BB   LDA &BBB0
      AAA7   85 20      STA &20
-     AAA9   AD C4 BB   LDA &BBC4
+     AAA9   AD B1 BB   LDA &BBB1
      AAAC   85 21      STA &21
      AAAE   20 D2 B1   JSR &B1D2
      AAB1   AA         TAX
@@ -18097,22 +18097,22 @@ S.ELTE &A247  &96D2  &8000  &A247
      AAB6   E4 20      CPX &20
      AAB8   90 09      BCC &AAC3
      AABA   D0 08      BNE &AAC4
-     AABC   AD C2 BB   LDA &BBC2
+     AABC   AD AF BB   LDA &BBAF
      AABF   C9 40      CMP #&40
      AAC1   90 01      BCC &AAC4
 .pcs1
      AAC3   E8         INX
 .pcs2
-     AAC4   8E C5 BB   STX &BBC5
+     AAC4   8E B2 BB   STX &BBB2
      AAC7   8A         TXA
      AAC8   20 99 B1   JSR &B199
-     AACB   8D C7 BB   STA &BBC7
+     AACB   8D B4 BB   STA &BBB4
      AACE   AD 09 07   LDA &0709
      AAD1   38         SEC
-     AAD2   ED C5 BB   SBC &BBC5
-     AAD5   8D C6 BB   STA &BBC6
+     AAD2   ED B2 BB   SBC &BBB2
+     AAD5   8D B3 BB   STA &BBB3
      AAD8   B0 03      BCS &AADD
-     AADA   CE C7 BB   DEC &BBC7
+     AADA   CE B4 BB   DEC &BBB4
      AADD   2C 0B 07   BIT &070B
      AAE0   30 0F      BMI &AAF1
      AAE2   AD E8 7F   LDA &7FE8
@@ -18250,7 +18250,7 @@ S.ELTE &A247  &96D2  &8000  &A247
      AC04   AD 0A 07   LDA &070A
      AC07   F0 02      BEQ &AC0B
      AC09   A9 03      LDA #&03
-     AC0B   8D CC BB   STA &BBCC
+     AC0B   8D B9 BB   STA &BBB9
      AC0E   8D 0E 07   STA &070E
      AC11   2C 0B 07   BIT &070B
      AC14   10 14      BPL &AC2A
@@ -18260,16 +18260,16 @@ S.ELTE &A247  &96D2  &8000  &A247
      AC1C   AD F8 7F   LDA &7FF8
      AC1F   4D 0C 07   EOR &070C
      AC22   20 27 AD   JSR &AD27
-     AC25   8D CF BB   STA &BBCF
+     AC25   8D BC BB   STA &BBBC
      AC28   D0 0E      BNE &AC38
 .pcm1
      AC2A   AD F8 7F   LDA &7FF8
      AC2D   4D F9 7F   EOR &7FF9
      AC30   20 27 AD   JSR &AD27
-     AC33   8D CF BB   STA &BBCF
+     AC33   8D BC BB   STA &BBBC
      AC36   49 03      EOR #&03
 .pcm2
-     AC38   8D D0 BB   STA &BBD0
+     AC38   8D BD BB   STA &BBBD
      AC3B   A0 00      LDY #&00
      AC3D   38         SEC
 .pct0
@@ -18293,9 +18293,9 @@ S.ELTE &A247  &96D2  &8000  &A247
      AC5F   A2 00      LDX #&00
      AC61   A0 00      LDY #&00
 .pct1
-     AC63   B9 CF BB   LDA &BBCF,Y
+     AC63   B9 BC BB   LDA &BBBC,Y
      AC66   2D 0E 07   AND &070E
-     AC69   59 CF BB   EOR &BBCF,Y
+     AC69   59 BC BB   EOR &BBBC,Y
      AC6C   C9 01      CMP #&01
      AC6E   BD 1A 07   LDA &071A,X
      AC71   69 FF      ADC #&FF
@@ -18310,10 +18310,10 @@ S.ELTE &A247  &96D2  &8000  &A247
      AC86   8D 10 07   STA &0710
      AC89   18         CLC
      AC8A   AD 0F 07   LDA &070F
-     AC8D   6D D3 BB   ADC &BBD3
+     AC8D   6D C0 BB   ADC &BBC0
      AC90   8D 0F 07   STA &070F
      AC93   AD 10 07   LDA &0710
-     AC96   6D D4 BB   ADC &BBD4
+     AC96   6D C1 BB   ADC &BBC1
      AC99   48         PHA
      AC9A   98         TYA
      AC9B   0A         ASL A
@@ -18333,15 +18333,15 @@ S.ELTE &A247  &96D2  &8000  &A247
 .pct2
      ACB6   A9 00      LDA #&00
 .pct4
-     ACB8   99 CD BB   STA &BBCD,Y
-     ACBB   B9 CF BB   LDA &BBCF,Y
+     ACB8   99 BA BB   STA &BBBA,Y
+     ACBB   B9 BC BB   LDA &BBBC,Y
      ACBE   4D 0E 07   EOR &070E
      ACC1   8D 0E 07   STA &070E
      ACC4   A2 03      LDX #&03
      ACC6   C8         INY
      ACC7   C0 02      CPY #&02
      ACC9   D0 98      BNE &AC63
-     ACCB   AD CC BB   LDA &BBCC
+     ACCB   AD B9 BB   LDA &BBB9
      ACCE   29 01      AND #&01
      ACD0   4D FA 7F   EOR &7FFA
      ACD3   4D A9 7E   EOR &7EA9
@@ -18350,10 +18350,10 @@ S.ELTE &A247  &96D2  &8000  &A247
      ACDC   0D 18 07   ORA &0718
      ACDF   0D 19 07   ORA &0719
      ACE2   D0 0F      BNE &ACF3
-     ACE4   AD CF BB   LDA &BBCF
-     ACE7   4D D0 BB   EOR &BBD0
+     ACE4   AD BC BB   LDA &BBBC
+     ACE7   4D BD BB   EOR &BBBD
      ACEA   D0 07      BNE &ACF3
-     ACEC   AD CC BB   LDA &BBCC
+     ACEC   AD B9 BB   LDA &BBB9
      ACEF   C9 03      CMP #&03
      ACF1   F0 33      BEQ &AD26
 .pcy2
@@ -18375,7 +18375,7 @@ S.ELTE &A247  &96D2  &8000  &A247
      AD1A   A2 17      LDX #&17
 .pcy0
      AD1C   88         DEY
-     AD1D   BD B9 BB   LDA &BBB9,X
+     AD1D   BD A6 BB   LDA &BBA6,X
      AD20   99 60 7E   STA &7E60,Y
      AD23   CA         DEX
      AD24   10 F6      BPL &AD1C
@@ -19423,17 +19423,17 @@ End macro PMQ
 .pm_zsave
      BBA2
 .wr
-     BBB9
+     BBA6
 .pcbx
-     BBD1
+     BBBE
 .pcby
-     BBD3
+     BBC0
 .pcr
-     BBD5
+     BBC2
 .pcc
-     BBD6
+     BBC3
 .pcneg
-     BBD7
+     BBC4
 .PFVS_END%
 Flight bank 4: &8000-&A86D  (the hot pass), 2706  (the planet's surface), free 0 
 Flight main RAM part: low pass &7970 -&79B1 , hot pass to &7E30 , free 47 
