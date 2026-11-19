@@ -486,7 +486,7 @@
   LDA r_yend
   STA pb_ye_e+1
   STA pb_ye_o+1
-  LDA #190                \ nothing planted
+  LDA #R_NOPL             \ nothing planted
   STA RZ_PP
   LDA R_COLE              \ rows 4k, 4k+1 take COLE, COLO; rows 4k+2, 4k+3
   EOR R_COL2              \ COL2, COL3: RZ_CE/RZ_CO = this row pair's, toggled
@@ -608,7 +608,7 @@
   CMP RZ_PP
   BNE pb_plant_e
 .pb_go_e
-  LDY RZ_Y                \ (the run is indexed by the row)
+  LDY RZ_PA               \ (the run is indexed by the line, row AND 7)
   LDA RZ_CE
 .r_jsr2_e
   JSR &FFFF
@@ -669,7 +669,7 @@
   CMP RZ_PP
   BNE pb_plant_o
 .pb_go_o
-  LDY RZ_Y                \ (the run is indexed by the row)
+  LDY RZ_PA               \ (the run is indexed by the line, row AND 7)
   LDA RZ_CO
 .r_jsr2_o
   JSR &FFFF
@@ -749,7 +749,7 @@
   TAX                     \ next character row: new run page (NMOS: X = 0
   LDA #r_opSTA            \ from A = row AND 7, for (RZ_PP,X), as Y = RZ_Y
   STA (RZ_PP,X)           \ is kept; RZ_PA/RZ_PB's low bytes are 0 already)
-  LDA #190
+  LDA #R_NOPL
   STA RZ_PP
   LDX RZ_PA+1             \ (NMOS: the pages in X, for INX)
   INX

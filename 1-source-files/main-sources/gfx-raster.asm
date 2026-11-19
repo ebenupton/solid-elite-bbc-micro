@@ -207,7 +207,7 @@ l_b  = &20
 l_x  = &21
 l_k  = &22              \ kind (0..3)
 
-r_opSTA = &99           \ STA abs,Y (the row runs are indexed by the row, as bank 7's)
+r_opSTA = &99           \ STA abs,Y (the row runs are indexed by the line, row AND 7)
 r_opRTS = &60
 
 
@@ -333,14 +333,15 @@ ASSERT HI(BUF0) = &10 AND HI(SCREEN%) = &40   \ (r_ypg0's and r_ypg's pages)
 \ ============================================================================
 \ r_pgfix (Model B): A = a run page.  The runs are assembled for buffer 1
 \ (SCREEN%, &4000); buffer 0's screen (BUF0, &1000) is &3000 lower.  If this
-\ bank's copy of the page is not for the buffer R_SETBUF chose, the high byte
-\ of each of its 63 stores' addresses has &30 taken off or added, seven
-\ stores a pass, by SBC or ADC #&30 with the carry left as it was set (the
-\ high bytes are &10-&3F or &40-&6F: nothing carries out), X counting the
-\ passes (the Tube's Model B host's patcher: about 12 cycles a store).  The
-\ page last checked for the buffer is noted, so a run of rows in one
-\ character row costs one test.  Keeps X and Y, and leaves C = 0 (as
-\ r_rowset must).
+\ bank's copy of the page is not for the buffer R_SETBUF chose, the high
+\ bytes of its 63 stores' addresses are written straight: the character
+\ row's page in the buffer for columns 1 to 31, the next page for 32 to 63
+\ (a run's store of column c is STA B + 8 c, Y, B the character row's
+\ address in column 0, line 0: gfx-raster.asm's bank 5 runs), eight stores
+\ a pass, X counting the passes: columns 1 to 32 first, then 32 to 63
+\ (column 32's store written twice; about 7 cycles a store).  The page last
+\ checked for the buffer is noted, so a run of rows in one character row
+\ costs one test.  Keeps X and Y, and leaves C = 0 (as r_rowset must).
 \ ============================================================================
 .r_pgfix
 {
@@ -359,30 +360,26 @@ ASSERT HI(BUF0) = &10 AND HI(SCREEN%) = &40   \ (r_ypg0's and r_ypg's pages)
   CLC
   RTS
 .fix
-  LDA R_PRBUF             \ the page is now for this buffer
-  STA r_pgtag-HI(r_run0),X
   STY pfy
-  TXA                     \ the page into the loop's loads and stores
-FOR k, 0, 6
-  STA lp + 5 + 8 * k
-  STA lp + 10 + 8 * k
+  LDY R_PRBUF             \ the page is now for this buffer
+  TYA
+  STA r_pgtag-HI(r_run0),X
+  TXA                     \ the page into the loop's stores
+FOR k, 0, 7
+  STA lp + 5 + 3 * k
 NEXT
-  LDX R_PRBUF
-  LDA r_pgop,X            \ buffer 0: SBC #&30, carry set; buffer 1: ADC #&30,
-FOR k, 0, 6               \ carry clear
-  STA lp + 6 + 8 * k
+  ASL A                   \ the character row's page in the buffer (for
+  ADC r_pgb,Y             \ columns 1 to 32): 2 r + HI(buffer), from 2
+  LDX #7                  \ (HI(r_run0) + r) and the carry out of it (1)
+.lp                       \ the stores' high bytes: offsets 2, 5, .. 188, eight
+  LDY r_pgy,X             \ a pass
+FOR k, 0, 7
+  STA &FF02 + 3 * k,Y     \ (the page)
 NEXT
-  TXA
-  EOR #1
-  LSR A
-  LDX #8                  \ the stores' high bytes: offsets 2, 5, .. 188, seven
-.lp                       \ a pass, 21 apart
-  LDY r_pgy,X
-FOR k, 0, 6
-  LDA &FF02 + 3 * k,Y
-  ADC #&30
-  STA &FF02 + 3 * k,Y
-NEXT
+  CPX #4                  \ columns 32 to 63: the next page (C = 1)
+  BNE nx
+  ADC #0
+.nx
   DEX
   BPL lp
   LDY pfy
@@ -397,11 +394,12 @@ NEXT
 FOR i, 0, 23              \ assembled: 1)
   EQUB 1
 NEXT
-.r_pgop EQUB &E9, &69     \ to buffer 0: SBC #; to buffer 1: ADC #
-.r_pgy                    \ the loop's passes' Y
-FOR i, 0, 8
-  EQUB 21 * i
-NEXT
+.r_pgb                    \ per buffer: HI(its screen) - 1 - 2 HI(r_run0)
+  EQUB LO(HI(BUF0) - 1 - 2 * HI(r_run0)), LO(HI(SCREEN%) - 1 - 2 * HI(r_run0))
+.r_pgy                    \ the loop's passes' Y (X = 7 down to 0): the store of
+  EQUB 93, 117, 141, 165  \ column 32, 40, 48, 56 (offset 3 (c - 1)), then of
+  EQUB 0, 24, 48, 72      \ column 1, 9, 17, 25
+ASSERT HI(r_run0) >= &80   \ (r_pgfix: the carry out of 2 x a run page)
 
 \ ============================================================================
 \ r_spc: the span core.  Row set up (r_rowset), RZ_COL = colour byte,
@@ -431,7 +429,7 @@ NEXT
   LDA #r_opRTS
 .^r_spl
   STA &FF00,X             \ (high byte: the run page)
-  LDY RZ_Y                \ (the run is indexed by the row)
+  LDY RZ_PA               \ (the run is indexed by the line, row AND 7)
   LDA RZ_COL
 .^r_jsr
   JSR &FFFF
@@ -655,11 +653,14 @@ FOR x, 0, 255
 NEXT
 
 \ ============================================================================
-\ The store runs: one page per character row r (24), STA &4000+&200r+8c-8r,Y
-\ (Y = the row: the same form as bank 7's r7_rrun) for c = 1..63, then RTS
-\ and a spare 0 (the 'nothing planted' target, offset 190): R_RUNSZ bytes,
-\ for buffer 1 (as r_pgtag has them), in R.BANK. The 65 bytes after each
-\ run hold the stars' records and variables. The run pages are a place of
+\ The store runs: one page per character row r (24), STA &4000+&200r+8c,Y
+\ (Y = the line, row AND 7) for c = 1..63, then RTS and a spare 0 (the
+\ 'nothing planted' target, offset R_NOPL): R_RUNSZ bytes, for buffer 1 (as
+\ r_pgtag has them), in R.BANK.  The store of column c is at offset
+\ 3 (c - 1) (r_jm); a store's high byte is the character row's page for
+\ columns 1 to 31, the next for 32 to 63 (r_pgfix).  The 65 bytes after
+\ each run hold the stars' records and variables (in run pages 11 to 14,
+\ the last 64 are DFS's workspace page: DFSTAIL%). The run pages are a place of
 \ their own, at a page whose number is a multiple of 32 (the repair: the
 \ row's run page is Y DIV 8 OR HI(r_run0)), from bank 5's start
 \ (gfx-bank5.asm).
@@ -667,12 +668,13 @@ NEXT
 \       Area: bank 5 runs
 \ ============================================================================
 R_RUNSZ = 3 * 63 + 2
+R_NOPL = R_RUNSZ - 1
 
 MACRO R_RUN r
   ASSERT P% = r_run0 + r * &100
   FOR c, 1, 63
     EQUB &99              \ STA abs,Y (r_opSTA)
-    EQUW &4000 + &200 * r + 8 * c - 8 * r
+    EQUW &4000 + &200 * r + 8 * c
   NEXT
   EQUB &60, 0             \ RTS (r_opRTS), the spare 0
 ENDMACRO

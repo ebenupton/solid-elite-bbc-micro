@@ -157,11 +157,17 @@ c_DZ  = &27
   LDA #0
 .fs2
   STA R_DIRTYR0,Y
+  STY RZ_Y                \ (the run is indexed by the line, row AND 7)
+  TYA
+  AND #7
+  TAY
+  LDA #0
 .fj
   JSR &FFFF               \ patched: straight into the row run (the run keeps
   LDA #r_opSTA            \ X and Y)
 .fpr
   STA &FF00,X             \ (the run page)
+  LDY RZ_Y
 .fnx
   INY
   CPY c_YE
@@ -230,11 +236,16 @@ c_DZ  = &27
   LDA #r_opRTS
 .rpl
   STA &FF00,X
+  STY RZ_Y                \ (the run is indexed by the line, row AND 7)
+  TYA
+  AND #7
+  TAY
   LDA #0
   JSR rj
   LDA #r_opSTA
 .rpr
   STA &FF00,X
+  LDY RZ_Y
 .nx
   RTS
 .rj

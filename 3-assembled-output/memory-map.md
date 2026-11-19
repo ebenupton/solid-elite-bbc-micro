@@ -42,10 +42,10 @@
 | bank 5 | `&8000-&97FF` | the 24 row runs, a page each; in their tails the stars' records and variables, `R_LINE`'s, DFS's workspace page between disc commands (`DFSTAIL%`: 64 bytes in each of four), and in tails 7, 15, 17, 18, 19, 20, 21, 22, 23 the flight code's cold 5 pass (`Area: cold 5`: `elite-flight-c5.asm`, `C5_r.bin`; `C5TAILS`) (free: the 0 other tails with nothing in them, 65 bytes each, the rest of the others, and the cold 5 tails' room) | 5841 | 303 |
 | bank 5 | `&9800-&A7FF` | `R_POLY`, `R_LINE` | 4086 | 10 |
 | bank 5 | `&A800-&ADFF` | the state: the dirty and written extents, `R_POLY`'s edge tables | 1536 | 0 |
-| bank 5 | `&AE00-&B0EC` | `R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic | 749 | 0 |
-| bank 5 | `&B0ED-&B3FF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt` | 692 | 95 |
-| bank 5 | `&B400-&BF93` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 2964 | 0 |
-| bank 5 | `&BF94-&BFFF` | `RJT`, the jump table | 42 | 66 |
+| bank 5 | `&AE00-&B0A5` | `R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic | 678 | 0 |
+| bank 5 | `&B0A6-&B3FF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt` | 692 | 166 |
+| bank 5 | `&B400-&BFA5` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 2982 | 0 |
+| bank 5 | `&BFA6-&BFFF` | `RJT`, the jump table | 42 | 48 |
 | bank 6 | `&8000-&8145` | the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`) | 284 | 42 |
 | bank 6 | `&8146-&ABE2` | the frame layer's code (bank 6 passes) | 10909 | 0 |
 | bank 6 | `&ABE3-&AF00` | the faces' and the lighting's tables | 798 | 0 |
@@ -55,4 +55,4 @@
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 31, main RAM (flight) 27, main RAM (docked) 1096, bank 4 (flight) 59, bank 4 (docked) 3165, bank 7 (flight) 488, bank 7 (docked) 4987, bank 5 474, bank 6 105.
+Free, by place: main RAM 31, main RAM (flight) 27, main RAM (docked) 1096, bank 4 (flight) 59, bank 4 (docked) 3165, bank 7 (flight) 488, bank 7 (docked) 4987, bank 5 527, bank 6 105.

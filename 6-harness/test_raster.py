@@ -460,10 +460,10 @@ def main():
     rnd = random.Random(a.seed)
     m.call('R_INIT')
     r0 = m.syms['r_run0']                        # (the row runs: STA &4000 + &200 r +
-    for r in range(24):                          # 8 c - 8 r, Y for c = 1..63, RTS, 0:
+    for r in range(24):                          # 8 c, Y for c = 1..63, RTS, 0:
         run = []                                 # gfx-raster.asm)
         for c in range(1, 64):
-            a_ = 0x4000 + 0x200 * r + 8 * c - 8 * r
+            a_ = 0x4000 + 0x200 * r + 8 * c
             run += [0x99, a_ & 255, a_ >> 8]
         if m.mem[r0 + 256 * r:r0 + 256 * r + len(run) + 2] != run + [0x60, 0]:
             raise SystemExit('R_INIT: row run %d is not as assembled' % r)
