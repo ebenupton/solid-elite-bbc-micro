@@ -18744,7 +18744,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate (Y X) = (A P) * 4
-\       Area: cold
+\       Area: overlay 2
 \
 \ ------------------------------------------------------------------------------
 \
