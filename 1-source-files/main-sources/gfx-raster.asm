@@ -531,7 +531,7 @@ NEXT
 
 \ ----------------------------------------------------------------------------
 \ The polygon window's arithmetic (R_POLY's phase A, gfx-raster_poly.asm),
-\ here for room: r_div8, r_dvq and the 32-bit multiply and divide with their
+\ here for room: r_div8 and the 32-bit multiply and divide with their
 \ variables (none uses anything of the polygon window's)
 \ ----------------------------------------------------------------------------
 \ r_div8: A / r_v0 -> r_m0 quotient (and X: r7_esgen uses it), A remainder.
@@ -559,57 +559,6 @@ NEXT
   RTS
 }
 
-\ r_dvq: A / RZ_T1 (A >= RZ_T1 >= 1) -> r_m0 quotient, A remainder.
-\ Repeated subtraction when the quotient is small (divisor >= 16).
-.r_dvq
-{
-  LDX RZ_T1
-  CPX #16
-  BCC small
-  LDX #&FF                \ divisor >= 16: quotient < 16
-  SEC
-.lp
-  INX
-  SBC RZ_T1
-  BCS lp
-  ADC RZ_T1
-  STX r_m0
-  RTS
-.small
-  STA RZ_T6               \ divisor < 16: quotient < 16 unless A >= 16 * d
-  TXA
-  ASL A
-  ASL A
-  STA RZ_T7               \ 4d
-  ASL A
-  ASL A                   \ 16d (< 256)
-  CMP RZ_T6
-  BEQ long
-  BCC long
-  LDA RZ_T6
-  LDX #&FC
-  SEC
-.l4
-  INX
-  INX
-  INX
-  INX
-  SBC RZ_T7
-  BCS l4
-  ADC RZ_T7
-  DEX
-.l1
-  INX
-  SBC RZ_T1
-  BCS l1
-  ADC RZ_T1
-  STX r_m0
-  RTS
-.long
-  LDX RZ_T1
-  STX r_v0
-  JMP r_div8+2            \ (RZ_T6 already holds the dividend: skip r_div8's STA RZ_T6)
-}
 \ the 32-bit multiply and divide
 .rp_m0 EQUB 0           \ 32-bit dividend / product; quotient m0,m1
 .rp_m1 EQUB 0
@@ -762,7 +711,7 @@ R_ENDPAGE 6
 .r_run7 R_RUN 7
 R_ENDPAGE 7
 .r_run8 R_RUN 8
-.r_m0 SKIP 1            \ r_div8, r_dvq: quotient
+.r_m0 SKIP 1            \ r_div8: quotient
 .r_v0 SKIP 1            \ r_div8: divisor
 R_ENDPAGE 8
 .r_run9 R_RUN 9
