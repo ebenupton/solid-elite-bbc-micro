@@ -854,8 +854,8 @@ NEXT
  BPL lbk1
 
  JSR pload              \ Load R.BANK to STAGE% and copy it into bank 5, from
- LDA BANK5              \ R_IMG% (bank5-entry.asm: below it are the row runs,
- LDX #HI(&C000 - R_IMG%)   \ which R_INIT makes)
+ LDA BANK5              \ R_IMG% (bank5-entry.asm: the bank's start)
+ LDX #HI(&C000 - R_IMG%)
  LDY #HI(R_IMG%)
  JSR bcopy
 

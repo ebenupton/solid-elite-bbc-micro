@@ -38,53 +38,13 @@
 }
 
 \ ============================================================================
-\ R_INIT: make the 24 row runs (gfx-raster.asm), which R.BANK does not
-\ carry: in run page r, STA &4000 + &200 r + 8 c - 8 r, Y for c = 1 to 63,
-\ an RTS and a 0, for buffer 1 (as r_pgtag has them); row r + 1's first
-\ store is row r's last + 8. Then R_LINE's buffer (none yet) and the state.
+\ R_INIT: R_LINE's buffer (none yet) and the state (the row runs are in
+\ R.BANK: gfx-raster.asm).
 \
 \       Area: bank 5 end
 \ ============================================================================
 .R_INIT
 {
-  LDA #LO(&4008)          \ RZ_T0(1 0) = row 0's first store's address
-  STA RZ_T0
-  LDA #HI(&4008)
-  STA RZ_T1
-  LDA #0                  \ RZ_PP(1 0) = run page 0
-  STA RZ_PP
-  LDA #HI(r_run0)
-  STA RZ_PP+1
-.pg
-  LDY #0
-.st
-  LDA #r_opSTA            \ STA RZ_T0(1 0),Y
-  STA (RZ_PP),Y
-  INY
-  LDA RZ_T0
-  STA (RZ_PP),Y
-  INY
-  LDA RZ_T1
-  STA (RZ_PP),Y
-  INY
-  LDA RZ_T0               \ the next store's address, 8 on
-  CLC
-  ADC #8
-  STA RZ_T0
-  BCC nc
-  INC RZ_T1
-.nc
-  CPY #R_RUNSZ - 2
-  BNE st
-  LDA #r_opRTS            \ the RTS and the spare 0
-  STA (RZ_PP),Y
-  INY
-  LDA #0
-  STA (RZ_PP),Y
-  INC RZ_PP+1             \ the next row's page
-  LDA RZ_PP+1
-  CMP #HI(r_run0) + 24
-  BNE pg
   LDA #&FF                \ R_LINE's DIRTY operands are for no buffer yet
   STA rl_lbuf
   JMP r_setup

@@ -709,11 +709,11 @@ NEXT
 \ The store runs: one page per character row r (24), STA &4000+&200r+8c-8r,Y
 \ (Y = the row: the same form as bank 7's r7_rrun) for c = 1..63, then RTS
 \ and a spare 0 (the 'nothing planted' target, offset 190): R_RUNSZ bytes,
-\ which R_INIT makes at start (gfx-raster_init.asm), so that R.BANK does not
-\ carry them. The 65 bytes after each run hold the stars' records and
-\ variables. The run pages are a place of their own, at a page whose number
-\ is a multiple of 32 (the repair: the row's run page is Y DIV 8 OR
-\ HI(r_run0)), from bank 5's start (gfx-bank5.asm).
+\ for buffer 1 (as r_pgtag has them), in R.BANK. The 65 bytes after each
+\ run hold the stars' records and variables. The run pages are a place of
+\ their own, at a page whose number is a multiple of 32 (the repair: the
+\ row's run page is Y DIV 8 OR HI(r_run0)), from bank 5's start
+\ (gfx-bank5.asm).
 \
 \       Area: bank 5 runs
 \ ============================================================================
@@ -721,7 +721,11 @@ R_RUNSZ = 3 * 63 + 2
 
 MACRO R_RUN r
   ASSERT P% = r_run0 + r * &100
-  SKIP R_RUNSZ            \ (made at start: R_INIT)
+  FOR c, 1, 63
+    EQUB &99              \ STA abs,Y (r_opSTA)
+    EQUW &4000 + &200 * r + 8 * c - 8 * r
+  NEXT
+  EQUB &60, 0             \ RTS (r_opRTS), the spare 0
 ENDMACRO
 
 MACRO R_ENDPAGE r

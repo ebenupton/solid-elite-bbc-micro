@@ -110,13 +110,13 @@ row("bank 7 (flight)", FL["WIN7%"], dpst, "the renderer's window (bank 7 passes:
 row("bank 7 (flight)", dpst, dfss, "the workspace: each buffer's disc state (not in the image: `DP_BEGIN` sets it up), buffer 0's sharing its first `&2E2` bytes with `ovload`'s stash of `WP` and the zero page during an overlay's load (`OVSTASH`)")
 row("bank 7 (docked)", 0x8000, dfss, "the set's face lists, the cold pass, `QQ18`", DK["COLD_END%"] - 0x8000)
 
-rjt, img, st = B5["RJT"], B5["R_IMAGE"], B5["R_DIRTYL0"]
+rjt, img, st = B5["RJT"], B5["R_LOW"], B5["R_DIRTYL0"]
 run0 = B5["r_run0"]                    # (a run page's tail, after its 190-byte run and the
 tails = [sum(1 for v in set(B5.values()) if run0 + 0x100 * p + 191 <= v < run0 + 0x100 * (p + 1))   # spare byte)
          for p in range(24)]
 tail_used = sum(min(65, max(0, max([v for v in B5.values() if run0 + 0x100 * p + 191 <= v < run0 + 0x100 * (p + 1)] or [run0 + 0x100 * p + 190]) - (run0 + 0x100 * p + 190))) for p in range(24))
 empty = sum(1 for t in tails if t == 0) - 4   # (runs 11 to 14's hold DFS's page: DFSTAIL%)
-row("bank 5", run0, img, "the 24 row runs, a page each, made at start by `R_INIT` (not in `R.BANK`); in their tails the stars' records and variables, `R_LINE`'s, and DFS's workspace page between disc commands (`DFSTAIL%%`: 64 bytes in each of four; free: the %d tails with nothing in them, 65 bytes each, and the rest of the others)" % empty,
+row("bank 5", run0, img, "the 24 row runs, a page each; in their tails the stars' records and variables, `R_LINE`'s, and DFS's workspace page between disc commands (`DFSTAIL%%`: 64 bytes in each of four; free: the %d tails with nothing in them, 65 bytes each, and the rest of the others)" % empty,
     0x1800 - 65 * 24 + (B5["rl_nh"] + 1 - B5["rl_lct"]) + 8 * 48 + 4 + 2 + 9 + 4 * 64)
 row("bank 5", img, st, "`R_POLY`, `R_LINE`", B5["R_LOEND"] - img)
 row("bank 5", st, st + 0x600, "the state: the dirty and written extents, `R_POLY`'s edge tables")

@@ -157,8 +157,8 @@ The renderer's files are placed the same way: each is one file, whatever
 places its blocks go to, and each block's place is named by its `Area:`
 line: `bank 4` (the flight code's home bank: the planet's surface in game
 context, `gfx-planet7.asm` and `gfx-merid.asm`'s first blocks), `bank 5
-runs`, `bank 5`, `bank 5 gap` and `bank 5 end` (the row runs' pages, which
-`R_INIT` makes at start, with the state in their tails; the rasteriser's
+runs`, `bank 5`, `bank 5 gap` and `bank 5 end` (the row runs' pages, with
+the state in their tails; the rasteriser's
 code; the room below its per-x tables; the code after the disc layer's
 requests), `bank 6` (the frame layer), `bank 7` (the flight code's cold bank:
 the disc layer's painter in the renderer's window) and `main` (the glue, in
@@ -462,13 +462,13 @@ what the frames can use, the docked code's are free only while docked.
 | bank 7 (flight) | `&B300-&BEFF` | the workspace: each buffer's disc state (not in the image: `DP_BEGIN` sets it up), buffer 0's sharing its first `&2E2` bytes with `ovload`'s stash of `WP` and the zero page during an overlay's load (`OVSTASH`) | 3072 | 0 |
 | bank 7 | `&BF00-&BFFF` | DFS's workspace page between disc commands (`DFSSAVE%`) | 256 | 0 |
 | bank 7 (docked) | `&8000-&BEFF` | the set's face lists, the cold pass, `QQ18` | 11397 | 4731 |
-| bank 5 | `&8000-&97FF` | the 24 row runs, a page each, made at start by `R_INIT` (not in `R.BANK`); in their tails the stars' records and variables and `R_LINE`'s (free: the 13 tails with nothing in them, 65 bytes each, and the rest of the others) | 5022 | 1122 |
-| bank 5 | `&9800-&A7FF` | `R_POLY`, `R_LINE` | 4027 | 69 |
+| bank 5 | `&8000-&97FF` | the 24 row runs, a page each; in their tails the stars' records and variables and `R_LINE`'s (free: the 13 tails with nothing in them, 65 bytes each, and the rest of the others) | 5022 | 1122 |
+| bank 5 | `&9800-&A7FF` | `R_POLY`, `R_LINE` | 4086 | 10 |
 | bank 5 | `&A800-&ADFF` | the state: the dirty and written extents, `R_POLY`'s edge tables | 1536 | 0 |
-| bank 5 | `&AE00-&B132` | `R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic | 819 | 0 |
-| bank 5 | `&B133-&B3FF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt` | 692 | 25 |
-| bank 5 | `&B400-&BFD4` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 3029 | 0 |
-| bank 5 | `&BFD5-&BFFF` | `RJT`, the jump table | 42 | 1 |
+| bank 5 | `&AE00-&B0EC` | `R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic | 749 | 0 |
+| bank 5 | `&B0ED-&B3FF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt` | 692 | 95 |
+| bank 5 | `&B400-&BF93` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 2964 | 0 |
+| bank 5 | `&BF94-&BFFF` | `RJT`, the jump table | 42 | 66 |
 | bank 6 | `&8000-&8245` | the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`) | 582 | 0 |
 | bank 6 | `&8246-&AB5E` | the frame layer's code (bank 6 passes) | 10521 | 0 |
 | bank 6 | `&AB5F-&AE7C` | the faces' and the lighting's tables | 798 | 0 |

@@ -1461,7 +1461,7 @@ def text_tokens(errors):
 # and runs to the next tag line. The places (RPLACES) are the renderer's
 # banks and the room in them: bank 4 (the flight code's home bank: the
 # planet's surface in game context, elite-layout-flight.asm), bank 5 runs
-# (the row run pages, made at start, and the state in their tails), bank 5
+# (the row run pages and the state in their tails), bank 5
 # (the rasteriser's code, gfx-bank5.asm), bank 5 gap (the room below its
 # per-x tables), bank 5 end (the code after the disc layer's requests), bank 6 (the frame layer, gfx-bank6.asm), bank 7 (the flight
 # code's cold bank: the renderer's window after its overlays) and main (the

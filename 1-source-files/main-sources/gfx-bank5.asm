@@ -8,9 +8,9 @@
 \ and shared region in bank 5); here bank 5 holds the rasteriser without its
 \ disc layer, which the flight code's window in bank 7 holds:
 \
-\   &8000-&97FF  the 24 row runs, a page each, which R_INIT makes at start
-\                (gfx-raster.asm's bank 5 runs: not in the image), with the
-\                stars' records and variables, and R_LINE's, in their tails
+\   &8000-&97FF  the 24 row runs, a page each (gfx-raster.asm's bank 5
+\                runs), with the stars' records and variables, and R_LINE's,
+\                in their tails
 \   &9800-&A7FF  R_POLY (both phases) and R_LINE (gfx-raster_poly.asm,
 \                gfx-raster_line.asm)
 \   &A800-&ADFF  the state: each buffer's dirty extents, this frame's written
@@ -27,9 +27,9 @@
 \                the jump table, its address for the glue from this
 \                assembly (bank5.py)
 \
-\ Each region is where it was before the runs were made at start, moved by
-\ whole pages (the runs came after the per-x tables), so that no branch or
-\ indexed read crosses a page that it did not.
+\ Each region is where it was before the runs moved to the bank's start,
+\ moved by whole pages (the runs came after the per-x tables), so that no
+\ branch or indexed read crosses a page that it did not.
 \
 \ Each file is placed by its passes (2-build-files/streams.py: every block's
 \ "Area:" line names its place): this file INCLUDEs the bank 5 runs pass, the
@@ -41,8 +41,9 @@
 \ The row runs are made for buffer 1 (SCREEN%, &4000); r_pgfix moves a run
 \ page's stores to the buffer it is used for (gfx-raster.asm).
 \
-\ The image, BANK5.bin (R.BANK), is from R_IMG% (R_POLY) to the bank's end:
-\ bank5.py writes R_IMG% for the loader, which copies it there.
+\ The image, BANK5.bin (R.BANK), is the whole bank, the row runs included:
+\ bank5.py writes its start, R_IMAGE, as R_IMG% for the loader, which
+\ copies it there.
 \
 \ ******************************************************************************
 
@@ -51,15 +52,16 @@
 
  CPU 0                  \ (the NMOS 6502: no 65C02 instruction in this bank)
 
- R_IMG% = &9800         \ R_POLY and R_LINE, then the rest of the bank: the image
+ R_LO% = &9800          \ R_POLY and R_LINE
  R_ST% = &A800          \ the state
  R_TAB% = &B400         \ the per-x tables
 
  CLEAR &8000, &C000
 
- ORG &8000              \ the row runs (made at start) and their tails
+ ORG &8000              \ the row runs and their tails
+.R_IMAGE                \ (for bank5.py: the image's start)
  INCLUDE "3-assembled-output/gfx-raster-bank5runs.asm"
- ASSERT P% = R_IMG%
+ ASSERT P% = R_LO%
 
  ORG R_ST%
 
@@ -115,13 +117,13 @@
  ORG PFVH%              \ (pf_tilt's variables in main RAM, as the flight code's
  INCLUDE "3-assembled-output/gfx-planet7-mainhigh.asm"   \ layout places them)
 
- ORG R_IMG%
+ ORG R_LO%
  GUARD R_ST%
-.R_IMAGE                \ (for bank5.py: the image's start)
+.R_LOW                  \ (for mapcheck.py: R_POLY and R_LINE)
  INCLUDE "3-assembled-output/gfx-raster_poly-bank5.asm"
  INCLUDE "3-assembled-output/gfx-raster_line-bank5.asm"
 .R_LOEND
 
- PRINT "Bank 5 (rasteriser): the row runs &8000-", ~R_IMG%-1, " (made at start), ", ~R_IMG%, "-", ~R_LOEND-1, " (free ", R_ST%-R_LOEND, "), ", ~R_ST%+&600, "-", ~R_HIEND-1, " (the jump table &", ~RJT, "-", ~RJT_END-1, "; free ", &C000-R_HIEND, "), R_LINE's cold part, R_RESETBUF, r_wq and pf_tilt to ", ~R_GAPEND-1, " (free ", r_tables-R_GAPEND, ")"
+ PRINT "Bank 5 (rasteriser): the row runs &8000-", ~R_LO%-1, ", ", ~R_LO%, "-", ~R_LOEND-1, " (free ", R_ST%-R_LOEND, "), ", ~R_ST%+&600, "-", ~R_HIEND-1, " (the jump table &", ~RJT, "-", ~RJT_END-1, "; free ", &C000-R_HIEND, "), R_LINE's cold part, R_RESETBUF, r_wq and pf_tilt to ", ~R_GAPEND-1, " (free ", r_tables-R_GAPEND, ")"
 
- SAVE "3-assembled-output/BANK5.bin", R_IMG%, &C000, R_IMG%
+ SAVE "3-assembled-output/BANK5.bin", R_IMAGE, &C000, R_IMAGE

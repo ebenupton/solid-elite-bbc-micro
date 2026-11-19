@@ -5,8 +5,8 @@
 
 Assembles 1-source-files/main-sources/gfx-bank5.asm (the BBC Master port's
 rasteriser in NMOS 6502 code, gfx-raster*.asm, laid out for the Model B's
-bank 5) and writes 3-assembled-output/BANK5.bin (from R_IMG% to &C000: the
-row runs below, which R_INIT makes, are not in it), bank5-symbols.txt, and
+bank 5) and writes 3-assembled-output/BANK5.bin (from R_IMG%, the bank's
+start, to &C000: the row runs and all), bank5-symbols.txt, and
 bank5-entry.asm (the address of its jump table, RJT, for the glue's
 trampolines: gfx-glue.asm, and R_IMG%, for the loader), appending the
 assembly's report to compile.txt.
