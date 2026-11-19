@@ -118,6 +118,8 @@ c_DZ  = &27
   STA sd2+2
   STA fl2+2
   STA fs2+2
+  LDA #0                  \ (no run page in the fast path's operands yet)
+  STA fj+2
 .frow                     \ fast path: extent inside columns 1..62
 .fl2
   LDA R_DIRTYR0,Y
@@ -147,10 +149,13 @@ c_DZ  = &27
   LSR A
   LSR A
   ORA #HI(r_run0)         \ (= ADC: Y DIV 8 < 32)
+  CMP fj+2                \ the page the operands have, so checked for this
+  BEQ fpg                 \ buffer already in this call: nothing to do
   STA fj+2
   STA fpl+2
   STA fpr+2
   JSR r_pgfix             \ (Model B: its stores for this buffer; keeps X, Y)
+.fpg
   LDA #r_opRTS
 .fpl
   STA &FF00,X             \ (the run page)
@@ -313,6 +318,11 @@ c_DZ  = &27
 .drh EQUB HI(R_DIRTYR0), HI(R_DIRTYR1)
 }
 
+\ r_wclear, R_SPANM and R_MARKBOX: in the room below the per-x tables, for
+\ room
+\
+\       Area: bank 5 gap
+
 \ ============================================================================
 \ r_wclear: R_WR[R_PRWT .. R_PRWB] = 0, in blocks of 8 rows from (R_PRWB OR 7)
 \ down to (R_PRWT AND &F8): the rows of those blocks outside R_PRWT..R_PRWB
@@ -360,13 +370,11 @@ c_DZ  = &27
   JMP R_MARKDIRTY
 
 \ ============================================================================
-\ R_MARKBOX (in the room below the per-x tables, for room): R_MARKDIRTY for
+\ R_MARKBOX (Model B): R_MARKDIRTY for
 \ rows Y .. R_BY1 (the one row Y if
 \ R_BY1 is less), each by R_XL..R_XR (the lens flare's ghosts, which bank 6
 \ draws itself): the buffer's row range extended by the rows once, then
 \ each row's dirty extent in one loop, the left end in X
-\
-\       Area: bank 5 gap
 \ ============================================================================
 .R_MARKBOX
 {

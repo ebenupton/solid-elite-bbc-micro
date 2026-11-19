@@ -43,9 +43,9 @@
 | bank 5 | `&9800-&A7FF` | `R_POLY`, `R_LINE` | 3916 | 180 |
 | bank 5 | `&A800-&ADFF` | the state: the dirty and written extents, `R_POLY`'s edge tables | 1536 | 0 |
 | bank 5 | `&AE00-&B0A2` | `R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic | 675 | 0 |
-| bank 5 | `&B0A3-&B3FF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt` | 771 | 90 |
-| bank 5 | `&B400-&BFD0` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 3025 | 0 |
-| bank 5 | `&BFD1-&BFFF` | `RJT`, the jump table | 42 | 5 |
+| bank 5 | `&B0A3-&B3FF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `pf_tilt` | 836 | 25 |
+| bank 5 | `&B400-&BF99` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 2970 | 0 |
+| bank 5 | `&BF9A-&BFFF` | `RJT`, the jump table | 42 | 60 |
 | bank 6 | `&8000-&8145` | the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`) | 284 | 42 |
 | bank 6 | `&8146-&ABE2` | the frame layer's code (bank 6 passes) | 10909 | 0 |
 | bank 6 | `&ABE3-&AF00` | the faces' and the lighting's tables | 798 | 0 |
@@ -55,4 +55,4 @@
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 31, main RAM (flight) 27, main RAM (docked) 1096, bank 4 (flight) 59, bank 4 (docked) 3165, bank 7 (flight) 488, bank 7 (docked) 4987, bank 5 578, bank 6 105.
+Free, by place: main RAM 31, main RAM (flight) 27, main RAM (docked) 1096, bank 4 (flight) 59, bank 4 (docked) 3165, bank 7 (flight) 488, bank 7 (docked) 4987, bank 5 568, bank 6 105.
