@@ -31851,15 +31851,14 @@ LIGHT_SUN = TRUE
                         \   * XX16(15 14) = nosev_y
                         \   * XX16(17 16) = nosev_z
 
- LDA #197               \ Set Q = 197
- STA Q
-
  LDY #16                \ Set Y to be a counter that counts down by 2 each time,
                         \ starting with 16, then 14, 12 and so on. We use this
-                        \ to work through each of the coordinates in each of the
-                        \ orientation vectors
+                        \ to work through each of the coordinates in each of
+                        \ the orientation vectors
 
 .LL21
+
+ STY R                  \ Port: keep the counter in R
 
  LDA XX16,Y             \ Set A = the low byte of the vector coordinate, e.g.
                         \ nosev_z_lo when Y = 16
@@ -31873,17 +31872,48 @@ LIGHT_SUN = TRUE
                         \ contains the original high byte, doubled, and without
                         \ a sign bit, e.g. A = |nosev_z_hi| * 2
 
- JSR LL28               \ Call LL28 to calculate:
+                        \ Port: the original calls LL28 here, to calculate:
                         \
-                        \   R = 256 * A / Q
+                        \   R = 256 * A / 197
                         \
-                        \ so, for nosev, this would be:
+                        \ which is 255 if A >= 197, and otherwise, exactly:
                         \
-                        \   R = 256 * |nosev_z_hi| * 2 / 197
-                        \     = 2.6 * |nosev_z_hi|
+                        \   A + (A * 307) DIV 1024
+                        \     = A + (A + (A * 51) DIV 256) DIV 4
+                        \
+                        \ with A * 51 from the quarter squares (see FMLTU), so
+                        \ there is no division
 
- LDX R                  \ Store R in the low byte's location, so we can keep the
- STX XX16,Y             \ old, unscaled high byte intact for the sign
+ CMP #197               \ If A >= 197, jump to ll21f to set the result to 255
+ BCS ll21f
+
+ TAX                    \ Set X = A
+
+ SBC #50                \ Set Y = |A - 51| (C is clear, so the SBC subtracts
+ BCS P%+6               \ 51; if A < 51, C is clear again, so the ADC adds 1 to
+ EOR #&FF               \ the one's complement)
+ ADC #1
+ TAY
+
+ LDA QSL+51,X           \ Set A = the high byte of QS(A + 51) - QS(|A - 51|),
+ SEC                    \ which is (A * 51) DIV 256
+ SBC QSL,Y
+ LDA QSH+51,X
+ SBC QSH,Y
+
+ STX T                  \ Set A = (A + the original A) DIV 4 + the original A
+ CLC
+ ADC T
+ LSR A
+ LSR A
+ CLC
+ ADC T
+
+.ll21s
+
+ LDY R                  \ Store the result in the low byte's location, so we
+ STA XX16,Y             \ can keep the old, unscaled high byte intact for the
+                        \ sign
 
  DEY                    \ Decrement the loop counter twice
  DEY
@@ -31992,6 +32022,11 @@ LIGHT_SUN = TRUE
  JMP LL42               \ Jump to LL42 to skip the face visibility calculations
                         \ as we don't need to do them now we've set up the XX2
                         \ block for the explosion
+
+.ll21f
+
+ LDA #255               \ Port: part 3's result for a coordinate of 197 or more,
+ BNE ll21s              \ as LL28 returns it (this BNE is effectively a JMP)
 
 \ ******************************************************************************
 \
