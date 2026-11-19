@@ -464,7 +464,7 @@ what the frames can use, the docked code's are free only while docked.
 | main RAM | `&4000-&6FFF` | buffer 1, the screen | 12288 | 0 |
 | main RAM | `&7000-&76FF` | the dashboard (`P.DIALS`) | 1792 | 0 |
 | main RAM | `&7700-&796F` | the rupture (`elite-rupture.asm`, copied there by the loader): the clock switches, the frames' registers, the flip, the display off during disc commands; its variables after its code | 624 | 0 |
-| main RAM (flight) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 917 | 347 |
+| main RAM (flight) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 1148 | 116 |
 | main RAM (docked) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 194 | 1070 |
 | main RAM | `&7E60-&7EFF` | the mailbox, `MBOX`: the rasteriser's inputs (the stars at its end, `&67-&9F`); sharing its polygon vertices, `PCLI`'s command and OSFILE block, the circle records from `PF_HOOK` to the frame (`&00-&49`, `&52-&5D`) and the disc layer's batches (`&00-&65`) | 160 | 0 |
 | main RAM | `&7F00-&7F9F` | the missile's blueprint (where the original has it) | 160 | 0 |
@@ -503,7 +503,7 @@ what the frames can use, the docked code's are free only while docked.
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 43, main RAM (flight) 347, main RAM (docked) 1070, bank 4 (flight) 63, bank 4 (docked) 3165, bank 7 (flight) 19, bank 7 (docked) 4987, bank 5 228, bank 6 87.
+Free, by place: main RAM 43, main RAM (flight) 116, main RAM (docked) 1070, bank 4 (flight) 63, bank 4 (docked) 3165, bank 7 (flight) 19, bank 7 (docked) 4987, bank 5 228, bank 6 87.
 
 **The build's check.** `2-build-files/mapcheck.py`, which `make` runs once
 every program and bank is assembled, fails the build if a place is out of

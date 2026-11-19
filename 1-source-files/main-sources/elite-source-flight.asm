@@ -30528,48 +30528,8 @@ ENDMACRO
 \
 \ ******************************************************************************
 
-.LL38
-
- EOR S                  \ If the sign of A * S is negative, skip to LL35, as
- BMI LL39               \ A and S have different signs so we need to subtract
-
- LDA Q                  \ Otherwise set A = R + Q, which is the result we need,
- CLC                    \ as S already contains the correct sign
- ADC R
-
- RTS                    \ Return from the subroutine
-
-.LL39
-
- LDA R                  \ Set A = R - Q
- SEC
- SBC Q
-
- BCC P%+4               \ If the subtraction underflowed, skip the next two
-                        \ instructions so we can negate the result
-
- CLC                    \ Otherwise the result is correct, and S contains the
-                        \ correct sign of the result as R is the dominant side
-                        \ of the subtraction, so clear the C flag
-
- RTS                    \ And return from the subroutine
-
-                        \ If we get here we need to negate both the result and
-                        \ the sign in S, as both are the wrong sign
-
- LDA S                  \ Flip the sign of S (C is still clear from the
- EOR #%10000000         \ underflowed subtraction)
- STA S
-
- LDA Q                  \ Port: C = 0, so this sets A = Q - R - 1, which is
- SBC R                  \ >= 0 as Q > R, so C is now set (as the BBC Master
-                        \ port does, rather than keep the underflowed result
-                        \ on the stack)
-
- ADC #0                 \ A = Q - R = -(R - Q), and C ends up clear as the
-                        \ result is in 1..255
-
- RTS                    \ Return from the subroutine
+                        \ Port: removed. Its additions are in line in LL9's parts 5
+                        \ and 6 (the macros L8ADD, L8NADD and L5ADD)
 
 \ ******************************************************************************
 \
@@ -30647,81 +30607,8 @@ ENDMACRO
 \
 \ ******************************************************************************
 
-.LL51
-
- LDX #0                 \ Set X = 0, which will contain the offset of the vector
-                        \ to use in the calculation, increasing by 6 for each
-                        \ new vector
-
- LDY #0                 \ Set Y = 0, which will contain the offset of the
-                        \ result bytes in XX12, increasing by 2 for each new
-                        \ result
-
-.ll51
-
- LDA XX15               \ Set Q = x_lo
- STA Q
-
- LDA XX16,X             \ Set A = |sidev_x|
-
- JSR FMLTU              \ Set T = A * Q / 256
- STA T                  \       = |sidev_x| * x_lo / 256
-
- LDA XX15+1             \ Set S to the sign of x_sign * sidev_x
- EOR XX16+1,X
- STA S
-
- LDA XX15+2             \ Set Q = y_lo
- STA Q
-
- LDA XX16+2,X           \ Set A = |sidev_y|
-
- JSR FMLTU              \ Set Q = A * Q / 256
- STA Q                  \       = |sidev_y| * y_lo / 256
-
- LDA T                  \ Set R = T
- STA R                  \       = |sidev_x| * x_lo / 256
-
- LDA XX15+3             \ Set A to the sign of y_sign * sidev_y
- EOR XX16+3,X
-
- JSR LL38               \ Set (S T) = (S R) + (A Q)
- STA T                  \           = |sidev_x| * x_lo + |sidev_y| * y_lo
-
- LDA XX15+4             \ Set Q = z_lo
- STA Q
-
- LDA XX16+4,X           \ Set A = |sidev_z|
-
- JSR FMLTU              \ Set Q = A * Q / 256
- STA Q                  \       = |sidev_z| * z_lo / 256
-
- LDA T                  \ Set R = T
- STA R                  \       = |sidev_x| * x_lo + |sidev_y| * y_lo
-
- LDA XX15+5             \ Set A to the sign of z_sign * sidev_z
- EOR XX16+5,X
-
- JSR LL38               \ Set (S A) = (S R) + (A Q)
-                        \           = |sidev_x| * x_lo + |sidev_y| * y_lo
-                        \             + |sidev_z| * z_lo
-
- STA XX12,Y             \ Store the result in XX12+Y(1 0)
- LDA S
- STA XX12+1,Y
-
- INY                    \ Set Y = Y + 2
- INY
-
- TXA                    \ Set X = X + 6
- CLC
- ADC #6
- TAX
-
- CMP #17                \ If X < 17, loop back to ll51 for the next vector
- BCC ll51
-
- RTS                    \ Return from the subroutine
+                        \ Port: removed. LL9's part 5 does its dot products with the
+                        \ code at l8dot, and part 6 with that at l5ax
 
 \ ******************************************************************************
 \
@@ -30749,6 +30636,10 @@ ENDMACRO
 \
 \   * L5ADD, the sum of two sign-magnitude numbers, as LL38.
 \
+\ Part 5's dot products, of the ship's coordinates with the orientation vectors
+\ and of each face's normal, are done the same way by the one piece of code at
+\ l8dot, with the macros L8PB, L8ADD and L8NADD and the variables l8q to l8w.
+\
 \ This routine sets what is the same for every vertex of a ship: the address of
 \ the ship's vertex data, XX0(1 0) + 20, plus 0 to 5, into the loop's reads of
 \ a vertex's six bytes, and XX4, the ship's distance, into the comparison at
@@ -30764,14 +30655,15 @@ ENDMACRO
 \
 \ ******************************************************************************
 
-MACRO L5MUL k
+MACRO L5MUL addr
 
-                        \ Set A = x * m / 256, for the magnitude m in XX16+k+Y
-                        \ and the x that the vertex loop puts in the three
-                        \ operands marked. X and Y are changed, and C is set
-                        \ at the end, as the subtraction cannot borrow
+                        \ Set A = x * m / 256, for the magnitude m at addr + Y
+                        \ and the x that is put in the three operands marked
+                        \ (the offsets are for addr in zero page: they are one
+                        \ more if it is not, L8PB). X and Y are changed, and C
+                        \ is set at the end, as the subtraction cannot borrow
 
- LDX XX16+k,Y           \ Set A = X = m
+ LDX addr,Y             \ Set A = X = m
 
  TXA
 
@@ -30853,6 +30745,108 @@ MACRO L5PB site
 
 ENDMACRO
 
+MACRO L8PB site
+
+                        \ Put A into the multiplication at site, an L5MUL whose
+                        \ read is absolute (so the operands are one byte later)
+
+ STA site+6
+ STA site+15
+ STA site+22
+
+ENDMACRO
+
+MACRO L8ADD j
+
+                        \ Set (l8g A) = (l8g l8t) + (the sign in l8s+j EOR that
+                        \ in l8b+j; A), as LL38 does: signs are in bit 7.
+                        \ Returns Y = l8y; X is changed
+
+ TAX                    \ Keep the magnitude in X
+
+ LDY l8y                \ Set Y to the offset
+
+ LDA l8s+j              \ If the two signs are different, jump to l8as
+ EOR l8b+j
+ EOR l8g
+ BMI l8as
+
+ TXA                    \ Set A = l8t + A, keeping the sign in l8g
+ CLC
+ ADC l8t
+
+ JMP l8ad               \ Jump to l8ad, as we are done
+
+.l8as
+
+ TXA                    \ Set A = A - l8t
+ SEC
+ SBC l8t
+
+ BEQ l8ad               \ If the result is zero, the sign in l8g stays
+
+ BCC l8an               \ If A < l8t, jump to l8an
+
+ TAX                    \ A > l8t, so the result is A - l8t with the sign in
+ LDA l8g                \ l8g flipped
+ EOR #%10000000
+ STA l8g
+ TXA
+
+ BCS l8ad               \ Jump to l8ad (this BCS is effectively a JMP, as C is
+                        \ still set)
+
+.l8an
+
+ EOR #&FF               \ The result is l8t - A, with the sign in l8g (C is
+ ADC #1                 \ clear, so the ADC adds 1 to the one's complement)
+
+.l8ad
+
+ENDMACRO
+
+MACRO L8NADD j, site
+
+                        \ Put (l8s+j l8w+j) + (l8ds+j l8d+j), as LL38 adds
+                        \ them, into the multiplication at site and its sign
+                        \ into l8b+j; if the addition overflows, jump to ovflw
+
+ LDX l8s+j              \ Set X to the first sign
+
+ TXA                    \ If the two signs are different, jump to l8ns
+ EOR l8ds+j
+ BMI l8ns
+
+ LDA l8w+j              \ Set A = l8w+j + l8d+j, with the first sign
+ CLC
+ ADC l8d+j
+
+ BCC l8nt               \ If the addition did not overflow, jump to l8nt
+
+ JMP ovflw              \ Otherwise jump to ovflw
+
+.l8ns
+
+ LDA l8w+j              \ Set A = l8w+j - l8d+j
+ SEC
+ SBC l8d+j
+
+ BCS l8nt               \ If it did not underflow, jump to l8nt with the first
+                        \ sign
+
+ EOR #&FF               \ Otherwise the result is l8d+j - l8w+j (C is clear, so
+ ADC #1                 \ the ADC adds 1 to the one's complement), with the
+
+ LDX l8ds+j             \ second sign
+
+.l8nt
+
+ L8PB site              \ Put the magnitude into the multiplication
+
+ STX l8b+j              \ And the sign into l8b+j
+
+ENDMACRO
+
 .L5SET
 
  LDA XX0                \ Set (Y X) = XX0(1 0) + 20, the address of the ship's
@@ -30912,6 +30906,35 @@ l5c = CNT               \ The pointer into the heap at XX3 (the original's CNT)
 
 l5p = P                 \ Temporary storage (a vertex's face numbers; X around
                         \ the call of LL61)
+
+                        \ Part 5's working values, in zero page, in the
+                        \ temporaries that the original's part 5 uses:
+
+l8q = XX18              \ The ship's (x_hi x_lo), (y_hi y_lo) and z_lo, scaled
+                        \ down (low bytes first; 5 bytes)
+
+l8d = XX18+5            \ The magnitudes of dot_sidev, dot_roofv and dot_nosev
+                        \ (3 bytes)
+
+l8ds = XX12             \ and their signs, in bit 7 (3 bytes)
+
+l8f = V                 \ The number of the vector, then of the face
+
+l8y = V+1               \ The offset of the vector in XX16, then of the face in
+                        \ the face data
+
+l8s = XX15              \ The dot product's signs of the x, y and z-coordinates
+                        \ of the vector that its reads point to, in bit 7 (3
+                        \ bytes)
+
+l8b = XX15+3            \ and those of the vector in its multiplications (3
+                        \ bytes)
+
+l8t = T                 \ The dot product's sum so far (the magnitude)
+
+l8g = S                 \ and the sum's sign, in bit 7
+
+l8w = XX12+3            \ A face's normal vector, scaled down (3 bytes)
 
 \ ******************************************************************************
 \
@@ -32138,29 +32161,11 @@ LIGHT_SUN = TRUE
                         \   * XX16+14 = scaled |nosev_y|
                         \   * XX16+16 = scaled |nosev_z|
 
- LDX #8                 \ Next we copy the ship's coordinates into XX18, so set
-                        \ up a counter in X for 9 bytes
+ LDX #255               \ Port: the original copies the ship's coordinates into
+                        \ XX18 here, with a loop that leaves X = 255; part 5
+                        \ now takes them from XX1
 
-.ll91
-
- LDA XX1,X              \ Copy the X-th byte from XX1 to XX18
- STA XX18,X
-
- DEX                    \ Decrement the loop counter
-
- BPL ll91               \ Loop back for the next byte until we have copied all
-                        \ three coordinates
-
-                        \ So we now have the following:
-                        \
-                        \   * XX18(2 1 0) = (x_sign x_hi x_lo)
-                        \
-                        \   * XX18(5 4 3) = (y_sign y_hi y_lo)
-                        \
-                        \   * XX18(8 7 6) = (z_sign z_hi z_lo)
-
- STX XX2+15             \ Set the 15th byte of XX2 to 255 (X = 255 as the ll91 loop
-                        \ has just counted down past 0), so that face 15 is
+ STX XX2+15             \ Set the 15th byte of XX2 to 255, so that face 15 is
                         \ always visible. No ship definitions actually have this
                         \ number of faces, but this allows us to force a vertex
                         \ to always be visible by associating it with face 15
@@ -32250,13 +32255,25 @@ LIGHT_SUN = TRUE
  BEQ LL41               \ If there are no faces in this ship, jump to LL42 (via
                         \ LL41) to skip the face visibility calculations
 
- STA XX20               \ Set A = the number of faces * 4
+ STA l8e+1              \ Store the number of faces * 4 in the comparison that
+                        \ ends the loop over the faces (the original's XX20)
 
  LDY #18                \ Fetch byte #18 of the ship's blueprint, which contains
  LDA (XX0),Y            \ the factor by which we scale the face normals, into X
  TAX
 
- LDA XX18+7             \ Set A = z_hi
+ LDA XX1                \ Port: copy the ship's (x_hi x_lo), (y_hi y_lo) and
+ STA l8q                \ z_lo into l8q, where the original has them in XX18
+ LDA XX1+1              \ (and reads their signs there, where this reads them
+ STA l8q+1              \ from XX1)
+ LDA XX1+3
+ STA l8q+2
+ LDA XX1+4
+ STA l8q+3
+ LDA XX1+6
+ STA l8q+4
+
+ LDA XX1+7              \ Set A = z_hi
 
  BEQ LL91               \ If z_hi = 0 then jump to LL91 (the LDA above set the
                         \ flags)
@@ -32268,14 +32285,14 @@ LIGHT_SUN = TRUE
 
  INX                    \ Increment the scale factor in X
 
- LSR XX18+4             \ Divide (y_hi y_lo) by 2
- ROR XX18+3
+ LSR l8q+3              \ Divide (y_hi y_lo) by 2
+ ROR l8q+2
 
- LSR XX18+1             \ Divide (x_hi x_lo) by 2
- ROR XX18
+ LSR l8q+1              \ Divide (x_hi x_lo) by 2
+ ROR l8q
 
  LSR A                  \ Divide (z_hi z_lo) by 2 (as A contains z_hi)
- ROR XX18+6
+ ROR l8q+4
 
  TAY                    \ Set Y = z_hi
 
@@ -32288,69 +32305,144 @@ LIGHT_SUN = TRUE
                         \ right shifts we had to do, plus the scale factor from
                         \ the blueprint
 
- STX XX17               \ Store the updated scale factor in XX17
+ STX l8k+1              \ Store the updated scale factor in the LDX at l8k (the
+                        \ original's XX17)
 
- LDA XX18+8             \ Set XX15+5 = z_sign
- STA XX15+5
+                        \ Port: the original now calls LL51 for the dot products
+                        \ of [x y z] with the three orientation vectors in XX16,
+                        \ which we'll call dot_sidev, dot_roofv and dot_nosev,
+                        \ and then, for each face, works out a dot product with
+                        \ the face's normal (LL89). Here all of them are done by
+                        \ the code at l8dot, in line in the loop over the faces
+                        \ below, which multiplies the three magnitudes that its
+                        \ reads (at l8m0, l8m1 and l8m2, indexed by Y) point to
+                        \ by the three magnitudes put into its instructions (the
+                        \ macros L5MUL and L8PB), with the first three's signs
+                        \ in l8s and the others' in l8b, adds them as LL38 does
+                        \ (the macro L8ADD), and leaves by the JMP at l8x. First
+                        \ we set it up for the orientation vectors in XX16, by
+                        \ [x y z], coming back to l8r
 
- LDA XX18               \ Set XX15(1 0) = (x_sign x_lo)
- STA XX15
- LDA XX18+2
- STA XX15+1
+ LDA l8q                \ Put x_lo, y_lo and z_lo into the three multiplications
+ L8PB l8m0
+ LDA l8q+2
+ L8PB l8m1
+ LDA l8q+4
+ L8PB l8m2
 
- LDA XX18+3             \ Set XX15(3 2) = (y_sign y_lo)
- STA XX15+2
- LDA XX18+5
- STA XX15+3
+ LDA XX1+2              \ And x_sign, y_sign and z_sign into l8b
+ STA l8b
+ LDA XX1+5
+ STA l8b+1
+ LDA XX1+8
+ STA l8b+2
 
- LDA XX18+6             \ Set XX15+4 = z_lo, so now XX15(5 4) = (z_sign z_lo)
- STA XX15+4
+ LDA #LO(XX16)          \ Point the three reads to the x, y and z magnitudes of
+ STA l8m0+1             \ the vector at XX16+Y
+ LDA #LO(XX16+2)
+ STA l8m1+1
+ LDA #LO(XX16+4)
+ STA l8m2+1
+ LDA #HI(XX16)
+ STA l8m0+2
+ STA l8m1+2
+ STA l8m2+2
 
- JSR LL51               \ Call LL51 to set XX12 to the dot products of XX15 and
-                        \ XX16, which we'll call dot_sidev, dot_roofv and
-                        \ dot_nosev:
-                        \
-                        \   XX12(1 0) = [x y z] . sidev
-                        \             = (dot_sidev_sign dot_sidev_lo)
-                        \             = dot_sidev
-                        \
-                        \   XX12(3 2) = [x y z] . roofv
-                        \             = (dot_roofv_sign dot_roofv_lo)
-                        \             = dot_roofv
-                        \
-                        \   XX12(5 4) = [x y z] . nosev
-                        \             = (dot_nosev_sign dot_nosev_lo)
-                        \             = dot_nosev
+ LDA #LO(l8r)           \ And the JMP at l8x to l8r
+ STA l8x+1
+ LDA #HI(l8r)
+ STA l8x+2
 
- LDA XX12               \ Set XX18(2 0) = dot_sidev
- STA XX18
- LDA XX12+1
- STA XX18+2
+ LDX #2                 \ Set l8f = 2 and Y = 12, for nosev (then 1 and 6 for
+ STX l8f                \ roofv, and 0 and 0 for sidev)
+ LDY #12
 
- LDA XX12+2             \ Set XX18(5 3) = dot_roofv
- STA XX18+3
- LDA XX12+3
- STA XX18+5
+.l8rl
 
- LDA XX12+4             \ Set XX18(8 6) = dot_nosev
- STA XX18+6
- LDA XX12+5
- STA XX18+8
+ STY l8y                \ Store the vector's offset in l8y
+
+ LDA XX16+1,Y           \ Copy the signs of the vector's x, y and z-coordinates
+ STA l8s                \ to l8s
+ LDA XX16+3,Y
+ STA l8s+1
+ LDA XX16+5,Y
+ STA l8s+2
+
+ JMP l8dot              \ Jump to l8dot for the dot product, which comes back to
+                        \ l8r with its magnitude in A and its sign in l8g
+
+.l8r
+
+ LDX l8f                \ Store the dot product in (l8ds l8d), for this vector
+ STA l8d,X              \ (the original's XX18):
+ LDA l8g                \
+ STA l8ds,X             \   (l8ds l8d)     = dot_sidev
+                        \   (l8ds+1 l8d+1) = dot_roofv
+                        \   (l8ds+2 l8d+2) = dot_nosev
+
+ LDA l8y                \ Set Y to the offset of the vector before this one
+ SEC
+ SBC #6
+ TAY
+
+ DEC l8f                \ Decrement the vector's number, and loop back until we
+ BPL l8rl               \ have done all three
+
+                        \ Now to set the code at l8dot up for the faces: its
+                        \ reads to bytes #1 to #3 of the face data + Y, and its
+                        \ JMP to l8fx
 
  LDY #4                 \ Fetch byte #4 of the ship's blueprint, which contains
  LDA (XX0),Y            \ the low byte of the offset to the faces data
 
- CLC                    \ Set V = low byte faces offset + XX0
+ CLC                    \ Set X = low byte faces offset + XX0
  ADC XX0
- STA V
+ TAX
 
  LDY #17                \ Fetch byte #17 of the ship's blueprint, which contains
  LDA (XX0),Y            \ the high byte of the offset to the faces data
 
- ADC XX0+1              \ Set V+1 = high byte faces offset + XX0+1
- STA V+1                \
-                        \ So V(1 0) now points to the start of the faces data
-                        \ for this ship
+ ADC XX0+1              \ Set Y = high byte faces offset + XX0+1, so (Y X) is
+ TAY                    \ the address of the faces data (the original's V)
+
+ STX l8f0+1             \ Put it into the read of a face's byte #0
+ STY l8f0+2
+
+ L5PB l8m0              \ And the addresses that follow it into the reads of
+ STX l8n0+1             \ bytes #1 to #3, here and at LL92
+ STY l8n0+2
+ L5PB l8m1
+ STX l8n1+1
+ STY l8n1+2
+ L5PB l8m2
+ STX l8n2+1
+ STY l8n2+2
+
+ LDA #LO(l8fx)          \ Point the JMP at l8x to l8fx
+ STA l8x+1
+ LDA #HI(l8fx)
+ STA l8x+2
+
+ LDA l8k+1              \ If the scale factor is less than 4, each face works
+ CMP #4                 \ out its own vector to multiply its normal by (LL92),
+ BCC l8nf               \ so skip the following
+
+ LDA l8d                \ Otherwise every face's normal is multiplied by
+ L8PB l8m0              \ [dot_sidev dot_roofv dot_nosev] (the original's
+ LDA l8d+1              \ LL143), so put them into the three multiplications,
+ L8PB l8m1              \ and their signs into l8b
+ LDA l8d+2
+ L8PB l8m2
+ LDA l8ds
+ STA l8b
+ LDA l8ds+1
+ STA l8b+1
+ LDA l8ds+2
+ STA l8b+2
+
+.l8nf
+
+ INC l8f                \ Set l8f = 0 (it is 255 here), the number of the face
 
  LDY #0                 \ We're now going to loop through all the faces for this
                         \ ship, so set a counter in Y, starting from 0, which we
@@ -32359,7 +32451,10 @@ LIGHT_SUN = TRUE
 
 .LL86
 
- LDA (V),Y              \ Fetch byte #0 for this face into A, so:
+.l8f0
+
+ LDA &FFFF,Y            \ Fetch byte #0 for this face into A (the address is set
+                        \ above), so:
                         \
                         \   A = %xyz vvvvv, where:
                         \
@@ -32369,7 +32464,7 @@ LIGHT_SUN = TRUE
                         \     * Bits 7-5 = the sign bits of normal_x, normal_y
                         \       and normal_z
 
- STA XX12+1             \ Store byte #0 in XX12+1, so XX12+1 now has the sign of
+ STA l8s                \ Store byte #0 in l8s, so l8s now has the sign of
                         \ normal_x
 
  AND #%00011111         \ Extract bits 0-4 to give the visibility distance
@@ -32383,93 +32478,63 @@ LIGHT_SUN = TRUE
                         \ Otherwise this face is within range and is therefore
                         \ always shown
 
- TYA                    \ Set X = Y / 4
- LSR A                  \       = the number of this face * 4 /4
- LSR A                  \       = the number of this face
- TAX
+ LDX l8f                \ Set X to the number of this face
 
  LDA #255               \ Set the X-th byte of XX2 to 255 to denote that this
  STA XX2,X              \ face is visible
 
  STA GFAR               \ Port: the renderer culls such a face by its winding,
-                        \ for which S_SHIP works out the ship's handedness
+                        \ so note that the ship has one (S_SHIP then sets its
+                        \ handedness, which few ships need)
 
- TYA                    \ Set Y = Y + 4 to point to the next face
- ADC #4
- TAY
+ INY                    \ Set Y = Y + 4 to point to the next face
+ INY
+ INY
+ INY
+
+ INC l8f                \ Increment the face's number
 
  JMP LL88               \ Jump down to LL88 to skip the following, as we don't
                         \ need to test the face normals
 
 .LL87
 
- LDA XX12+1             \ Fetch byte #0 for this face into A
+ STY l8y                \ Store the face's offset in l8y
 
- ASL A                  \ Shift A left and store it, so XX12+3 now has the sign
- STA XX12+3             \ of normal_y
+ LDA l8s                \ Fetch byte #0 for this face into A
 
- ASL A                  \ Shift A left and store it, so XX12+5 now has the sign
- STA XX12+5             \ of normal_z
+ ASL A                  \ Shift A left and store it, so l8s+1 now has the sign
+ STA l8s+1              \ of normal_y
 
- INY                    \ Increment Y to point to byte #1
+ ASL A                  \ Shift A left and store it, so l8s+2 now has the sign
+ STA l8s+2              \ of normal_z
 
- LDA (V),Y              \ Fetch byte #1 for this face and store in XX12, so
- STA XX12               \ XX12 = normal_x
+.l8k
 
- INY                    \ Increment Y to point to byte #2
-
- LDA (V),Y              \ Fetch byte #2 for this face and store in XX12+2, so
- STA XX12+2             \ XX12+2 = normal_y
-
- INY                    \ Increment Y to point to byte #3
-
- LDA (V),Y              \ Fetch byte #3 for this face and store in XX12+4, so
- STA XX12+4             \ XX12+4 = normal_z
-
-                        \ So we now have:
-                        \
-                        \   XX12(1 0) = (normal_x_sign normal_x)
-                        \
-                        \   XX12(3 2) = (normal_y_sign normal_y)
-                        \
-                        \   XX12(5 4) = (normal_z_sign normal_z)
-
- LDX XX17               \ If XX17 < 4 then jump to LL92, otherwise we stored a
- CPX #4                 \ larger scale factor above
+ LDX #0                 \ If the scale factor (which LL91 stored here) is less
+ CPX #4                 \ than 4, jump to LL92
  BCC LL92
 
 .LL143
 
- LDA XX18               \ Set XX15(1 0) = XX18(2 0)
- STA XX15               \               = dot_sidev
- LDA XX18+2
- STA XX15+1
-
- LDA XX18+3             \ Set XX15(3 2) = XX18(5 3)
- STA XX15+2             \               = dot_roofv
- LDA XX18+5
- STA XX15+3
-
- LDA XX18+6             \ Set XX15(5 4) = XX18(8 6)
- STA XX15+4             \               = dot_nosev
- LDA XX18+8
- STA XX15+5
-
- JMP LL89               \ Jump down to LL89
+ JMP l8dot              \ Otherwise the code at l8dot is set up to multiply by
+                        \ [dot_sidev dot_roofv dot_nosev], so jump down to it
 
 .ovflw
 
                         \ If we get here then the addition below overflowed, so
-                        \ we halve the dot products and normal vector
+                        \ we halve the dot products and try again
 
- LSR XX18               \ Divide dot_sidev_lo by 2, so dot_sidev = dot_sidev / 2
+ LSR l8d                \ Divide dot_sidev_lo by 2, so dot_sidev = dot_sidev / 2
 
- LSR XX18+6             \ Divide dot_nosev_lo by 2, so dot_nosev = dot_nosev / 2
+ LSR l8d+2              \ Divide dot_nosev_lo by 2, so dot_nosev = dot_nosev / 2
 
- LSR XX18+3             \ Divide dot_roofv_lo by 2, so dot_roofv = dot_roofv / 2
+ LSR l8d+1              \ Divide dot_roofv_lo by 2, so dot_roofv = dot_roofv / 2
 
  LDX #1                 \ Set X = 1 so when we fall through into LL92, we divide
                         \ the normal vector by 2 as well
+
+ LDY l8y                \ Set Y to the face's offset once more
 
 .LL92
 
@@ -32477,13 +32542,19 @@ LIGHT_SUN = TRUE
                         \ and now we apply it by scaling the normal vector down
                         \ by a factor of 2^X (i.e. divide by 2^X)
 
- LDA XX12               \ Set XX15 = normal_x
- STA XX15
+.l8n0
 
- LDA XX12+2             \ Set XX15+2 = normal_y
- STA XX15+2
+ LDA &FFFF,Y            \ Set l8w = normal_x (byte #1 for this face)
+ STA l8w
 
- LDA XX12+4             \ Set A = normal_z
+.l8n1
+
+ LDA &FFFF,Y            \ Set l8w+1 = normal_y (byte #2 for this face)
+ STA l8w+1
+
+.l8n2
+
+ LDA &FFFF,Y            \ Set A = normal_z (byte #3 for this face)
 
 .LL93
 
@@ -32492,14 +32563,11 @@ LIGHT_SUN = TRUE
  BMI LL94               \ If X was 0 before the decrement, there is no scaling
                         \ to do, so jump to LL94 to exit the loop
 
- LSR XX15               \ Set XX15 = XX15 / 2
-                        \          = normal_x / 2
+ LSR l8w                \ Set l8w = l8w / 2
 
- LSR XX15+2             \ Set XX15+2 = XX15+2 / 2
-                        \            = normal_y / 2
+ LSR l8w+1              \ Set l8w+1 = l8w+1 / 2
 
  LSR A                  \ Set A = A / 2
-                        \       = normal_z / 2
 
  DEX                    \ Decrement the scale factor in X
 
@@ -32508,176 +32576,83 @@ LIGHT_SUN = TRUE
 
 .LL94
 
- STA R                  \ Set R = normal_z
+ STA l8w+2              \ Set l8w+2 = normal_z
 
- LDA XX12+5             \ Set S = normal_z_sign
- STA S
+                        \ Port: the vector that this face's normal is multiplied
+                        \ by (the original's XX15) goes straight into the three
+                        \ multiplications at l8dot, and its signs into l8b: the
+                        \ macro L8NADD is LL38's addition in line, which jumps
+                        \ to ovflw if it overflows
 
- LDA XX18+6             \ Set Q = dot_nosev_lo
- STA Q
+ L8NADD 2, l8m2         \ normal_z + dot_nosev
 
- LDA XX18+8             \ Set A = dot_nosev_sign
+ L8NADD 0, l8m0         \ normal_x + dot_sidev
 
- JSR LL38               \ Set (S A) = (S R) + (A Q)
-                        \           = normal_z + dot_nosev
-                        \
-                        \ setting the sign of the result in S
+ L8NADD 1, l8m1         \ normal_y + dot_roofv
 
- BCS ovflw              \ If the addition overflowed, jump up to ovflw to divide
-                        \ both the normal vector and dot products by 2 and try
-                        \ again
+ LDY l8y                \ Set Y to the face's offset once more
 
- STA XX15+4             \ Set XX15(5 4) = (S A)
- LDA S                  \               = normal_z + dot_nosev
- STA XX15+5
+.l8dot
 
- LDA XX15               \ Set R = normal_x
- STA R
+                        \ Port: the dot product (in the faces' loop, the
+                        \ original's LL89): Y is the offset of the first vector,
+                        \ whose signs are in l8s, from the addresses in the
+                        \ three reads
 
- LDA XX12+1             \ Set S = normal_x_sign
- STA S
+ LDA l8s                \ Set l8g to the sign of the first product
+ EOR l8b
+ STA l8g
 
- LDA XX18               \ Set Q = dot_sidev_lo
- STA Q
+.l8m0
 
- LDA XX18+2             \ Set A = dot_sidev_sign
+ L5MUL &FFFF            \ Set l8t to the first product / 256
+ STA l8t
 
- JSR LL38               \ Set (S A) = (S R) + (A Q)
-                        \           = normal_x + dot_sidev
-                        \
-                        \ setting the sign of the result in S
+ LDY l8y                \ Set Y to the offset once more
 
- BCS ovflw              \ If the addition overflowed, jump up to ovflw to divide
-                        \ both the normal vector and dot products by 2 and try
-                        \ again
+.l8m1
 
- STA XX15               \ Set XX15(1 0) = (S A)
- LDA S                  \               = normal_x + dot_sidev
- STA XX15+1
+ L5MUL &FFFF            \ Set A to the second product / 256
 
- LDA XX15+2             \ Set R = normal_y
- STA R
+ L8ADD 1                \ Add it to (l8g l8t)
+ STA l8t
 
- LDA XX12+3             \ Set S = normal_y_sign
- STA S
+.l8m2
 
- LDA XX18+3             \ Set Q = dot_roofv_lo
- STA Q
+ L5MUL &FFFF            \ Set A to the third product / 256
 
- LDA XX18+5             \ Set A = dot_roofv_sign
+ L8ADD 2                \ Set (l8g A) to the sum of the three
 
- JSR LL38               \ Set (S A) = (S R) + (A Q)
-                        \           = normal_y + dot_roofv
+.l8x
 
- BCS ovflw              \ If the addition overflowed, jump up to ovflw to divide
-                        \ both the normal vector and dot products by 2 and try
-                        \ again
+ JMP &FFFF              \ Jump to l8r, for an orientation vector, or to l8fx,
+                        \ for a face (the address is set above)
 
- STA XX15+2             \ Set XX15(3 2) = (S A)
- LDA S                  \               = normal_y + dot_roofv
- STA XX15+3
+.l8fx
 
-.LL89
-
-                        \ When we get here, we have set up the following:
-                        \
-                        \   XX15(1 0) = normal_x + dot_sidev
-                        \             = normal_x + [x y z] . sidev
-                        \
-                        \   XX15(3 2) = normal_y + dot_roofv
-                        \             = normal_y + [x y z] . roofv
-                        \
-                        \   XX15(5 4) = normal_z + dot_nosev
-                        \             = normal_z + [x y z] . nosev
-                        \
-                        \ and:
-                        \
-                        \   XX12(1 0) = (normal_x_sign normal_x)
-                        \
-                        \   XX12(3 2) = (normal_y_sign normal_y)
-                        \
-                        \   XX12(5 4) = (normal_z_sign normal_z)
-                        \
-                        \ We now calculate the dot product XX12 . XX15 to tell
-                        \ us whether or not this face is visible
-
- LDA XX12               \ Set Q = XX12
- STA Q
-
- LDA XX15               \ Set A = XX15
-
- JSR FMLTU              \ Set R = A * Q / 256
- STA R                  \       = XX15 * XX12 / 256
-
- LDA XX12+1             \ Set S = sign of XX15(1 0) * XX12(1 0), so:
- EOR XX15+1             \
- STA S                  \   (S R) = XX15(1 0) * XX12(1 0) / 256
-
- LDA XX12+2             \ Set Q = XX12+2
- STA Q
-
- LDA XX15+2             \ Set A = XX15+2
-
- JSR FMLTU              \ Set Q = A * Q (FMLTU leaves R alone)
- STA Q                  \       = XX15+2 * XX12+2 / 256
-
- LDA XX12+3             \ Set A = sign of XX15+3 * XX12+3, so:
- EOR XX15+3             \
-                        \   (A Q) = XX15(3 2) * XX12(3 2) / 256
-
- JSR LL38               \ Set (S T) = (S R) + (A Q)
- STA T                  \           =   XX15(1 0) * XX12(1 0) / 256
-                        \             + XX15(3 2) * XX12(3 2) / 256
-
- STA R                  \ Set R = T, so now (as FMLTU leaves R alone):
-                        \
-                        \   (S R) =   XX15(1 0) * XX12(1 0) / 256
-                        \           + XX15(3 2) * XX12(3 2) / 256
-
- LDA XX12+4             \ Set Q = XX12+4
- STA Q
-
- LDA XX15+4             \ Set A = XX15+4
-
- JSR FMLTU              \ Set Q = A * Q
- STA Q                  \       = XX15+4 * XX12+4 / 256
-
- LDA XX15+5             \ Set A = sign of XX15+5 * XX12+5, so:
- EOR XX12+5             \
-                        \   (A Q) = XX15(5 4) * XX12(5 4) / 256
-
- JSR LL38               \ Set (S A) = (S R) + (A Q)
-                        \           =   XX15(1 0) * XX12(1 0) / 256
-                        \             + XX15(3 2) * XX12(3 2) / 256
-                        \             + XX15(5 4) * XX12(5 4) / 256
-
- PHA                    \ Push the result A onto the stack, so the stack now
-                        \ contains the dot product XX12 . XX15
-
- TYA                    \ Set X = Y / 4
- LSR A                  \       = the number of this face * 4 /4
- LSR A                  \       = the number of this face
- TAX
-
- PLA                    \ Pull the dot product off the stack into A
-
- BIT S                  \ If bit 7 of S is set, i.e. the dot product is
+ BIT l8g                \ If bit 7 of l8g is set, i.e. the dot product is
  BMI P%+4               \ negative, then this face is visible as its normal is
                         \ pointing towards us, so skip the following instruction
 
  LDA #0                 \ Otherwise the face is not visible, so set A = 0 so we
                         \ can store this to mean "not visible"
 
- STA XX2,X              \ Store the face's visibility in the X-th byte of XX2
+ LDX l8f                \ Store the face's visibility in the X-th byte of XX2,
+ STA XX2,X              \ for X the number of this face
 
- INY                    \ Above we incremented Y to point to byte #3, so this
-                        \ increments Y to point to byte #4, i.e. byte #0 of the
-                        \ next face
+ LDA l8y                \ Set Y to the offset of the next face
+ CLC
+ ADC #4
+ TAY
+
+ INC l8f                \ Increment the face's number
 
 .LL88
 
- CPY XX20               \ If Y >= XX20, the number of faces * 4, jump down to
- BCS LL42               \ LL42 to move on to the
+.l8e
+
+ CPY #0                 \ If Y >= the number of faces * 4 (which EE29 stored
+ BCS LL42               \ here), jump down to LL42 to move on to the vertices
 
  JMP LL86               \ Otherwise loop back to LL86 to work out the visibility
                         \ of the next face
@@ -32880,21 +32855,21 @@ LIGHT_SUN = TRUE
 
 .l5m0
 
- L5MUL 0                \ Set l5t = x * |sidev| / 256
+ L5MUL XX16             \ Set l5t = x * |sidev| / 256
  STA l5t
 
  LDY l5i                \ Set Y to the axis's offset once more
 
 .l5m1
 
- L5MUL 6                \ Set A = y * |roofv| / 256
+ L5MUL XX16+6           \ Set A = y * |roofv| / 256
 
  L5ADD l5s+1, 7         \ Set (l5g l5t) = (l5g l5t) + y * roofv / 256
  STA l5t
 
 .l5m2
 
- L5MUL 12               \ Set A = z * |nosev| / 256
+ L5MUL XX16+12          \ Set A = z * |nosev| / 256
 
  L5ADD l5s+2, 13        \ Set (l5g A) = (l5g l5t) + z * nosev / 256, which is
                         \ the original's XX12 for this axis: vertv_x, vertv_y or
