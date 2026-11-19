@@ -35,6 +35,7 @@
 \ ******************************************************************************
 
  INCLUDE "1-source-files/main-sources/elite-map.asm"    \ The memory map
+ INCLUDE "1-source-files/main-sources/gfx-rws.asm"      \ The renderer's mailbox
  INCLUDE "3-assembled-output/resident.asm"              \ The loader's resident
                                                         \ addresses
 
@@ -59,6 +60,9 @@
 
  INCLUDE "3-assembled-output/elite-docked-hotm.asm"
  INCLUDE "3-assembled-output/elite-docked-hotx.asm"
+
+ INCLUDE "3-assembled-output/gfx-hangar-dockedmain.asm"   \ (the hangar's
+                        \ background: gfx-hangar.asm)
 
 .PROGM_USED%
 

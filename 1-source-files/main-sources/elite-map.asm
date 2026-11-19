@@ -65,6 +65,9 @@
                         \ it grows by 256 bytes at a time, so that the frame
                         \ layer after it keeps its page offsets, and with
                         \ them its branches' and indexed reads' cycles)
+ FHV% = &BFF4           \ The hangar's background's four jumps into bank 6
+                        \ (gfx-bank6.asm's FHV, the bank's last 12 bytes,
+                        \ after the dispatcher: gfx-hangar.asm)
 
  BPSLOT% = &B300        \ The blueprint set in each home bank, to BPSLOT_END%
  BPSLOT_END% = &BBA2    \ without their edge lists (the EDGE macro), then its

@@ -122,6 +122,13 @@ ENDIF
  EQUB HI(F_HANG0-1), HI(F_HANGAR-1), HI(F_CLOUD-1), HI(F_SETLD-1)
  EQUB HI(F_PFHOLD-1)
 .FJT_END
+ ASSERT P% <= FHV%
+ SKIP FHV% - P%
+.FHV                    \ the hangar's background's ways into this bank (it
+ JMP fh_col             \ is in the docked code's main RAM part, assembled
+ JMP fh_blk             \ before this: gfx-hangar.asm), at a fixed place, the
+ JMP fh_line            \ bank's last 12 bytes
+ JMP f_lines
  ASSERT fjt_hi - fjt_lo = FG_N AND FJT_END <= &C000
 
 

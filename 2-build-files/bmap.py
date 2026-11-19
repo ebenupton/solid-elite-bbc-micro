@@ -134,7 +134,7 @@ row("bank 6", B6["F_TABEND"], B6["f_plm"] + 1, "the state: the ship records, the
 row("bank 6", B6["f_plm"] + 1, B6["F_HW"], "(the page alignment of the state that follows)", 0)
 row("bank 6", B6["F_HW"], fcslot, "the state, page aligned: the discs' half-widths, the text map, the discs' rows", B6["F_END"] - B6["F_HW"])
 row("bank 6", fcslot, fjt, "`FCSLOT`: the face lists of the set loaded")
-row("bank 6", fjt, 0xC000, "`FJT`, the dispatcher", B6["FJT_END"] - fjt)
+row("bank 6", fjt, 0xC000, "`FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`)", B6["FJT_END"] - fjt + 12)
 
 L = ["| Place | Addresses | Holds | Used | Free |", "|---|---|---|---:|---:|"]
 for space, s, e, what, u, f in rows:

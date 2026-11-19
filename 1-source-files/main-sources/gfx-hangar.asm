@@ -14,7 +14,10 @@
 \ HAS1 places each ship as before, and LL9 records it (record mode: QQ11 =
 \ 0, GFORCE = 0); TT66's view name is in the text map. HALL then calls
 \ F_HANGAR, which draws the frame with F_FRAME, its call of f_lines pointed
-\ at f_hback for this frame only: the hangar's background goes in after the
+\ at f_hback for this frame only (f_hback, the background, is only the
+\ docked code's, so it is in that program's main RAM part, where it runs
+\ with bank 6 paged in and reaches what it needs of the bank through four
+\ jumps at a fixed place, FHV%: gfx-bank6.asm, elite-map.asm): the hangar's background goes in after the
 \ (empty) disc layer and before the ships, so the ships hide it where the
 \ original's lines stopped at them, and the flight's frames run exactly as
 \ before (no test, no cost).
@@ -27,18 +30,26 @@
 \ name (TT66's, in yellow, which the wall's tan, half yellow, swallows): a
 \ black band, rows 1 to 15, is left above it.
 \
-\       Area: bank 6
+\       Area: bank 6, docked main
 \
 \ ******************************************************************************
 
 HTOP = 16               \ the wall's top row: text row 1, the view's name, is on
                         \ black above it
 
+\ ******************************************************************************
+\
+\ The frame, in bank 6, and what the background needs of the bank
+\
+\       Area: bank 6
+\
+\ ******************************************************************************
+
 \ F_HANGAR: the hangar's frame (from HALL). Keeps Y
 
 .F_HANGAR
  STY fh_y
- LDX #LO(f_hback)
+ LDX #LO(f_hback)       \ (the docked code's: bank6.py has its address)
  LDY #HI(f_hback)
  JSR fhg_pat            \ (fhg_pat restores Y)
  JSR F_FRAME
@@ -59,18 +70,11 @@ HTOP = 16               \ the wall's top row: text row 1, the view's name, is on
  STY f_ysav
  JMP f_reset
 
-\ f_hback: the background, in place of f_lines's call (F_FRAME's ff_lin),
-\ then the lines recorded (none: f_lines is the frame's own)
+\ fh_col, fh_blk, fh_line: f_hback's ways into this bank (FHV%). fh_col: the
+\ colour of the wall (X = 0) or the floor (X = 1), through f_col's packed
+\ colours; fh_blk: black, solid; fh_line: a line from (A, HTOP) to (A, Y)
 
-.f_hback
- LDA #0                 \ (NMOS: A = 0 for the clears)
- STA fz_t               \ x = 0 to 254 (the clip window stops at 253)
- LDX #3                 \ the rectangles' vertices' high bytes: 0
-.fhb0
- STA R_PXH,X
- STA R_PYH,X
- DEX
- BPL fhb0
+.fh_col
  ASSERT HI(HPWL) = HI(HPWH)
  LDA #LO(HPWL)          \ f_col's packed colours: the wall's and the floor's
  STA fcl+1
@@ -79,75 +83,19 @@ HTOP = 16               \ the wall's top row: text row 1, the view's name, is on
  LDA #HI(HPWL)          \ (the two tables share a page)
  STA fcl+2
  STA fch+2
- LDA #255
- STA fz_u
- INX                    \ the wall (X = 0: the loop left &FF): from row HTOP
- JSR fch                \ (rows 1 to HTOP-1 stay black, a band behind the
- LDA #HTOP              \ view's name: its yellow is the wall's own) to the
- LDY HFY                \ floor's furthest line
- JSR fh_rect
- LDX #1                 \ the floor: from there to the bottom
- JSR fch
- LDA HFY
- LDY #192
- JSR fh_rect
- LDA #FC_BLACK          \ the lines: black, solid
+ JMP fch
+.fh_blk
+ LDA #FC_BLACK
  JSR f_setcol
  STA R_COL3
  STA R_COL2
- LDA #2                 \ the floor's lines, x = 2 to 253, near to far (rows
- STA fz_t               \ HFY[10] to HFY[0]), as one-row rectangles (R_POLY
- LDA #254               \ fills a row much faster than R_LINE steps along it)
- STA fz_u
- LDX #10
-.fhb2
- STX fz_i
- LDA HFY,X
- TAY
- INY
- JSR fh_rect
- LDX fz_i
- DEX
- BPL fhb2
- LDA #HTOP              \ the wall's lines, x = 248 down to 8, from row HTOP to
- STA fz_u               \ the floor's furthest line (R_LINE: a thin R_POLY is
- LDA #248               \ slower)
-.fhb3
+ RTS
+.fh_line
  STA fz_t
  TAX
- LDY HFY
- JSR f_line8
- LDA fz_t
- SEC
- SBC #8
- BNE fhb3
- JMP f_lines
-
-\ fh_rect: fill pixels fz_t to fz_u-1 of rows A to Y-1 (R_POLY's rule) in the
-\ colour set
-
-.fh_rect
- STA R_PYL
- STA R_PYL+1
- STY R_PYL+2
- STY R_PYL+3
- LDA fz_t
- STA R_PXL
- STA R_PXL+3
- LDA fz_u
- STA R_PXL+1
- STA R_PXL+2
- LDA #4
- STA R_PN
- JMP T_POLY
-
-\ HFY: the floor's lines far to near (#Y + 130 DIV Q, Q = 12 down to 2, as
-\ HANGER's DVID4K computed them); the first is the wall's foot
-
-.HFY
-FOR q, 12, 2, -1
- EQUB Y + 130 DIV q
-NEXT
+ LDA #HTOP
+ STA fz_u
+ JMP f_line8
 
 \ HPWL, HPWH: the wall's and the floor's colours in f_col's packed form
 \ (hangarcols.py, docs/renderer.md): the wall a darker tan, two yellow, a magenta
@@ -161,3 +109,91 @@ NEXT
 .HPWH
  EQUB &31, &41
 
+\ ******************************************************************************
+\
+\ The background, in the docked code's main RAM part
+\
+\       Area: docked main
+\
+\ ******************************************************************************
+
+\ f_hback: the background, in place of f_lines's call (F_FRAME's ff_lin),
+\ then the lines recorded (none: f_lines is the frame's own). Bank 6 is
+\ paged in
+
+.f_hback
+ LDA #0                 \ (NMOS: A = 0 for the clears)
+ STA fh_t               \ x = 0 to 254 (the clip window stops at 253)
+ LDX #3                 \ the rectangles' vertices' high bytes: 0
+.fhb0
+ STA R_PXH,X
+ STA R_PYH,X
+ DEX
+ BPL fhb0
+ LDA #255
+ STA fh_u
+ INX                    \ the wall (X = 0: the loop left &FF): from row HTOP
+ JSR FHV%               \ (rows 1 to HTOP-1 stay black, a band behind the
+ LDA #HTOP              \ view's name: its yellow is the wall's own) to the
+ LDY HFY                \ floor's furthest line
+ JSR fh_rect
+ LDX #1                 \ the floor: from there to the bottom
+ JSR FHV%
+ LDA HFY
+ LDY #192
+ JSR fh_rect
+ JSR FHV%+3             \ the lines: black, solid
+ LDA #2                 \ the floor's lines, x = 2 to 253, near to far (rows
+ STA fh_t               \ HFY[10] to HFY[0]), as one-row rectangles (R_POLY
+ LDA #254               \ fills a row much faster than R_LINE steps along it)
+ STA fh_u
+ LDX #10
+.fhb2
+ STX fh_i
+ LDA HFY,X
+ TAY
+ INY
+ JSR fh_rect
+ LDX fh_i
+ DEX
+ BPL fhb2
+ LDA #248               \ the wall's lines, x = 248 down to 8, from row HTOP to
+.fhb3                   \ the floor's furthest line (R_LINE: a thin R_POLY is
+ STA fh_t               \ slower)
+ LDY HFY
+ JSR FHV%+6
+ LDA fh_t
+ SEC
+ SBC #8
+ BNE fhb3
+ JMP FHV%+9             \ (f_lines)
+
+\ fh_rect: fill pixels fh_t to fh_u-1 of rows A to Y-1 (R_POLY's rule) in the
+\ colour set
+
+.fh_rect
+ STA R_PYL
+ STA R_PYL+1
+ STY R_PYL+2
+ STY R_PYL+3
+ LDA fh_t
+ STA R_PXL
+ STA R_PXL+3
+ LDA fh_u
+ STA R_PXL+1
+ STA R_PXL+2
+ LDA #4
+ STA R_PN
+ JMP T_POLY
+
+.fh_t EQUB 0            \ fh_rect's x, and f_hback's count
+.fh_u EQUB 0
+.fh_i EQUB 0
+
+\ HFY: the floor's lines far to near (#Y + 130 DIV Q, Q = 12 down to 2, as
+\ HANGER's DVID4K computed them); the first is the wall's foot
+
+.HFY
+FOR q, 12, 2, -1
+ EQUB Y + 130 DIV q
+NEXT

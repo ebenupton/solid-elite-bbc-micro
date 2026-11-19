@@ -32,6 +32,9 @@ VARS = ['INWK', 'XX2', 'XX3', 'XX4', 'XX16', 'XX0', 'XX19', 'XX20', 'INF', 'XSAV
 # what only the flight code's frame reaches: the disc layer's painter in its
 # bank 7 (gfx-raster_disc.asm), and the game's variables it reads
 FLIGHT = ['MCNT', 'P', 'R', 'S', 'T', 'K2', 'DP_BEGIN', 'DP_ROWS', 'DP_DISC2']
+# what only the docked code has: the hangar's background, in its main RAM
+# part (gfx-hangar.asm)
+DOCKED = ['f_hback']
 # and its constants
 CONSTS = ['NOST', 'NOSH', 'NI%', 'SST', 'PLT', 'X', 'Y']
 
@@ -51,6 +54,8 @@ for v in VARS:
 for c in FLIGHT:   # (the flight code's only: the disc layer's painter, in its
     a = flight[c]  # cold bank, and the variables)
     L.append('%-8s = &%04X' % (c, a))
+for c in DOCKED:
+    L.append('%-8s = &%04X' % (c, docked[c]))
 for b in ('BANK5', 'BANK6', 'farC', 'farH'):
     L.append('%-8s = &%04X' % (b, loader[b]))
 src = open(os.path.join(MS, 'elite-source-flight.asm'), encoding='latin-1').read()
