@@ -9922,6 +9922,56 @@ ENDIF
 
 \ ******************************************************************************
 \
+\       Name: BPRD
+\       Type: Subroutine
+\   Category: Tactics
+\    Summary: Port: fetch a byte of the current ship's blueprint, or its
+\             default NEWB flags, for TACTICS
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: TACTICS is in the cold pass, and the blueprints are in the home bank,
+\ which is not paged in there, so it reads the two blueprint bytes it needs
+\ (the maximum energy and the laser power) and the ship type's default NEWB
+\ flags (E%, in the blueprint set too) through a far call to here, at events
+\ (a ship's tactics are applied once every eight iterations).
+\
+\ ------------------------------------------------------------------------------
+\
+\ Arguments:
+\
+\   Y                   The byte to fetch from the blueprint at XX0 (BPRD)
+\
+\   X                   The ship type whose default NEWB flags to fetch (BPRE)
+\
+\ ------------------------------------------------------------------------------
+\
+\ Returns:
+\
+\   A                   The byte, with the flags set from it
+\
+\ ------------------------------------------------------------------------------
+\
+\ Other entry points:
+\
+\   BPRE                Fetch the default NEWB flags of ship type X from E%
+\
+\ ******************************************************************************
+
+.BPRD
+
+ LDA (XX0),Y            \ Fetch byte Y of the ship's blueprint
+
+ RTS                    \ Return from the subroutine
+
+.BPRE
+
+ LDA E%-1,X             \ Fetch the default NEWB flags of ship type X
+
+ RTS                    \ Return from the subroutine
+
+\ ******************************************************************************
+\
 \       Name: TACTICS (Part 1 of 7)
 \       Type: Subroutine
 \   Category: Tactics
@@ -10205,7 +10255,8 @@ ENDIF
 
  LDA MANY+COPS          \ Check how many cops there are in the vicinity already,
  CMP #4                 \ and if there are 4 or more, return from the subroutine
- BCS TA22               \ (as TA22 contains an RTS)
+ BCS TA1                \ (as TA1 contains an RTS; Port: not TA22, in part 3,
+                        \ in the cold pass)
 
  LDX #COPS              \ Set X to the ship type for a cop
 
@@ -10220,9 +10271,12 @@ ENDIF
 .TA13
 
  LDY #14                \ If the ship's energy is greater or equal to the
- LDA INWK+35            \ maximum value from the ship's blueprint pointed to by
- CMP (XX0),Y            \ XX0, then skip the next instruction
- BCS TA21
+ JSR BPRD               \ maximum value from the ship's blueprint pointed to by
+ CMP INWK+35            \ XX0, then skip the next instruction (Port: the
+ BEQ P%+6               \ blueprint's byte through BPRD, so compared the other
+ BCC P%+4               \ way round: skip if maximum <= energy; and to the
+                        \ end of this part rather than to TA21, its first
+                        \ label, as part 3 is in the cold pass)
 
  INC INWK+35            \ The ship's energy is not at maximum, so recharge the
                         \ energy banks by 1
@@ -10235,6 +10289,7 @@ ENDIF
 \    Summary: Apply tactics: Calculate dot product to determine ship's aim
 \  Deep dive: Program flow of the tactics routine
 \             Aggression and hostility in ship tactics
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10380,7 +10435,8 @@ ENDIF
                         \ to the missile - in both cases it's the vector from
                         \ the potential victim to the attacker)
 
- JSR TAS3-2             \ Set (A X) = nosev . XX15
+ LDY #10                \ Set (A X) = nosev . XX15 (Port: TAS3-2, as two
+ JSR TAS3               \ instructions, as TACTICS calls TAS3 through a stub)
 
  STA CNT                \ Store the high byte of the dot product in CNT. The
                         \ bigger the value, the more aligned the two ships are,
@@ -10396,6 +10452,7 @@ ENDIF
 \   Category: Tactics
 \    Summary: Apply tactics: Check energy levels, maybe launch escape pod if low
 \  Deep dive: Program flow of the tactics routine
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10451,8 +10508,8 @@ ENDIF
 
 .TA7
 
- LDY #14                \ Set A = the ship's maximum energy / 2
- LDA (XX0),Y
+ LDY #14                \ Set A = the ship's maximum energy / 2 (Port: the
+ JSR BPRD               \ blueprint's byte through BPRD)
  LSR A
 
  CMP INWK+35            \ If the ship's current energy in byte #35 > A, i.e. the
@@ -10470,7 +10527,7 @@ ENDIF
  BCC ta3                \ firing a missile
 
  LDX TYPE               \ Fetch the ship blueprint's default NEWB flags from the
- LDA E%-1,X             \ table at E%, and if bit 7 is clear (i.e. this ship
+ JSR BPRE               \ table at E%, and if bit 7 is clear (i.e. this ship
  BPL ta3                \ does not have an escape pod), jump to ta3 to skip the
                         \ spawning of an escape pod
 
@@ -10491,6 +10548,7 @@ ENDIF
 \   Category: Tactics
 \    Summary: Apply tactics: Consider whether to launch a missile at us
 \  Deep dive: Program flow of the tactics routine
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10556,6 +10614,7 @@ ENDIF
 \   Category: Tactics
 \    Summary: Apply tactics: Consider firing a laser at us, if aim is true
 \  Deep dive: Program flow of the tactics routine
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10610,7 +10669,7 @@ ENDIF
                         \ checks
 
  LDY #19                \ Fetch the enemy ship's byte #19 from their ship's
- LDA (XX0),Y            \ blueprint into A
+ JSR BPRD               \ blueprint into A (Port: through BPRD)
 
  AND #%11111000         \ Extract bits 3-7, which contain the enemy's laser
                         \ power
@@ -10626,8 +10685,8 @@ ENDIF
  BCC TA4                \ ship's crosshairs, so jump to TA4 to skip the laser
                         \ checks
 
- LDA (XX0),Y            \ Fetch the enemy ship's byte #19 from their ship's
-                        \ blueprint into A
+ JSR BPRD               \ Fetch the enemy ship's byte #19 from their ship's
+                        \ blueprint into A (Port: through BPRD)
 
  LSR A                  \ Halve the enemy ship's byte #19 (which contains both
                         \ the laser power and number of missiles) to get the
@@ -10656,6 +10715,7 @@ ENDIF
 \    Summary: Apply tactics: Set pitch, roll, and acceleration
 \  Deep dive: Program flow of the tactics routine
 \             Aggression and hostility in ship tactics
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -10867,7 +10927,8 @@ ENDIF
                         \ as part 3, but it can also change the value of RAT2
                         \ so that roll and pitch is always applied
 
- JSR TAS3-2             \ Set (A X) = nosev . XX15
+ LDY #10                \ Set (A X) = nosev . XX15 (Port: TAS3-2, as two
+ JSR TAS3               \ instructions, as TACTICS calls TAS3 through a stub)
                         \
                         \ The bigger the value of the dot product, the more
                         \ aligned the two vectors are, with a maximum magnitude
