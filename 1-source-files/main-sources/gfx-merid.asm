@@ -152,7 +152,7 @@ PCMAX = 3               \ the planet's records (slots 0-2)
 
 \ pms_core: from the magnitudes and signs in pv_m, pm_sg and pm_nz, the
 \ circle's orientation terms: pm_sx, pm_sy, pm_inv, t (pm_tq), v (pm_v), a
-\ (pm_a32) and K2 (pm_K2) (in line: its one call)
+\ (pm_a32) and K2 (pm_K2), these two in the record (in line: its one call)
 
  LDA pm_sg              \ sx = sign(mx), sy = sign(my') = -sign(my)
  STA pm_sx
@@ -298,19 +298,13 @@ PCMAX = 3               \ the planet's records (slots 0-2)
  INC pm_K2+3
 .pms8
 
- LDX #7                 \ (a, K2 into the record)
-.pcl2
- LDA pm_a32,X
- STA wr+R_A,X
- DEX
- BPL pcl2
  LDA pcn+1              \ (pcn / 2: the unit axis from the magnitudes >> 2)
  LSR A
  STA pv_cn+1
  LDA pcn
  ROR A
  STA pv_cn
- INX                    \ (d = 0: d^2 = 0, A9 = 0; NMOS: X = 0 from pcl2)
+ LDX #0                 \ (d = 0: d^2 = 0, A9 = 0)
  STX pm_p+2
  STX pm_p+3
  STX pc_a9
@@ -2230,8 +2224,6 @@ O_RC = pv_rc - pv
 
 .pm_eu  SKIP 1
 .pm_ulo SKIP 2
-.pm_a32 SKIP 4          \ a, 16.16 signed } (in this order: the record's
-.pm_K2  SKIP 4          \ K2, 16.16       } first eight bytes)
 .pm_P                   \ 4-byte operands
 .pm_X2  SKIP 4
 .pm_Y2  SKIP 4
@@ -2255,6 +2247,8 @@ O_RC = pv_rc - pv
 
 .pm_zsave SKIP 4        \ XX0 and INF (in Elite's &10-&26) while PF_HOOK runs
 .wr     SKIP RSZ        \ the record being made
+pm_a32 = wr + R_A       \ (a, 16.16 signed, and K2, 16.16: pms_core makes
+pm_K2 = wr + R_K2       \ them in the record)
 .pcbx   SKIP 2          \ the body: its centre and radius
 .pcby   SKIP 2
 .pcr    SKIP 1
