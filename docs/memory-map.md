@@ -472,7 +472,7 @@ what the frames can use, the docked code's are free only while docked.
 | main RAM | `&7FC0-&7FFD` | the circle engine's variables (main high: `gfx-planet7.asm`, `gfx-merid.asm`) | 59 | 3 |
 | main RAM | `&7FFE-&7FFF` | `VEC` | 2 | 0 |
 | bank 4 (flight) | `&8000-&A86D` | `S%` and the hot pass | 10350 | 0 |
-| bank 4 (flight) | `&A86E-&B2FF` | the planet's surface (bank 4 passes: `PF_HOOK`, `pc_circ`) | 2671 | 35 |
+| bank 4 (flight) | `&A86E-&B2FF` | the planet's surface (bank 4 passes: `PF_HOOK`, `pc_circ`) | 2674 | 32 |
 | bank 4 (flight) | `&B300-&BBA1` | the blueprint set (`D.MOx`), its normals and `FC_NORMTAB` (the image holds the main RAM part's image here) | 2210 | 0 |
 | bank 4 (flight) | `&BBA2-&BBFF` | the circle engine's variables (bank 4 top) | 35 | 59 |
 | bank 4 (flight) | `&BC00-&BFFF` | the quarter squares `QSL`, `QSH` (made by the loader) | 1024 | 0 |
@@ -502,7 +502,7 @@ what the frames can use, the docked code's are free only while docked.
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 35, main RAM (flight) 27, main RAM (docked) 1096, bank 4 (flight) 94, bank 4 (docked) 3165, bank 7 (flight) 463, bank 7 (docked) 4987, bank 5 568, bank 6 34.
+Free, by place: main RAM 35, main RAM (flight) 27, main RAM (docked) 1096, bank 4 (flight) 91, bank 4 (docked) 3165, bank 7 (flight) 463, bank 7 (docked) 4987, bank 5 568, bank 6 34.
 
 **The build's check.** `2-build-files/mapcheck.py`, which `make` runs once
 every program and bank is assembled, fails the build if a place is out of

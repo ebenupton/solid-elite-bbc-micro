@@ -798,6 +798,37 @@ PCMAX = 3               \ the planet's records (slots 0-2)
 \ negative), saturating at 2^32 - 1 (as when V loses all its bits). U = 0
 \ gives 0. (planet_caps.fdiv)
 \ pm_fdiv16: the same clamped to 16 bits, in X (high) and A (low).
+\
+\ Port (Model B): U and V are normalised in line (PFN, once each: hot code
+\ in line on purpose, as every division made both calls), and taking bytes
+\ 1-3 for 0-2 when either is >= 2^24 is an INX and an INY on their offsets
+
+MACRO PFN v             \ the 24-bit value at zero page v (non-zero) shifted
+ LDY #0                 \ left until bit 23 is set: A = its top byte, its
+ LDA v+2                \ next at v+1; Y = the shifts (X not kept)
+ BNE n2
+ LDA v+1                \ a byte at a time
+ LDX v
+ STX v+1
+ LDX #0
+ STX v
+ LDY #8
+ CMP #0
+ BNE n2
+ LDA v+1
+ STX v+1
+ LDY #16
+ CMP #0                 \ (NMOS: N from A again)
+.n2
+ BMI n3
+.n1
+ INY
+ ASL v
+ ROL v+1
+ ROL A
+ BPL n1
+.n3
+ENDMACRO
 
 .pm_fdiv16
  JSR pm_fdiv
@@ -817,45 +848,32 @@ PCMAX = 3               \ the planet's records (slots 0-2)
  JMP pfd_sat
 
 .pm_fdiv
- LDA pm_P,X             \ U -> pm_a, V -> pm_b
+ LDA pm_P+3,X           \ either >= 2^24: both lose their low byte (once:
+ ORA pm_P+3,Y           \ both are then below 2^24), as bytes 1-3 are taken
+ BEQ pfd1               \ for 0-2
+ INX
+ INY
+.pfd1
+ LDA pm_P,X             \ U -> pm_a (U = 0: 0)
  STA pm_a
  LDA pm_P+1,X
  STA pm_a+1
+ ORA pm_a
+ ORA pm_P+2,X
+ BEQ pfd_e0
  LDA pm_P+2,X
  STA pm_a+2
- LDA pm_P+3,X
- STA pm_a+3
- LDA pm_P,Y
+ LDA pm_P,Y             \ V -> pm_b (V = 0, or gone: saturated)
  STA pm_b
  LDA pm_P+1,Y
  STA pm_b+1
+ ORA pm_b
+ ORA pm_P+2,Y
+ BEQ pfd_es
  LDA pm_P+2,Y
  STA pm_b+2
- LDA pm_P+3,Y
- ORA pm_a+3             \ either >= 2^24: both lose their low byte (once:
- BEQ pfd1               \ both are then below 2^24)
- LDA pm_P+3,Y
- STA pm_b+3
- LDX #0
-.pfd1a
- LDA pm_a+1,X
- STA pm_a,X
- LDA pm_b+1,X
- STA pm_b,X
- INX
- CPX #3
- BNE pfd1a
-.pfd1
- LDA pm_a               \ U = 0: 0
- ORA pm_a+1
- ORA pm_a+2
- BEQ pfd_e0
- LDA pm_b               \ V = 0 (or gone): saturated
- ORA pm_b+1
- ORA pm_b+2
- BEQ pfd_es
- LDX #pm_b              \ normalise V: V' = (A pm_b+1), ev; V' into the
- JSR pfd_norm           \ division's compares and subtractions
+ PFN pm_b               \ normalise V: V' = (A pm_b+1), ev; V' into the
+                        \ division's compares and subtractions
  STA pfdh1+1
  STA pfdh2+1
  LDX pm_b+1
@@ -865,8 +883,7 @@ PCMAX = 3               \ the planet's records (slots 0-2)
  CLC
  ADC #5
  STA pm_eu
- LDX #pm_a              \ and U: U' = (A pm_a+1), eu; the shift 5 + ev - eu
- JSR pfd_norm
+ PFN pm_a               \ and U: U' = (A pm_a+1), eu; the shift 5 + ev - eu
  TAX
  TYA
  EOR #&FF
@@ -998,34 +1015,6 @@ PCMAX = 3               \ the planet's records (slots 0-2)
  STA pm_p+2
  STA pm_p+3
 .pfd10
- RTS
-
-.pfd_norm               \ the 24-bit value at zero page X (non-zero) shifted
- LDY #0                 \ left until bit 23 is set: A = its top byte, its
- LDA 2,X                \ next at 1,X; Y = the shifts
- BNE pfn2
- LDA 1,X                \ a byte at a time
- LDY 0,X
- STY 1,X
- LDY #0
- STY 0,X
- LDY #8
- CMP #0
- BNE pfn2
- LDA 1,X
- LDY #0
- STY 1,X
- LDY #16
- CMP #0                 \ (NMOS: N from A again)
-.pfn2
- BMI pfn3
-.pfn1
- INY
- ASL 0,X
- ROL 1,X
- ROL A
- BPL pfn1
-.pfn3
  RTS
 
 \ pm_mul16: pm_p (4) = pm_a (2) * pm_b (2), unsigned, from four 8 x 8
