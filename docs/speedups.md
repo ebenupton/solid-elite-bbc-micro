@@ -28,7 +28,9 @@ Before the gate runs, `6-harness/test_routines.py` runs each changed
 routine of the original and of the port on py65, for every input or for a
 large random sample, and compares everything the routine leaves that
 anything reads: the registers, the flags (V only where a caller reads it)
-and the variables, and for STARS1, BLINE and PIX1 the screen. The gate
+and the variables, and for BLINE and PIX1 the screen (STARS1, which
+runs only in record mode, leaves its particles in the mailbox for the
+frame layer to draw: its particles and the seeds are compared). The gate
 runs the quick form of these checks before it flies the game.
 
 The first commits pass the gate's strict comparison: every recorded byte,

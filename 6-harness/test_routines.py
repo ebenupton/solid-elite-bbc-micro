@@ -407,9 +407,12 @@ TESTS = [
     ("TIS1", "TIS1", lambda: ((a, x, 0x5A, c, {"R": r, "S": ss}) for a, x, r, ss, c in sample(5000 if QUICK else 300000, B, B, B, B, [0, 1])),
      ["A", "X", "Y", "N", "Z", "C", "P", "Q", "R", "S", "T", "T1"]),
     # (STARS1 for whole passes over the stardust, with random particles and
-    # flight: the particles, the seeds and the screen are compared)
+    # flight: the particles and the seeds are compared)
     ("STARS1", "STARS1", lambda: ((0, 0, 0, c, stars_mem(i)) for i, c in zip(range(150 if QUICK else 2000), [0, 1] * 2000)),
-     ["Y", "SX*19", "SXL*19", "SY*19", "SYL*19", "SZ*19", "SZL*19", "RAND*4", "SCREENPIX"]),
+     # (the stardust's pixels are not compared: the port's STARS1 runs only
+     # in record mode, where the frame layer draws the particles from the
+     # records STARS1 leaves in the mailbox, so it draws none itself)
+     ["Y", "SX*19", "SXL*19", "SY*19", "SYL*19", "SZ*19", "SZL*19", "RAND*4"]),
     # (BLINE: the line ends in XX15 are not compared, as on the first call the
     # port has already copied the points into them; they are temporaries,
     # and the heap holds the ends of every line drawn)

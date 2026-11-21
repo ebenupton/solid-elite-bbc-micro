@@ -5634,6 +5634,12 @@ ENDIF
  TXA                    \ Set SYL+Y to X, the low byte of the result
  STA SYL,Y
 
+ LDA QQ11               \ Port: in record mode, return: the old particle is
+ ORA GFORCE             \ not drawn, and the star's record that PIXEL2 would
+ BNE PIXEL2             \ write is written again for the moved particle
+ RTS                    \ before a frame reads it (the callers set C before
+                        \ they next read it)
+
                         \ Fall through into PIXEL2 to draw the stardust particle
                         \ at (X1,Y1)
 
@@ -6224,35 +6230,98 @@ ENDIF
 \
 \ ******************************************************************************
 
-.stl_dvs
+                        \ Port: the front view's stardust is one loop with one
+                        \ call per particle in it, its divide (LL28's, or
+                        \ DVID4's when z_hi <= DELTA), and its multiplies (MLU2, MLS1, MULTS-2,
+                        \ MULT1's square) and its sign-magnitude adds (ADD
+                        \ with MU8, PIX1) are in line, from the quarter
+                        \ squares, with the original's results, and each
+                        \ particle's bytes in SX to SZL are read once and
+                        \ written once. Its working values are in the zero
+                        \ page's temporaries (the sd_ names below) and in
+                        \ operands patched in the loop: the game reads none
+                        \ of P, Q, R, S, T, T1, XX, YY, K, ZZ or X1 to Y2
+                        \ after STARS before writing it again. STARS is reached
+                        \ only in the space view (MA66) and outside HFS1's
+                        \ rings, so in record mode: the particle is not
+                        \ drawn here, its new x, y and size go in the
+                        \ rasteriser's mailbox as PIXEL2 writes them (and
+                        \ the old particle's, which PIX1 would write there
+                        \ first, are not written)
 
- JSR DVID4              \ Port: DELTA >= z_hi (rare), so do DVID4 as DV42
-                        \ does, (P R) = 256 * DELTA / z_hi (Q = z_hi and
-                        \ A = DELTA are already set)
+sd_q = Q                \ q = 64 * speed / z_hi, the original's Q
+sd_p = P                \ The low byte of a product, as the original's P
+sd_t = T                \ ADD's T, the sign of its argument A (MLS1 and
+                        \ MULTS-2, on the loop's rare paths, set it again
+                        \ with the same bit 7)
+sd_t1 = T1              \ ADD's T1, its argument A
+sd_n = ZZ               \ The particle's number, while Y is used
+sd_w = XX               \ The particle's x and y being worked out, the
+                        \ original's XX(1 0) and YY(1 0) (so YY = XX + 2)
+sd_sg = K               \ The roll steps' signs: ALP2 (+0) and ALP2+1 (+2)
+sd_b1 = K+1             \ -beta for this pass, BETA with its sign flipped
+sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
+                        \ DVID4, MLS1 or MULTS, which the loop's rare paths
+                        \ call)
 
- LDA R                  \ Set A = R, so now:
-                        \
-                        \   (P A) = 256 * speed / z_hi
-
- LSR P                  \ Rotate (P A) right by 2 places, which sets P = 0 (as P
- ROR A                  \ has a maximum value of 2) and leaves:
- LSR P                  \
- ROR A                  \   A = 64 * speed / z_hi
-
- JMP stl_dvr            \ Rejoin the loop (Port: stl_dvs is here, before
-                        \ STARS1, within the BCS's reach)
+ ASSERT YY = XX + 2 AND K < 256 AND XX < 256 AND T < 256 AND ZZ < 256
 
 .STARS1
 
- LDA ALP1               \ Port: patch the roll magnitude into MLSA and the
- LDX #MLSA-MLSB         \ pitch magnitude into MLSB, the multiplies of the
- JSR stl_pat            \ MLS1, MLS2 and MULTS calls below, once per pass (as
- LDA BET1               \ the BBC Master port does)
- LDX #0
- JSR stl_pat
+ LDX DELTA              \ Port: DELTA + 1 into the loop's CPX, which sends a
+ INX                    \ particle with z_hi <= DELTA to the long division
+ STX stl_cd+1
+
+ LDA DELT4              \ Port: patch this pass's constants into the loop:
+ STA stl_d4+1           \ DELT4(1 0), the signs that are flipped into the
+ LDA DELT4+1            \ multiplies' arguments (ALP2+1, ALP2, BET2+1), and
+ STA stl_d5+1           \ -beta with its sign
+ LDA ALP2+1
+ STA sd_sg+2
+ LDA ALP2
+ STA sd_sg
+ LDA BET2+1
+ STA stl_e3+1
+ LDA BETA
+ EOR #%10000000
+ STA sd_b1
+ AND #%10000000
+ STA sd_bt
+
+ LDA ALP1               \ Port: and the roll and pitch magnitudes into the
+ CMP stl_c1+1           \ multiplies, if they have changed
+ BEQ P%+5
+ JSR stl_pata
+ LDA BET1
+ CMP stl_c3+1
+ BEQ P%+5
+ JSR stl_patb
 
  LDY NOSTM              \ Set Y to the current number of stardust particles, so
                         \ we can use it as a counter through all the stardust
+
+ JMP STL1               \ Port: jump over the long division to the loop
+
+.stl_dvs
+
+                        \ Port: z_hi <= DELTA (in X; rare), so the quotient
+                        \ has more than eight bits: as DV42, (P R) = 256 *
+                        \ DELTA / z_hi, by DVID4
+
+ STX Q
+ LDA DELTA
+ JSR DVID4
+ LDX Q
+
+ LDA R                  \ Rotate (P A) right by 2 places, as the original
+ LSR P                  \ does, which leaves A = 64 * speed / z_hi and C = c,
+ ROR A                  \ the C that the original's two shifts leave for the
+ LSR P                  \ subtraction from z_lo
+ ROR A
+
+ ORA #1                 \ Set A = q, at least 1, and rejoin
+ JMP stl_dvr
+
 
                         \ In the following, we're going to refer to the 16-bit
                         \ space coordinates of the current particle of stardust
@@ -6267,301 +6336,513 @@ ENDIF
 
 .STL1
 
- LDA SZ,Y               \ Port: DV42 inline. Set Q = z_hi and A = DELTA, as
- STA Q                  \ DV42 does, and if DELTA >= z_hi (rare), do the whole
- LDA DELTA              \ of DVID4 at stl_dvs
- CMP Q
- BCS stl_dvs
+ LDX SZ,Y               \ Set X = z_hi
 
- JSR LL28+4             \ DELTA < z_hi, so DVID4's quotient P is 0 and it goes
-                        \ straight to LL28+4 with A = DELTA as the remainder,
-                        \ which sets the following:
-                        \
-                        \   (P R) = 256 * DELTA / z_hi
-                        \         = 256 * speed / z_hi
-                        \
-                        \ The maximum value returned is P = 2 and R = 128 (see
-                        \ DV42 for an explanation)
+.stl_cd
 
- LDA R                  \ Set A = R, so now:
-                        \
-                        \   (P A) = 256 * speed / z_hi
+ CPX #0                 \ (patched: DELTA + 1) If z_hi <= DELTA (rare), jump
+ BCC stl_dvs            \ to stl_dvs
 
- LSR A                  \ Port: P = 0, so rotating (P A) right by 2 places is
- LSR A                  \ shifting A, which leaves the same C (bit 1 of R):
+ STX Q                  \ Port: as DV42 when DELTA < z_hi, R = 256 * DELTA /
+ LDA DELTA              \ z_hi, by LL28+4 (which keeps Y)
+ JSR LL28+4
+ LDX Q
+
+ LDA R                  \ Set A = q = (R >> 2) OR 1, the original's Q, and C
+ LSR A                  \ = c, bit 1 of R, the C that the original's two
+ LSR A                  \ shifts leave for the subtraction from z_lo, so we
+ ORA #1                 \ have result 1 above:
                         \
-                        \   A = 64 * speed / z_hi
+                        \   q = 64 * speed / z_hi
 
 .stl_dvr
 
- ORA #1                 \ Make sure A is at least 1, and store it in Q, so we
- STA Q                  \ now have result 1 above:
-                        \
-                        \   Q = 64 * speed / z_hi
+ STA sd_q               \ Store q, and patch it into the two multiplies below
+ STA stl_y2+1           \ (the QSL+q and QSH+q operands)
+ STA stl_y4+1
+ STA stl_x2+1
+ STA stl_x4+1
 
- LDA SZL,Y              \ We now calculate the following:
- SBC DELT4              \
- STA SZL,Y              \  (z_hi z_lo) = (z_hi z_lo) - DELT4(1 0)
-                        \
-                        \ starting with the low bytes
+ LDA SZL,Y              \ We now calculate the following, with the original's
+                        \ C (c):
+.stl_d4                 \
+                        \  (z_hi z_lo) = (z_hi z_lo) - DELT4(1 0)
+ SBC #0                 \
+ STA SZL,Y              \ starting with the low bytes (patched: DELT4)
 
- LDA SZ,Y               \ And then we do the high bytes
- STA ZZ                 \
- SBC DELT4+1            \ We also set ZZ to the original value of z_hi, which we
- STA SZ,Y               \ use below to remove the existing particle
+ TXA                    \ And then we do the high bytes (patched: DELT4+1),
+                        \ keeping the new z_hi for the end of the loop
+.stl_d5
 
- LDA Q                  \ Port: patch q = Q into MLUQ, the |A| * Q multiply
- STA mlq2+1             \ used twice below: q into the QSL+q and QSH+q
- STA mlq4+1             \ operands, and -q (q >= 1, so the high bytes stay
- EOR #&FF               \ HI(QSL)-1 and HI(QSH)-1) into the QSL-q and QSH-q
- CLC                    \ ones
- ADC #1
- STA mlq3+1
- STA mlq5+1
+ SBC #0
+ STA X2                 \ (X2 = the new z_hi)
                         \
                         \ So now we have result 2 above:
                         \
                         \   z = z - DELT4(1 0)
                         \     = z - speed * 64
 
- LDA SY,Y               \ Port: MLU1 inline, with MLUQ, so set Y1 = y_hi and
- STA Y1                 \ call MLUQ (MLU2 with Q patched in) to set:
- JSR MLUQ               \
-                        \
-                        \   Y1 = y_hi
-                        \
-                        \   (A P) = |y_hi| * Q
-                        \
-                        \ So Y1 contains the original value of y_hi, which we
-                        \ use below to remove the existing particle
+ LDA SX,Y               \ Fetch x_hi into X1 and y_hi into Y1, for the sums
+ STA X1                 \ below
+ LDA SY,Y
+ STA Y1
+
+ STY sd_n               \ Keep the particle's number, as the multiplies use Y
+
+ AND #%01111111         \ Set (A sd_p) = |y_hi| * q, as MLU2 does, from the
+ TAX                    \ quarter squares, QS(|y_hi| + q) - QS(||y_hi| - q|):
+ SEC                    \ X = |y_hi| and Y = ||y_hi| - q|
+ SBC sd_q
+ BCS P%+6
+ EOR #&FF
+ ADC #1
+ TAY
+
+.stl_y2
+
+ LDA QSL,X              \ (patched: QSL + q)
+ SEC
+ SBC QSL,Y
+ STA R                  \ (R = the product's low byte)
+
+.stl_y4
+
+ LDA QSH,X              \ (patched: QSH + q)
+ SBC QSH,Y
+ STA S                  \ (S = the product's high byte)
+
+ LDA X1                 \ And |x_hi| * q in the same way, into P(2 1)
+ AND #%01111111
+ TAX
+ SEC
+ SBC sd_q
+ BCS P%+6
+ EOR #&FF
+ ADC #1
+ TAY
+
+.stl_x2
+
+ LDA QSL,X              \ (patched: QSL + q)
+ SEC
+ SBC QSL,Y
+ STA P+1
+
+.stl_x4
+
+ LDA QSH,X              \ (patched: QSH + q)
+ SBC QSH,Y
+ STA P+2
+
+ LDY sd_n               \ Set Y to the particle's number again
 
                         \ We now calculate:
                         \
-                        \   (S R) = YY(1 0) = (A P) + y
+                        \   (sd_w+3 sd_w+2) = |y_hi| * q + y
 
- STA YY+1               \ First we do the low bytes with:
- LDA P                  \
- ADC SYL,Y              \   YY+1 = A
- STA YY                 \   R = YY = P + y_lo
- STA R                  \
-                        \ so we get this:
-                        \
-                        \   (? R) = YY(1 0) = (A P) + y_lo
+ CLC                    \ First the low bytes (C is clear, as MLU2 leaves it)
 
- LDA Y1                 \ And then we do the high bytes with:
- ADC YY+1               \
- STA YY+1               \   S = YY+1 = y_hi + YY+1
- STA S                  \
-                        \ so we get our result:
-                        \
-                        \   (S R) = YY(1 0) = (A P) + (y_hi y_lo)
-                        \                   = |y_hi| * Q + y
-                        \
-                        \ which is result 3 above, and (S R) is set to the new
-                        \ value of y
+ LDA R                  \ The product's low byte
+ ADC SYL,Y
+ STA sd_w+2
 
- LDA SX,Y               \ Set X1 = A = x_hi
- STA X1                 \
-                        \ So X1 contains the original value of x_hi, which we
-                        \ use below to remove the existing particle
+ LDA Y1                 \ And then the high bytes: y_hi and the product's
+ ADC S
+ STA sd_w+3
+                        \
+                        \ which is result 3 above
 
- JSR MLUQ               \ Set (A P) = |x_hi| * Q (Port: MLUQ, MLU2 with Q
-                        \ patched in)
+                        \ And in the same way:
+                        \
+                        \   (sd_w+1 sd_w) = |x_hi| * q + x
 
-                        \ We now calculate:
-                        \
-                        \   XX(1 0) = (A P) + x
+ CLC
 
- STA XX+1               \ First we do the low bytes:
- LDA P                  \
- ADC SXL,Y              \   XX(1 0) = (A P) + x_lo
- STA XX
+ LDA P+1
+ ADC SXL,Y
+ STA sd_w
 
- LDA X1                 \ And then we do the high bytes:
- ADC XX+1               \
- STA XX+1               \   XX(1 0) = XX(1 0) + (x_hi 0)
+ LDA X1
+ ADC P+2
+ STA sd_w+1
                         \
-                        \ so we get our result:
-                        \
-                        \   XX(1 0) = (A P) + x
-                        \           = |x_hi| * Q + x
-                        \
-                        \ which is result 4 above, and we also have:
-                        \
-                        \   A = XX+1 = (|x_hi| * Q + x) / 256
-                        \
-                        \ i.e. A is the new value of x, divided by 256
-
- EOR ALP2+1             \ EOR with the flipped sign of the roll angle alpha, so
-                        \ A has the opposite sign to the flipped roll angle
-                        \ alpha, i.e. it gets the same sign as alpha
+                        \ which is result 4 above, and A is the new value of
+                        \ x, divided by 256
 
 .stl_r1
 
- JSR MLSA               \ Call MLSA (Port: MLS1 with ALP1 patched in) to
-                        \ calculate:
+ JMP stl_k1             \ (patched: BIT when the roll is not 0) If the roll
+                        \ is 0, do the two roll steps at stl_k1
+
+ LDX #2                 \ Do the two roll steps, results 5 and 6 above, with
+                        \ X = 2 for y and then 0 for x (sd_w+X):
                         \
-                        \   (A P) = A * ALP1
-                        \         = (x / 256) * alpha
+                        \   y = y + alpha * x / 256
+                        \   x = x - alpha * y / 256
+
+.stl_rl
+
+ EOR sd_sg,X            \ EOR A (x_hi, then the new y_hi) with the flipped
+                        \ sign of the roll angle alpha (ALP2+1), then with
+                        \ its sign (ALP2)
+
+                        \ Set (A sd_p) = A * ALP1, as MLS1 does: |A| * ALP1
+                        \ with the sign of A, or 0 if |A| = 0, from the
+                        \ quarter squares, as QS(|A| + b) - QS(|A| - b)
+                        \ with b = ALP1 patched in by stl_pata
+
+ STA sd_t               \ Keep A, for its sign
+
+ AND #%01111111         \ If |A| = 0, the result is 0, with no sign (MU6)
+ BEQ stl_rz
+
+ TAY                    \ Set Y = |A|
+
+.stl_c1
+
+ CPY #0                 \ (patched: b) If |A| < b, jump to stl_s1 (C is set
+ BCC stl_s1             \ otherwise, for the SBC below)
+
+.stl_f1
+
+ LDA QSL,Y              \ (patched: QSL + b)
+ SBC QSL,Y              \ (patched: QSL - b)
+ STA sd_p
+
+.stl_g1
+
+ LDA QSH,Y              \ (patched: QSH + b)
+ SBC QSH,Y              \ (patched: QSH - b)
+
+.stl_j1
+
+ BIT sd_t               \ Give A the sign of the argument
+ BPL P%+4
+ ORA #%10000000
 
 .stl_a1
 
- JSR ADD                \ Call ADD to calculate:
-                        \
-                        \   (A X) = (A P) + (S R)
-                        \         = (x / 256) * alpha + y
-                        \         = y + alpha * x / 256
+                        \ Set (A Y) = (A sd_p) + (sd_w+1+X sd_w+X), as ADD
+                        \ does, with sd_t1 and sd_t as its T1 and T: the same
+                        \ steps as ADD and MU8, and the same results
 
- STA YY+1               \ Set YY(1 0) = (A X) to give:
- STX YY                 \
-                        \   YY(1 0) = y + alpha * x / 256
-                        \
-                        \ which is result 5 above, and we also have:
-                        \
-                        \   A = YY+1 = y + alpha * x / 256
-                        \
-                        \ i.e. A is the new value of y, divided by 256
+ STA sd_t1              \ Store argument A in sd_t1
 
- EOR ALP2               \ EOR A with the correct sign of the roll angle alpha,
-                        \ so A has the opposite sign to the roll angle alpha
+ AND #%10000000         \ Extract the sign (bit 7) of A and store it in sd_t
+ STA sd_t
 
- LDX XX                 \ Call MLSA after setting (S R) = XX(1 0) (Port: this
- STX R                  \ is MLS2 with ALP1 patched in) to calculate:
- LDX XX+1
- STX S
+ EOR sd_w+1,X           \ If the two have different signs, jump to stl_am
+ BMI stl_am
+
+ CLC                    \ The same sign: add the low bytes into Y, the high
+ LDA sd_w,X             \ bytes into A, and give A the sign of argument A
+ ADC sd_p
+ TAY
+ LDA sd_w+1,X
+ ADC sd_t1
+ ORA sd_t
+
+ JMP stl_ad
+
+.stl_s1
+
+ STX Y2                 \ A roll multiply for |A| < ALP1 (rare): MLS1 does
+ LDA sd_t               \ it, and the loop goes on at stl_j1 with its (A P),
+ JSR MLS1               \ P being sd_p (X is kept in Y2, as MLS1 changes it)
+ LDX Y2
+ JMP stl_j1
+
+.stl_rz
+
+ STA sd_p               \ The multiply for |A| = 0: (A sd_p) = 0 (Z is still
+ BEQ stl_a1             \ set)
+
+.stl_az
+
+ LDA sd_w+1,X           \ The low bytes are equal (C is set): as MU8's mu8z
+ SBC sd_t1
+ CMP #%10000001
+ BCS stl_aa
+ BCC stl_ab
+
+.stl_am
+
+ LDA sd_w,X             \ Different signs: subtract (A sd_p) from the other,
+ SEC                    \ the low bytes into Y
+ SBC sd_p
+ TAY
+ BEQ stl_az
+
+ LDA sd_w+1,X           \ The high bytes: bit 7 is set if and only if the
+ SBC sd_t1              \ other is the greater (MU8), and then A has its sign
+ BMI stl_aa
+
+.stl_ab
+
+ LDA sd_p               \ Otherwise subtract the other way round, as the
+ SEC                    \ original does
+ SBC sd_w,X
+ TAY
+ LDA sd_t1
+ EOR #%10000000
+ SBC sd_w+1,X
+
+.stl_aa
+
+ EOR sd_t               \ Give the result its sign
+
+.stl_ad
+
+ STA sd_w+1,X           \ Store the result
+ STY sd_w,X
+
+ LDA sd_w+3             \ Set A to the new y_hi, and if that was y, do the
+ DEX                    \ second step
+ DEX
+ BPL stl_rl
+
 .stl_r2
 
- JSR MLSA               \
-                        \
-                        \   (S R) = XX(1 0)
-                        \         = x
-                        \
-                        \   (A P) = A * ALP1
-                        \         = -y / 256 * alpha
+ LDY sd_n               \ Set Y to the particle's number again (A = y_hi)
 
-.stl_a2
+.stl_r3
 
- JSR ADD                \ Call ADD to calculate:
-                        \
-                        \   (A X) = (A P) + (S R)
-                        \         = -y / 256 * alpha + x
+ JMP stl_k3             \ (patched: BIT when the pitch is not 0) If the pitch
+                        \ is 0, do the pitch step at stl_k3
 
- STA XX+1               \ Set XX(1 0) = (A X), which gives us result 6 above:
- STX XX                 \
-                        \   x = x - alpha * y / 256
+.stl_e3
 
- LDA YY+1               \ Set A to y_hi and set it to the flipped sign of beta
- EOR BET2+1
+ EOR #0                 \ (patched: BET2+1) Give A the flipped sign of beta
 
-.stl_p1
+ AND #%01111111         \ Set A = |A| * BET1 / 256, the magnitude of the
+ BEQ stl_j3             \ original's Q = -beta * y_hi / 256 (0 if |A| = 0),
+ TAX                    \ as MULTS-2 does, from the quarter squares: only the
+                        \ product's high byte is needed
+.stl_c3
 
- JSR MLSB               \ Call MLSB (Port: MULTS-2 with X = BET1 patched in)
-                        \ to calculate:
-                        \
-                        \   (A P) = X * A
-                        \         = -beta * y_hi
+ CPX #0                 \ (patched: BET1) If |A| < BET1, jump to stl_s3
+ BCC stl_s3
 
- STA Q                  \ Store the high byte of the result in Q, so:
-                        \
-                        \   Q = -beta * y_hi / 256
+.stl_f3
 
- LDX XX                 \ Set (S R) = XX(1 0) = x, as MUT2 does
- STX R
- LDX XX+1
- STX S
+ LDA QSL,X              \ (patched: QSL + BET1)
+ CMP QSL-256,X          \ (patched: QSL - BET1)
+ LDA QSH,X              \ (patched: QSH + BET1)
+ SBC QSH-256,X          \ (patched: QSH - BET1)
 
-                        \ Port: MUT2 then calculated (A P) = Q * Q, i.e.
-                        \ (beta * y / 256) ^ 2, by MULT1, and the following
-                        \ doubled it, with the C flag rotated into the sign bit;
-                        \ this does both from the quarter squares, as
-                        \ |Q| * |Q| = QS(2 * |Q|), which is below &4000 as
-                        \ |Q| < 128, so the doubled result's sign bit is 0
+.stl_j3
 
- ASL A                  \ Set X = 2 * |Q| (A = Q here)
- TAX
-
- LDA QSL,X              \ Set (A P) = 2 * QS(2 * |Q|)
- ASL A                  \           = 2 * (beta * y / 256) ^ 2
- STA P
+ ASL A                  \ Set (A sd_p) = 2 * QS(2 * |Q|)
+ TAX                    \              = 2 * (beta * y / 256) ^ 2
+ LDA QSL,X              \
+ ASL A                  \ which is not negative (|Q| < 16)
+ STA sd_p
  LDA QSH,X
  ROL A
 
+                        \ Set (A X) = (A sd_p) + (sd_w+1 sd_w)
+                        \           = 2 * (beta * y / 256) ^ 2 + x
+                        \
+                        \ as ADD does, for an argument A that is not
+                        \ negative (so its T is 0)
+
+ STA sd_t1              \ Store argument A in sd_t1
+
+ EOR sd_w+1             \ If x is negative, jump to stl_m8 to subtract
+ BMI stl_m8
+
+ CLC                    \ Add the low bytes into X and the high bytes into A
+ LDA sd_w
+ ADC sd_p
+ TAX
+ LDA sd_w+1
+ ADC sd_t1
+
+ JMP stl_a3
+
+.stl_s3
+
+ TXA                    \ The pitch multiply for |A| < BET1 (rare): MULTS-2
+ LDX BET1               \ does it, and the loop goes on at stl_j3 with its A
+ JSR MULTS-2            \ (|A| is not negative, so it has no sign)
+ JMP stl_j3
+
+.stl_mz
+
+ LDA sd_w+1             \ The low bytes are equal: as MU8's mu8z
+ SBC sd_t1
+ CMP #%10000001
+ BCS stl_a3
+ BCC stl_mb
+
+.stl_m8
+
+ LDA sd_w               \ x is negative: MU8's steps, with T = 0: subtract
+ SEC                    \ the low bytes into X
+ SBC sd_p
+ TAX
+ BEQ stl_mz
+
+ LDA sd_w+1             \ And the high bytes: if |x| > |A sd_p|, that is the
+ SBC sd_t1              \ result
+ BMI stl_a3
+
+.stl_mb
+
+ LDA sd_p               \ Otherwise subtract the other way round
+ SEC
+ SBC sd_w
+ TAX
+ LDA sd_t1
+ EOR #%10000000
+ SBC sd_w+1
+
 .stl_a3
 
- JSR ADD                \ Call ADD to calculate:
-                        \
-                        \   (A X) = (A P) + (S R)
-                        \         = 2 * (beta * y / 256) ^ 2 + x
-
- STA XX+1               \ Store the high byte A in XX+1
+ STA sd_w+1             \ Store the high byte A in sd_w+1
 
  TXA                    \ Store the low byte X in x_lo
  STA SXL,Y
 
-                        \ So (XX+1 x_lo) now contains:
+                        \ So (sd_w+1 x_lo) now contains:
                         \
                         \   x = x + 2 * (beta * y / 256) ^ 2
                         \
                         \ which is result 7 above
 
- LDA YY                 \ Set (S R) = YY(1 0) = y
- STA R
- LDA YY+1
- STA S
+.stl_px
 
- LDA #0                 \ Set P = 0
- STA P
+                        \ We now calculate, as PIX1 does:
+                        \
+                        \   (A y_lo) = (-beta 0) + (sd_w+3 sd_w+2)
+                        \            = -beta * 256 + y
+                        \
+                        \ i.e. y = y - beta * 256, which is result 8 above:
+                        \ ADD's steps with P = 0, with -beta in sd_b1 and its
+                        \ sign in sd_bt
 
- LDA BETA               \ Set A = -beta, so:
- EOR #%10000000         \
-                        \   (A P) = (-beta 0)
-                        \         = -beta * 256
+ LDA sd_w+3             \ If -beta and y have different signs, jump to stl_po
+ EOR sd_b1
+ BMI stl_po
 
- JSR PIX1               \ Call PIX1 to calculate the following:
-                        \
-                        \   (YY+1 y_lo) = (A P) + (S R)
-                        \               = -beta * 256 + y
-                        \
-                        \ i.e. y = y - beta * 256, which is result 8 above
-                        \
-                        \ PIX1 also draws a particle at (X1, Y1) with distance
-                        \ ZZ, which will remove the old stardust particle, as we
-                        \ set X1, Y1 and ZZ to the original values for this
-                        \ particle during the calculations above
+ LDA sd_w+2             \ The low byte is y's
+ STA SYL,Y
+
+ LDA sd_w+3             \ Add the high bytes and give A the sign of -beta
+ CLC
+ ADC sd_b1
+ ORA sd_bt
+
+ JMP stl_t
+
+.stl_pz
+
+ LDA sd_w+3             \ The low byte is 0: as MU8's mu8z
+ SEC
+ SBC sd_b1
+ CMP #%10000001
+ BCS stl_pa
+
+.stl_pb
+
+ LDA #0                 \ |y| <= |-beta 0|: subtract the other way round
+ SEC
+ SBC sd_w+2
+ STA SYL,Y
+ LDA sd_b1
+ EOR #%10000000
+ SBC sd_w+3
+ EOR sd_bt
+ JMP stl_t
+
+.stl_po
+
+ LDA sd_w+2             \ Different signs: MU8's steps with P = 0. If y's
+ BEQ stl_pz             \ low byte is 0, jump to stl_pz
+
+ LDA sd_w+3             \ Subtract the high bytes (there is no borrow from
+ SEC                    \ the low bytes); if |y| <= |-beta 0|, jump to stl_pb
+ SBC sd_b1
+ BPL stl_pb
+
+.stl_pa
+
+ TAX                    \ |y| > |-beta 0|: the low byte is y's, and the high
+ LDA sd_w+2             \ byte gets its sign
+ STA SYL,Y
+ TXA
+ EOR sd_bt
+
+.stl_t
 
                         \ We now have our newly moved stardust particle at
-                        \ x-coordinate (XX+1 x_lo) and y-coordinate (YY+1 y_lo)
-                        \ and distance z_hi, so we draw it if it's still on
+                        \ x-coordinate (sd_w+1 x_lo) and y-coordinate (A y_lo)
+                        \ and distance z_hi, so we keep it if it's still on
                         \ screen, otherwise we recycle it as a new bit of
-                        \ stardust and draw that
+                        \ stardust
 
- LDA XX+1               \ Set X1 and x_hi to the high byte of XX in XX+1, so
- STA X1                 \ the new x-coordinate is in (x_hi x_lo) and the high
- STA SX,Y               \ byte is in X1
-
- AND #%01111111         \ If |x_hi| >= 120 then jump to KILL1 to recycle this
- CMP #120               \ particle, as it's gone off the side of the screen,
- BCS KILL1              \ and rejoin at STC1 with the new particle
-
- LDA YY+1               \ Set Y1 and y_hi to the high byte of YY in YY+1, so
- STA SY,Y               \ the new x-coordinate is in (y_hi y_lo) and the high
- STA Y1                 \ byte is in Y1
+ STA sd_w+3             \ Store the new y_hi
 
  AND #%01111111         \ If |y_hi| >= 120 then jump to KILL1 to recycle this
  CMP #120               \ particle, as it's gone off the top or bottom of the
  BCS KILL1              \ screen, and rejoin at STC1 with the new particle
 
- LDA SZ,Y               \ If z_hi < 16 then jump to KILL1 to recycle this
- CMP #16                \ particle, as it's so close that it's effectively gone
- BCC KILL1              \ past us, and rejoin at STC1 with the new particle
+ LDA sd_w+1             \ If |x_hi| >= 120 then jump to KILL1 to recycle this
+ AND #%01111111         \ particle, as it's gone off the side of the screen,
+ CMP #120               \ and rejoin at STC1 with the new particle
+ BCS KILL1
 
- STA ZZ                 \ Set ZZ to the z-coordinate in z_hi
+ LDA X2                 \ Set A to the new z_hi, and if z_hi < 16 then jump to
+ CMP #16                \ KILL1 to recycle this particle, as it's so close
+ BCC KILL1              \ that it's effectively gone past us, and rejoin at
+                        \ STC1 with the new particle
 
 .STC1
 
- JSR PIXEL2             \ Draw a stardust particle at (X1,Y1) with distance ZZ,
-                        \ i.e. draw the newly moved particle at (x_hi, y_hi)
-                        \ with distance z_hi
+                        \ Store the particle, new or moved, with x_hi in
+                        \ sd_w+1, y_hi in sd_w+3 and z_hi in A, and record it
+                        \ for the renderer as PIXEL2 does
+
+ STA SZ,Y               \ Store z_hi, and keep it in X
+ TAX
+
+ LDA sd_w+3             \ Store y_hi
+ STA SY,Y
+
+ BMI stc5               \ If the y-coordinate offset is negative, jump to stc5
+
+ CMP #96                \ If it is 96 or more, the particle is off the screen
+ BCS stc6
+
+.stc3
+
+ EOR #%11111111         \ Set A = #Y + 1 - Y1, as PX2 does (with its C), and
+ ADC #Y+1               \ record it as the star's y
+ STA MB_SY,Y
+
+ LDA sd_w+1             \ Store x_hi
+ STA SX,Y
+
+ BPL P%+7               \ Convert the x-coordinate offset to a screen
+ EOR #%01111111         \ x-coordinate, as PIXEL2 does, and record it
+ CLC
+ ADC #1
+ EOR #%10000000
+ STA MB_SX,Y
+
+ LDA #1                 \ Record the particle's size: 1 for z_hi >= 144, 2
+ CPX #144               \ for z_hi >= 80, 3 below, which leaves C as PIXEL2
+ BCS stc2               \ leaves it (STARS returns it, and the main loop's
+ LDA #2                 \ next DORND takes it)
+ CPX #80
+ BCS stc2
+ LDA #3
+
+.stc2
+
+ STA MB_SS,Y
+
+.stc4
 
  DEY                    \ Decrement the loop counter to point to the next
                         \ stardust particle
@@ -6582,332 +6863,147 @@ ENDIF
 
  JSR DORND              \ Set A and X to random numbers
 
- ORA #4                 \ Make sure A is at least 4 and store it in Y1 and y_hi,
- STA Y1                 \ so the new particle starts at least 4 pixels above or
- STA SY,Y               \ below the centre of the screen
+ ORA #4                 \ Make sure A is at least 4 and store it in y_hi, so
+ STA sd_w+3             \ the new particle starts at least 4 pixels above or
+                        \ below the centre of the screen
 
  JSR DORND              \ Set A and X to random numbers
 
- ORA #8                 \ Make sure A is at least 8 and store it in X1 and x_hi,
- STA X1                 \ so the new particle starts at least 8 pixels either
- STA SX,Y               \ side of the centre of the screen
+ ORA #8                 \ Make sure A is at least 8 and store it in x_hi, so
+ STA sd_w+1             \ the new particle starts at least 8 pixels either
+                        \ side of the centre of the screen
 
  JSR DORND              \ Set A and X to random numbers
 
- ORA #144               \ Make sure A is at least 144 and store it in ZZ and
- STA SZ,Y               \ z_hi so the new particle starts in the far distance
- STA ZZ
+ ORA #144               \ Make sure A is at least 144, for z_hi, so the new
+                        \ particle starts in the far distance
 
- BMI STC1               \ Jump up to STC1 to draw this new particle (always
-                        \ taken, as the ORA #144 left bit 7 of A set)
+ JMP STC1               \ Jump up to STC1 to store and record this new
+                        \ particle
 
-.stl_pat
+.stc5
 
-                        \ Port: patch the multiplier b in A (the roll or pitch
-                        \ magnitude, 0-31) into MLSB (X = 0) or MLSA
-                        \ (X = MLSA - MLSB): b into the CPX and into the QSL+b
-                        \ and QSH+b operands, and -b into the QSL-b and QSH-b
-                        \ ones (whose high bytes are HI(QSL) and HI(QSH) if
-                        \ b = 0, or one less)
-                        \
-                        \ If b is already patched in (the CPX operand holds
-                        \ the last b, and the assembled operands are those of
-                        \ b = 0), the operands are all set already, so return
-                        \ (STARS1 reads neither A nor C after this: STL1
-                        \ starts with LDA and CMP; X is kept)
+ AND #%01111111         \ The offset is negative: if |Y1| >= 96 the particle
+ CMP #96                \ is off the screen, otherwise negate it, as PX24
+ BCS stc6               \ does, and rejoin
+ EOR #%11111111
+ ADC #1
+ JMP stc3
 
- CMP mlb1+1,X
- BNE P%+3
- RTS
- STA mlb1+1,X
- STA mlb2+1,X
- STA mlb4+1,X
+.stc6
+
+ LDA #0                 \ The particle is off the screen: there is no star Y
+ STA MB_SS,Y            \ for the renderer (C is set, as PIXEL2 leaves it)
+
+ LDA sd_w+1             \ Store x_hi, and move on to the next particle
+ STA SX,Y
+ JMP stc4
+
+.stl_k1
+
+                        \ Port: the roll steps when ALP1 = 0 (A = the new
+                        \ x_hi). Each product is 0 with its argument's sign,
+                        \ so when |x_hi| and |y_hi| are both non-zero each
+                        \ ADD gives (A X) = (S R) whatever the signs (the
+                        \ same-sign sum, or MU8 with |S R| > 0): y and then x
+                        \ are unchanged. Otherwise do the steps (the
+                        \ multiply is patched for ALP1 = 0 too)
+
+ ASL A                  \ If |x_hi| = 0, do the steps
+ BEQ stl_kg
+
+ LDA sd_w+3             \ If |y_hi| <> 0, both steps leave x and y as they
+ ASL A                  \ are, so go on to the pitch step with A = y_hi
+ BEQ stl_kg
+ ROR A
+ JMP stl_r3
+
+.stl_kg
+
+ LDA sd_w+1             \ Do the steps, with A = x_hi
+ JMP stl_r1+3
+
+.stl_k3
+
+                        \ Port: the pitch step when BET1 = 0: the square is
+                        \ 0, so when |x_hi| is non-zero ADD gives x itself;
+                        \ otherwise do the step's ADD, with Q = 0
+
+ LDA sd_w+1
+ ASL A
+ BEQ stl_kz3
+
+ LDA sd_w               \ x is unchanged: store its low byte in x_lo
+ STA SXL,Y
+
+ LDA sd_w+3             \ BETA is 0 too, so if |y_hi| is non-zero result 8's
+ ASL A                  \ ADD gives y itself, in the same way: store its low
+ BEQ P%+12              \ byte in y_lo, and go on with A = y_hi
+ LDA sd_w+2
+ STA SYL,Y
+ LDA sd_w+3
+ JMP stl_t
+
+ JMP stl_px
+
+.stl_kz3
+
+ LDA #0
+ JMP stl_j3
+
+.stl_pata
+
+                        \ Port: patch the roll magnitude b = ALP1 (in A, and
+                        \ changed) into the roll multiply: b into the CPX and
+                        \ the QSL+b and QSH+b operands, and -b into the QSL-b
+                        \ and QSH-b operands (whose high bytes are HI(QSL)
+                        \ and HI(QSH) if b = 0, or one less), and make the
+                        \ roll steps' first instruction a BIT, so that they
+                        \ are done; or for b = 0 a JMP to stl_k1
+
+ STA stl_c1+1
+ STA stl_f1+1
+ STA stl_g1+1
  EOR #&FF               \ A = -b, with C = 1 if and only if b = 0
  CLC
  ADC #1
- STA mlb3+1,X
- STA mlb5+1,X
+ STA stl_f1+4
+ STA stl_g1+4
  LDA #HI(QSL)-1
  ADC #0
- STA mlb3+2,X
+ STA stl_f1+5
  ADC #2                 \ (C = 0: no carry out of HI(QSL))
- STA mlb5+2,X
-
-                        \ Port: and the stardust's call sites, by b = 0 or
-                        \ not: for the roll (X <> 0), the two calls of MLSA
-                        \ and the ADD after each (stl_r1, stl_a1; stl_r2,
-                        \ stl_a2), JSR mlsk and BIT ADD (a no-op) when the
-                        \ roll is 0, else JSR MLSA and JSR ADD; for the pitch
-                        \ (X = 0), MLSB and the ADD of its square (stl_p1,
-                        \ stl_a3), JSR mlbk and JSR stlad0 when the pitch is
-                        \ 0, else JSR MLSB and JSR ADD (until ALP1 or BET1
-                        \ first changes, the assembled JSRs stay: their own
-                        \ paths, which give the same results); X is not kept
-                        \ (STARS1 sets it again)
-
- TXA
- BEQ stlpp
- LDA mla1+1             \ (the roll's b)
- BEQ stlr0
- LDY #LO(MLSA)
- LDX #HI(MLSA)
- LDA #&20               \ JSR
- BNE stlr1
-.stlr0
- LDY #LO(mlsk)
- LDX #HI(mlsk)
- LDA #&2C               \ BIT
-.stlr1
- STA stl_a1
- STA stl_a2
- STY stl_r1+1
- STY stl_r2+1
- STX stl_r1+2
- STX stl_r2+2
- RTS
-
-.stlpp
-
- LDY #0                 \ The pitch: Y = 0 (b <> 0) or 4 (b = 0) for stlpt
- LDA mlb1+1
+ STA stl_g1+5
+ LDX #&2C               \ BIT
+ LDA stl_c1+1
  BNE P%+4
- LDY #4
- LDA stlpt,Y
- STA stl_p1+1
- LDA stlpt+1,Y
- STA stl_p1+2
- LDA stlpt+2,Y
- STA stl_a3+1
- LDA stlpt+3,Y
- STA stl_a3+2
-
-.stlpr
-
+ LDX #&4C               \ JMP
+ STX stl_r1
  RTS
 
-.stlpt
+.stl_patb
 
- EQUW MLSB, ADD         \ The pitch's call sites for b <> 0, and for b = 0
- EQUW mlbk, stlad0
+                        \ Port: and the pitch magnitude b = BET1 into the
+                        \ pitch multiply, in the same way (which is not used
+                        \ when b = 0: stl_k3)
 
-.mlsk
-
-                        \ Port: MLSA and the ADD after it (stl_a1, stl_a2:
-                        \ BIT ADD now) when ALP1 = 0. The product is 0 with
-                        \ A's sign, P = 0, so when |A| and |S| are both
-                        \ non-zero ADD gives (A X) = (S R) whatever the signs
-                        \ (the same-sign sum, or MU8 with |S R| > 0), which
-                        \ is returned here; else MLSA's own path, then ADD.
-                        \ The T, T1 and P that MLSA and ADD would leave, and
-                        \ C, are not read before they are written again (the
-                        \ next MLSA's or MLSB's STA T, the next ADD's T1, P
-                        \ from MLSB's product or PIX1's STA P; the C of
-                        \ MLSA's or MLSB's CPX)
-
- STA T                  \ If |A| = 0, take MLSA's path
- AND #%01111111
- BEQ mlsf
- LDX S                  \ If |S| = 0 (S = 0 or &80), take MLSA's path
- BEQ mlsf
- CPX #%10000000
- BEQ mlsf
- TXA                    \ (A X) = (S R)
- LDX R
+ STA stl_c3+1
+ STA stl_f3+1
+ STA stl_f3+7
+ EOR #&FF
+ CLC
+ ADC #1
+ STA stl_f3+4
+ STA stl_f3+10
+ LDX #&2C               \ BIT
+ LDA stl_c3+1
+ BNE P%+4
+ LDX #&4C               \ JMP
+ STX stl_r3
  RTS
 
-.mlsf
-
- LDA T                  \ MLSA's path: MLSA, then ADD
- JSR MLSA
- JMP ADD
-
-.mlbk
-
-                        \ Port: MLSB when BET1 = 0 (stl_p1): with |A| <> 0 the
-                        \ product is 0 with A's sign, so (A P) = (A AND &80,
-                        \ 0), as MLSB returns it (its X and flags are not
-                        \ read: STARS1 stores A in Q and then sets X); with
-                        \ |A| = 0 it ends as MLSB does, at mlbz (P(1 0) = 0)
-
- STA T                  \ T = A, as MLSB does
- AND #%01111111         \ If |A| = 0, finish as MLSB does at mlbz, with A = 0
- BEQ mlbz
- LDA #0
- STA P
- LDA T
- AND #%10000000
- RTS
-
-.stlad0
-
-                        \ Port: the ADD of the pitch's square (stl_a3) when
-                        \ BET1 = 0: (A P) is 0 then, so when |S| is non-zero
-                        \ ADD gives (A X) = (S R) (the same-sign sum, or MU8
-                        \ with |S R| > 0), which is returned here (the T and
-                        \ T1 it would leave, and C, are not read before PIX1's
-                        \ ADD writes them); else ADD's own path, with A = 0
-
- LDX S                  \ If |S| = 0 (S = 0 or &80), take ADD's path
- BEQ stlaf
- CPX #%10000000
- BEQ stlaf
- TXA                    \ (A X) = (S R)
- LDX R
- RTS
-
-.stlaf
-
- LDA #0                 \ ADD's path (A = 0: P is 0, as the square left it)
- JMP ADD
-
-.MLUQ
-
-                        \ Port: MLU2 for the stardust, (A P) = |A| * Q, with
-                        \ q = Q patched into the operands below (by STL1, once
-                        \ per particle): if |A| >= q, the product is
-                        \ QS(|A| + q) - QS(|A| - q), and otherwise MLU2 does it.
-                        \ It returns with C clear, as MLU2 does (its other
-                        \ effects, on X and T, are not read in STL1)
-
- AND #%01111111         \ Set X = |A|
- TAX
-
- CPX Q                  \ If |A| < q, jump to mlqr (with C = 1 otherwise, for
- BCC mlqr               \ the SBC below)
-
-.mlq2
-
- LDA QSL,X              \ (patched: QSL + q) Set (A P) = QS(|A| + q)
-
-.mlq3                   \                                - QS(|A| - q)
-
- SBC QSL-256,X          \ (patched: QSL - q)              = |A| * q
- STA P
-
-.mlq4
-
- LDA QSH,X              \ (patched: QSH + q)
-
-.mlq5
-
- SBC QSH-256,X          \ (patched: QSH - q)
-
- CLC                    \ Return with C clear, as MLU2 does
- RTS
-
-.mlqr
-
- JMP MLU2               \ |A| < q: call MLU2 with A = |A| (the AND above left
-                        \ it in A; as a tail call)
-
-.MLSB
-
-                        \ Port: MULTS-2 with X = BET1 for the stardust,
-                        \ (A P) = BET1 * A, with b = BET1 patched into the
-                        \ operands below (by STARS1, once per pass): if
-                        \ |A| >= b, the product is QS(|A| + b) - QS(|A| - b),
-                        \ with the sign of A, and otherwise MULTS does it. The
-                        \ results are MULTS's (A P), and P+1 = 0 when A = 0
-                        \ (as MULTS's MU6); its other effects, on X, T, T1 and
-                        \ the flags, are not read in STL1
-
- STA T                  \ Set T = A, for its sign
- AND #%01111111         \ If A = 0, set P(1 0) = 0 at mlbz, as MULTS does
- BEQ mlbz               \ at MU6
- TAX                    \ Set X = |A|
-
-.mlb1
-
- CPX #0                 \ (patched: b) If |A| < b, jump to mlbr
- BCC mlbr               \ (C = 1 otherwise, for the SBC below)
-
-.mlb2
-
- LDA QSL,X              \ (patched: QSL + b) Set (A P) = QS(|A| + b)
-
-.mlb3                   \                                - QS(|A| - b)
-
- SBC QSL,X              \ (patched: QSL - b)              = |A| * b
- STA P
-
-.mlb4
-
- LDA QSH,X              \ (patched: QSH + b)
-
-.mlb5
-
- SBC QSH,X              \ (patched: QSH - b)
-
- BIT T                  \ Give A the sign of the argument, as MULTS does
- BPL P%+4
- ORA #%10000000
-
- RTS                    \ Return from the subroutine
-
-.mlbz
-
- STA P+1                \ MLSB with A = 0: set P(1 0) = 0, as MULTS's MU6
- STA P
- RTS
-
-.mlbr
-
- LDA T                  \ MLSB with |A| < b: call MULTS-2 with X = BET1, as
- LDX BET1               \ STL1 did (as a tail call)
- JMP MULTS-2
-
-.MLSA
-
-                        \ Port: MLS1 for the stardust, as MLSB with b = ALP1
-
- STA T                  \ Set T = A, for its sign
- AND #%01111111         \ If A = 0, set P(1 0) = 0 at mlaz, as MULTS does
- BEQ mlaz               \ at MU6
- TAX                    \ Set X = |A|
-
-.mla1
-
- CPX #0                 \ (patched: b) If |A| < b, jump to mlar
- BCC mlar               \ (C = 1 otherwise, for the SBC below)
-
-.mla2
-
- LDA QSL,X              \ (patched: QSL + b) Set (A P) = QS(|A| + b)
-
-.mla3                   \                                - QS(|A| - b)
-
- SBC QSL,X              \ (patched: QSL - b)              = |A| * b
- STA P
-
-.mla4
-
- LDA QSH,X              \ (patched: QSH + b)
-
-.mla5
-
- SBC QSH,X              \ (patched: QSH - b)
-
- BIT T                  \ Give A the sign of the argument, as MULTS does
- BPL P%+4
- ORA #%10000000
-
- RTS                    \ Return from the subroutine
-
-.mlaz
-
- STA P+1                \ MLSA with A = 0: set P(1 0) = 0, as MULTS's MU6
- STA P
- RTS
-
-.mlar
-
- LDA T                  \ MLSA with |A| < b: call MLS1, as STL1 did (as a
- JMP MLS1               \ tail call)
-
- ASSERT mla1 - mlb1 = MLSA - MLSB AND mla3 - mlb3 = MLSA - MLSB
- ASSERT mla5 - mlb5 = MLSA - MLSB AND mla2 - mlb2 = MLSA - MLSB
- ASSERT mla4 - mlb4 = MLSA - MLSB AND MLSA - MLSB < 256
  ASSERT QSH = QSL + 512 AND LO(QSL) = 0
+
 
 \ ******************************************************************************
 \

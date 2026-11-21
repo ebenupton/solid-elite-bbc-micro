@@ -499,14 +499,8 @@ export const FSZONE = [[0x1000, 0x1100], [0x1600, 0x2600], [0x3C00, 0x3EE2]];
 //   PTCLS   A, X, Y, C: in record mode H_PTCLS notes the cloud and returns
 //           from PTCLS (F_CLOUD)
 //   WPLS    A, X, C: in record mode WPLS only empties the sun's heap
-//   stl_pat X: STARS1 sets X again after it
-//   mlsk    C, V: the stardust's MLSA and ADD for a roll of 0 (STARS1 reads
-//           neither before the next MLSA, MLSB or CPX sets them)
-//   mlbk    X, C, V: the stardust's MLSB for a pitch of 0
-//   stlad0  C, V: the ADD of the pitch's square for a pitch of 0
 //   MAD     V: MAD's own path for |Q| = 0 (mad2) leaves V as it was
-export const DEAD_AFTER = [["DIALS", "a"], ["SUN", "axy"], ["PTCLS", "axyc"], ["WPLS", "axc"], ["stl_pat", "x"],
-    ["mlsk", "cv"], ["mlbk", "xcv"], ["stlad0", "cv"], ["MAD", "v"]];
+export const DEAD_AFTER = [["DIALS", "a"], ["SUN", "axy"], ["PTCLS", "axyc"], ["WPLS", "axc"], ["MAD", "v"]];
 
 export async function runElite(opts) {
     const b = opts.build;
