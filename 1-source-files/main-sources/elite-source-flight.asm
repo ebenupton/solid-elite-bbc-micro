@@ -24849,7 +24849,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Set the SLSP ship line heap pointer after shuffling ship slots
-\       Area: cold
+\       Area: cold 6
 \
 \ ------------------------------------------------------------------------------
 \
@@ -25017,7 +25017,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Check the local bubble for missiles with target lock
-\       Area: cold
+\       Area: cold 6
 \
 \ ------------------------------------------------------------------------------
 \
@@ -25108,8 +25108,10 @@ ENDMACRO
  LDA #0                 \ The missile's target lock just got removed, so set the
  STA (SC),Y             \ AI flag to 0 to make it dumb and not locked
 
- BEQ KSL4               \ Loop back to KSL4 to move on to the next slot (this
-                        \ BEQ is effectively a JMP as A is always zero)
+ JMP KSL4               \ Loop back to KSL4 to move on to the next slot (Port:
+                        \ the original's BEQ, effectively a JMP as A is always
+                        \ zero, as a JMP, the same cycles, so that KS2 cannot
+                        \ fall into KILLSHP, which is on another side)
 
 \ ******************************************************************************
 \
