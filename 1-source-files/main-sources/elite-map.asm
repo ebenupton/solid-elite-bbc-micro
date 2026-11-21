@@ -58,13 +58,12 @@
                         \ page boundaries, and their branches' cycles)
 
  C6% = &8000            \ The flight code's cold 6 pass, at the start of bank 6
- C6SZ = 326             \ (BANK6), before the frame layer, and its room (the
+ C6SZ = 259             \ (BANK6), before the frame layer, and its room (the
                         \ flight code's layout assembles it there and saves it
                         \ as C6.bin, which bank 6's assembly takes in; a far
                         \ call, farC6, reaches it: elite-far.asm, streams.py;
-                        \ it grows by 256 bytes at a time, so that the frame
-                        \ layer after it keeps its page offsets, and with
-                        \ them its branches' and indexed reads' cycles)
+                        \ the pass's exact size, so that the frame layer after
+                        \ it, at C6% + C6SZ, has all the rest of the bank)
  C5TAIL0 = &80BF        \ The flight code's cold 5 pass, in bank 5's row runs'
  C5TSZ = 65             \ tails (the 65 bytes after each run, gfx-raster.asm's
                         \ "The store runs": tail r is C5TSZ bytes at C5TAIL0 +

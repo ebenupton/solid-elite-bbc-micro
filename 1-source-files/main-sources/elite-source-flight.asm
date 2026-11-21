@@ -20557,7 +20557,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing the screen
 \    Summary: Show or hide the dashboard (for when we die)
-\       Area: cold 6
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -24801,7 +24801,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Remove the current ship from our local bubble of universe
-\       Area: cold 6
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
