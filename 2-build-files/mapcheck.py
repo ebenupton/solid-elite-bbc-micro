@@ -188,6 +188,7 @@ nlab += inside(B5, OUT + "gfx-raster-bank5runs.asm", B5["r_run0"], img, "bank 5'
 # no label of bank 5's own there (R_ENDPAGE checks it in the assembly too)
 c5t = [(C["C5TAIL0"] + 0x100 * r, C["C5TSZ"]) for r in range(24) if C["C5TAILS"] >> r & 1]
 c5t += [(C[p + "_P"], C[p + "SZ"]) for p in ("C5LO", "C5GAP", "C5HI") if C[p + "SZ"]]   # (its places)
+c5t += [(C["C5TAIL0"] + 0x100 * r + C["C5POFF"], C["C5TSZ"] - C["C5POFF"]) for r in range(24) if C["C5PTAILS"] >> r & 1]
 c5in = lambda a: any(t <= a < t + z for t, z in c5t)
 if os.path.exists(OUT + "elite-flight-c5.asm"):
     for l in labels(OUT + "elite-flight-c5.asm"):

@@ -120,9 +120,9 @@ c5tails = [r for r in range(24) if C["C5TAILS"] >> r & 1]   # (the flight code's
 m = re.search(r"^c5 \(.*?: \d+ units and \d+ stubs, (\d+) bytes", open(OUT + "flow-flight.txt").read(), re.M)
 c5used = int(m.group(1)) if m else 0
 c5place = {k: int(x) for k, x in re.findall(r"^  &\w+-&\w+ place (\w+): (\d+) bytes", open(OUT + "flow-flight.txt").read(), re.M)}
-c5used -= sum(c5place.values())
+c5used -= sum(v for k, v in c5place.items() if k in ("lo", "gap", "hi"))
                                        # (the tails' part: the places' are in their regions' rows)
-row("bank 5", run0, img, "the 24 row runs, a page each; in their tails the stars' records and variables, `R_LINE`'s, DFS's workspace page between disc commands (`DFSTAIL%%`: 64 bytes in each of four), and in tails %s the flight code's cold 5 pass (`Area: cold 5`: `elite-flight-c5.asm`, `C5_r.bin`; `C5TAILS`) (free: the %d other tails with nothing in them, 65 bytes each, the rest of the others, and the cold 5 tails' room)" % (", ".join(map(str, c5tails)), empty - len(c5tails)),
+row("bank 5", run0, img, "the 24 row runs, a page each; in their tails the stars' records and variables, `R_LINE`'s, DFS's workspace page between disc commands (`DFSTAIL%%`: 64 bytes in each of four), and in tails %s the flight code's cold 5 pass (`Area: cold 5`: `elite-flight-c5.asm`, `C5_r.bin`; `C5TAILS`), and in the ends of tails %s, from byte %d on, more of it (`C5_rp.bin`; `C5PTAILS`, `C5POFF`) (free: the %d other tails with nothing in them, 65 bytes each, the rest of the others, and the cold 5 tails' room)" % (", ".join(map(str, c5tails)), ", ".join(str(r) for r in range(24) if C["C5PTAILS"] >> r & 1), C["C5POFF"], empty - len(c5tails)),
     0x1800 - 65 * 24 + (B5["rl_nh"] + 1 - B5["rl_lct"]) + 8 * 48 + 4 + 2 + 9 + 4 * 64 + c5used)
 row("bank 5", img, st, "`R_POLY`, `R_LINE`; at the top, the flight code's cold 5 pass's place `C5LO%%` (%d bytes)" % C["C5LOSZ"], B5["R_LOEND"] - img + c5place.get("lo", 0))
 row("bank 5", st, st + 0x600, "the state: the dirty and written extents, `R_POLY`'s edge tables")

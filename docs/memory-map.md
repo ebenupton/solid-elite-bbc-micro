@@ -482,13 +482,13 @@ what the frames can use, the docked code's are free only while docked.
 | bank 4 (docked) | `&B300-&BBA1` | the docked code's blueprints, their normals and `FC_NORMTAB` | 2144 | 66 |
 | bank 4 (docked) | `&BBA2-&BBFF` | (free) | 0 | 94 |
 | bank 4 (docked) | `&BC00-&BFFF` | the quarter squares `QSL`, `QSH` (made by the loader) | 1024 | 0 |
-| bank 7 (flight) | `&8000-&9DDD` | the cold pass, `QQ18` | 7646 | 0 |
-| bank 7 (flight) | `&9DDE-&A227` | the overlay region (`D.OV1` 1098 bytes, `D.OV2` 793) | 1098 | 0 |
-| bank 7 (flight) | `&A228-&B3FF` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch) | 3910 | 658 |
+| bank 7 (flight) | `&8000-&9DAB` | the cold pass, `QQ18` | 7596 | 0 |
+| bank 7 (flight) | `&9DAC-&A1F5` | the overlay region (`D.OV1` 1098 bytes, `D.OV2` 793) | 1098 | 0 |
+| bank 7 (flight) | `&A1F6-&B3FF` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch) | 3910 | 708 |
 | bank 7 (flight) | `&B400-&BFFF` | the workspace: each buffer's disc state (not in the image: `DP_BEGIN` sets it up), buffer 0's sharing its first `&2E2` bytes with `ovload`'s stash of `WP` and the zero page during an overlay's load (`OVSTASH`) | 3072 | 0 |
 | bank 7 (docked) | `&8000-&BFFF` | the set's face lists, the cold pass, `QQ18` | 11397 | 4987 |
-| bank 5 | `&8000-&97FF` | the 24 row runs, a page each; in their tails the stars' records and variables, `R_LINE`'s, DFS's workspace page between disc commands (`DFSTAIL%`: 64 bytes in each of four), and in tails 7, 8, 10, 15, 17, 18, 19, 20, 21, 22, 23 the flight code's cold 5 pass (`Area: cold 5`: `elite-flight-c5.asm`, `C5_r.bin`; `C5TAILS`) (free: the 0 other tails with nothing in them, 65 bytes each, the rest of the others, and the cold 5 tails' room) | 5975 | 169 |
-| bank 5 | `&9800-&A7FF` | `R_POLY`, `R_LINE`; at the top, the flight code's cold 5 pass's place `C5LO%` (66 bytes) | 3982 | 114 |
+| bank 5 | `&8000-&97FF` | the 24 row runs, a page each; in their tails the stars' records and variables, `R_LINE`'s, DFS's workspace page between disc commands (`DFSTAIL%`: 64 bytes in each of four), and in tails 7, 8, 10, 15, 17, 18, 19, 20, 21, 22, 23 the flight code's cold 5 pass (`Area: cold 5`: `elite-flight-c5.asm`, `C5_r.bin`; `C5TAILS`), and in the ends of tails 0, 1, 2, 3, 4, 5, 6, 9, from byte 52 on, more of it (`C5_rp.bin`; `C5PTAILS`, `C5POFF`) (free: the 0 other tails with nothing in them, 65 bytes each, the rest of the others, and the cold 5 tails' room) | 6059 | 85 |
+| bank 5 | `&9800-&A7FF` | `R_POLY`, `R_LINE`; at the top, the flight code's cold 5 pass's place `C5LO%` (62 bytes) | 3978 | 118 |
 | bank 5 | `&A800-&ADFF` | the state: the dirty and written extents, `R_POLY`'s edge tables | 1536 | 0 |
 | bank 5 | `&AE00-&B0A2` | `R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic | 675 | 0 |
 | bank 5 | `&B0A3-&B3FF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `R_MARKBOX`, `pf_tilt`; at the top, the cold 5 pass's place `C5GAP%` (25 bytes) | 861 | 0 |
@@ -503,7 +503,7 @@ what the frames can use, the docked code's are free only while docked.
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 43, main RAM (flight) 48, main RAM (docked) 1096, bank 4 (flight) 63, bank 4 (docked) 3165, bank 7 (flight) 658, bank 7 (docked) 4987, bank 5 308, bank 6 34.
+Free, by place: main RAM 43, main RAM (flight) 48, main RAM (docked) 1096, bank 4 (flight) 63, bank 4 (docked) 3165, bank 7 (flight) 708, bank 7 (docked) 4987, bank 5 228, bank 6 34.
 
 **The build's check.** `2-build-files/mapcheck.py`, which `make` runs once
 every program and bank is assembled, fails the build if a place is out of

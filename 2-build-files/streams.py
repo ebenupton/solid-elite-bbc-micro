@@ -1032,10 +1032,13 @@ def c5_tails():
     gap, hi; C5LO%, C5GAP%, C5HI%)"""
     txt = open(SRCDIR + "elite-map.asm", encoding="latin-1").read()
     v = {}
-    for name in ("C5TAIL0", "C5TSZ", "C5TAILS", "C5LOSZ", "C5GAPSZ", "C5HISZ", "C5LOTOP", "C5GAPTOP", "C5HITOP"):
+    for name in ("C5TAIL0", "C5TSZ", "C5TAILS", "C5LOSZ", "C5GAPSZ", "C5HISZ", "C5LOTOP", "C5GAPTOP", "C5HITOP",
+                 "C5PTAILS", "C5POFF"):
         m = re.search(r"^\s*%s\s*=\s*([^\\\n]+)" % name, txt, re.M)
         v[name] = eval(re.sub(r"&([0-9A-Fa-f]+)", r"0x\1", m.group(1)).strip(), {})
     out = [(r, v["C5TAIL0"] + 0x100 * r, v["C5TSZ"]) for r in range(24) if v["C5TAILS"] >> r & 1]
+    out += [("%dp" % r, v["C5TAIL0"] + 0x100 * r + v["C5POFF"], v["C5TSZ"] - v["C5POFF"])   # (the tails'
+            for r in range(24) if v["C5PTAILS"] >> r & 1]                                 # ends: C5PTAILS)
     for name, top, size in (("lo", "C5LOTOP", "C5LOSZ"), ("gap", "C5GAPTOP", "C5GAPSZ"), ("hi", "C5HITOP", "C5HISZ")):
         if v[size]:
             out.append((name, v[top] - v[size], v[size]))
@@ -1108,7 +1111,7 @@ def c5_place(prog, src, copies, errors, lines, bl, eff, units, fallk, stubline, 
         cc[i] = " " + " : ".join(ds + ([cc[i].strip()] if code else []))
     for i, ds in post.items():
         cc[i] = cc[i].rstrip() + " : " + " : ".join(ds)
-    report.append("c5 (the tails C5TAILS, 65 bytes each, and the places C5LO%%, C5GAP%%, C5HI%%): %d units and "
+    report.append("c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%%, C5GAP%%, C5HI%%): %d units and "
                   "%d stubs, %d bytes, %d free" % (len(units), sum(1 for x in items if x[1] == 1), sum(fill.values()),
                                                   sum(tsz.values()) - sum(fill.values())))
     for r, a0, z in tails:

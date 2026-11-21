@@ -6098,7 +6098,7 @@ ENDIF
 \   Category: Stardust
 \    Summary: Reflect the stardust particles in the screen diagonal and redraw
 \             the stardust field
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -15402,7 +15402,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Print the distance to the selected system in light years
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \

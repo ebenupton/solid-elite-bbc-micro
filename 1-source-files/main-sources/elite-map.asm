@@ -81,8 +81,16 @@
  C5TAILS = (1 << 7) + (1 << 8) + (1 << 10) + (1 << 15) + (1 << 17) + (1 << 18) + (1 << 19) + (1 << 20) + (1 << 21) + (1 << 22) + (1 << 23)
  ASSERT (C5TAILS AND &7800) = 0 AND C5TAILS < (1 << 24)
 
+ C5PTAILS = (1 << 0) + (1 << 1) + (1 << 2) + (1 << 3) + (1 << 4) + (1 << 5) + (1 << 6) + (1 << 9)
+ C5POFF = 52            \ The tails that hold some of the rasteriser's
+                        \ variables, at their start, and whose last C5TSZ -
+                        \ C5POFF bytes, from C5POFF on, the cold 5 pass may also
+                        \ use (gfx-raster.asm's R_ENDPAGE checks that the
+                        \ variables end before)
+ ASSERT (C5PTAILS AND C5TAILS) = 0 AND (C5PTAILS AND &7800) = 0
+
  C5LOTOP = &A800        \ The cold 5 pass's places outside the tails: the top
- C5LOSZ = 66            \ C5LOSZ bytes of bank 5's R_POLY and R_LINE region
+ C5LOSZ = 62            \ C5LOSZ bytes of bank 5's R_POLY and R_LINE region
  C5LO% = C5LOTOP - C5LOSZ   \ (below the state at &A800), the top C5GAPSZ bytes
  C5GAPTOP = &B400       \ of the room below the per-x tables (at &B400) and
  C5GAPSZ = 25           \ the top C5HISZ bytes of the bank, above the jump

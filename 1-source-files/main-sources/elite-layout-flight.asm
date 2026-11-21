@@ -207,6 +207,11 @@ FOR r, 0, 23            \ saved as C5_r.bin for each tail r in C5TAILS, and
   SAVE "3-assembled-output/C5_" + STR$(r) + ".bin", C5TAIL0 + &100 * r, C5TAIL0 + &100 * r + C5TSZ, C5TAIL0 + &100 * r
  ENDIF                  \ places (elite-map.asm), which bank 5's assembly
 NEXT                    \ takes in (gfx-bank5.asm)
+FOR r, 0, 23            \ (and C5_rp.bin for the end of each tail r in
+ IF (C5PTAILS >> r) AND 1   \ C5PTAILS, from C5POFF)
+  SAVE "3-assembled-output/C5_" + STR$(r) + "p.bin", C5TAIL0 + &100 * r + C5POFF, C5TAIL0 + &100 * r + C5TSZ, C5TAIL0 + &100 * r + C5POFF
+ ENDIF
+NEXT
 IF C5LOSZ
  SAVE "3-assembled-output/C5_lo.bin", C5LO%, C5LOTOP, C5LO%
 ENDIF

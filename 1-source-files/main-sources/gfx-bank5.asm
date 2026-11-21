@@ -71,6 +71,11 @@ FOR r, 0, 23            \ flight code's layout has made the cold 5 pass's
   ORG C5TAIL0 + &100 * r                                \ they hold nothing
   INCBIN "3-assembled-output/C5_" + STR$(r) + ".bin"    \ else: elite-map.asm)
  ENDIF
+ IF C5BIN AND ((C5PTAILS >> r) AND 1)   \ (and the ends of the tails in
+  CLEAR C5TAIL0 + &100 * r + C5POFF, C5TAIL0 + &100 * r + C5TSZ
+  ORG C5TAIL0 + &100 * r + C5POFF        \ C5PTAILS: R_ENDPAGE checks that
+  INCBIN "3-assembled-output/C5_" + STR$(r) + "p.bin"   \ the variables end
+ ENDIF                                   \ before)
 NEXT
 
  ORG R_ST%

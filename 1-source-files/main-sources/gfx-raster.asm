@@ -683,6 +683,7 @@ ENDMACRO
 MACRO R_ENDPAGE r
   ASSERT P% <= r_run0 + (r + 1) * &100
   ASSERT ((C5TAILS >> r) AND 1) = 0 OR P% = r_run0 + r * &100 + R_RUNSZ
+  ASSERT ((C5PTAILS >> r) AND 1) = 0 OR P% <= r_run0 + r * &100 + R_RUNSZ + C5POFF
   SKIP r_run0 + (r + 1) * &100 - P%   \ (a tail in C5TAILS holds nothing: the
 ENDMACRO                  \ flight code's cold 5 pass, elite-map.asm)
 

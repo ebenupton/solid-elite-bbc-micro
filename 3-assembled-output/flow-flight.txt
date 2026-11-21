@@ -95,7 +95,7 @@ hotx &7E00-&7E5F: 14 units, 48 bytes, 48 free
   &7E28     6 LL9 (Part 10 of 12)
   &7E2E     1 LL9 (Part 11 of 12)
   &7E2F     1 LL9 (Part 12 of 12), drawing
-c5 (the tails C5TAILS, 65 bytes each, and the places C5LO%, C5GAP%, C5HI%): 25 units and 17 stubs, 823 bytes, 18 free
+c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%, C5GAP%, C5HI%): 27 units and 20 stubs, 903 bytes, 38 free
   &87BF-&87FF tail 7: 63 bytes, 2 free
   &87BF      63 HEE31
   &88BF-&88FF tail 8: 65 bytes, 0 free
@@ -103,10 +103,10 @@ c5 (the tails C5TAILS, 65 bytes each, and the places C5LO%, C5GAP%, C5HI%): 25 u
   &88FB       5 x5_MAL1
   &8ABF-&8AFF tail 10: 64 bytes, 1 free
   &8ABF      59 OOPS
-  &8AFA       5 x5_MULT12
+  &8AFA       5 x5_PIXEL2
   &8FBF-&8FFF tail 15: 62 bytes, 3 free
   &8FBF      57 CLYNS
-  &8FF8       5 x5_MAD
+  &8FF8       5 x5_MULT12
   &91BF-&91FF tail 17: 62 bytes, 3 free
   &91BF      49 EDGES
   &91F0      13 ECBLB2
@@ -125,19 +125,32 @@ c5 (the tails C5TAILS, 65 bytes each, and the places C5LO%, C5GAP%, C5HI%): 25 u
   &96BF-&96FF tail 22: 62 bytes, 3 free
   &96BF      34 tnpr1..tnpr
   &96E1      28 LL129
-  &97BF-&97FF tail 23: 64 bytes, 1 free
-  &97BF      25 msblob
-  &97D8      22 THERE
-  &97EE      12 ping
-  &97FA       5 x5c_TT54
-  &A7BE-&A7FF place lo: 66 bytes, 0 free
-  &A7BE      12 BAD
-  &A7CA      11 ZERO
-  &A7D5      10 DET1
-  &A7DF      10 KS1
-  &A7E9       9 SFS2
-  &A7F2       9 NwS1
-  &A7FB       5 x5c_TT67
+  &97BF-&97FF tail 23: 65 bytes, 0 free
+  &97BF      33 TT146
+  &97E0      32 FLIP
+  &80F3-&80FF place 0p: 12 bytes, 1 free
+  &80F3      12 ping
+  &81F3-&81FF place 1p: 12 bytes, 1 free
+  &81F3      12 BAD
+  &82F3-&82FF place 2p: 11 bytes, 2 free
+  &82F3      11 ZERO
+  &83F3-&83FF place 3p: 10 bytes, 3 free
+  &83F3      10 DET1
+  &84F3-&84FF place 4p: 10 bytes, 3 free
+  &84F3      10 KS1
+  &85F3-&85FF place 5p: 9 bytes, 4 free
+  &85F3       9 SFS2
+  &86F3-&86FF place 6p: 9 bytes, 4 free
+  &86F3       9 NwS1
+  &89F3-&89FF place 9p: 10 bytes, 3 free
+  &89F3       5 x5_MAD
+  &89F8       5 x5c_TT54
+  &A7C2-&A7FF place lo: 62 bytes, 0 free
+  &A7C2      25 msblob
+  &A7DB      22 THERE
+  &A7F1       5 x5c_TT67
+  &A7F6       5 x5c_pr5
+  &A7FB       5 x5c_TT68
   &B3E7-&B3FF place gap: 25 bytes, 0 free
   &B3E7       5 x5c_TT27
   &B3EC       5 x5_NWSHP
