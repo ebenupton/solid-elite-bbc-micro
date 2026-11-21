@@ -10981,6 +10981,7 @@ ENDIF
 \   Category: Flight
 \    Summary: Apply docking manoeuvres to the ship in INWK
 \  Deep dive: The docking computer
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -11093,7 +11094,8 @@ ENDIF
                         \ degrees, so we're heading in pretty much the correct
                         \ direction for a good approach to the docking slot
 
- JSR TAS3-2             \ Call TAS3-2 to calculate:
+ LDY #10                \ Call TAS3-2 to calculate: (Port: as two
+ JSR TAS3               \ instructions, as DOCKIT calls TAS3 through a stub)
                         \
                         \   (A X) = nosev . XX15
                         \
