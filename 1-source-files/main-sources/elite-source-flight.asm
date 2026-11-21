@@ -2020,6 +2020,7 @@
 \   Category: Loader
 \    Summary: Load and run the main docked code in T.CODE
 \  Deep dive: Swapping between the docked and flight code
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -2183,6 +2184,7 @@ ENDIF
 \   Category: Loader
 \    Summary: Load and run the docked code
 \  Deep dive: Swapping between the docked and flight code
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -2208,6 +2210,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Start and end
 \    Summary: Reset most of the game and restart from the title screen
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5235,6 +5238,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing lines
 \    Summary: Remove a line from the sun line heap and draw it on-screen
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -5885,6 +5889,7 @@ ENDIF
 \    Summary: Draw a circle segment and add it to the ball line heap
 \  Deep dive: The ball line heap
 \             Drawing circles
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -28736,6 +28741,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Keyboard
 \    Summary: Toggle a configuration setting and emit a beep
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
