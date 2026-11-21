@@ -854,85 +854,81 @@ PCMAX = 3               \ the planet's records (slots 0-2)
  ORA pm_b+1
  ORA pm_b+2
  BEQ pfd_es
- LDX #pm_b              \ normalise V: V' = (pm_b+2 pm_b+1), ev
- JSR pfd_norm
- STA pm_b+2
+ LDX #pm_b              \ normalise V: V' = (A pm_b+1), ev; V' into the
+ JSR pfd_norm           \ division's compares and subtractions
+ STA pfdh1+1
+ STA pfdh2+1
+ LDX pm_b+1
+ STX pfdl1+1
+ STX pfdl2+1
  TYA
  CLC
  ADC #5
  STA pm_eu
  LDX #pm_a              \ and U: U' = (A pm_a+1), eu; the shift 5 + ev - eu
  JSR pfd_norm
- PHA
+ TAX
  TYA
  EOR #&FF
  SEC
  ADC pm_eu
  STA pm_eu
- PLA
- LDX #0                 \ q = floor(U' 2^11 / V'), its top 4 bits into
- STX pm_p+1             \ pm_p+1, then 8 into pm_p, R = U' (A pm_a+1, its
- LDX #4                 \ bit 16 in C)
- CLC
+ TXA
+ LDX #%00010000         \ q = floor(U' 2^11 / V'), its top 4 bits into
+ STX pm_p               \ pm_p+1, then 8 into pm_p: R = U' (A pm_a+1, its
+ LDX #2                 \ bit 16 in C), and the bits caught in pm_p, whose
+ CLC                    \ set bit falls out with a pass's last (two passes,
+ BCC pfd5               \ X; always: no shift before the first step)
+.pfd4
+ ASL pm_a+1             \ R <<= 1
+ ROL A
 .pfd5
  BCS pfd6               \ R >= 2^16 > V': subtract
- CMP pm_b+2
+.pfdh1
+ CMP #0                 \ (patched: V' high)
  BCC pfd7
  BNE pfd6
  LDY pm_a+1
- CPY pm_b+1
+.pfdl1
+ CPY #0                 \ (patched: V' low)
  BCC pfd7
 .pfd6
  TAY
  LDA pm_a+1
- SBC pm_b+1
+.pfdl2
+ SBC #0                 \ (patched: V' low)
  STA pm_a+1
  TYA
- SBC pm_b+2
+.pfdh2
+ SBC #0                 \ (patched: V' high)
  SEC
 .pfd7
- ROL pm_p+1             \ the quotient bit (C)
- ASL pm_a+1             \ R <<= 1
- ROL A
- DEX
- BNE pfd5
- LDX #8
-.pfd5b
- BCS pfd6b
- CMP pm_b+2
- BCC pfd7b
- BNE pfd6b
- LDY pm_a+1
- CPY pm_b+1
- BCC pfd7b
-.pfd6b
- TAY
- LDA pm_a+1
- SBC pm_b+1
- STA pm_a+1
- TYA
- SBC pm_b+2
- SEC
-.pfd7b
- ROL pm_p
- ASL pm_a+1
- ROL A
- DEX
- BNE pfd5b
+ ROL pm_p               \ the quotient bit (C)
+ BCC pfd4
+ DEX                    \ a pass's last bit: the first pass's four bits
+ BEQ pfd7d              \ are pm_p+1, and eight more follow
+ LDY pm_p
+ STY pm_p+1
+ LDY #1
+ STY pm_p
+ BNE pfd4               \ (always)
+.pfd7d
  STX pm_p+2             \ (NMOS: X = 0 here, and on every path below to
  STX pm_p+3             \ pfd10, for STZ)
  LDY pm_eu              \ shift q
  BMI pfdr
- TYA                    \ left: by bits (into pm_p+2), then by bytes
+ TYA                    \ left: by bits (into pm_p+2, in A), then by bytes
  AND #7
  BEQ pfd9
  TAX
+ LDA #0
 .pfd8
  ASL pm_p
  ROL pm_p+1
- ROL pm_p+2
+ ROL A
  DEX
  BNE pfd8
+ STA pm_p+2
 .pfd9
  TYA
  LSR A
