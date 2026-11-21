@@ -926,6 +926,8 @@ def pmath_tests(quick=False):
         if got != PCM.fdiv(u, v):
             bad.append((u, v, got))
     check(not bad, 'pm_fdiv against planet_caps.fdiv (%.0f cycles)%s' % (sum(cy) / len(cy), ' (wrong for %r)' % bad[:4] if bad else ''))
+    from test_routines import map_constants
+    QS = map_constants()['QSL'], map_constants()['QSH']
     for name, two in (('pm_mul16', True), ('pm_sq16', False)):
         if name not in F:
             continue
@@ -935,6 +937,8 @@ def pmath_tests(quick=False):
             if not two:
                 v = u
             zp[0x10], zp[0x11], zp[0x14], zp[0x15] = u & 255, u >> 8, v & 255, v >> 8
+            zp[0x1D], zp[0x1F] = QS[0] >> 8, QS[1] >> 8   # (PMQ's pointers' high
+                                                  # bytes, as pc_circ sets them)
             cy.append(m.gcall(F[name]))
             got = sum(zp[0x18 + k] << 8 * k for k in range(4))
             if got != u * v:

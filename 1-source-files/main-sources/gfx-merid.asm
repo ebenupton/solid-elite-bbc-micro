@@ -99,6 +99,13 @@ PCMAX = 3               \ the planet's records (slots 0-2)
 
 \       Area: bank 4
 
+MACRO PMQH              \ PMQ's pointers' high bytes (pm_mul16's header)
+ LDA #HI(QSL)
+ STA pm_ql+1
+ LDA #HI(QSH)
+ STA pm_qh+1
+ENDMACRO
+
 \ ******************************************************************************
 \
 \ pc_circ: one circle's record into the next slot (PC_N), from the axis pcv,
@@ -117,6 +124,8 @@ PCMAX = 3               \ the planet's records (slots 0-2)
  ASL A                  \ (its thresholds' offset in PC_TU, into pct1's ORA
  ASL A                  \ #)
  STA pct_o+1
+ PMQH                   \ (PMQ's pointers' high bytes, for every product the
+                        \ circle takes)
  LDX #0                 \ the magnitudes >> 2 (pf_tilt's halved vectors: the
  LDY #0                 \ beach ball's |v| >> 3), signs, non-zero flags
 .pcl1                   \ (NMOS: X, not pc_t, made non-zero by a non-zero
@@ -1018,6 +1027,10 @@ ENDMACRO
 \ squares and one product. Each product is PMQ's: the multiplier b's byte
 \ is the low byte of the pointers pm_ql and pm_qh (QSL + b and QSH + b: the
 \ tables are page aligned), so that (pm_ql),Y is QS(Y + b)
+\
+\ Port (Model B): the pointers' high bytes are set once a circle, at
+\ pc_circ's entry (PMQH), not on every call: nothing else in pc_circ writes
+\ them, and only pc_circ (and pc_mul, pc_sq in it) calls these
 
 MACRO PMQ               \ (pm_t8 A) = Y * b, Y kept: QS(Y + b) - QS(|Y - b|)
  TYA
@@ -1042,13 +1055,6 @@ MACRO PMQB b            \ b, a byte at zero page address b, as the multiplier
  STA pm_qh
 ENDMACRO
 
-MACRO PMQH              \ the pointers' high bytes
- LDA #HI(QSL)
- STA pm_ql+1
- LDA #HI(QSH)
- STA pm_qh+1
-ENDMACRO
-
 \ pc_mul: pm_p (4) = pv+X (2) * pv+Y (2), unsigned
 
 .pc_mul
@@ -1062,7 +1068,6 @@ ENDMACRO
  STA pm_b+1
 
 .pm_mul16
- PMQH
  PMQB pm_b              \ al bl
  LDY pm_a
  PMQ
@@ -1130,7 +1135,6 @@ ENDMACRO
  STA pm_a+1
 
 .pm_sq16
- PMQH
  PMQB pm_a              \ al^2 = QS(2 al)
  LDY pm_a
  LDA (pm_ql),Y          \ (bankcheck: ok: game context)
