@@ -560,6 +560,80 @@ def ll9_parts(ref, cand):
     return 0
 
 
+def lrec_model(inwk, llt, normals, xx2, ghand):
+    """the lighting's levels for a ship's faces, as gfx-light.asm's header
+    gives them: the light in the ship's coordinates, Ls = (a . LLT + 16) >> 5
+    for each orientation vector a (its high bytes halved, signed), then for
+    each face that XX2 shows, d = (n . Ls + 16) >> 5 for its unit normal n
+    and the level min(31, (d + d / 16 + 2) / 4), or 0 if n . Ls < 0; XX2
+    becomes &80 + the level, with GHAND's bits if it was 255"""
+    sb = lambda v: v - 256 if v & 0x80 else v
+    half = lambda m: (m & 0x7F) >> 1 if not m & 0x80 else -((m & 0x7F) >> 1)
+    ls = []
+    for z in (22, 16, 10):                        # (sidev, roofv, nosev: x, y, z high bytes)
+        a = [half(inwk[z + 2 * k]) for k in range(3)]
+        ls.append(sb(((sum(a[k] * sb(llt[k]) for k in range(3)) + 16) >> 5) & 0xFF))
+    out = []
+    for f, v in enumerate(xx2):
+        if not v:
+            out.append(0)
+            continue
+        dot = sum(sb(normals[3 * f + k]) * ls[k] for k in range(3))
+        d = 0 if dot < 0 else ((dot + 16) >> 5) & 0xFF
+        lv = 0 if dot < 0 else min(31, (d + (d >> 4) + 2) >> 2)
+        out.append(0x80 | lv | (ghand if v == 255 else 0))
+    return tuple(out)
+
+
+def lrec_levels(cand):
+    """the port's L_REC (the faces' levels in XX2, for the frame layer)
+    against lrec_model, for random orientations, lights, unit normals and
+    visibilities; returns 1 on a failure"""
+    if "L_REC" not in cand.sy:
+        print("%-10s skipped (not in the port's symbols)" % "L_REC")
+        return 0
+    mc = map_constants()
+    rnd = random.Random(7)
+    at = 0x7100                                   # (the type's unit normals: free in the machine)
+    n = fails = 0
+    first = None
+    for _ in range(1500 if QUICK else 40000):
+        nf, typ = rnd.randrange(1, 17), rnd.randrange(33)
+        def unit(scale):                          # (a random unit vector, scaled)
+            v = [rnd.gauss(0, 1) for _ in range(3)]
+            m = sum(x * x for x in v) ** 0.5 or 1
+            return [int(round(scale * x / m)) for x in v]
+        inwk = {}
+        for z in (10, 16, 22):                    # (the orientation vectors' high bytes: sign-magnitude, 96 = 1)
+            for k, x in enumerate(unit(96)):
+                inwk[z + 2 * k] = (0x80 if x < 0 or (x == 0 and rnd.random() < 0.5) else 0) | abs(x)
+        llt = [x & 0xFF for x in unit(41)]        # (the light: LV * 41.3)
+        normals = []
+        for _ in range(nf):                       # (the unit normals: magnitude 61)
+            normals += [x & 0xFF for x in unit(61)]
+        xx2 = [rnd.choice([0, 255, 255, rnd.randrange(1, 256), rnd.randrange(1, 256)]) for _ in range(nf)]
+        ghand = rnd.choice([0x40, 0x60])
+        mem = {"&%X" % mc["GNF"]: nf, "&%X" % mc["GTYPE"]: typ, "GHAND": ghand,
+               "&%X" % (mc["FC_NORMTAB"] + 2 * typ): at & 255, "&%X" % (mc["FC_NORMTAB"] + 2 * typ + 1): at >> 8}
+        mem.update({"INWK+%d" % k: v for k, v in inwk.items()})
+        mem.update({"LLT+%d" % k: v for k, v in enumerate(llt)})
+        mem.update({"&%X" % (at + k): v for k, v in enumerate(normals)})
+        mem.update({"XX2+%d" % k: v for k, v in enumerate(xx2)})
+        cand.call("L_REC", 0, 0, 0, 0, mem)
+        k = cand.out(["XX2*%d" % nf])["XX2*%d" % nf]
+        want = lrec_model(inwk, llt, normals, xx2, ghand)
+        n += 1
+        if k != want:
+            fails += 1
+            if first is None:
+                first = (inwk, llt, normals, xx2, want, k)
+    if fails:
+        print("%-10s FAIL %d of %d; first: INWK %s LLT %s normals %s XX2 %s: model %s, port %s" % (("L_REC", fails, n) + first))
+        return 1
+    print("%-10s pass (%d inputs)" % ("L_REC", n))
+    return 0
+
+
 def main():
     names = [a for a in sys.argv[1:] if not a.startswith("--")]
     ref, cand = load()
@@ -599,6 +673,8 @@ def main():
         bad += mvs5_half(cand)
     if not names or "LL9" in names:
         bad += ll9_parts(ref, cand)
+    if not names or "L_REC" in names:
+        bad += lrec_levels(cand)
     print("TEST_ROUTINES %s" % ("FAIL" if bad else "PASS"))
     sys.exit(1 if bad else 0)
 
