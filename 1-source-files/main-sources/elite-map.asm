@@ -81,6 +81,18 @@
  C5TAILS = (1 << 7) + (1 << 8) + (1 << 10) + (1 << 15) + (1 << 17) + (1 << 18) + (1 << 19) + (1 << 20) + (1 << 21) + (1 << 22) + (1 << 23)
  ASSERT (C5TAILS AND &7800) = 0 AND C5TAILS < (1 << 24)
 
+ C5LOTOP = &A800        \ The cold 5 pass's places outside the tails: the top
+ C5LOSZ = 66            \ C5LOSZ bytes of bank 5's R_POLY and R_LINE region
+ C5LO% = C5LOTOP - C5LOSZ   \ (below the state at &A800), the top C5GAPSZ bytes
+ C5GAPTOP = &B400       \ of the room below the per-x tables (at &B400) and
+ C5GAPSZ = 25           \ the top C5HISZ bytes of the bank, above the jump
+ C5GAP% = C5GAPTOP - C5GAPSZ   \ table; each saved as C5_lo.bin, C5_gap.bin,
+ C5HITOP = &C000        \ C5_hi.bin, if its size is not 0. Bank 5's assembly
+ C5HISZ = 35            \ takes them in and checks that the rasteriser's code
+ C5HI% = C5HITOP - C5HISZ   \ stays below them (gfx-bank5.asm): to give the
+                        \ rasteriser more room, lower a size (streams.py
+                        \ packs the pass into what there is)
+
  FHV% = &BFF4           \ The hangar's background's four jumps into bank 6
                         \ (gfx-bank6.asm's FHV, the bank's last 12 bytes,
                         \ after the dispatcher: gfx-hangar.asm)

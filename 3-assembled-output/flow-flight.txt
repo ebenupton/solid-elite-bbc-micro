@@ -95,48 +95,60 @@ hotx &7E00-&7E5F: 14 units, 48 bytes, 48 free
   &7E28     6 LL9 (Part 10 of 12)
   &7E2E     1 LL9 (Part 11 of 12)
   &7E2F     1 LL9 (Part 12 of 12), drawing
-c5 (the tails C5TAILS: 65 bytes each): 20 units and 13 stubs, 695 bytes, 20 free
+c5 (the tails C5TAILS, 65 bytes each, and the places C5LO%, C5GAP%, C5HI%): 25 units and 17 stubs, 823 bytes, 18 free
   &87BF-&87FF tail 7: 63 bytes, 2 free
   &87BF      63 HEE31
   &88BF-&88FF tail 8: 65 bytes, 0 free
   &88BF      60 ANGRY
-  &88FB       5 x5_MULT12
+  &88FB       5 x5_MAL1
   &8ABF-&8AFF tail 10: 64 bytes, 1 free
   &8ABF      59 OOPS
-  &8AFA       5 x5_MAD
+  &8AFA       5 x5_MULT12
   &8FBF-&8FFF tail 15: 62 bytes, 3 free
   &8FBF      57 CLYNS
-  &8FF8       5 x5c_TT67
+  &8FF8       5 x5_MAD
   &91BF-&91FF tail 17: 62 bytes, 3 free
   &91BF      49 EDGES
   &91F0      13 ECBLB2
-  &92BF-&92FF tail 18: 65 bytes, 0 free
-  &92BF      40 Ze
-  &92E7      25 var
-  &93BF-&93FF tail 19: 63 bytes, 2 free
-  &93BF      38 FRS1
-  &93E5      25 MSBAR
-  &94BF-&94FF tail 20: 64 bytes, 1 free
-  &94BF      34 TAS4
-  &94E1      30 SPLV
-  &95BF-&95FF tail 21: 62 bytes, 3 free
-  &95BF      34 tnpr1..tnpr
-  &95E1      28 LL129
+  &92BF-&92FF tail 18: 63 bytes, 2 free
+  &92BF      46 cpl
+  &92ED      17 GTHG
+  &93BF-&93FF tail 19: 65 bytes, 0 free
+  &93BF      40 Ze
+  &93E7      25 var
+  &94BF-&94FF tail 20: 63 bytes, 2 free
+  &94BF      38 FRS1
+  &94E5      25 MSBAR
+  &95BF-&95FF tail 21: 64 bytes, 1 free
+  &95BF      34 TAS4
+  &95E1      30 SPLV
   &96BF-&96FF tail 22: 62 bytes, 3 free
-  &96BF      22 THERE
-  &96D5      12 ping
-  &96E1      12 BAD
-  &96ED      11 ZERO
-  &96F8       5 x5_NWSHP
-  &97BF-&97FF tail 23: 63 bytes, 2 free
-  &97BF       9 SFS2
-  &97C8       9 NwS1
-  &97D1       5 x5_ZINF
-  &97D6       5 x5_DORND
-  &97DB       5 j5c_DEATH
-  &97E0       5 x5_EXNO3
-  &97E5       5 x5_NOISE
-  &97EA       5 x5c_OUCH
-  &97EF       5 x5c_LL145
-  &97F4       5 x5_MVT1
-  &97F9       5 x5c_LYN
+  &96BF      34 tnpr1..tnpr
+  &96E1      28 LL129
+  &97BF-&97FF tail 23: 64 bytes, 1 free
+  &97BF      25 msblob
+  &97D8      22 THERE
+  &97EE      12 ping
+  &97FA       5 x5c_TT54
+  &A7BE-&A7FF place lo: 66 bytes, 0 free
+  &A7BE      12 BAD
+  &A7CA      11 ZERO
+  &A7D5      10 DET1
+  &A7DF      10 KS1
+  &A7E9       9 SFS2
+  &A7F2       9 NwS1
+  &A7FB       5 x5c_TT67
+  &B3E7-&B3FF place gap: 25 bytes, 0 free
+  &B3E7       5 x5c_TT27
+  &B3EC       5 x5_NWSHP
+  &B3F1       5 x5_KILLSHP
+  &B3F6       5 x5_ZINF
+  &B3FB       5 x5_DORND
+  &BFDD-&BFFF place hi: 35 bytes, 0 free
+  &BFDD       5 j5c_DEATH
+  &BFE2       5 x5_EXNO3
+  &BFE7       5 x5_NOISE
+  &BFEC       5 x5c_OUCH
+  &BFF1       5 x5c_LL145
+  &BFF6       5 x5_MVT1
+  &BFFB       5 x5c_LYN

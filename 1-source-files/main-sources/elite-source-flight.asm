@@ -18341,7 +18341,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Spawn a Thargoid ship and a Thargon companion
-\       Area: cold
+\       Area: cold 5
 \  Deep dive: Fixing ship positions
 \             Aggression and hostility in ship tactics
 \
@@ -18917,7 +18917,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Print the selected system name
-\       Area: cold
+\       Area: cold 5
 \  Deep dive: Generating system names
 \             Galaxy and system seeds
 \
@@ -20572,7 +20572,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing the screen
 \    Summary: Show or hide the dashboard (for when we die)
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -24816,7 +24816,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Remove the current ship from our local bubble of universe
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -25694,7 +25694,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Dashboard
 \    Summary: Display the dashboard's missile indicators in green
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \

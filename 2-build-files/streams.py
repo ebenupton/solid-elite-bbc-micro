@@ -1026,14 +1026,20 @@ def coldx(kind, src, copies, errors, cold, hot, direct, alias, noreturn, where, 
 
 
 def c5_tails():
-    """[(tail number, address)] for the tails in C5TAILS, and their size
-    (elite-map.asm)"""
+    """[(name, address, size)] for the cold 5 pass's places (elite-map.asm):
+    the tails in C5TAILS (name: the tail's number), then the places at the
+    top of three of bank 5's regions, each if its size is not 0 (name: lo,
+    gap, hi; C5LO%, C5GAP%, C5HI%)"""
     txt = open(SRCDIR + "elite-map.asm", encoding="latin-1").read()
     v = {}
-    for name in ("C5TAIL0", "C5TSZ", "C5TAILS"):
+    for name in ("C5TAIL0", "C5TSZ", "C5TAILS", "C5LOSZ", "C5GAPSZ", "C5HISZ", "C5LOTOP", "C5GAPTOP", "C5HITOP"):
         m = re.search(r"^\s*%s\s*=\s*([^\\\n]+)" % name, txt, re.M)
         v[name] = eval(re.sub(r"&([0-9A-Fa-f]+)", r"0x\1", m.group(1)).strip(), {})
-    return [(r, v["C5TAIL0"] + 0x100 * r) for r in range(24) if v["C5TAILS"] >> r & 1], v["C5TSZ"]
+    out = [(r, v["C5TAIL0"] + 0x100 * r, v["C5TSZ"]) for r in range(24) if v["C5TAILS"] >> r & 1]
+    for name, top, size in (("lo", "C5LOTOP", "C5LOSZ"), ("gap", "C5GAPTOP", "C5GAPSZ"), ("hi", "C5HITOP", "C5HISZ")):
+        if v[size]:
+            out.append((name, v[top] - v[size], v[size]))
+    return out
 
 
 def c5_place(prog, src, copies, errors, lines, bl, eff, units, fallk, stubline, fallstub, report):
@@ -1041,7 +1047,8 @@ def c5_place(prog, src, copies, errors, lines, bl, eff, units, fallk, stubline, 
     an ASSERT at each unit's end; the packing goes in the report"""
     cc = copies["c5"]
     sy = measured(prog)
-    tails, tsz = c5_tails()
+    tails = c5_tails()
+    tsz = dict((r, z) for r, a, z in tails)
     items = []                               # (size, kind, key, name)
     infall = set()
     for u in units:
@@ -1067,17 +1074,17 @@ def c5_place(prog, src, copies, errors, lines, bl, eff, units, fallk, stubline, 
     for stub, i in sorted(stubline.items(), key=lambda x: x[1]):
         if stub not in infall:
             items.append((5, 1, i, stub, None, None))
-    fill = {r: 0 for r, a in tails}
-    used = {r: [] for r, a in tails}
+    fill = {r: 0 for r, a, z in tails}
+    used = {r: [] for r, a, z in tails}
     at = {}
     for size, kd, key, names, u, fs in sorted(items, key=lambda x: (-x[0], x[1], x[2])):
-        r = next((r for r, a in tails if fill[r] + size <= tsz), None)
+        r = next((r for r, a, z in tails if fill[r] + size <= z), None)
         if r is None:
-            errors.append("%s: cold 5: %s (%d bytes) does not fit in a tail (%s; %d bytes each: C5TAILS, "
-                          "elite-map.asm)" % (src, names, size, ", ".join(
-                              "%d: %d free" % (t, tsz - fill[t]) for t, a in tails), tsz))
+            errors.append("%s: cold 5: %s (%d bytes) does not fit in a place (%s: C5TAILS, C5LOSZ, C5GAPSZ, "
+                          "C5HISZ, elite-map.asm)" % (src, names, size, ", ".join(
+                              "%s: %d free" % (t, z - fill[t]) for t, a, z in tails)))
             continue
-        a = dict(tails)[r] + fill[r]
+        a = dict((r, a) for r, a, z in tails)[r] + fill[r]
         fill[r] += size
         used[r].append((a, size, names))
         at[(kd, key)] = (a, size)
@@ -1101,10 +1108,12 @@ def c5_place(prog, src, copies, errors, lines, bl, eff, units, fallk, stubline, 
         cc[i] = " " + " : ".join(ds + ([cc[i].strip()] if code else []))
     for i, ds in post.items():
         cc[i] = cc[i].rstrip() + " : " + " : ".join(ds)
-    report.append("c5 (the tails C5TAILS: %d bytes each): %d units and %d stubs, %d bytes, %d free" % (
-        tsz, len(units), sum(1 for x in items if x[1] == 1), sum(fill.values()), tsz * len(tails) - sum(fill.values())))
-    for r, a0 in tails:
-        report.append("  &%04X-&%04X tail %d: %d bytes, %d free" % (a0, a0 + tsz - 1, r, fill[r], tsz - fill[r]))
+    report.append("c5 (the tails C5TAILS, 65 bytes each, and the places C5LO%%, C5GAP%%, C5HI%%): %d units and "
+                  "%d stubs, %d bytes, %d free" % (len(units), sum(1 for x in items if x[1] == 1), sum(fill.values()),
+                                                  sum(tsz.values()) - sum(fill.values())))
+    for r, a0, z in tails:
+        report.append("  &%04X-&%04X %s %s: %d bytes, %d free" % (a0, a0 + z - 1, "tail" if isinstance(r, int) else "place",
+                                                                r, fill[r], z - fill[r]))
         for a, size, names in sorted(used[r]):
             report.append("  &%04X   %5d %s" % (a, size, names))
 

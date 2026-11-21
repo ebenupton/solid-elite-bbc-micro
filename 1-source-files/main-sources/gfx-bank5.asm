@@ -138,4 +138,22 @@ NEXT
 
  PRINT "Bank 5 (rasteriser): the row runs &8000-", ~R_LO%-1, ", ", ~R_LO%, "-", ~R_LOEND-1, " (free ", R_ST%-R_LOEND, "), ", ~R_ST%+&600, "-", ~R_HIEND-1, " (the jump table &", ~RJT, "-", ~RJT_END-1, "; free ", &C000-R_HIEND, "), R_LINE's cold part, R_RESETBUF, r_wq and pf_tilt to ", ~R_GAPEND-1, " (free ", r_tables-R_GAPEND, ")"
 
+                        \ The flight code's cold 5 pass's places at the top of
+                        \ three of the regions (elite-map.asm), once its layout
+                        \ has made them: the rasteriser's code stays below
+ASSERT C5LOTOP = R_ST% AND C5GAPTOP = r_tables AND C5HITOP = &C000
+ASSERT R_LOEND <= C5LO% AND R_GAPEND <= C5GAP% AND R_HIEND <= C5HI%
+IF C5BIN AND C5LOSZ
+ ORG C5LO%
+ INCBIN "3-assembled-output/C5_lo.bin"
+ENDIF
+IF C5BIN AND C5GAPSZ
+ ORG C5GAP%
+ INCBIN "3-assembled-output/C5_gap.bin"
+ENDIF
+IF C5BIN AND C5HISZ
+ ORG C5HI%
+ INCBIN "3-assembled-output/C5_hi.bin"
+ENDIF
+
  SAVE "3-assembled-output/BANK5.bin", R_IMAGE, &C000, R_IMAGE

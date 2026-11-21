@@ -186,8 +186,9 @@ if B5["R_IMAGE"] != 0x8000 or os.path.getsize(OUT + "BANK5.bin") != 0x4000:
 nlab += inside(B5, OUT + "gfx-raster-bank5runs.asm", B5["r_run0"], img, "bank 5's row runs' pages")
 # the flight code's cold 5 pass: its labels in the tails C5TAILS lists, and
 # no label of bank 5's own there (R_ENDPAGE checks it in the assembly too)
-c5t = [C["C5TAIL0"] + 0x100 * r for r in range(24) if C["C5TAILS"] >> r & 1]
-c5in = lambda a: any(t <= a < t + C["C5TSZ"] for t in c5t)
+c5t = [(C["C5TAIL0"] + 0x100 * r, C["C5TSZ"]) for r in range(24) if C["C5TAILS"] >> r & 1]
+c5t += [(C[p + "_P"], C[p + "SZ"]) for p in ("C5LO", "C5GAP", "C5HI") if C[p + "SZ"]]   # (its places)
+c5in = lambda a: any(t <= a < t + z for t, z in c5t)
 if os.path.exists(OUT + "elite-flight-c5.asm"):
     for l in labels(OUT + "elite-flight-c5.asm"):
         a = FL.get(l)
@@ -195,9 +196,10 @@ if os.path.exists(OUT + "elite-flight-c5.asm"):
             continue
         nlab += 1
         if not c5in(a):
-            errors.append("%selite-flight-c5.asm: %s (&%04X) is in no tail of C5TAILS" % (OUT, l, a))
+            errors.append("%selite-flight-c5.asm: %s (&%04X) is in no tail of C5TAILS nor place" % (OUT, l, a))
 for l, a in B5.items():
-    if c5in(a):
+    if c5in(a) and not (l.upper().endswith("END") and any(a == t for t, z in c5t)):   # (a region's end
+                                                                           # may be a place's start)
         errors.append("bank 5: %s (&%04X) is in a tail that C5TAILS gives the flight code's cold 5 pass" % (l, a))
 for f in ("gfx-raster_poly", "gfx-raster_line"):
     nlab += inside(B5, OUT + "%s-bank5.asm" % f, img, st, "bank 5's R_POLY and R_LINE")

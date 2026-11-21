@@ -119,14 +119,17 @@ empty = sum(1 for t in tails if t == 0) - 4   # (runs 11 to 14's hold DFS's page
 c5tails = [r for r in range(24) if C["C5TAILS"] >> r & 1]   # (the flight code's cold 5 pass)
 m = re.search(r"^c5 \(.*?: \d+ units and \d+ stubs, (\d+) bytes", open(OUT + "flow-flight.txt").read(), re.M)
 c5used = int(m.group(1)) if m else 0
+c5place = {k: int(x) for k, x in re.findall(r"^  &\w+-&\w+ place (\w+): (\d+) bytes", open(OUT + "flow-flight.txt").read(), re.M)}
+c5used -= sum(c5place.values())
+                                       # (the tails' part: the places' are in their regions' rows)
 row("bank 5", run0, img, "the 24 row runs, a page each; in their tails the stars' records and variables, `R_LINE`'s, DFS's workspace page between disc commands (`DFSTAIL%%`: 64 bytes in each of four), and in tails %s the flight code's cold 5 pass (`Area: cold 5`: `elite-flight-c5.asm`, `C5_r.bin`; `C5TAILS`) (free: the %d other tails with nothing in them, 65 bytes each, the rest of the others, and the cold 5 tails' room)" % (", ".join(map(str, c5tails)), empty - len(c5tails)),
     0x1800 - 65 * 24 + (B5["rl_nh"] + 1 - B5["rl_lct"]) + 8 * 48 + 4 + 2 + 9 + 4 * 64 + c5used)
-row("bank 5", img, st, "`R_POLY`, `R_LINE`", B5["R_LOEND"] - img)
+row("bank 5", img, st, "`R_POLY`, `R_LINE`; at the top, the flight code's cold 5 pass's place `C5LO%%` (%d bytes)" % C["C5LOSZ"], B5["R_LOEND"] - img + c5place.get("lo", 0))
 row("bank 5", st, st + 0x600, "the state: the dirty and written extents, `R_POLY`'s edge tables")
 row("bank 5", st + 0x600, B5["r_tfree"], "`R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic")
-row("bank 5", B5["r_tfree"], B5["r_tables"], "the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `R_MARKBOX`, `pf_tilt`", B5["R_GAPEND"] - B5["r_tfree"])
+row("bank 5", B5["r_tfree"], B5["r_tables"], "the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `R_MARKBOX`, `pf_tilt`; at the top, the cold 5 pass's place `C5GAP%%` (%d bytes)" % C["C5GAPSZ"], B5["R_GAPEND"] - B5["r_tfree"] + c5place.get("gap", 0))
 row("bank 5", B5["r_tables"], rjt, "the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT`")
-row("bank 5", rjt, 0xC000, "`RJT`, the jump table", B5["RJT_END"] - rjt)
+row("bank 5", rjt, 0xC000, "`RJT`, the jump table; at the top, the cold 5 pass's place `C5HI%%` (%d bytes)" % C["C5HISZ"], B5["RJT_END"] - rjt + c5place.get("hi", 0))
 
 fcslot, fjt = C["FCSLOT"], C["FJT"]
 row("bank 6", C["C6_P"], B6["F_START"], "the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`)", FL["C6_END%"] - C["C6_P"])
