@@ -55,8 +55,10 @@
 \     circle's record into the next slot of PCB, from the axis pcv (pf_tilt's
 \     sign-magnitude words), its scale pcn, the cosine pcc and its sign
 \     pcneg and the body pcbx, pcby, pcr; its part of the base colour into
-\     pc_inv. It uses Elite's zero page &10-&26 (PF_HOOK keeps the XX0 and
-\     INF in it), and reads main RAM only for the quarter squares (QSL, QSH);
+\     pc_inv. It uses Elite's zero page &10-&1D and &22-&26 (temporaries
+\     that the game sets before it reads them: XX16's last eleven bytes, P,
+\     V, XX and YY; not XX0 and INF, between them), and reads main RAM only
+\     for the quarter squares (QSL, QSH);
 \
 \   * PC_ROWS (the planet's records), in the frame (bank 6's f_bounds; the
 \     Master port's through T_CAPS): the disc layer's boundaries for rows
@@ -67,17 +69,20 @@
 
 \       Area: bank 4, bank 6
 
-pm_a  = &10             \ zero page workspace (Elite's, saved and restored):
-pm_b  = &14             \ multiplicand, dividend; multiplier, divisor;
-pm_p  = &18             \ product, quotient; temporary
-pm_tt = &20
-pm_ql = &1C             \ PMQ's pointers into QSL and QSH (&1C-&1F)
-pm_qh = &1E
+pm_a  = &10             \ zero page workspace (Elite's temporaries, round
+pm_b  = &13             \ XX0 and INF at &1E-&21, which it leaves alone):
+pm_p  = &18             \ multiplicand, dividend (3 bytes); multiplier,
+pm_tt = pm_a            \ divisor (3); product, quotient; a temporary (pcl1's,
+                        \ and pm_isqrt's n and remainder: pm_a's bytes, as
+                        \ nothing that uses pm_a runs while it is in use)
+pm_ql = &16             \ PMQ's pointers into QSL and QSH
+pm_qh = &1C
 pm_t8 = &22             \ its product's low byte
 pmi_n = &23             \ pm_isqrt's: n' (&23-&24) and a square (&25-&26)
 pmi_c = &25
 pc_xs = &23             \ pcl4's X (NMOS: for PHX, PLX; pmi_n's byte, as pcl4
                         \ does not call pm_isqrt)
+ASSERT XX0 = pm_qh + 2 AND INF = XX0 + 2 AND pm_t8 = INF + 2 AND pm_ql = pm_b + 3
 
 \ A circle's record (RSZ bytes, in its slot of PCB)
 R_A   = 0               \ a, 16.16 signed
@@ -2254,7 +2259,6 @@ O_RC = pv_rc - pv
 
 \       Area: bank 4 top
 
-.pm_zsave SKIP 4        \ XX0 and INF (in Elite's &10-&26) while PF_HOOK runs
 .wr     SKIP RSZ        \ the record being made
 pm_a32 = wr + R_A       \ (a, 16.16 signed, and K2, 16.16: pms_core makes
 pm_K2 = wr + R_K2       \ them in the record)

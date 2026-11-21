@@ -883,10 +883,10 @@ def pmath_tests(quick=False):
     rb = lambda n: rnd.getrandbits(n) if n else 0
     cy, bad = [], []
     for n in range(0, 65536, 7 if quick else 1):
-        zp[0x20], zp[0x21] = n & 255, n >> 8
+        zp[0x10], zp[0x11] = n & 255, n >> 8     # (pm_tt: pm_a's bytes)
         cy.append(m.gcall(F['pm_isqrt']))
         f = math.isqrt(n)
-        if m.mpu.a != f or zp[0x20] | zp[0x21] << 8 != n - f * f:
+        if m.mpu.a != f or zp[0x10] | zp[0x11] << 8 != n - f * f:
             bad.append(n)
     check(not bad, 'pm_isqrt: every n (%.0f cycles)%s' % (sum(cy) / len(cy), ' (wrong for %r)' % bad[:6] if bad else ''))
     if 'pcv' in F:                               # pf_tilt (in bank 5, through T_TILT)
@@ -936,8 +936,8 @@ def pmath_tests(quick=False):
             u, v = rb(rnd.randrange(17)), rb(rnd.randrange(17))
             if not two:
                 v = u
-            zp[0x10], zp[0x11], zp[0x14], zp[0x15] = u & 255, u >> 8, v & 255, v >> 8
-            zp[0x1D], zp[0x1F] = QS[0] >> 8, QS[1] >> 8   # (PMQ's pointers' high
+            zp[0x10], zp[0x11], zp[0x13], zp[0x14] = u & 255, u >> 8, v & 255, v >> 8   # (pm_a, pm_b)
+            zp[0x17], zp[0x1D] = QS[0] >> 8, QS[1] >> 8   # (PMQ's pointers' high
                                                   # bytes, as pc_circ sets them)
             cy.append(m.gcall(F[name]))
             got = sum(zp[0x18 + k] << 8 * k for k in range(4))

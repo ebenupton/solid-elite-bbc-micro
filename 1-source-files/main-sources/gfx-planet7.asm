@@ -30,8 +30,8 @@
 \   * class 1, a crater planet (TYPE 130): one to three craters, small caps
 \     from the system's seed (pf_craters), base 0.
 \
-\ Elite's state is not touched: of Elite's zero page &10-&26 (the engine's
-\ workspace), XX0 and INF are saved and restored (the rest are temporaries
+\ Elite's state is not touched: of Elite's zero page &10-&26 the engine uses
+\ all but XX0 and INF, which it leaves alone (the others are temporaries
 \ that the game sets before it reads them after PL9: XX16's last eleven
 \ bytes, P, V, XX and YY, which the original's PL9 parts 2 and 3 and CIRCLE2
 \ overwrite, and which the port's H_CIRC, returning from PL9 without them,
@@ -46,7 +46,6 @@
 pf_tilt = T_TILT        \ (bank 5's, through the glue's trampoline)
 
 .PF_HOOK
- ASSERT INF = XX0 + 2 AND XX0 >= &10 AND INF + 1 <= &26
  PHP
  PHA
  LDA TYPE               \ the class: a crater planet (TYPE 130) 1, a meridian
@@ -63,12 +62,6 @@ pf_tilt = T_TILT        \ (bank 5's, through the glue's trampoline)
  PHA
  TYA
  PHA
- LDX #3                 \ (XX0 and INF, in the engine's workspace, Elite's
-.pfh0                   \ &10-&26)
- LDA XX0,X
- STA pm_zsave,X
- DEX
- BPL pfh0
  LDA K3                 \ the centre
  STA pcbx
  LDA K3+1
@@ -99,12 +92,6 @@ pf_tilt = T_TILT        \ (bank 5's, through the glue's trampoline)
  ORA #&80
  STA PF_CLS
 .pfh7
- LDX #3
-.pfh1
- LDA pm_zsave,X
- STA XX0,X
- DEX
- BPL pfh1
  PLA
  TAY
  PLA
