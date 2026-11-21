@@ -714,22 +714,11 @@ R_ENDPAGE 6
 .r_run7 R_RUN 7
 R_ENDPAGE 7
 .r_run8 R_RUN 8
-.r_c8 SKIP 8            \ R_POLY's phase B: the colours by line (row AND 7)
-.r_m0 SKIP 1            \ r_div8: quotient
-.r_v0 SKIP 1            \ r_div8: divisor
 R_ENDPAGE 8
 .r_run9 R_RUN 9
 .r_s1b SKIP 48
 R_ENDPAGE 9
 .r_run10 R_RUN 10
-.r_n SKIP 1
-.r_i0 SKIP 1
-.r_i1 SKIP 1
-.r_yminL SKIP 1
-.r_yminH SKIP 1
-.r_ymaxL SKIP 1
-.r_ymaxH SKIP 1
-.r_top SKIP 1
 R_ENDPAGE 10
 FOR r, 11, 15             \ (the last 64 bytes of runs 11 to 14's pages hold
   R_RUN r                 \ DFS's workspace page between disc commands,
@@ -760,6 +749,17 @@ ASSERT DFSTAIL% = r_run0 + 11 * &100 + &C0 AND R_RUNSZ <= &C0
 .rl_hi SKIP 1
 .rl_nl SKIP 1
 .rl_nh SKIP 1
+.r_c8 SKIP 8            \ R_POLY's phase B: the colours by line (row AND 7)
+.r_m0 SKIP 1            \ r_div8: quotient (here, not in tail 8, which is
+.r_v0 SKIP 1            \ r_div8: divisor   the cold 5 pass's)
+.r_n SKIP 1             \ R_POLY's (here, not in tail 10, which is the cold 5
+.r_i0 SKIP 1            \ pass's)
+.r_i1 SKIP 1
+.r_yminL SKIP 1
+.r_yminH SKIP 1
+.r_ymaxL SKIP 1
+.r_ymaxH SKIP 1
+.r_top SKIP 1
 R_ENDPAGE 16
 FOR r, 17, 23
   R_RUN r

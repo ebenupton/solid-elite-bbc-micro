@@ -78,7 +78,7 @@
                         \ it), and tails 11 to 14 hold DFS's workspace page
                         \ (DFSTAIL%). To give the pass a tail that holds some
                         \ variables, move them to a tail that is not listed
- C5TAILS = (1 << 7) + (1 << 15) + (1 << 17) + (1 << 18) + (1 << 19) + (1 << 20) + (1 << 21) + (1 << 22) + (1 << 23)
+ C5TAILS = (1 << 7) + (1 << 8) + (1 << 10) + (1 << 15) + (1 << 17) + (1 << 18) + (1 << 19) + (1 << 20) + (1 << 21) + (1 << 22) + (1 << 23)
  ASSERT (C5TAILS AND &7800) = 0 AND C5TAILS < (1 << 24)
 
  FHV% = &BFF4           \ The hangar's background's four jumps into bank 6

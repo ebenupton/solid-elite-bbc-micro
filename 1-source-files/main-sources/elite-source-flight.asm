@@ -11908,7 +11908,7 @@ ENDIF
 \   Category: Tactics
 \    Summary: Make a ship or station hostile, and if this is a ship then enable
 \             the ship's AI and give it a kick of speed
-\       Area: cold
+\       Area: cold 5
 \  Deep dive: Aggression and hostility in ship tactics
 \
 \ ------------------------------------------------------------------------------
@@ -21772,7 +21772,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Flip the sign and double an INWK byte
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -21886,7 +21886,7 @@ ENDMACRO
 \   Category: Dashboard
 \    Summary: Start up the E.C.M. (light up the indicator, start the countdown
 \             and make the E.C.M. sound)
-\       Area: cold
+\       Area: cold 5
 \
 \ ******************************************************************************
 
@@ -25433,7 +25433,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Missions
 \    Summary: Check whether we are in the Constrictor's system in mission 1
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -26786,7 +26786,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Status
 \    Summary: Calculate how bad we have been
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
@@ -27477,7 +27477,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Utility routines
 \    Summary: Reset the local bubble of universe and ship status
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
