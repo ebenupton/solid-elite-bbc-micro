@@ -114,6 +114,9 @@ PCMAX = 3               \ the planet's records (slots 0-2)
  LDA PC_N
  CMP #PCMAX
  BCS pcc9
+ ASL A                  \ (its thresholds' offset in PC_TU, into pct1's ORA
+ ASL A                  \ #)
+ STA pct_o+1
  LDX #0                 \ the magnitudes >> 2 (pf_tilt's halved vectors: the
  LDY #0                 \ beach ball's |v| >> 3), signs, non-zero flags
 .pcl1                   \ (NMOS: X, not pc_t, made non-zero by a non-zero
@@ -506,14 +509,16 @@ PCMAX = 3               \ the planet's records (slots 0-2)
  STA pc_v
  LDA pc_v+1
  ADC pcby+1
- PHA                    \ (unclamped, into pc_tw, for the frame's f_hrec)
- TYA
- ASL A
+ PHA                    \ (unclamped, into the slot's PC_TU, for the
+ TYA                    \ frame's f_hrec: written even if there is no
+ ASL A                  \ record, as the frame reads only the slots below
+.pct_o                  \ PC_N)
+ ORA #0                 \ (patched: the slot's offset, 4 PC_N)
  TAX
  LDA pc_v
- STA pc_tw,X
+ STA PC_TU,X
  PLA
- STA pc_tw+1,X
+ STA PC_TU+1,X
  BMI pct2
  BNE pct3
  LDA pc_v
@@ -549,18 +554,6 @@ PCMAX = 3               \ the planet's records (slots 0-2)
  CMP #3
  BEQ pcy9
 .pcy2
- LDA PC_N               \ (its unclamped thresholds, for the frame's f_hrec)
- ASL A
- ASL A
- TAX
- LDA pc_tw
- STA PC_TU,X
- LDA pc_tw+1
- STA PC_TU+1,X
- LDA pc_tw+2
- STA PC_TU+2,X
- LDA pc_tw+3
- STA PC_TU+3,X
  LDX PC_N               \ the record into its slot
  INC PC_N
  LDY pcb_o+1,X
@@ -2278,8 +2271,6 @@ O_RC = pv_rc - pv
 .pc_a9  SKIP 3          \ } (16.8); A, sqrt(B) and the two nodes, in 1/512
 .pc_s9  SKIP 3          \ } pixels
 .pc_n   SKIP 6
-.pc_tw  SKIP 4          \ the record's thresholds T1, T2 before clamping (16-bit:
-                        \ each slot's into PC_TU, for the frame's f_hrec)
 
 \       Area: bank 4 top
 
