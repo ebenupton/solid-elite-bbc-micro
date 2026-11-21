@@ -15946,7 +15946,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Calculate system data from the system seeds
-\       Area: cold
+\       Area: cold 5
 \  Deep dive: Generating system data
 \             Galaxy and system seeds
 \
@@ -20850,7 +20850,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Geometry)
 \    Summary: Calculate the vector to the space station
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
