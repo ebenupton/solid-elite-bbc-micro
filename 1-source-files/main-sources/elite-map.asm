@@ -58,7 +58,7 @@
                         \ page boundaries, and their branches' cycles)
 
  C6% = &8000            \ The flight code's cold 6 pass, at the start of bank 6
- C6SZ = 259             \ (BANK6), before the frame layer, and its room (the
+ C6SZ = 188             \ (BANK6), before the frame layer, and its room (the
                         \ flight code's layout assembles it there and saves it
                         \ as C6.bin, which bank 6's assembly takes in; a far
                         \ call, farC6, reaches it: elite-far.asm, streams.py;

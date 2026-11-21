@@ -24849,7 +24849,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Set the SLSP ship line heap pointer after shuffling ship slots
-\       Area: cold 6
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -25017,7 +25017,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Universe
 \    Summary: Check the local bubble for missiles with target lock
-\       Area: cold 6
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
