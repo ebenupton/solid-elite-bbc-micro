@@ -441,6 +441,9 @@ ENDIF
  STA lr_b,X
  DEX
  BPL lr0
+ LDA #&4C               \ the axes' dot products go through the faces' code
+ STA l3m                \ in line below, entered by a jump and left by the
+                        \ BIT at l3m, made a JMP back to lr2r
  LDY #2                 \ axis: 2 nosev, 1 roofv, 0 sidev
 .lr1
  STY l7_s
@@ -461,12 +464,14 @@ ENDIF
  DEY
  BPL lr2
  INY                    \ (Y = 0: l_dot)
- JSR l_dot              \ Ls = (h . LLT + 16) >> 5
- JSR l_r32
+ JMP l_dot              \ Ls = (h . LLT + 16) >> 5 (l_dot, then l_r32, which
+.lr2r                   \ comes back here)
  LDY l7_s
  STA lr_c,Y
  DEY
  BPL lr1
+ LDA #&2C               \ the BIT at l3m again, for the faces
+ STA l3m
  LDX #2                 \ lr_b = Ls
 .lr3
  LDA lr_c,X
@@ -488,7 +493,8 @@ ENDIF
 .lf1
  STX lr_f
  LDA XX2,X              \ XX2: 0 hidden
- BEQ lf9
+ BNE P%+5               \ (l_dot and l_r32 in line put lf9 beyond a branch)
+ JMP lf9
  LDY #3                 \ the face's unit normal
 .lf2
 .lrf
@@ -496,48 +502,9 @@ ENDIF
  STA lr_a-1,Y
  DEY
  BNE lf2
- JSR l_dot
- LDA #0
- BIT lr_sh
- BMI lf4                \ n . Ls < 0: level 0
- JSR l_r32              \ d
- STA lr_c
- LSR A                  \ d + d / 16 + 2 (<= 136)
- LSR A
- LSR A
- LSR A
- SEC
- ADC lr_c
- ADC #1                 \ (NMOS: C = 0)
- LSR A
- LSR A
- CMP #32
- BCC lf4
- LDA #31
-.lf4
- ORA #&80               \ visible
- LDX lr_f
- LDY XX2,X              \ XX2 again (still the visibility)
- INY
- BNE P%+5
- ORA GHAND              \ XX2 = 255: cull by winding (bit 6), and bit 5 if
-                        \ the ship is mirrored (GHAND, set by S_SHIP)
- STA XX2,X              \ the level, in place of the face's visibility
-.lf9
- LDA lrf+1              \ (X = lr_f) the next face's normal: 3 bytes on
- CLC
- ADC #3
- STA lrf+1
- BCC P%+5
- INC lrf+2
- INX
- CPX GNF
- BCC lf1
- RTS
-
-\ l_dot: (lr_sh lr_sl) = lr_a . lr_b (signed bytes, |a +/- b| < 128; NMOS:
-\ Y = 0)
-
+\ l_dot, in line: (lr_sh lr_sl) = lr_a . lr_b (signed bytes, |a +/- b| < 128;
+\ NMOS: Y = 0), for the face here, and for each axis above (entered by its
+\ JMP, with no call: l3m's patch)
 .l_dot
  STY lr_sl
  STY lr_sh
@@ -577,10 +544,8 @@ ENDIF
  STA lr_sh
  DEX
  BPL ld1
- RTS
-
-\ l_r32: A = (lr_sh lr_sl + 16) >> 5 (the low byte of it; it fits a signed byte)
-
+\ l_r32, in line: A = (lr_sh lr_sl + 16) >> 5 (the low byte of it; it fits a
+\ signed byte; lr_sh is kept)
 .l_r32
  LDA lr_sh              \ shift sh:sl left 3, then add the rounding bit
  ASL lr_sl              \ (bit 4 of sl) as a fourth ASL's carry, as
@@ -591,8 +556,47 @@ ENDIF
  ROL A
  ASL lr_sl              \ C = bit 4 of the original lr_sl
  ADC #0
+.l3m
+ BIT lr2r               \ (patched: JMP lr2r, for an axis)
+ BIT lr_sh
+ BPL lf3
+ LDA #0                 \ n . Ls < 0: level 0
+ BEQ lf4
+.lf3
+ STA lr_c
+ LSR A                  \ d + d / 16 + 2 (<= 136)
+ LSR A
+ LSR A
+ LSR A
+ SEC
+ ADC lr_c
+ ADC #1                 \ (NMOS: C = 0)
+ LSR A
+ LSR A
+ CMP #32
+ BCC lf4
+ LDA #31
+.lf4
+ ORA #&80               \ visible
+ LDX lr_f
+ LDY XX2,X              \ XX2 again (still the visibility)
+ INY
+ BNE P%+5
+ ORA GHAND              \ XX2 = 255: cull by winding (bit 6), and bit 5 if
+                        \ the ship is mirrored (GHAND, set by S_SHIP)
+ STA XX2,X              \ the level, in place of the face's visibility
+.lf9
+ LDA lrf+1              \ (X = lr_f) the next face's normal: 3 bytes on
+ CLC
+ ADC #3
+ STA lrf+1
+ BCC P%+5
+ INC lrf+2
+ INX
+ CPX GNF
+ BCS P%+5
+ JMP lf1
  RTS
-
 
 \ L_REC's variables (renderer state, not game state)
 .l7_s    SKIP 1
