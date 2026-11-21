@@ -17,7 +17,7 @@
 | main RAM | `&7000-&76FF` | the dashboard (`P.DIALS`) | 1792 | 0 |
 | main RAM | `&7700-&796F` | the rupture (`elite-rupture.asm`, copied there by the loader): the clock switches, the frames' registers, the flip, the display off during disc commands; its variables after its code | 624 | 0 |
 | main RAM (flight) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 989 | 275 |
-| main RAM (docked) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 168 | 1096 |
+| main RAM (docked) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 194 | 1070 |
 | main RAM | `&7E60-&7EFF` | the mailbox, `MBOX`: the rasteriser's inputs (the stars at its end, `&67-&9F`); sharing its polygon vertices, `PCLI`'s command and OSFILE block, the circle records from `PF_HOOK` to the frame (`&00-&49`, `&52-&5D`) and the disc layer's batches (`&00-&65`) | 160 | 0 |
 | main RAM | `&7F00-&7F9F` | the missile's blueprint (where the original has it) | 160 | 0 |
 | main RAM | `&7FA0-&7FAF` | `GVARS`, the renderer's shared variables (the game's hooks, the interrupt and the frame layer's) | 16 | 0 |
@@ -47,12 +47,12 @@
 | bank 5 | `&B400-&BF99` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 2970 | 0 |
 | bank 5 | `&BF9A-&BFFF` | `RJT`, the jump table; at the top, the cold 5 pass's place `C5HI%` (35 bytes) | 77 | 25 |
 | bank 6 | `&8000-&8102` | the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`) | 259 | 0 |
-| bank 6 | `&8103-&ABFF` | the frame layer's code (bank 6 passes) | 11005 | 0 |
-| bank 6 | `&AC00-&AF1D` | the faces' and the lighting's tables | 798 | 0 |
-| bank 6 | `&AF1E-&AF2B` | (free: the state that follows is placed as high as it goes) | 0 | 14 |
+| bank 6 | `&8103-&ABE5` | the frame layer's code (bank 6 passes) | 10979 | 0 |
+| bank 6 | `&ABE6-&AF03` | the faces' and the lighting's tables | 798 | 0 |
+| bank 6 | `&AF04-&AF2B` | (free: the state that follows is placed as high as it goes) | 0 | 40 |
 | bank 6 | `&AF2C-&B1FF` | the state: the ship records, the zero page `F_FRAME` keeps, the faces' levels, the docking slot, the planet's records kept | 724 | 0 |
 | bank 6 | `&B200-&BC70` | the state, page aligned: the discs' half-widths (`F_INIT`'s code in the sun's until they are first written), the text map, the discs' rows | 2659 | 14 |
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 43, main RAM (flight) 275, main RAM (docked) 1096, bank 4 (flight) 63, bank 4 (docked) 3165, bank 7 (flight) 516, bank 7 (docked) 4987, bank 5 228, bank 6 34.
+Free, by place: main RAM 43, main RAM (flight) 275, main RAM (docked) 1070, bank 4 (flight) 63, bank 4 (docked) 3165, bank 7 (flight) 516, bank 7 (docked) 4987, bank 5 228, bank 6 60.

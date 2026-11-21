@@ -34,7 +34,7 @@ VARS = ['INWK', 'XX2', 'XX3', 'XX4', 'XX16', 'XX0', 'XX19', 'XX20', 'INF', 'XSAV
 FLIGHT = ['MCNT', 'P', 'R', 'S', 'T', 'K2', 'DP_BEGIN', 'DP_ROWS', 'DP_DISC2', 'FT_DPROWS']
 # what only the docked code has: the hangar's background, in its main RAM
 # part (gfx-hangar.asm)
-DOCKED = ['f_hback']
+DOCKED = ['f_hback', 'HPWL', 'HPWH']
 # and its constants
 CONSTS = ['NOST', 'NOSH', 'NI%', 'SST', 'PLT', 'X', 'Y']
 

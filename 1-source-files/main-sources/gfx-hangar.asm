@@ -70,9 +70,9 @@ HTOP = 16               \ the wall's top row: text row 1, the view's name, is on
  STY f_ysav
  JMP f_reset
 
-\ fh_col, fh_blk, fh_line: f_hback's ways into this bank (FHV%). fh_col: the
-\ colour of the wall (X = 0) or the floor (X = 1), through f_col's packed
-\ colours; fh_blk: black, solid; fh_line: a line from (A, HTOP) to (A, Y)
+\ fh_col: f_hback's way into f_col (FHV%): the colour of the wall (X = 0)
+\ or the floor (X = 1), through f_col's packed colours (HPWL, HPWH, in the
+\ docked code's main RAM part, below)
 
 .fh_col
  ASSERT HI(HPWL) = HI(HPWH)
@@ -84,18 +84,16 @@ HTOP = 16               \ the wall's top row: text row 1, the view's name, is on
  STA fcl+2
  STA fch+2
  JMP fch
-.fh_blk
- LDA #FC_BLACK
- JSR f_setcol
- STA R_COL3
- STA R_COL2
- RTS
-.fh_line
- STA fz_t
- TAX
- LDA #HTOP
- STA fz_u
- JMP f_line8
+
+ ASSERT fz_t = &E0 AND fz_u = &E1   \ (fh_line's FH_ZT and FH_ZU, in the docked code)
+
+\ ******************************************************************************
+\
+\ The background, in the docked code's main RAM part
+\
+\       Area: docked main
+\
+\ ******************************************************************************
 
 \ HPWL, HPWH: the wall's and the floor's colours in f_col's packed form
 \ (hangarcols.py, docs/renderer.md): the wall a darker tan, two yellow, a magenta
@@ -109,13 +107,24 @@ HTOP = 16               \ the wall's top row: text row 1, the view's name, is on
 .HPWH
  EQUB &31, &41
 
-\ ******************************************************************************
-\
-\ The background, in the docked code's main RAM part
-\
-\       Area: docked main
-\
-\ ******************************************************************************
+\ fh_blk: black, solid; fh_line: a line from (A, HTOP) to (A, Y), through
+\ f_setcol and f_line8 (FHV%: bank 6 is paged in)
+
+FH_ZT = &E0             \ the frame layer's fz_t and fz_u (gfx-frame.asm: the
+FH_ZU = &E1             \ bank's assembly checks them)
+
+.fh_blk
+ LDA #FC_BLACK
+ JSR FHV%+3             \ (f_setcol)
+ STA R_COL3
+ STA R_COL2
+ RTS
+.fh_line
+ STA FH_ZT
+ TAX
+ LDA #HTOP
+ STA FH_ZU
+ JMP FHV%+6             \ (f_line8)
 
 \ f_hback: the background, in place of f_lines's call (F_FRAME's ff_lin),
 \ then the lines recorded (none: f_lines is the frame's own). Bank 6 is
@@ -142,7 +151,7 @@ HTOP = 16               \ the wall's top row: text row 1, the view's name, is on
  LDA HFY
  LDY #192
  JSR fh_rect
- JSR FHV%+3             \ the lines: black, solid
+ JSR fh_blk             \ the lines: black, solid
  LDA #2                 \ the floor's lines, x = 2 to 253, near to far (rows
  STA fh_t               \ HFY[10] to HFY[0]), as one-row rectangles (R_POLY
  LDA #254               \ fills a row much faster than R_LINE steps along it)
@@ -161,7 +170,7 @@ HTOP = 16               \ the wall's top row: text row 1, the view's name, is on
 .fhb3                   \ the floor's furthest line (R_LINE: a thin R_POLY is
  STA fh_t               \ slower)
  LDY HFY
- JSR FHV%+6
+ JSR fh_line
  LDA fh_t
  SEC
  SBC #8
