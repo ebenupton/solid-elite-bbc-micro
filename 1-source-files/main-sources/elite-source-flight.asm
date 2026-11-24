@@ -13138,6 +13138,62 @@ MACRO QSMUL lo, x, y
 
 ENDMACRO
 
+                        \ Port: QSMULA is QSMUL with x already in A (the same
+                        \ results)
+
+MACRO QSMULA lo, x, y
+
+ SEC                    \ (A = x already: QSMULA)
+ SBC y
+
+ BCS t1                 \ If x < y, negate A (C is clear, so the ADC adds 1 to
+ EOR #&FF               \ the one's complement), so A = |x - y|
+ ADC #1
+
+.t1
+
+ TAX                    \ Patch QS(|x - y|) into the SBCs below
+ LDA QSL,X
+ STA l1+1
+ STA l2+1
+ LDA QSH,X
+ STA h1+1
+ STA h2+1
+
+ LDA x                  \ Set X = x + y, with the high bit of the 9-bit sum in
+ CLC                    \ C
+ ADC y
+ TAX
+
+ BCS t2                 \ If x + y >= 256, jump to t2 to read the tables'
+                        \ second pages
+
+ LDA QSL,X              \ Set (A lo) = QS(x + y) - QS(|x - y|)
+ SEC
+.l1
+ SBC #0
+ STA lo
+ LDA QSH,X
+.h1
+ SBC #0
+
+ JMP t3
+
+.t2
+
+ LDA QSL+256,X          \ As above, for x + y = 256 + X
+ SEC
+.l2
+ SBC #0
+ STA lo
+ LDA QSH+256,X
+.h2
+ SBC #0
+
+.t3
+
+ENDMACRO
+
                         \ Port: QSMUL7 is QSMUL for x and y both below 128, so
                         \ x + y < 256 and the tables' first pages are enough
                         \ (the same results)
@@ -13931,7 +13987,7 @@ ENDMACRO
  EOR #%11111111
  STA P
 
- QSMUL P, P, Q          \ Set (h1 P) = ~P * Q, with h1 patched into the ADC at
+ QSMULA P, P, Q         \ Set (h1 P) = ~P * Q, with h1 patched into the ADC at
  STA mt2a+1             \ mt2a
 
  QSMUL P+1, P+1, Q      \ Set (A P+1) = A * Q
@@ -23981,14 +24037,25 @@ ENDMACRO
 .CIRCLE
 
  JSR H_CIRC             \ Port: in record mode, record the planet's disc and its
-                        \ surface for the renderer and return from PL9 (H_CIRC)
+                        \ surface for the renderer and return from PL9 (H_CIRC),
+                        \ and otherwise fall into CIRCLE1, in the cold pass
+
+\ ******************************************************************************
+\
+\       Name: CIRCLE1
+\       Type: Subroutine
+\   Category: Drawing circles
+\    Summary: Port: CIRCLE without record mode, which is rare (in the cold pass)
+\       Area: cold
+\
+\ ******************************************************************************
+
+.CIRCLE1
 
  JSR CHKON              \ Call CHKON to check whether the circle fits on-screen
 
- BCS PL40               \ If CHKON set the C flag then the circle does not fit
-                        \ on-screen, so return from the subroutine (Port: as
-                        \ PL40 contains an RTS, on this side, where RTS2's is
-                        \ cold)
+ BCC P%+3               \ If CHKON set the C flag then the circle does not fit
+ RTS                    \ on-screen, so return from the subroutine (Port: here)
 
  LDA #0                 \ Set LSX2 = 0 to indicate that the ball line heap is
  STA LSX2               \ not empty, as we are about to fill it
@@ -24297,6 +24364,16 @@ ENDMACRO
  LDY #&FF
  STY LSX
  RTS
+
+\ ******************************************************************************
+\
+\       Name: wpls1
+\       Type: Subroutine
+\   Category: Drawing suns
+\    Summary: Port: WPLS without record mode, which is rare (in the cold pass)
+\       Area: cold
+\
+\ ******************************************************************************
 
 .wpls1
 
@@ -29468,6 +29545,17 @@ ENDIF
  CPX #&69               \ If COPY is not being pressed, jump to DK2 below,
  BNE DK2                \ otherwise let's process the configuration keys
 
+\ ******************************************************************************
+\
+\       Name: FREEZE
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Port: DK4's pause, while COPY has frozen the game: the configuration
+\             keys, until DELETE (in the cold pass: it runs only paused)
+\       Area: cold
+\
+\ ******************************************************************************
+
 .FREEZE
 
                         \ COPY is being pressed, so we enter a loop that
@@ -29544,6 +29632,16 @@ ENDIF
  BNE FREEZE             \ so loop back up to keep listening for configuration
                         \ keys, otherwise fall through into the rest of the
                         \ key detection code, which unpauses the game
+
+\ ******************************************************************************
+\
+\       Name: DK2
+\       Type: Subroutine
+\   Category: Keyboard
+\    Summary: Port: the rest of DK4, the view keys and the docking computer's (DK4
+\             falls into its pause, FREEZE, which falls into this)
+\
+\ ******************************************************************************
 
 .DK2
 
