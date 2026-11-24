@@ -16,7 +16,7 @@
 | main RAM | `&4000-&6FFF` | buffer 1, the screen | 12288 | 0 |
 | main RAM | `&7000-&76FF` | the dashboard (`P.DIALS`) | 1792 | 0 |
 | main RAM | `&7700-&796F` | the rupture (`elite-rupture.asm`, copied there by the loader): the clock switches, the frames' registers, the flip, the display off during disc commands; its variables after its code | 624 | 0 |
-| main RAM (flight) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 964 | 300 |
+| main RAM (flight) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 1264 | 0 |
 | main RAM (docked) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 194 | 1070 |
 | main RAM | `&7E60-&7EFF` | the mailbox, `MBOX`: the rasteriser's inputs (the stars at its end, `&67-&9F`); sharing its polygon vertices, `PCLI`'s command and OSFILE block, the circle records from `PF_HOOK` to the frame (`&00-&49`, `&52-&5D`) and the disc layer's batches (`&00-&65`) | 160 | 0 |
 | main RAM | `&7F00-&7F9F` | the missile's blueprint (where the original has it) | 160 | 0 |
@@ -28,7 +28,7 @@
 | bank 4 (flight) | `&A8A6-&B2FF` | the planet's surface (bank 4 passes: `PF_HOOK`, `pc_circ`) | 2650 | 0 |
 | bank 4 (flight) | `&B300-&BBA1` | the blueprint set (`D.MOx`), its normals and `FC_NORMTAB` (the image holds the main RAM part's image here) | 2210 | 0 |
 | bank 4 (flight) | `&BBA2-&BBC0` | the circle engine's variables (bank 4 top) | 31 | 0 |
-| bank 4 (flight) | `&BBC1-&BBFF` | the hot pass's container at bank 4's top (`hot4`: every blueprint file carries its bytes, as a set's load writes the slot's whole pages) | 0 | 63 |
+| bank 4 (flight) | `&BBC1-&BBFF` | the hot pass's container at bank 4's top (`hot4`: every blueprint file carries its bytes, as a set's load writes the slot's whole pages) | 5 | 58 |
 | bank 4 (flight) | `&BC00-&BFFF` | the quarter squares `QSL`, `QSH` (made by the loader) | 1024 | 0 |
 | bank 4 (docked) | `&8000-&AE0F` | `S%` and the hot pass | 8792 | 3000 |
 | bank 4 (docked) | `&AE10-&B2FF` | the main RAM part's image | 1264 | 0 |
@@ -56,4 +56,4 @@
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 43, main RAM (flight) 300, main RAM (docked) 1070, bank 4 (flight) 63, bank 4 (docked) 3160, bank 7 (flight) 34, bank 7 (docked) 4987, bank 5 269, bank 6 80.
+Free, by place: main RAM 43, main RAM (flight) 0, main RAM (docked) 1070, bank 4 (flight) 58, bank 4 (docked) 3160, bank 7 (flight) 34, bank 7 (docked) 4987, bank 5 269, bank 6 80.

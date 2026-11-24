@@ -6272,9 +6272,11 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
 
 .STARS1
 
- LDX DELTA              \ Port: DELTA + 1 into the loop's CPX, which sends a
- INX                    \ particle with z_hi <= DELTA to the long division
- STX stl_cd+1
+ LDX DELTA              \ Port: the loop's divide is looked up in sd_qc, which
+ INX                    \ holds the quotients found so far at this speed, so
+ CPX stl_cd+1           \ empty it if our speed has changed (the CPX's
+ BEQ P%+5               \ operand, which sends a particle with z_hi <= DELTA
+ JSR stl_clr            \ to the long division, is DELTA + 1)
 
  LDA DELT4              \ Port: patch this pass's constants into the loop:
  STA stl_d4+1           \ DELT4(1 0), the signs that are flipped into the
@@ -6304,15 +6306,61 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
  LDY NOSTM              \ Set Y to the current number of stardust particles, so
                         \ we can use it as a counter through all the stardust
 
- JMP STL1               \ Port: jump over the long division to the loop
+ JMP STL1               \ Port: jump over the divides to the loop
+
+.stl_clr
+
+                        \ Port: our speed has changed (X = DELTA + 1): note
+                        \ it in the loop's CPX, and empty sd_qc
+
+ STX stl_cd+1
+ LDA #0
+ LDX #64
+
+.stcl
+
+ STA sd_qc-1,X
+ STA sd_qc+63,X
+ STA sd_qc+127,X
+ STA sd_qc+191,X
+ DEX
+ BNE stcl
+
+ RTS
+
+.stl_dvm
+
+                        \ Port: sd_qc has no entry for this z_hi (in X, and
+                        \ above DELTA), so divide, as DV42 does when DELTA <
+                        \ z_hi: R = 256 * DELTA / z_hi, by LL28+4 (which
+                        \ keeps Y)
+
+ STX Q
+ LDA DELTA
+ JSR LL28+4
+ LDX Q
+
+ LDA R                  \ Set the entry to (R >> 1) OR 2, which is never 0
+ LSR A                  \ and is 2 * q + c, where q = (R >> 2) OR 1 is the
+ ORA #2                 \ original's Q, 64 * speed / z_hi, at least 1, and c
+ STA sd_qc,X            \ is bit 1 of R, the C that the original's two shifts
+                        \ leave for the subtraction from z_lo
+
+ LSR A                  \ Set A = q and C = c, as the loop does, and rejoin
+ BNE stl_dvr            \ (A is at least 1)
 
 .stl_dvs
 
                         \ Port: z_hi <= DELTA (in X; rare), so the quotient
-                        \ has more than eight bits: as DV42, (P R) = 256 *
-                        \ DELTA / z_hi, by DVID4
+                        \ has more than eight bits: the entry is the
+                        \ original's Q without its bit 0, shifted right, with
+                        \ c in bit 7 (if that is 0 the entry stays empty, and
+                        \ the division is done each time)
 
- STX Q
+ LDA sd_qc,X
+ BNE stl_dvh
+
+ STX Q                  \ As DV42: (P R) = 256 * DELTA / z_hi, by DVID4
  LDA DELTA
  JSR DVID4
  LDX Q
@@ -6323,8 +6371,14 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
  LSR P                  \ subtraction from z_lo
  ROR A
 
- ORA #1                 \ Set A = q, at least 1, and rejoin (Port: BNE, as
- BNE stl_dvr            \ A is not 0)
+ ROR A                  \ Set the entry
+ STA sd_qc,X
+
+.stl_dvh
+
+ ASL A                  \ Set A = q and C = c from the entry, and rejoin
+ ORA #1                 \ (Port: BNE, as A is not 0)
+ BNE stl_dvr
 
 
                         \ In the following, we're going to refer to the 16-bit
@@ -6347,15 +6401,10 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
  CPX #0                 \ (patched: DELTA + 1) If z_hi <= DELTA (rare), jump
  BCC stl_dvs            \ to stl_dvs
 
- STX Q                  \ Port: as DV42 when DELTA < z_hi, R = 256 * DELTA /
- LDA DELTA              \ z_hi, by LL28+4 (which keeps Y)
- JSR LL28+4
- LDX Q
+ LDA sd_qc,X            \ Port: fetch 2 * q + c for this z_hi, or divide for
+ BEQ stl_dvm            \ it at stl_dvm if there is no entry yet
 
- LDA R                  \ Set A = q = (R >> 2) OR 1, the original's Q, and C
- LSR A                  \ = c, bit 1 of R, the C that the original's two
- LSR A                  \ shifts leave for the subtraction from z_lo, so we
- ORA #1                 \ have result 1 above:
+ LSR A                  \ Set A = q and C = c, so we have result 1 above:
                         \
                         \   q = 64 * speed / z_hi
 
@@ -7008,6 +7057,28 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
 
  ASSERT QSH = QSL + 512 AND LO(QSL) = 0
 
+
+\ ******************************************************************************
+\
+\       Name: sd_qc
+\       Type: Variable
+\   Category: Stardust
+\    Summary: Port: the front view's stardust's quotient cache
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: STARS1's divide, q = 64 * speed / z_hi, by z_hi: 2 * q + c, where c is
+\ the C that the original's division leaves for the subtraction from z_lo
+\ (for z_hi <= DELTA, the original's Q without its bit 0, shifted right, with
+\ c in bit 7), or 0 for no entry yet. STARS1 empties it when our speed
+\ changes (stl_clr), and the first STARS1 after the program loads always
+\ does, as the CPX operand it compares with DELTA + 1 is assembled as 0
+\
+\ ******************************************************************************
+
+.sd_qc
+
+ SKIP 256
 
 \ ******************************************************************************
 \
