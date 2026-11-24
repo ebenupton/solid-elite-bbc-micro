@@ -567,9 +567,9 @@
   BPL ct
   LDX l_y0                \ X = row, l_x = x
   LDY l_x                 \ the byte of (l_x, row X): RZ_PP + Y (NMOS: from
-  CPY #&80                \ the shared region's r_ypg and r_xo, for room)
+  CPY #&80                \ the shared region's r_ypg and r_xo, for room;
+  LDA r_ypg,X             \ and the buffer's difference, R_SETBUF's)
 .^r_yp5
-  LDA r_ypg,X
   ADC #0
   STA RZ_PP+1
   LDA r_xo,Y

@@ -93,10 +93,10 @@
  C5LOSZ = 180            \ C5LOSZ bytes of bank 5's R_POLY and R_LINE region
  C5LO% = C5LOTOP - C5LOSZ   \ (below the state at &A800), the top C5GAPSZ bytes
  C5GAPTOP = &B400       \ of the room below the per-x tables (at &B400) and
- C5GAPSZ = 25           \ the top C5HISZ bytes of the bank, above the jump
+ C5GAPSZ = 48           \ the top C5HISZ bytes of the bank, above the jump
  C5GAP% = C5GAPTOP - C5GAPSZ   \ table; each saved as C5_lo.bin, C5_gap.bin,
  C5HITOP = &C000        \ C5_hi.bin, if its size is not 0. Bank 5's assembly
- C5HISZ = 45            \ takes them in and checks that the rasteriser's code
+ C5HISZ = 318           \ takes them in and checks that the rasteriser's code
  C5HI% = C5HITOP - C5HISZ   \ stays below them (gfx-bank5.asm): to give the
                         \ rasteriser more room, lower a size (streams.py
                         \ packs the pass into what there is)

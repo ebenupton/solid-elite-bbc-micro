@@ -301,8 +301,10 @@ c_DZ  = &27
   AND #7
   ORA c_CO
   STA RZ_PA
+  LDA r_ypg,Y             \ (Model B: the buffer's row page, with its
+  CLC                     \ difference, R_SETBUF's)
 .^r_yp6
-  LDA r_ypg,Y             \ (Model B: the buffer's row page, R_SETBUF's)
+  ADC #0
   CPX #0
   BEQ eg1
   ORA #1                  \ (column 63: the page's second half; the page is

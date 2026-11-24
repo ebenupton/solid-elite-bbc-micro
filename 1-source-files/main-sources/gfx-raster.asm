@@ -224,10 +224,12 @@ r_opRTS = &60
   AND #7
   STA RZ_PA
   STA RZ_PB
-.^r_yp1
   LDA r_ypg,Y             \ NMOS: the row's screen page from r_ypg (&40 +
-  STA RZ_PA+1             \ 2 * (Y DIV 8): even; Model B: r_ypg0's &10 + ... for
-  ORA #1                  \ buffer 0, R_SETBUF's), + 1 by ORA, not INC A
+  CLC                     \ 2 * (Y DIV 8): even; Model B: &D0 more, mod 256,
+.^r_yp1                   \ for buffer 0's, &10 + ..., R_SETBUF's), + 1 by
+  ADC #0                  \ ORA, not INC A
+  STA RZ_PA+1
+  ORA #1
   STA RZ_PB+1
   LSR A                   \ &20 + Y DIV 8 (buffer 0: &08 + ...), C = 1 (bit 0)
 .^r_yp1r
@@ -308,30 +310,22 @@ r_dr1 = R_DIRTYR1
   STA r_pt34+2
   STA r_pt38+2
   STA r_pt414+2
-  LDA r_sbl_ypg,X         \ Model B: the screen's row pages, r_ypg0 (buffer 0,
-  STA r_yp1+1             \ BUF0) or r_ypg (buffer 1, SCREEN%)
-  STA r_yp2+1
+  LDA r_sbypg,X           \ Model B: what turns r_ypg's page (buffer 1's,
+  STA r_yp1+1             \ SCREEN%) into this buffer's: &D0 (buffer 0, BUF0,
+  STA r_yp2+1             \ &3000 lower) or 0, into the readers' ADCs
   STA r_yp3+1
   STA r_yp4+1
   STA r_yp5+1
   STA r_yp6+1
-  LDA r_sbh_ypg,X
-  STA r_yp1+2
-  STA r_yp2+2
-  STA r_yp3+2
-  STA r_yp4+2
-  STA r_yp5+2
-  STA r_yp6+2
   LDA r_sbrun,X           \ r_rowset's run page from the screen page
   STA r_yp1r+1
   LDA #&FF                \ no run page checked for this buffer yet (r_pgfix)
   STA r_pglast
   JMP r_sbpoly             \ (phase B's operands)
 }
-.r_sbl_ypg EQUB LO(r_ypg0), LO(r_ypg)
-.r_sbh_ypg EQUB HI(r_ypg0), HI(r_ypg)
+.r_sbypg EQUB HI(BUF0) - HI(SCREEN%), 0
 .r_sbrun EQUB HI(r_run0) - &09, HI(r_run0) - &21
-ASSERT HI(BUF0) = &10 AND HI(SCREEN%) = &40   \ (r_ypg0's and r_ypg's pages)
+ASSERT HI(BUF0) = &10 AND HI(SCREEN%) = &40   \ (the buffers' pages)
 
 \ ============================================================================
 \ r_pgfix (Model B): A = a run page.  The runs are assembled for buffer 1
@@ -772,10 +766,9 @@ ASSERT (HI(r_run0) AND 31) = 0   \ (the repair: the row's run page is Y DIV 8 OR
 \       Area: bank 5
 
 \ ============================================================================
-\ The screen's row pages: the high byte of row y's byte 0 in each buffer (the
-\ readers' operands point at one or the other: R_SETBUF), r_ypg at a page's
-\ start and r_ypg0 after R_STARERASE, so that neither crosses a page (each is
-\ read ,Y for rows 0 to 191)
+\ The screen's row pages: the high byte of row y's byte 0 in buffer 1
+\ (SCREEN%), at a page's start, so that it does not cross a page (read ,Y for
+\ rows 0 to 191); its readers add buffer 0's difference to it (R_SETBUF)
 \ ============================================================================
 .r_ypg                    \ buffer 1 (SCREEN%)
 FOR y, 0, 191
@@ -833,11 +826,7 @@ NEXT
   BEQ en                  \ (always)
 }
 
-.r_ypg0                   \ (Model B) buffer 0 (BUF0)
-FOR y, 0, 191
-  EQUB HI(BUF0) + 2 * (y DIV 8)
-NEXT
-ASSERT HI(r_ypg) = HI(r_ypg + 191) AND HI(r_ypg0) = HI(r_ypg0 + 191)
+ASSERT HI(r_ypg) = HI(r_ypg + 191)
 
 \ ============================================================================
 \ Stars
@@ -911,10 +900,10 @@ ASSERT HI(r_ypg) = HI(r_ypg + 191) AND HI(r_ypg0) = HI(r_ypg0 + 191)
 .msk
   STA RZ_SB               \ the mask
 .row
-.^r_yp3
   LDA r_ypg,Y             \ NMOS: RZ_PA + Y = byte of (x, y): RZ_PA's high
-  CPX #&80                \ byte the page, its low byte 0 and Y the byte's
-  ADC #0                  \ low byte
+  CPX #&80                \ byte the page (+ 1 for x >= 128, and the buffer's
+.^r_yp3                   \ difference, R_SETBUF's), its low byte 0 and Y the
+  ADC #0                  \ byte's low byte
   STA RZ_PA+1
   TYA
   AND #7
@@ -1054,9 +1043,9 @@ ASSERT HI(r_ypg) = HI(r_ypg + 191) AND HI(r_ypg0) = HI(r_ypg0 + 191)
   AND #7
   ORA r_xo,X
   STA RZ_PP
+  LDA r_ypg,Y             \ (NMOS: the page from r_ypg, and the buffer's
+  CPX #&80                \ difference, R_SETBUF's)
 .^r_yp4
-  LDA r_ypg,Y             \ (NMOS: the page from r_ypg)
-  CPX #&80
   ADC #0
   STA RZ_PP+1
   LDX r_k                 \ (record slot; X = x is in RZ_SA)
@@ -1176,9 +1165,9 @@ ASSERT LO(r_s0b) = LO(r_s1b)
   AND #6                  \ (NMOS: the row's bit 0 is the index below)
   ORA r_xo,X
   STA RZ_PP
-.^r_yp2
-  LDA r_ypg,Y
+  LDA r_ypg,Y             \ (the page, as at r_yp4)
   CPX #&80
+.^r_yp2
   ADC #0
   STA RZ_PP+1
   STY RZ_T7               \ (NMOS: Y kept here)

@@ -85,7 +85,7 @@ hotx &7E00-&7E5F: 14 units, 87 bytes, 9 free
   &7E53     1 LL9 (Part 9 of 12), drawing..LL9 (Part 10 of 12)
   &7E54     2 LL9 (Part 11 of 12)..LL9 (Part 12 of 12)
   &7E56     1 LL9 (Part 12 of 12), drawing
-c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%, C5GAP%, C5HI%): 29 units and 22 stubs, 1032 bytes, 37 free
+c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%, C5GAP%, C5HI%): 29 units and 22 stubs, 1032 bytes, 333 free
   &87BF-&87FF tail 7: 63 bytes, 2 free
   &87BF      63 HEE31
   &88BF-&88FF tail 8: 65 bytes, 0 free
@@ -143,19 +143,19 @@ c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5
   &A7EF       5 x5c_TT54
   &A7F4       5 x5c_TT67
   &A7F9       5 x5c_pr5
-  &B3E7-&B3FF place gap: 25 bytes, 0 free
-  &B3E7       5 x5c_TT68
-  &B3EC       5 x5c_TT27
-  &B3F1       5 x5_NWSHP
-  &B3F6       5 x5_KILLSHP
-  &B3FB       5 x5_ZINF
-  &BFD3-&BFFF place hi: 45 bytes, 0 free
-  &BFD3       5 x5_DORND
-  &BFD8       5 j5c_DEATH
-  &BFDD       5 x5_TAS2
-  &BFE2       5 x5_EXNO3
-  &BFE7       5 x5_NOISE
-  &BFEC       5 x5c_OUCH
-  &BFF1       5 x5c_LL145
-  &BFF6       5 x5_MVT1
-  &BFFB       5 x5c_LYN
+  &B3D0-&B3FF place gap: 45 bytes, 3 free
+  &B3D0       5 x5c_TT68
+  &B3D5       5 x5c_TT27
+  &B3DA       5 x5_NWSHP
+  &B3DF       5 x5_KILLSHP
+  &B3E4       5 x5_ZINF
+  &B3E9       5 x5_DORND
+  &B3EE       5 j5c_DEATH
+  &B3F3       5 x5_TAS2
+  &B3F8       5 x5_EXNO3
+  &BEC2-&BFFF place hi: 25 bytes, 293 free
+  &BEC2       5 x5_NOISE
+  &BEC7       5 x5c_OUCH
+  &BECC       5 x5c_LL145
+  &BED1       5 x5_MVT1
+  &BED6       5 x5c_LYN
