@@ -78,10 +78,16 @@ IF _CIRCLES             \ the circle engine's variables (elite-map.asm): the
  INCLUDE "3-assembled-output/elite-flight-ovl1.asm"
  OVL_END% = &BE00
  CLEAR OVL%, &C000
- ORG OVL%
+ ORG DISC7%
+ INCLUDE "3-assembled-output/gfx-frame-bank7low.asm"
+ ORG WIN7FIX%
  INCLUDE "3-assembled-output/gfx-raster_disc-bank7.asm"
  INCLUDE "3-assembled-output/gfx-raster_disc2-bank7.asm"
  INCLUDE "3-assembled-output/gfx-raster_dpatch-bank7.asm"
+ INCLUDE "3-assembled-output/gfx-frame-bank7.asm"
+IF _CIRCLES              \ (PC_ROWS: the circle engine's rows)
+ INCLUDE "3-assembled-output/gfx-merid-bank7.asm"
+ENDIF
 
  CLEAR C6%, C6% + C6SZ  \ (the cold 6 pass, at the start of bank 6, for its
  ORG C6%                \ labels, which the hot pass's stubs name)

@@ -12400,6 +12400,51 @@ ENDIF
 
 \ ******************************************************************************
 \
+\       Name: FT_DP
+\       Type: Subroutine
+\   Category: Drawing planets
+\    Summary: Port: the frame layer's call of the disc part's entry A (DPENT%,
+\             in bank 7) for each frame, without a far call
+\       Area: low
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: the frame layer (bank 6: gfx-frame.asm's f6_dprep and f6_ddraw) calls
+\ the disc part's DP_PREP and DP_DRAW (DPENT% and DPENT% + 3, in this
+\ program's bank 7: the flight code's disc part, the docked code's frame with
+\ no disc) once a frame each, with A = the entry's low byte. A far call
+\ (farC) costs about 150 cycles; this pages bank 7 in, calls the entry (its
+\ inputs are in the zero page) and pages bank 6, its only caller's, back, in
+\ about 45. A, X, Y and the flags are not kept. In main RAM, at the same
+\ place in both programs (the first of each one's low pass, FTDP%), as
+\ bank 6 calls it in either.
+\
+\ ******************************************************************************
+
+.FT_DP
+
+ ASSERT FT_DP = FTDP%   \ (bank 6 calls it there)
+
+ STA ftdp1+1            \ The entry's low byte into the JSR below (its high
+                        \ byte is DPENT%'s)
+
+ LDA BANK7              \ Page bank 7 in (&F4 first, as elite-far.asm)
+ STA &F4
+ STA VIA+&30
+
+.ftdp1
+
+ JSR DPENT%             \ The entry (bankcheck: ok, as bank 7 is paged in
+                        \ above)
+
+ LDA BANK6              \ Page bank 6, the frame layer's, back in
+ STA &F4
+ STA VIA+&30
+
+ RTS                    \ Return from the subroutine
+
+\ ******************************************************************************
+\
 \       Name: DELAY
 \       Type: Subroutine
 \   Category: Utility routines

@@ -136,7 +136,12 @@
 
 .COLD_END%
 
- PRINT "Docked bank 7: &8000-", ~COLD_END%-1, " (the cold pass), free ", DFSSAVE%-COLD_END%
- ASSERT COLD_END% <= DFSSAVE%      \ (Port: the end of the bank, DFSSAVE%)
+ PRINT "Docked bank 7: &8000-", ~COLD_END%-1, " (the cold pass), free ", DPENT%-COLD_END%
+ ASSERT COLD_END% <= DPENT%        \ (Port: before the disc part's entries)
 
- SAVE "3-assembled-output/T.CODEC.bin", &8000, COLD_END%, &8000
+ ORG DPENT%             \ The disc part's entries, as the flight code's bank 7
+ INCLUDE "3-assembled-output/gfx-glue-dockedbank7.asm"   \ has them (DPENT%):
+.DPENT_END%             \ the frame layer calls them in either program
+ ASSERT DPENT_END% <= DFSSAVE%
+
+ SAVE "3-assembled-output/T.CODEC.bin", &8000, DPENT_END%, &8000

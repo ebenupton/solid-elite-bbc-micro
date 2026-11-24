@@ -544,7 +544,7 @@ def direct_calls(lines, bl, eff, cold, hot):
     return out
 
 
-def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, xfalls={}):
+def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, xfalls={}, xinto={}):
     """the stubs between the sides, written into the copies at their places;
     returns (stubs into the cold pass, stubs out of it, the direct calls)"""
     noreturn = NORETURN[prog]
@@ -743,7 +743,7 @@ def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, x
     xinfo = {}
     for kind in COLDX:
         nx, stubline, fallstub = coldx(kind, src, copies, errors, cold, hot, direct, alias, noreturn, where, host,
-                                       hotcopies, xfalls.get(kind, ()))
+                                       hotcopies, xfalls.get(kind, ()), xinto.get(kind, ()))
         no += nx
         xinfo[kind] = (stubline, fallstub)
     # a cold block that falls into a low routine the cold pass calls directly
@@ -825,6 +825,10 @@ def inline_tails(copies, where, fixed, fallen):
                      for ls in copies.values() for l in ls):
             continue                        # (reached as the next label - 3: PLF3-3)
         dc, di, body = defs[0]
+        before = next((code_part(copies[dc][j]) for j in range(di - 1, -1, -1) if code_part(copies[dc][j])), "")
+        if before and not re.match(r"^\s*(\.[A-Za-z_][\w%]*\s+)?(JMP\b|RTS\b|RTI\b|JSR far\w+ : EQUW)", before, re.I) \
+                and not STUBLINE.match(copies[dc][max(j for j in range(di) if code_part(copies[dc][j]))]):
+            continue                        # (what is before the stub may fall into it)
         comment = split_code(copies[c][i])[1]
         copies[c][i] = " " + body + ("   " + comment if comment else "")
         copies[dc][di] = ""
@@ -975,13 +979,14 @@ def overlay_stubs(prog, src, copies, errors, lines, bl, eff, copy_of, hotcopies,
 
 COLDX = {
     "c6": {"n": "6", "name": "cold 6", "far": "farC6", "xs": "xs_", "x": "x6_", "j": "j6_", "xc": "x6c_",
-           "jc": "j6c_"},
+           "jc": "j6c_", "xx": "x6x_", "xo": "x6o_"},
     "c5": {"n": "5", "name": "cold 5", "far": "farC5", "xs": "xs5_", "x": "x5_", "j": "j5_", "xc": "x5c_",
-           "jc": "j5c_"},
+           "jc": "j5c_", "xx": "x5x_", "xo": None},
 }
 
 
-def coldx(kind, src, copies, errors, cold, hot, direct, alias, noreturn, where, host, hotcopies, xfalls=()):
+def coldx(kind, src, copies, errors, cold, hot, direct, alias, noreturn, where, host, hotcopies, xfalls=(),
+          into=()):
     """the cold 6 or cold 5 copy's names and stubs, and the stubs into it;
     returns (how many stubs, {stub: its line in the copy}, {fall target:
     (its stub's label or None for a JMP, its size)})"""
@@ -990,13 +995,17 @@ def coldx(kind, src, copies, errors, cold, hot, direct, alias, noreturn, where, 
     K = COLDX[kind]
     cc = copies[kind]
     own = {n for n, i in defined(cc)}
-    other = set()                            # (the other bank's cold pass)
+    other = {}                               # (the other bank's cold pass: label -> its kind)
     for k2 in COLDX:
         if k2 != kind and k2 in copies:
-            other.update(n for n, i in defined(copies[k2]) if not n.endswith("_" + COLDX[k2]["n"]))
-    ovl = set()
+            for n, i in defined(copies[k2]):
+                if re.match(r"^(x|j)\d", n):
+                    continue               # (its stubs)
+                sfx = "_" + COLDX[k2]["n"]  # (its own labels, renamed if its copy
+                other[n[:-len(sfx)] if n.endswith(sfx) else n] = k2   # has been made)
+    ovl = {}
     for c in [c for c in copies if c.startswith("ovl")]:
-        ovl.update(n[:-2] for n, i in defined(copies[c]) if n.endswith("_O"))
+        ovl.update((n[:-2], c[3:]) for n, i in defined(copies[c]) if n.endswith("_O"))
     out = {}                                 # stub -> (far, target as assembled, place)
     for i, l in enumerate(cc):
         code, comment = split_code(l)
@@ -1005,18 +1014,26 @@ def coldx(kind, src, copies, errors, cold, hot, direct, alias, noreturn, where, 
         new, pos = "", 0
         for off, st in statements(code):
             m = re.match(r"^(\s*)(JSR|JMP)(\s+)([A-Za-z_][A-Za-z0-9_]*%?)(.*)$", st, re.I)
-            if m and m.group(4) not in own and m.group(4) not in direct:
+            if m and m.group(4) not in own and m.group(4) not in direct and m.group(4) != "P%":
                 t = m.group(4)
                 if m.group(5).strip():
                     errors.append("%s:%d: %s %s%s from %s: a stub can only call a label"
                                   % (src, i + 1, m.group(2), t, m.group(5), K["name"]))
                 place = alias.get(t, t)
                 nr = place in noreturn or t in noreturn
-                if t in ovl:
+                if t in ovl and K["xo"] and not nr:
+                    stub = K["xo"] + t     # (through ovfN, which loads the overlay if need
+                    out.setdefault(stub, ("ovf" + ovl[t], t + "_O", t))   # be: its far call
+                                           # pages this bank back, as farC's does)
+                elif t in ovl:
                     errors.append("%s:%d: %s calls %s, in an overlay" % (src, i + 1, K["name"], t))
                     stub = t
+                elif t in other and not nr:
+                    k2 = other[t]          # (the other renderer bank's cold pass: its far
+                    stub = K["xx"] + t     # call, which pages this bank back)
+                    out.setdefault(stub, (COLDX[k2]["far"], t + "_" + COLDX[k2]["n"], t))
                 elif t in other:
-                    errors.append("%s:%d: %s calls %s, in the other cold pass in a renderer's bank"
+                    errors.append("%s:%d: %s jumps to %s, in the other cold pass, which never returns"
                                   % (src, i + 1, K["name"], t))
                     stub = t
                 elif t in cold:
@@ -1083,6 +1100,8 @@ def coldx(kind, src, copies, errors, cold, hot, direct, alias, noreturn, where, 
             for a, b, name in tokens(split_code(l)[0]):
                 if name in own:
                     need.setdefault(name, set()).add("hot")
+    for sd, entry in into:                   # (a block that falls into a routine of
+        need.setdefault(entry, set()).add(sd)   # this pass falls into its stub)
     for c in ["cold"] + [c for c in copies if c.startswith("ovl")]:
         for j, l in enumerate(copies[c]):
             code, comment = split_code(l)
@@ -1371,6 +1390,7 @@ def program(prog, phase, errors):
     falls = []
     hotfalls = []                          # (k, k2): hot block k falls into hot block k2
     xfalls = {kind: [] for kind in COLDX}  # the entry labels cold 6 and cold 5 blocks fall into
+    xinto = {kind: [] for kind in COLDX}   # (side, entry): a hot or cold block falls into a cold 6 one
     fallk = {}                             # cold 5 block -> the entry label it falls into
     c5par = {}                             # cold 5's units: blocks that fall, branch or run on
                                            # into one another (union-find by block)
@@ -1412,6 +1432,15 @@ def program(prog, phase, errors):
                     and eff[k2] not in COLDX and entry_label(lines, b2.s, b2.e, macros):
                 xfalls[eff[k]].append(entry_label(lines, b2.s, b2.e, macros))   # (into its stub in the
                 fallk[k] = entry_label(lines, b2.s, b2.e, macros)              # cold 6 or 5 copy)
+            elif eff[k2] == "c6" and eff[k] in ("hot", "cold") and not bit_skip(st) and not b.runson \
+                    and entry_label(lines, b2.s, b2.e, macros):
+                xinto["c6"].append((side(eff[k]), entry_label(lines, b2.s, b2.e, macros)))   # (into
+                                                   # the cold 6 routine's stub, at its place in
+                                                   # the falling block's side's copy)
+            elif eff[k2] == "c6" and eff[k].startswith("ovl") and not bit_skip(st) and not b.runson \
+                    and entry_label(lines, b2.s, b2.e, macros):
+                ovlseams.append((eff[k], entry_label(lines, b2.s, b2.e, macros), False))   # (a JMP to
+                xinto["c6"].append(("cold", entry_label(lines, b2.s, b2.e, macros)))   # its cold copy's stub)
             elif eff[k] in COLDX or eff[k2] in COLDX:
                 errors.append("%s:%d: %s (%s) can fall through its end (%s) into %s (%s): a cold 6 or cold 5 "
                               "block may only fall into an entry label of the hot or cold side, and nothing may "
@@ -1532,6 +1561,19 @@ def program(prog, phase, errors):
                         join(pos[k], pos[k3])
                     elif eff[k] == "c5":
                         c5join(k, k3)
+                elif eff[k3] == "c6" and eff[k] == "cold":
+                    pass                   # (to the cold 6 routine's stub, xs_, at its place
+                                           # in the cold copy, which must be in reach)
+                elif eff[k3] == "c6" and eff[k].startswith("ovl"):
+                    ovlseams.append((eff[k], m.group(2), True))   # (a JMP to its cold copy's
+                                                                  # stub, in reach)
+                elif eff[k3] == "c6" and k in pos:
+                    hk = next((j for j in range(k3 - 1, -1, -1) if eff[j] == "hot" and ASM[j]), None)
+                    if hk is None:         # (as a branch to a cold routine: its stub is in
+                        errors.append("%s:%d: %s branches to %s (%s), whose stub has no place"
+                                      % (src, i + 1, b.name, m.group(2), eff[k3]))
+                    else:                  # the copy of the nearest hot block before it)
+                        join(pos[k], pos[hk])
                 elif eff[k] in COLDX or eff[k3] in COLDX:
                     errors.append("%s:%d: %s branches to %s in another area (%s): cold 6 and cold 5 branches "
                                   "stay in their area" % (src, i + 1, b.name, m.group(2), eff[k3]))
@@ -1685,7 +1727,7 @@ def program(prog, phase, errors):
             else:
                 copies[copy_of[k]][spot[0]] = "FALL_%d = P%%" % (b.e + 1) + note % (b.name, b2.name)
                 copies[copy_of[k2]][spot2[0]] = " ASSERT P% = FALL_" + str(b.e + 1) + note % (b.name, b2.name)
-    nstubs = glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, xfalls)
+    nstubs = glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, xfalls, xinto)
     sblk = [k for k, b in enumerate(bl) if any(re.match(r"^\.S%(\s|$)", lines[i]) for i in range(b.s, b.e))]
     fallen = set()                         # (the stubs a block falls into: kept)
     for side, entry in falls:
@@ -1695,6 +1737,9 @@ def program(prog, phase, errors):
             fallen.update((entry, "xh_" + entry, "jh_" + entry, "xs_" + entry, "xs5_" + entry))
     for c, entry, br in ovlseams:
         fallen.add(entry)
+    for kind in xinto:                     # (and the cold 6 routines' stubs that a hot or
+        for side, entry in xinto[kind]:    # cold block, or an overlay's seam, falls into)
+            fallen.update((entry, "xs_" + entry, "x6_" + entry, "x6c_" + entry))
     ntail = inline_tails(copies, [c for c in copies if c not in ("c5", "c6")],
                          set(i for k in sblk for i in range(bl[k].s, bl[k].e)), fallen)
     c5blocks = [k for k in range(len(bl)) if eff[k] == "c5" and ASM[k]]
@@ -1719,6 +1764,7 @@ def program(prog, phase, errors):
     seams = {}
     for c, entry, br in ovlseams:          # (a branch's JMP serves a fall too)
         seams[(c, entry)] = seams.get((c, entry), False) or br
+    c6labs = {n[:-2] for n, i in defined(copies["c6"]) if n.endswith("_6")} if "c6" in copies else set()
     for (c, entry), br in sorted(seams.items()):
         i = next((i for n, i in defined(lines) if n == entry and ACTIVE[i]), None)
         if i is None:
@@ -1727,22 +1773,27 @@ def program(prog, phase, errors):
         if code_part(copies[c][i]):
             errors.append("%s:%d: the overlay's seam into %s: its line is not blank in %s" % (src, i + 1, entry, c))
             continue
+        tgt = ("xs_" + entry) if entry in c6labs else (entry + "_C")   # (a cold 6 routine: its
+                                           # stub in the cold copy, at its place)
         if br:                             # (the branches to it in this copy go to
             offs = set()                   # the JMP instead, and a branch to it
             for j, l in enumerate(copies[c]):   # plus or minus n to a JMP to that)
                 code, comment = split_code(l)
-                m = re.match(r"^(\s*(?:\.[A-Za-z_]\w*\s+)*(?:BCC|BCS|BEQ|BMI|BNE|BPL|BVC|BVS)\s+)%s_C\b(?:([+-])(\d+))?(.*)$"
-                             % re.escape(entry), code)
+                m = re.match(r"^(\s*(?:\.[A-Za-z_]\w*\s+)*(?:BCC|BCS|BEQ|BMI|BNE|BPL|BVC|BVS)\s+)%s\b(?:([+-])(\d+))?(.*)$"
+                             % re.escape(tgt), code)
                 if m:
                     n = int(m.group(3) or 0) * (-1 if m.group(2) == "-" else 1)
                     offs.add(n)
                     copies[c][j] = m.group(1) + entry + "_ob" + (("_%d" % n if n > 0 else "_m%d" % -n) if n else "") \
                         + m.group(4) + comment
-            copies[c][i] = " : ".join((".%s_ob JMP %s_C" % (entry, entry)) if not n else
-                                      (".%s_ob_%s JMP %s_C%+d" % (entry, n if n > 0 else "m%d" % -n, entry, n))
+            if entry in c6labs and offs - {0}:
+                errors.append("%s: the overlay's branch into %s, in cold 6, is to an offset from it" % (src, entry))
+            copies[c][i] = " : ".join((".%s_ob JMP %s" % (entry, tgt)) if not n else
+                                      (".%s_ob_%s JMP %s%+d" % (entry, n if n > 0 else "m%d" % -n, tgt, n))
                                       for n in sorted(offs | {0}))
         else:
-            copies[c][i] = " JMP %s_C              \\ (the overlay's fall-through into %s, in the cold pass)" % (entry, entry)
+            copies[c][i] = " JMP %s              \\ (the overlay's fall-through into %s, in the %s pass)" \
+                % (tgt, entry, "cold 6" if entry in c6labs else "cold")
     for k, entry in lowseams:
         i = next(i for n, i in defined(lines) if n == entry and ACTIVE[i])
         a = copy_of[k]
@@ -1820,7 +1871,7 @@ RFILES = ("gfx-glue.asm", "gfx-raster_poly.asm", "gfx-raster_line.asm", "gfx-ras
           "gfx-raster_reset.asm", "gfx-planet7.asm", "gfx-merid.asm", "gfx-frame.asm",
           "gfx-flare.asm", "gfx-frame_cold.asm", "gfx-hangar.asm", "gfx-finit.asm",
           "gfx-raster_disc.asm", "gfx-raster_disc2.asm", "gfx-raster_dpatch.asm")
-RPLACES = ("bank 4", "bank 4 top", "bank 5 runs", "bank 5", "bank 5 gap", "bank 5 end", "bank 5 init", "bank 6", "bank 6 init", "bank 7", "main",
+RPLACES = ("bank 4", "bank 4 top", "bank 5 runs", "bank 5", "bank 5 gap", "bank 5 end", "bank 5 init", "bank 6", "bank 6 init", "bank 7", "bank 7 low", "bank 7 entries", "docked bank 7", "main",
            "main low", "main high", "docked main")
 
 

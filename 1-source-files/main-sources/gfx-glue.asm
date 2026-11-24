@@ -106,3 +106,28 @@ ENDMACRO
  RTS
 
 .GLUE_END
+
+\ ******************************************************************************
+\
+\ The docked code's bank 7: the disc part's entries (DPENT%), as the flight
+\ code's has them, for the frame layer, which calls them in either program
+\ (gfx-frame.asm's f6_dprep and the rest): the docked code's frames (the
+\ title, the hangar, the briefing) have no disc, so DP_DRAW is the repair
+\ of the whole buffer (T_REPAIR with no band: rows 255 to 0), as the flight
+\ code's disc part does with none, and the others return
+\
+\       Area: docked bank 7
+\
+\ ******************************************************************************
+
+ JMP dk7_rts            \ DP_PREP
+ JMP dk7_draw           \ DP_DRAW
+ JMP dk7_rts            \ DP_FORGET
+ JMP dk7_rts            \ DP_HWX
+.dk7_rts
+ RTS                    \ DP_HWY (never called: no planet)
+ ASSERT P% = DPENT% + 13
+.dk7_draw
+ LDA #&FF
+ LDY #0
+ JMP T_REPAIR

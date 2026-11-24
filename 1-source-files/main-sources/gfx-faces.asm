@@ -45,8 +45,6 @@
 \ FC_DOTE/FC_DOTO[type]: colour of the ship drawn as a distant dot.
 
 FC_NTYPES = 32
-FC_SUNE = &FF : FC_SUNO = &FA
-FC_PLANE = &05 : FC_PLANO = &5A
 
 FCSLOT_SIZE = 847                \ the face lists' slot (gfx-setfaces.asm), at the
 FCSLOT = &BFC0 - FCSLOT_SIZE    \ top of bank 6, below the dispatcher

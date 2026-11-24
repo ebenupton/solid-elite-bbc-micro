@@ -9,12 +9,14 @@
 \ gfx-raster_disc.asm, in the hand-converted NMOS 6502 code of its Model B
 \ branch), the row code of the incremental disc layer: each buffer keeps the
 \ disc's span on each row (R_DISCL/R) and its boundaries, up to three (R_BDN,
-\ R_BDX0-2), and each frame writes only what changed. The frame layer (bank
-\ 6) makes the rows (f_discs: the new spans, R_NDISCL/R, and the planet's
-\ boundaries, R_NDN, R_NDX0-3, from PC_ROWS) and drives this a batch of rows
-\ at a time through the mailbox (gfx-rws.asm: DB_*), with the rows' dirty
-\ extents from bank 5 (R_GETW), as bank 5's repair leaves them to the disc
-\ layer (R_REPAIR: the rows of the band, the old disc's and the new one's):
+\ R_BDX0-2), and each frame writes only what changed. The frame layer's disc
+\ part, in this bank too (gfx-frame.asm's bank 7 pass), makes the rows (the
+\ new spans, R_NDISCL/R, and the planet's boundaries, R_NDN, R_NDX0-3, from
+\ PC_ROWS), which this reads where they are, and drives this a batch of rows
+\ at a time, with the rows' dirty extents from bank 5 in the mailbox's slots
+\ (R_GETW, gfx-rws.asm: DB_WL, DB_WR), as bank 5's repair leaves them to the
+\ disc layer (R_REPAIR: the rows of the band, the old disc's and the new
+\ one's):
 \
 \   * DP_BEGIN (A = the buffer, X = the frame's flags, PB_*): the buffer's
 \     arrays into the code's operands (as the Master port's R_SETBUF and
@@ -24,10 +26,11 @@
 \   * DP_ROWS (Y = the first row, X = the rows in the batch): the layer's
 \     rows (one colour: r_dlb; with boundaries: r_dmb), with the batch's
 \     slot in Y and the row in X (the Master port's code has the row in X
-\     for both); a row that changed or is dirty has its slot's new data
-\     taken into variables (dp_ld: rn_l, rn_r, rn_n, rn_x0-3, its dirty
-\     extent rd_l, rd_r) and what it wrote put back (dp_st: rw_l, rw_r into
-\     the slot's DB_WL, DB_WR, which bank 5 then puts into R_WL, R_WR);
+\     for both); a row that changed or is dirty has its new data taken into
+\     variables (dp_ld: rn_l, rn_r, rn_n, rn_x0-3, from R_NDISCL to R_NDX3
+\     at the row, and its slot's dirty extent rd_l, rd_r) and what it wrote
+\     put back (dp_st: rw_l, rw_r into the slot's DB_WL, DB_WR, which bank 5
+\     then puts into R_WL, R_WR);
 \
 \   * DP_DISC2: the second disc (gfx-raster_disc2.asm).
 \
@@ -219,27 +222,27 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   JMP r_dmb
 }
 
-\ dp_ld: slot Y's data into the row's variables (keeps X and Y); dp_ldp:
-\ without the boundaries; dp_st: what the row wrote into its slot, and X =
-\ the row, Y = the slot back
+\ dp_ld: row X's data and slot Y's dirty extent into the row's variables
+\ (keeps X and Y); dp_ldp: without the boundaries; dp_st: what the row wrote
+\ into its slot, and X = the row, Y = the slot back
 
 .dp_ld
-  LDA DB_NN,Y
+  LDA R_NDN,X
   STA rn_n
-  LDA DB_X0,Y
+  LDA R_NDX0,X
   STA rn_x0
-  LDA DB_X1,Y
+  LDA R_NDX1,X
   STA rn_x1
-  LDA DB_X2,Y
+  LDA R_NDX2,X
   STA rn_x2
-  LDA DB_X3,Y
+  LDA R_NDX3,X
   STA rn_x3
 .dp_ldp
   STY dp_s
   STX dp_x
-  LDA DB_NL,Y
+  LDA R_NDISCL,X
   STA rn_l
-  LDA DB_NR,Y
+  LDA R_NDISCR,X
   STA rn_r
   LDA DB_WL,Y
   STA rd_l
@@ -267,10 +270,10 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   LDA DB_WL,Y             \ (a dirty extent's left end is not 255)
   CMP #&FF
   BNE gd
-  LDA DB_NL,Y
+  LDA R_NDISCL,X
 .^r_psl22 CMP R_DISCL0,X
   BNE ch
-  LDA DB_NR,Y
+  LDA R_NDISCR,X
 .^r_psr22 CMP R_DISCR0,X
   BNE ch
 .nx
@@ -309,13 +312,13 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
 .r_dmb
 {
 .lp
-  LDA DB_NL,Y
+  LDA R_NDISCL,X
 .^r_psl24 CMP R_DISCL0,X
   BNE ch
-  LDA DB_NR,Y
+  LDA R_NDISCR,X
 .^r_psr24 CMP R_DISCR0,X
   BNE ch
-  LDA DB_NN,Y             \ the count and the colour, new and old
+  LDA R_NDN,X             \ the count and the colour, new and old
 .^r_pbn22 CMP R_BDN0,X
   BNE ch
   ASL A                   \ (A = 2 count; no boundaries, the usual case: on)
@@ -345,19 +348,19 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   JMP nx                  \ (NMOS: no BRA; JMP is 3 cycles too)
 .nz                       \ 1 to 3 boundaries, as stored (A = 2 count; 4
   STA r_cn                \ are never stored: r_bstore)
-  LDA DB_X0,Y
+  LDA R_NDX0,X
 .^r_pb020 CMP R_BDX00,X
   BNE chb
   LDA r_cn
   CMP #4
   BCC sm
-  LDA DB_X1,Y
+  LDA R_NDX1,X
 .^r_pb120 CMP R_BDX10,X
   BNE chb
   LDA r_cn
   CMP #6
   BCC sm
-  LDA DB_X2,Y
+  LDA R_NDX2,X
 .^r_pb220 CMP R_BDX20,X
   BEQ sm
 .chb

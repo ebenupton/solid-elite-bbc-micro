@@ -715,7 +715,11 @@ def fresh(discs, ships_rec=(), lines=(), buf=0):
 
 
 def b6(m, name, off=0):
-    return m.mem.banks[FBANK][m.S[name] + off - 0x8000]
+    """a byte of the frame layer's state: bank 6's, or the disc part's in the
+    flight code's bank 7 (the discs' rows: gfx-frame.asm's bank 7 passes)"""
+    if name in m.S:
+        return m.mem.banks[FBANK][m.S[name] + off - 0x8000]
+    return m.mem.banks[COLD][m.F[name] + off - 0x8000]
 
 
 def disc_tests(png_dir):

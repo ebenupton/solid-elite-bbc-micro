@@ -39,11 +39,11 @@ hot &8000-&A8A5: 40 units, 10406 bytes, 0 free
   &A6DC   103 MVS4
   &A743   195 MV40
   &A806   160 SCAN
-hotm &79C6-&7DFF: 23 units, 1082 bytes, 0 free
-  &79C6    13 INBAY
-  &79D3     9 LTLI
-  &79DC    41 SUNSC
-  &7A05    26 UNIV
+hotm &79C9-&7DFF: 23 units, 1079 bytes, 0 free
+  &79C9     9 LTLI
+  &79D2    41 SUNSC
+  &79FB    26 UNIV
+  &7A15    10 CTWOS
   &7A1F    38 MAS3
   &7A45    75 HITCH
   &7A90    76 MLS2..MLS1
@@ -64,27 +64,27 @@ hotm &79C6-&7DFF: 23 units, 1082 bytes, 0 free
   &7D75    86 S_SHIP
   &7DCB    53 MVT6
 hotx &7E00-&7E5F: 7 units, 96 bytes, 0 free
-  &7E00    14 MAS2
-  &7E0E    16 GCASH
-  &7E1E    16 SHD..DENGY
-  &7E2E    13 FAROF..FAROF2
+  &7E00    13 INBAY
+  &7E0D    14 MAS2
+  &7E1B    16 GCASH
+  &7E2B    16 SHD..DENGY
   &7E3B     9 DPLT
   &7E44    14 H_PTCLS
   &7E52    14 H_PTCLSE
-hot4 &BBA2-&BBFF: 13 units, 76 bytes, 18 free
-  &BBA2    10 CTWOS
-  &BBAC     1 FLKB
-  &BBAD     5 MU6
-  &BBB2    10 MULT12
-  &BBBC    12 SUNE
-  &BBC8     7 MAS4
-  &BBCF     4 SHCOL
-  &BBD3     6 RECM
-  &BBD9     6 LL9F
-  &BBDF    11 LL42F
-  &BBEA     1 LL9 (Part 9 of 12), drawing..LL9 (Part 10 of 12)
-  &BBEB     2 LL9 (Part 11 of 12)..LL9 (Part 12 of 12)
-  &BBED     1 LL9 (Part 12 of 12), drawing
+hot4 &BBA2-&BBFF: 13 units, 79 bytes, 15 free
+  &BBA2     1 FLKB
+  &BBA3     5 MU6
+  &BBA8    10 MULT12
+  &BBB2    12 SUNE
+  &BBBE    13 FAROF..FAROF2
+  &BBCB     7 MAS4
+  &BBD2     4 SHCOL
+  &BBD6     6 RECM
+  &BBDC     6 LL9F
+  &BBE2    11 LL42F
+  &BBED     1 LL9 (Part 9 of 12), drawing..LL9 (Part 10 of 12)
+  &BBEE     2 LL9 (Part 11 of 12)..LL9 (Part 12 of 12)
+  &BBF0     1 LL9 (Part 12 of 12), drawing
 c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%, C5GAP%, C5HI%): 31 units and 27 stubs, 1273 bytes, 92 free
   &87BF-&87FF tail 7: 63 bytes, 2 free
   &87BF      63 HEE31
@@ -158,11 +158,11 @@ c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5
   &BF96       5 x5_ZINF
   &BF9B       5 x5_DORND
   &BFA0       5 j5c_DEATH
-  &BFA5       5 x5c_TAS2
+  &BFA5       5 x5x_TAS2
   &BFAA       5 x5_EXNO3
   &BFAF       5 x5_NOISE
   &BFB4       5 x5c_OUCH
-  &BFB9       5 x5c_LL145
+  &BFB9       5 x5x_LL145
   &BFBE       5 x5_MVT1
-  &BFC3       5 x5c_LOOK1
+  &BFC3       5 x5x_LOOK1
   &BFC8       5 x5c_LYN

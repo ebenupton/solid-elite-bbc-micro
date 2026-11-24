@@ -455,7 +455,7 @@ FLHMAX = 26             \ the ring round the sun only for a sun this small
  BEQ P%+4
  BCS fip8
  TAY
- LDA F_HW,Y
+ JSR f6_dphwy           \ (the planet's half-width at row Y, from bank 7)
  STA fl_ph
  LDA fl_vx              \ |x - px|, 16-bit
  SEC

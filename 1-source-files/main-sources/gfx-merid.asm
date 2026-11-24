@@ -1302,7 +1302,7 @@ ENDMACRO
 
 
 
-\       Area: bank 6
+\       Area: bank 7
 
 \ ******************************************************************************
 \
@@ -2269,7 +2269,7 @@ pm_K2 = wr + R_K2       \ them in the record)
 .pcc    SKIP 1          \ the circle's cosine (0.8) and its sign (bit 7)
 .pcneg  SKIP 1
 
-\       Area: bank 6
+\       Area: bank 7
 
 \ The frame's (PC_ROWS')
 

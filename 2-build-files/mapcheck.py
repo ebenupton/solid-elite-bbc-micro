@@ -157,16 +157,25 @@ nlab += inside(DK, OUT + "elite-docked-hot.asm", 0x8000, DK["HOME_END%"], "the h
 nlab += inside(DK, OUT + "elite-docked-blueprints.asm", bp, bp_end, "the blueprint slot")
 dfss = C["DFSSAVE_P"]
 dpst = dfss - 0xC00
-ovl_end = FL["WIN7%"]
+disc7, dpent = C["DISC7_P"], C["DPENT_P"]
+ovl_end = disc7
 order("flight bank 7", [("the cold pass", 0x8000, FL["COLD_END%"]), ("the overlay region", FL["OVL%"], ovl_end),
-                        ("the renderer's window", FL["WIN7%"], FL["WIN7_END%"]), ("the disc state", dpst, dfss)])
+                        ("the disc part's tables", disc7, FL["DISC7_END%"]),
+                        ("the renderer's window", FL["WIN7%"], FL["WIN7_END%"]),
+                        ("the disc part's entries", dpent, FL["DPENT_END%"]), ("the disc state", dpst, dfss)])
+if FL["WIN7%"] != C["WIN7FIX_P"]:
+    errors.append("flight bank 7: the renderer's window is at &%04X, not WIN7FIX%% (&%04X)" % (FL["WIN7%"], C["WIN7FIX_P"]))
 for c in ("cold",):
     nlab += inside(FL, OUT + "elite-flight-%s.asm" % c, 0x8000, FL["COLD_END%"], "the cold pass")
 for n in (1, 2):
     nlab += inside(FL, OUT + "elite-flight-ovl%d.asm" % n, FL["OVL%"], ovl_end, "the overlay region")
-for f in ("gfx-raster_disc", "gfx-raster_disc2", "gfx-raster_dpatch"):
-    nlab += inside(FL, OUT + "%s-bank7.asm" % f, FL["WIN7%"], dpst, "the renderer's window")
-order("docked bank 7", [("the face lists and the cold pass", 0x8000, DK["COLD_END%"])])
+for f in ("gfx-raster_disc", "gfx-raster_disc2", "gfx-raster_dpatch", "gfx-frame", "gfx-merid"):
+    nlab += inside(FL, OUT + "%s-bank7.asm" % f, FL["WIN7%"], FL["WIN7_END%"], "the renderer's window")
+nlab += inside(FL, OUT + "gfx-frame-bank7low.asm", disc7, FL["DISC7_END%"], "the disc part's tables")
+nlab += inside(FL, OUT + "gfx-frame-bank7entries.asm", dpent, FL["DPENT_END%"], "the disc part's entries")
+order("docked bank 7", [("the face lists and the cold pass", 0x8000, DK["COLD_END%"]),
+                        ("the disc part's entries", dpent, DK["DPENT_END%"])])
+nlab += inside(DK, OUT + "gfx-glue-dockedbank7.asm", dpent, DK["DPENT_END%"], "the disc part's entries")
 nlab += inside(DK, OUT + "elite-docked-cold.asm", 0x8000, DK["COLD_END%"], "the cold pass")
 
 # bank 5
@@ -220,7 +229,7 @@ order("bank 6", [("the flight code's cold 6 pass", c6, c6end), ("the code", B6["
                  ("the dispatcher", fjt, B6["FJT_END"])])
 for f in ("gfx-frame", "gfx-merid", "gfx-flare", "gfx-frame_cold", "gfx-hangar", "gfx-finit"):
     nlab += inside(B6, OUT + "%s-bank6.asm" % f, B6["F_START"], B6["F_CODEEND"], "bank 6's code")
-nlab += inside(B6, OUT + "gfx-finit-bank6init.asm", B6["F_HW2"], B6["F_HW2"] + 256, "bank 6's F_HW2 (F_INIT)")
+nlab += inside(B6, OUT + "gfx-finit-bank6init.asm", B6["F_SR"], B6["F_SMEND"], "bank 6's F_SR (F_INIT)")
 if B6["F_START"] != c6end:
     errors.append("bank 6: the frame layer's code starts at &%04X, not after the cold 6 pass (&%04X)" % (B6["F_START"], c6end))
 nlab += inside(FL, OUT + "elite-flight-c6.asm", c6, c6end, "the cold 6 pass")

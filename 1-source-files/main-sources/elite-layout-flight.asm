@@ -175,8 +175,20 @@ IF _CIRCLES             \ the circle engine's variables (elite-map.asm): the
 
  PRINT "Flight overlays: ", ~OVL%, "-", ~OVL_END%-1, " (1: ", OVL1_END%-OVL%, " bytes, 2: ", OVL2_END%-OVL%, ")"
 
- ASSERT P% <= WIN7FIX%  \ The flight code's bank 7's free bytes, before the
- SKIP WIN7FIX% - P%     \ renderer's window, which is at a fixed place
+ ASSERT P% <= DISC7%    \ The flight code's bank 7's free bytes, before the
+ SKIP DISC7% - P%       \ disc part and the renderer's window, at fixed places
+
+                        \ Port: the frame layer's disc part's tables (gfx-frame.asm's
+                        \ bank 7 low pass: the discs' half-widths and rows),
+                        \ page aligned; its code is in the renderer's window,
+                        \ after the painter
+
+ INCLUDE "3-assembled-output/gfx-frame-bank7low.asm"
+
+.DISC7_END%
+
+ ASSERT P% <= WIN7FIX%  \ (the renderer's window, at its fixed place)
+ SKIP WIN7FIX% - P%
 
                         \ Port: the renderer's window in bank 7, after the cold
                         \ pass: the parts of the renderer that only the flight
@@ -192,14 +204,25 @@ IF _CIRCLES             \ the circle engine's variables (elite-map.asm): the
  INCLUDE "3-assembled-output/gfx-raster_disc-bank7.asm"
  INCLUDE "3-assembled-output/gfx-raster_disc2-bank7.asm"
  INCLUDE "3-assembled-output/gfx-raster_dpatch-bank7.asm"
+IF _CIRCLES              \ (PC_ROWS: the circle engine's rows)
+ INCLUDE "3-assembled-output/gfx-merid-bank7.asm"
+ENDIF
+ INCLUDE "3-assembled-output/gfx-frame-bank7.asm"
 
 .WIN7_END%
 
+ ASSERT P% <= DPENT%    \ The disc part's entries, at the same place as the
+ SKIP DPENT% - P%       \ docked code's (gfx-glue.asm's docked bank 7 pass),
+ INCLUDE "3-assembled-output/gfx-frame-bank7entries.asm"   \ which the frame
+                        \ layer calls through farC (gfx-frame.asm)
+.DPENT_END%
+ ASSERT DPENT_END% = DPENT% + 15
+
  PRINT "Flight bank 7: &8000-", ~COLD_END%-1, " (the cold pass), the overlays to ", ~OVL_END%-1, ", the renderer's window ", ~WIN7%, "-", ~WIN7_END%-1, " and its state ", ~DPST%, "-", ~DFSSAVE%-1, ", free ", DPST%-WIN7_END%
- ASSERT WIN7_END% <= DPST%         \ (the disc state, to DFSSAVE%: Port:
+ ASSERT DPENT_END% <= DPST%        \ (the disc state, to DFSSAVE%: Port:
                                    \ the end of the bank)
 
- SAVE "3-assembled-output/D.CODEC.bin", &8000, WIN7_END%, &8000
+ SAVE "3-assembled-output/D.CODEC.bin", &8000, DPENT_END%, &8000
 
  CLEAR C6%, C6% + C6SZ  \ the cold 6 pass, at the start of bank 6 (streams.py:
  ORG C6%                \ Area: cold 6), saved as C6.bin for bank 6's assembly

@@ -70,29 +70,20 @@ MBOX_END = MBOX + &A0
  ASSERT R_SS + 19 = MBOX_END
 
 \ The frame's disc layer (gfx-raster_disc.asm, in the flight code's bank 7,
-\ docs/renderer.md "The disc layer") is given a batch of rows at a time in
-\ the mailbox, &00 to &65 (R_SN is set for the stars after it, and R_SCOL,
-\ R_SX, R_SY and R_SS are kept): a row of the batch is a slot, 0 to DB_N - 1
-\ (16 for a disc of one colour, 8 with boundaries), each with its new span
-\ (DB_NL, DB_NR: L = 255, R = 0 for none), its dirty extent going in and
-\ what the layer wrote on it coming back (DB_WL, DB_WR: R = 0 for none; for
-\ the second disc, R_DISC2, what was written on it so far going in), and
-\ with boundaries its count and colour (DB_NN, as R_NDN) and its boundaries
-\ (DB_X0 to DB_X3). Long spans the layer leaves to bank 5's row runs are
-\ queued after them (DB_Q: row, left, right, colour byte), DB_QN bytes of
-\ them. PCB, the planet's circles' records (gfx-merid.asm), PC_N
+\ docs/renderer.md "The disc layer") reads the rows where the frame layer's
+\ disc part makes them, in the same bank (R_NDISCL to R_NDX3), and is given
+\ only what bank 5 has of a batch of up to 16 rows in the mailbox, &00 to
+\ &65 (R_SN is set for the stars after it, and R_SCOL, R_SX, R_SY and R_SS
+\ are kept): a row of the batch is a slot, with its dirty extent going in
+\ and what the layer wrote on it coming back (DB_WL, DB_WR: R = 0 for none;
+\ for the second disc, R_DISC2, what was written on it so far going in).
+\ Long spans the layer leaves to bank 5's row runs are queued after them
+\ (DB_Q: row, left, right, colour byte), DB_QN bytes of them. PCB, the planet's circles' records (gfx-merid.asm), PC_N
 \ and pc_inv take &00 to &49, and their unclamped thresholds PC_TU &52 to
 \ &5D, from PF_HOOK (in the game's iteration) to the frame's f_hrec, which
 \ keeps them, and f_bounds (PC_ROWS).
-DB_NL    = MBOX         \ (slots: 16 apart, the boundaries' between them)
-DB_NN    = MBOX + &08
-DB_NR    = MBOX + &10
-DB_X0    = MBOX + &18
-DB_WL    = MBOX + &20
-DB_X1    = MBOX + &28
+DB_WL    = MBOX + &20   \ (the slots: 16 each)
 DB_WR    = MBOX + &30
-DB_X2    = MBOX + &38
-DB_X3    = MBOX + &40
 DB_Q     = MBOX + &48   \ the queue (seven spans)
 DB_QE    = MBOX + &64   \ (its end)
 DB_PY    = MBOX + &64   \ R_GETW: the row of the batch whose writes it puts
@@ -105,3 +96,8 @@ pc_inv   = MBOX + &49   \ the base colour
 PC_TU    = MBOX + &52   \ their thresholds T1, T2 unclamped (16-bit, 4 a record)
 PCX_END  = PC_TU + 4 * 3  \ (the frame's f_hrec keeps &00 to here)
  ASSERT PC_TU >= R_BY1 + 1 AND PCX_END <= DB_QE
+
+DH_PL   = &10           \ the frame layer's hand-over to the disc part in the
+DH_N    = 12            \ flight code's bank 7 (DP_PREP: F_PLON to F_SUR, DH_N
+DH_BACK = &1C           \ bytes; DP_DRAW: the buffer), in the rasteriser's
+                        \ scratch zero page, which F_FRAME keeps

@@ -37,11 +37,12 @@ import re
 
 OUT = "3-assembled-output/"
 WINDOW7 = {"flight": ("gfx-raster_disc-bank7.asm", "gfx-raster_disc2-bank7.asm",
-                      "gfx-raster_dpatch-bank7.asm")}   # (bank 7's renderer window, the renderer's
+                      "gfx-raster_dpatch-bank7.asm", "gfx-frame-bank7.asm",
+                      "gfx-merid-bank7.asm", "gfx-frame-bank7low.asm", "gfx-frame-bank7entries.asm")}   # (bank 7's renderer window, the renderer's
                                                         # bank 7 passes: elite-layout-flight.asm)
 NAMES = ("farC", "farCj", "farC6", "farC5", "farH", "farHj", "BANK4", "BANK7", "BANK5", "BANK6", "PCLI",
          "IRQG", "NA%", "CHK2", "CHK", "BRBR1", "PANR", "GCALL", "dfsin", "dfsout", "pload",
-         "T_GETW", "T_TILT", "T_POLY", "pcb_o", "wr")
+         "T_GETW", "T_TILT", "T_POLY", "T_REPAIR", "T_LINE", "T_SETBUF", "pcb_o", "wr")
 
 sy = {}
 for m in re.finditer(r"'([^']+)':(\d+)", open(OUT + "loader-symbols.txt").read()):

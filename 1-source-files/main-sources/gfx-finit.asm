@@ -12,7 +12,7 @@
 \ loaded: no text, none shown, none noted.
 \
 \ It runs once, so its code is in the room of state that is first written
-\ after it: the sun's half-widths (F_HW2: gfx-bank6.asm).
+\ after it: the ships' faces' levels (F_SR: gfx-bank6.asm).
 \
 \       Area: bank 6 init
 \

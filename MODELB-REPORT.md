@@ -308,7 +308,7 @@ fast zero page.
 (Commit hashes in this section other than this branch's are the Electron
 port's, in `~/elite-electron`.)
 
-## Bytes for cycles: room for the skipped wins (status, 2026-11-24)
+## Bytes for cycles: room for the skipped wins, the disc layer in one bank (status, 2026-11-24)
 
 On `electron-wins` from 92b80d7: free bytes found at almost no cycle cost,
 then spent on the two skipped wins with the best rates. Each commit was
@@ -399,26 +399,65 @@ Copy into INWK: flight -1,257 cycles an iteration, zone -999, rear -976.
 
 Free now (flight): hot side 18, bank 7 4, bank 6 35, bank 5 139.
 
-**The disc layer in one bank: not done.** The profile of the gate's run
-puts the hand-over between the banks at about 27,000 cycles an iteration
-(11%): f_dbat filling the mailbox's slots in bank 6 (about 11,900, 100 rows
-an iteration), dp_ld, dp_ldp and dp_st copying them into the painter's
-variables in bank 7 (about 11,000) and R_GETW's transfers in bank 5
-(about 3,900), so it is by far the largest win left. Doing it means
-moving the frame layer's disc part (2.2K of code, PC_ROWS's 1.7K, and the
-rows' arrays and half-widths, 1.9K) into bank 7 with the painter, and so
-about 5.9K of bank 7's cold code into bank 6: but only about 2.2K of the
-cold pass meets the cold 6 pass's rules as streams.py has them (nothing
-may fall or branch into a cold 6 block, overlays cannot call it, it cannot
-call the cold 5 pass), and bank 6's freed bytes would be in three pieces,
-two of them among its state. The Electron port's version (ae6c2ea,
-2c0201d, 1dbaa28) extended streams.py for those cases and relaid bank 6;
-the same here is a multi-commit redesign (streams.py's cold 6 rules, bank
-6's layout with the pass in two places, the frame layer's calls into bank 7
-through a resident trampoline and the docked code's bank 7 entries, then
-the painter reading the rows in place). Bank 7 is full again after the
-second half of the copy (4 bytes), so that work would also have to find
-room for itself, as above.
+**The disc layer in one bank (done, third round).** The frame layer's disc
+part (gfx-frame.asm's discs, gfx-merid.asm's PC_ROWS, the half-widths and
+the rows' arrays) is now in the flight code's bank 7 with the painter, and
+the painter reads the rows where they are made: no slots filled in bank 6,
+no slot copies in the painter, no trampoline a batch, no far call to the
+painter. The room, all found first and in the same commit:
+
+| Where | Bytes | How | Cycles |
+|---|---:|---|---|
+| bank 7 | about 6,100 | the cold pass's event code to the cold 6 pass (streams.py: the rules extended, as the Electron port's were: falls and branches into a cold 6 block from the hot side, the cold pass and the overlays, calls between the cold 6 and cold 5 passes and from the cold 6 pass into the overlays) | 0 (the same far calls) |
+| bank 6 | about 6,100 | the disc part out (4,200 of code with PC_ROWS; F_HW, F_HW2, the rows, the records kept) | the hand-over gone |
+| bank 6 | about 440 | F_FRAME's zero page keep by a loop (three bytes a pass), not unrolled | about +350 a frame |
+| bank 6 | 116, 52 | F_INIT's code in F_SR's room; the docking slot in the text map's page-aligned tail | 0 |
+| main RAM | 23 | FT_DP: a frame's two calls of the disc part without a far call (both programs' low pass) | about -220 a frame |
+
+bank 6 calls the disc part's entries (DPENT%, at the same place in both
+programs' bank 7: the docked code's draw no disc), with the frame's discs
+handed over in the zero page. The batches are 16 rows with boundaries too
+(the slots now hold only bank 5's extents). The rows outside the new ones
+are made empty in place before the painter reads them.
+
+Two bugs found on the way, both fixed in the commit: streams.py's tail-call
+inlining removed a stub that a block falls into (pr2 into TT11: the status
+screen lost the fuel figure; bcompare.mjs --screens found it, the plain
+lockstep runs did not), so a stub is now never inlined where the code
+before it can fall into it; and the build without _CIRCLES needs the
+circle engine's parts guarded in bank 7.
+
+**Speed now** (gate VERIFY PASS 11.47 8.58 0.748 233148.2 and bhsync PASS, against 8.13 and 246,116.7 at aed0169 and 7.99 and 250,217.8 at 92b80d7: -5.27% and -6.82%): bbench, cycles an iteration:
+
+| Scene | 92b80d7 | aed0169 | now | vs 92b80d7 | vs aed0169 |
+|---|---:|---:|---:|---:|---:|
+| flight | 177,065 | 171,874 | 166,810 | -5.79% | -2.95% |
+| combat | 98,816 | 97,566 | 97,521 | -1.31% | -0.05% |
+| beachball | 215,853 | 211,521 | 194,603 | -9.84% | -8.00% |
+| sun | 231,618 | 227,724 | 213,009 | -8.03% | -6.46% |
+| docking | 418,348 | 414,535 | 394,238 | -5.76% | -4.90% |
+| zone | 336,569 | 331,919 | 322,516 | -4.18% | -2.83% |
+| rear | 210,939 | 209,039 | 193,673 | -8.19% | -7.35% |
+| approach | 232,439 | 228,213 | 214,086 | -7.90% | -6.19% |
+| departure | 337,035 | 332,588 | 309,148 | -8.27% | -7.05% |
+
+The combat scene waits for the flip about 13,000 cycles an iteration, so
+its figure moves by a vertical sync's phase: its work is about 650 cycles
+more than at aed0169 (the zero page loop, the hand-over's copies, FT_DP;
+it has a small planet, so little of the disc layer's saving), and the
+figure came out between -45 and +190 for builds of this design that
+differed only in layout.
+
+Free now (flight): hot side 15, bank 7 42 (23 before the tables, 19 in the
+window), bank 6 31 (the text map's tail; the cold 6 pass's room is exactly
+its size), bank 5 139.
+
+**What is left of the disc layer's hand-over:** dp_ld, dp_ldp and dp_st
+still copy a changed row's data into the painter's variables (about
+11,000 cycles an iteration in the gate's run): removing them means the row
+code reading R_NDISCL to R_NDX3 at the row in X throughout (r_dp2, r_drg,
+r_dpe, r_dq, r_segw), which keep X for other uses. R_GETW's transfers in
+bank 5 (about 3,900) remain, as bank 5's extents must cross banks.
 
 **Also remaining:**
 

@@ -104,10 +104,14 @@ dfss = C["DFSSAVE_P"]
 dpst = dfss - 0xC00
 row("bank 7 (flight)", 0x8000, FL["OVL%"], "the cold pass, `QQ18`")
 m = re.search(r"Flight overlays: &([0-9A-F]+) -&([0-9A-F]+)  \(1: (\d+)  bytes, 2: (\d+)", cp)
-row("bank 7 (flight)", FL["OVL%"], FL["WIN7%"], "the overlay region (`D.OV1` %s bytes, `D.OV2` %s), then the bank's free bytes, before the renderer's window at its fixed place (`WIN7FIX%%`)" % (m.group(3), m.group(4)), max(int(m.group(3)), int(m.group(4))))
-row("bank 7 (flight)", FL["WIN7%"], dpst, "the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch)", FL["WIN7_END%"] - FL["WIN7%"])
+disc7, dpent = C["DISC7_P"], C["DPENT_P"]
+row("bank 7 (flight)", FL["OVL%"], disc7, "the overlay region (`D.OV1` %s bytes, `D.OV2` %s), then the bank's free bytes, before the disc part's tables at their fixed place (`DISC7%%`)" % (m.group(3), m.group(4)), max(int(m.group(3)), int(m.group(4))))
+row("bank 7 (flight)", disc7, FL["WIN7%"], "the frame layer's disc part's tables, page aligned (`gfx-frame.asm`'s bank 7 low pass: the discs' half-widths `F_HW`, `F_HW2`, their rows `R_NDISCL` to `R_NDX3`, the planet's records kept), then free bytes before the renderer's window at its fixed place (`WIN7FIX%`)", FL["DISC7_END%"] - disc7)
+row("bank 7 (flight)", FL["WIN7%"], dpent, "the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch, then the frame layer's disc part, `gfx-frame.asm`'s and `gfx-merid.asm`'s, which makes the rows)", FL["WIN7_END%"] - FL["WIN7%"])
+row("bank 7 (flight)", dpent, dpst, "the disc part's entries (`DPENT%`), which the frame layer calls through `farC`", FL["DPENT_END%"] - dpent)
 row("bank 7 (flight)", dpst, dfss, "the workspace: each buffer's disc state (not in the image: `DP_BEGIN` sets it up), buffer 0's sharing its first `&2E2` bytes with `ovload`'s stash of `WP` and the zero page during an overlay's load (`OVSTASH`)")
-row("bank 7 (docked)", 0x8000, dfss, "the set's face lists, the cold pass, `QQ18`", DK["COLD_END%"] - 0x8000)
+row("bank 7 (docked)", 0x8000, dpent, "the set's face lists, the cold pass, `QQ18`", DK["COLD_END%"] - 0x8000)
+row("bank 7 (docked)", dpent, dfss, "the disc part's entries (`DPENT%`: a frame with no disc), then free bytes", DK["DPENT_END%"] - dpent)
 
 rjt, img, st = B5["RJT"], B5["R_LOW"], B5["R_DIRTYL0"]
 run0 = B5["r_run0"]                    # (a run page's tail, after its 190-byte run and the
@@ -136,8 +140,8 @@ row("bank 6", B6["F_START"], B6["F_CODEEND"], "the frame layer's code (bank 6 pa
 row("bank 6", B6["F_CODEEND"], B6["F_TABEND"], "the faces' and the lighting's tables")
 if B6["F_RP"] > B6["F_TABEND"]:
     row("bank 6", B6["F_TABEND"], B6["F_RP"], "(free: the state that follows is placed as high as it goes)", 0)
-row("bank 6", B6["F_RP"], B6["F_SMEND"], "the state: the ship records, the zero page `F_FRAME` keeps, the faces' levels, the docking slot, the planet's records kept")
-row("bank 6", B6["F_HW"], fcslot, "the state, page aligned: the discs' half-widths (`F_INIT`'s code in the sun's until they are first written), the text map, the discs' rows", B6["F_END"] - B6["F_HW"])
+row("bank 6", B6["F_RP"], B6["F_SMEND"], "the state: the ship records, the zero page `F_FRAME` keeps, the faces' levels (`F_INIT`'s code in their room until they are first written)")
+row("bank 6", B6["F_TM"], fcslot, "the state, page aligned: the text map, its rows' counts, `F_PFHOLD`'s, the docking slot", B6["F_END"] - B6["F_TM"])
 row("bank 6", fcslot, fjt, "`FCSLOT`: the face lists of the set loaded")
 row("bank 6", fjt, 0xC000, "`FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`)", B6["FJT_END"] - fjt + 12)
 

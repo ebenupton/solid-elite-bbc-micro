@@ -1,7 +1,8 @@
 DELAY
-FT_DPROWS
+FT_DP
 OVLCUR
 WSCAN
+ftdp1
 ovA
 ovX
 ovY

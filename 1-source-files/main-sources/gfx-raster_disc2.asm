@@ -10,11 +10,12 @@
 \ frame layer does what R_DISC2 did once a frame (the rows, old and new:
 \ R_S2T, R_S2B; the colour, R_S2C, whose change it passes in A, and a
 \ buffer reset since, which DP_BEGIN's PB_RESET passes) and hands its rows to
-\ DP_DISC2 a batch at a time, as it does the layer's (DP_ROWS): each slot's
-\ new span (DB_NL, DB_NR: the second disc's, clamped to the window as for
-\ the layer, empty on the old rows outside the new) and what was written on
-\ the row so far this frame (DB_WL, DB_WR, from bank 5's R_WL, R_WR), which
-\ comes back with this disc's writes added.
+\ DP_DISC2 a batch at a time, as it does the layer's (DP_ROWS): each row's
+\ new span, read where the frame layer's disc part makes it (R_NDISCL,
+\ R_NDISCR, at the row: the second disc's, clamped to the window as for the
+\ layer, empty on the old rows outside the new), and in its slot what was
+\ written on the row so far this frame (DB_WL, DB_WR, from bank 5's R_WL,
+\ R_WR), which comes back with this disc's writes added.
 \
 \ The disc layer (this buffer's R_DISCL/R, as DP_ROWS has just left them) is
 \ in front of it: row y of the second disc shows its span a..b less the
@@ -76,10 +77,10 @@ d_mx = &1E
   LDY #0
   STY r_qok               \ (its writes are never queued)
 .lp                       \ unchanged and not written over: a few compares
-  LDA DB_NL,Y
+  LDA R_NDISCL,X
 .^r_p2l22 CMP R_S2L0,X
   BNE ch
-  LDA DB_NR,Y
+  LDA R_NDISCR,X
 .^r_p2r22 CMP R_S2R0,X
   BNE ch
   LDA DB_WR,Y
@@ -92,11 +93,11 @@ d_mx = &1E
   BNE lp
   RTS
 .ch                       \ changed (or recoloured): nothing to draw if both
-  LDA DB_NL,Y             \ spans are empty or behind the layer (an empty
+  LDA R_NDISCL,X             \ spans are empty or behind the layer (an empty
 .^r_psl40 CMP R_DISCL0,X  \ span, 255 .. 0, is); just remember the new one
   BCC cr
 .^r_psr40 LDA R_DISCR0,X
-  CMP DB_NR,Y
+  CMP R_NDISCR,X
   BCC cr
 .^r_p2l23 LDA R_S2L0,X
 .^r_psl41 CMP R_DISCL0,X
@@ -104,9 +105,9 @@ d_mx = &1E
 .^r_psr41 LDA R_DISCR0,X
 .^r_p2r23 CMP R_S2R0,X
   BCC cr
-  LDA DB_NL,Y
+  LDA R_NDISCL,X
 .^r_p2l24 STA R_S2L0,X
-  LDA DB_NR,Y
+  LDA R_NDISCR,X
 .^r_p2r24 STA R_S2R0,X
   BCS nx                  \ (always: C set by the last CMP)
 .cr
@@ -117,11 +118,11 @@ d_mx = &1E
 .wo                       \ recoloured: every row
   BIT d_fl
   BMI ch
-  LDA DB_NL,Y             \ unchanged, written over this frame: nothing if
+  LDA R_NDISCL,X             \ unchanged, written over this frame: nothing if
 .^r_psl42 CMP R_DISCL0,X  \ the span is behind the layer (or empty), else
   BCC w0                  \ max(a, WL) .. min(b, WR), if any, drawn again
 .^r_psr42 LDA R_DISCR0,X
-  CMP DB_NR,Y
+  CMP R_NDISCR,X
   BCS nx
 .w0
   JSR d2ld
@@ -353,15 +354,15 @@ d_mx = &1E
   RTS
 }
 
-\ d2ld: slot Y's new span and written extent into the row's variables (rn_l,
-\ rn_r, rw_l, rw_r), and d_y = X, the row (keeps X and Y)
+\ d2ld: row X's new span and slot Y's written extent into the row's
+\ variables (rn_l, rn_r, rw_l, rw_r), and d_y = X, the row (keeps X and Y)
 .d2ld
   STY dp_s
   STX dp_x
   STX d_y
-  LDA DB_NL,Y
+  LDA R_NDISCL,X
   STA rn_l
-  LDA DB_NR,Y
+  LDA R_NDISCR,X
   STA rn_r
   LDA DB_WL,Y
   STA rw_l

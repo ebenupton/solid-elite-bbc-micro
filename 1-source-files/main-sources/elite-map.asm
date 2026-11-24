@@ -58,7 +58,7 @@
                         \ page boundaries, and their branches' cycles)
 
  C6% = &8000            \ The flight code's cold 6 pass, at the start of bank 6
- C6SZ = 402             \ (BANK6), before the frame layer, and its room (the
+ C6SZ = 6491            \ (BANK6), before the frame layer, and its room (the
                         \ flight code's layout assembles it there and saves it
                         \ as C6.bin, which bank 6's assembly takes in; a far
                         \ call, farC6, reaches it: elite-far.asm, streams.py;
@@ -229,7 +229,20 @@
                         \ frame start buffer 0 afresh (GSTASH: f_b0new), and
                         \ forget its disc state (DP_BEGIN's PB_RESET)
 
- WIN7FIX% = &A4BA       \ The renderer's window in the flight code's bank 7
+ FTDP% = PROGM%         \ The frame layer's call of the disc part's entries
+                        \ for each frame (FT_DP, the first of each program's
+                        \ low pass)
+
+ DPENT% = &B3F1         \ The disc part's entries, at the same place in each
+                        \ program's bank 7 (the flight code's: its frame layer's
+                        \ disc part, gfx-frame.asm; the docked code's: a frame
+                        \ with no disc, gfx-glue.asm), five JMPs, to DPST%
+
+ DISC7% = &8E00         \ The frame layer's disc part in the flight code's bank
+                        \ 7 (its tables first, page aligned), before the
+                        \ renderer's window (elite-layout-flight.asm)
+
+ WIN7FIX% = &95B9       \ The renderer's window in the flight code's bank 7
                         \ (elite-layout-flight.asm), at a fixed place, so that
                         \ the cold pass and the overlays, before it, can change
                         \ size without moving its code across pages (the bank's
@@ -347,6 +360,14 @@
  FC_PART = 4             \ explosion particles
  FC_SIGHT = 5            \ laser sights
  FC_STAR = 6             \ stardust
+
+                        \ The discs' colour pairs (even-row byte, odd-row
+                        \ byte): the sun's, the planet's sea (the frame
+                        \ layer's ships' faces and its disc part, gfx-faces.asm,
+                        \ gfx-frame.asm)
+
+ FC_SUNE = &FF : FC_SUNO = &FA
+ FC_PLANE = &05 : FC_PLANO = &5A
 
  MB_SX = MBOX + &67     \ The stars' x, y and size (1 to 3, 0 for none) in the
  MB_SY = MBOX + &7A     \ rasteriser's mailbox (R_SX, R_SY and R_SS in

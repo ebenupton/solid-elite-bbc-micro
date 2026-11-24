@@ -358,7 +358,7 @@
  STA F_SGS              \ no sights drawn in it (NMOS: A = 0)
  STA f_mkn              \ and no cells to erase: its text shows nothing,
                         \ right for any F_TCH (the text map)
- JSR f_dforget          \ no disc (f_dforget, X = 0 from the loop)
+ JSR f6_dforget         \ no disc (f_dforget, X = 0 from the loop)
  LDA PF_CLS             \ nor the planet's circles of this iteration, if the
  AND #&7F               \ disc command came after PF_HOOK made them (they are
  STA PF_CLS             \ in the mailbox, which PCLI uses)

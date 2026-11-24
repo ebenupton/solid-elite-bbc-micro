@@ -46,7 +46,9 @@ PROGS = ("flight", "docked")
 FAR = ("farH", "farHj", "farC", "farCj", "farC6", "farC5", "ovf1", "ovf2", "ovf3")
 HOTCOPIES = ("config", "low", "hot", "hotm", "hotx", "hot4", "blueprints")   # (the hot side's copies: streams.py)
 WINDOW7 = {"flight": (OUT + "gfx-raster_disc-bank7.asm", SRC + "gfx-raster_strips.asm",
-                      OUT + "gfx-raster_disc2-bank7.asm", OUT + "gfx-raster_dpatch-bank7.asm")}
+                      OUT + "gfx-raster_disc2-bank7.asm", OUT + "gfx-raster_dpatch-bank7.asm",
+                      OUT + "gfx-frame-bank7.asm", OUT + "gfx-merid-bank7.asm",
+                      OUT + "gfx-frame-bank7low.asm", OUT + "gfx-frame-bank7entries.asm")}
                         # (bank 7's renderer window: the renderer's bank 7 passes, and the file
                         # gfx-raster_disc.asm INCLUDEs; elite-layout-flight.asm)
 MNEM = set(("ADC AND ASL BCC BCS BEQ BIT BMI BNE BPL BRK BVC BVS CLC CLD CLI CLV CMP CPX CPY "
@@ -161,6 +163,8 @@ def check(prog, errors):
                 errors.append("%s: %s:%d: cold code reads a blueprint through XX0 (%s %s)"
                               % (prog, show.get(f, f), n, mn, op.strip()))
             for x in idents(op):
+                if x in own[f] and x not in labels:
+                    continue                   # (the file's own: a macro's parameter, say)
                 if x in stubs and re.search(r"(?<![\w%])" + re.escape(x) + r"\s*[-+]", op):
                     errors.append("%s: %s:%d: %s %s uses an offset from the stub %s (its neighbours are not the routine's)"
                                   % (prog, show.get(f, f), n, mn or "", op.strip(), x))
