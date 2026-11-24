@@ -269,11 +269,18 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   CPY dp_n
   BNE lp
   RTS
+.nxs                      \ (dp_st in line, after a changed or dirty row: what
+  LDY dp_s                \ it wrote into its slot, X = the row, Y = the slot,
+  LDA rw_l                \ then the next row)
+  STA DB_WL,Y
+  LDA rw_r
+  STA DB_WR,Y
+  LDX dp_x
+  JMP nx
 .ch
   JSR dp_ldc               \ (not dirty: no extent)
   JSR r_dp2               \ (returns X = RZ_Y)
-  JSR dp_st
-  JMP nx                  \ (NMOS: no BRA; JMP is 3 cycles too)
+  JMP nxs
 .gd
   JSR dp_ld
   LDA R_NDISCL,X
@@ -281,14 +288,12 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   CMP #&FF
   BNE gg
   JSR r_dp1               \ no disc, old or new: black the dirty extent
-  JSR dp_st
-  JMP nx
+  JMP nxs
 .gg
   TXA
   TAY
   JSR r_drg
-  JSR dp_st
-  JMP nx
+  JMP nxs
 }
 
 \ ============================================================================
@@ -320,19 +325,25 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   CPY dp_n
   BNE lp
   RTS
+.nxs                      \ (dp_st in line, after a changed or dirty row: what
+  LDY dp_s                \ it wrote into its slot, X = the row, Y = the slot,
+  LDA rw_l                \ then the next row)
+  STA DB_WL,Y
+  LDA rw_r
+  STA DB_WR,Y
+  LDX dp_x
+  JMP nx
 .smd
   JSR dp_ld
   JSR r_smx
-  JSR dp_st
-  JMP nx
+  JMP nxs
 .ch
   LDA DB_WL,Y
   CMP #&FF
   BNE gd                  \ dirty
   JSR dp_ld
   JSR r_dpe
-  JSR dp_st
-  JMP nx                  \ (NMOS: no BRA; JMP is 3 cycles too)
+  JMP nxs
 .nz                       \ 1 to 3 boundaries, as stored (A = 2 count; 4
   STA r_cn                \ are never stored: r_bstore)
   LDA R_NDX0,X
@@ -356,8 +367,7 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   BNE gd                  \ dirty
   JSR dp_ldc               \ (not dirty: no extent)
   JSR r_dq
-  JSR dp_st
-  JMP nx
+  JMP nxs
 .gd
   JSR dp_ld
 .^r_dmgd                  \ (r_smx's way in, with the row's data loaded)
@@ -368,14 +378,12 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   STA r_dsub              \ (A = 0; r_smx's way in, r_gd1, has r_dsub = 0)
 .^r_gd1
   JSR r_dp1               \ no disc, old or new: black the dirty extent
-  JSR dp_st
-  JMP nx
+  JMP nxs
 .gg
   TXA
   TAY
   JSR r_drg
-  JSR dp_st
-  JMP nx                  \ (out of BRA range; JMP is 3 cycles too)
+  JMP nxs
 }
 
 \ r_smx: r_dmb, an unchanged dirty row (X, its data loaded): a dirty extent
@@ -601,7 +609,8 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   CMP #17
   BCC c1
   JSR r_sq
-  BCC c9                  \ (queued)
+  BCS c1
+  RTS                     \ (queued)
 .c1
   LDA RZ_SA
   STA r_sws
@@ -627,8 +636,14 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   CMP #4
   BCC one                 \ one byte (the rarer case: the commoner multi-byte
                           \ case falls through)
-  BIT r_qok               \ long and queued?
-  BPL m1
+  BIT r_qok               \ long and queued? (68 pixels or more, as r_sql
+  BPL m1                  \ first tests, before its call)
+  LDA RZ_SA
+  STX RZ_T7
+  SEC
+  SBC RZ_T7
+  CMP #68
+  BCC m1
   JSR r_sql
   BCC c9
 .m1
@@ -637,13 +652,12 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   AND #&F8
   STA RZ_SA+1
   TXA                     \ the first byte
-  AND #3
-  STA RZ_T7
-  TXA
   ASL A
   AND #&F8
   TAY
-  LDX RZ_T7
+  TXA
+  AND #3
+  TAX
   LDA RZ_COL
   EOR (RZ_PP),Y
   AND r_lm4,X

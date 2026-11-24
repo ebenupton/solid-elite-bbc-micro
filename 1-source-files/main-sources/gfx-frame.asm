@@ -977,16 +977,6 @@ fz_u    = FZ+15
  LDA F_HW,Y
  RTS
 
-.F_BACK  EQUB 0         \ the buffer being drawn (bank 6's F_BACK, at DP_DRAW)
-.F_PLON  EQUB 0         \ the planet's disc and the sun's this frame, as bank
-.F_PLX   EQUW 0         \ 6's F_PLANET recorded them (F_PLON to F_SUR), at
-.F_PLY   EQUW 0         \ DP_PREP
-.F_PLR   EQUB 0
-.F_SUON  EQUB 0
-.F_SUX   EQUW 0
-.F_SUY   EQUW 0
-.F_SUR   EQUB 0
- ASSERT F_SUR - F_PLON = DH_N - 1
 
 \ f_dprep: which disc is the layer (f_lay: 1 the sun, 2 the planet, 0 none)
 \ and which the second (f_sec), and the layer's rows (F_FRAME, before the
@@ -2333,6 +2323,17 @@ IF _CIRCLES
 .f_hcx  SKIP 4          \ f_hrec's: the disc's centre when the planet's
 .f_hval SKIP 1          \ records were kept, and whether any are (bit 7)
 ENDIF
+
+.F_BACK  SKIP 1         \ the buffer being drawn (bank 6's F_BACK, at DP_DRAW)
+.F_PLON  SKIP 1         \ the planet's disc and the sun's this frame, as bank
+.F_PLX   SKIP 2         \ 6's F_PLANET recorded them (F_PLON to F_SUR), at
+.F_PLY   SKIP 2         \ DP_PREP
+.F_PLR   SKIP 1
+.F_SUON  SKIP 1
+.F_SUX   SKIP 2
+.F_SUY   SKIP 2
+.F_SUR   SKIP 1
+ ASSERT F_SUR - F_PLON = DH_N - 1
 
 \       Area: bank 6
 
