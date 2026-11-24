@@ -54,8 +54,7 @@ HTOP = 16               \ the wall's top row: text row 1, the view's name, is on
  JSR fhg_pat            \ (fhg_pat restores Y)
  JSR F_FRAME
  LDX #LO(f_lines)
- LDY #HI(f_lines)
- JMP fhg_pat            \ and returns with Y restored
+ LDY #HI(f_lines)       \ and on into fhg_pat, which returns with Y restored
 .fhg_pat
  STX ff_lin+1
  STY ff_lin+2

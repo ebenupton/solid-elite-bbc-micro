@@ -95,9 +95,8 @@ c_DZ  = &27
   BCC r2
   STA R_PRWB
 .r2
-  INC c_YE                \ (r7_rowrep's end: the row after the last)
-  JMP r7_rowrep
-}
+  INC c_YE                \ (r7_rowrep's end: the row after the last), and
+}                         \ on into r7_rowrep, which follows
 
 \ ============================================================================
 \ r7_rowrep: rows Y .. c_YE - 1, each with a dirty extent blacked through its

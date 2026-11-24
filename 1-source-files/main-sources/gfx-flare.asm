@@ -384,8 +384,7 @@ FLHMAX = 26             \ the ring round the sun only for a sun this small
  LDA #15                \ its box marked dirty: 15 or 30 pixels round its
  LDY fl_t               \ centre
  BEQ P%+3
- ASL A
- JMP fl_box
+ ASL A                  \ (and on into fl_box, which follows)
 
 \ fl_box: rows fl_gy - A .. fl_gy + A by columns fl_gx - A .. fl_gx + A,
 \ within the clip window (x 2..253, y 1..191), marked dirty (T_MARKBOX)

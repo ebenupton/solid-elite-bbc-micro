@@ -2512,8 +2512,7 @@ fsd_zl = &20 : fsd_zh = &21 : fsd_rl = &22 : fsd_q = &24 : fsd_x = &25
 .fsh_face
  LDY f_f
  CPY f_nf
- BCC P%+5
- JMP fsh_done
+ BCS fsh_done
  LDA (fz_dl),Y          \ visibility
  BEQ fsh_skip
  STA fz_t
@@ -3486,7 +3485,10 @@ SGOUT = 20
 
 .f_behind
  LDA F_PLON             \ the planet's disc, if any
- BEQ fbh0
+ BNE fbhg
+ CLC
+ RTS
+.fbhg
  LDX #4
 .fbhp
  LDA F_PLX,X            \ (F_PLX, F_PLY, F_PLR)
@@ -3498,11 +3500,7 @@ SGOUT = 20
  LDA F_PLZL
  STA fb_zl
  LDA #LO(F_HW)
- LDX #HI(F_HW)
- JMP f_bdisc
-.fbh0
- CLC
- RTS
+ LDX #HI(F_HW)          \ (and on into f_bdisc, which follows)
 
 \ f_bdisc: is ship f_si behind the disc fb_x, fb_y, fb_r (half-widths at
 \ (A, X)), z fb_zh/fb_zl, with the first vertex of its first visible face
