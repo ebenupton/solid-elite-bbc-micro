@@ -13069,6 +13069,43 @@ MACRO QSMUL lo, x, y
 
 ENDMACRO
 
+                        \ Port: QSMUL7 is QSMUL for x and y both below 128, so
+                        \ x + y < 256 and the tables' first pages are enough
+                        \ (the same results)
+
+MACRO QSMUL7 lo, x, y
+
+ LDA x                  \ Set A = |x - y|, as QSMUL does
+ SEC
+ SBC y
+ BCS t1
+ EOR #&FF
+ ADC #1
+
+.t1
+
+ TAX                    \ Patch QS(|x - y|) into the SBCs below
+ LDA QSL,X
+ STA l1+1
+ LDA QSH,X
+ STA h1+1
+
+ LDA x                  \ Set X = x + y (less than 256)
+ CLC
+ ADC y
+ TAX
+
+ LDA QSL,X              \ Set (A lo) = QS(x + y) - QS(|x - y|)
+ SEC
+.l1
+ SBC #0
+ STA lo
+ LDA QSH,X
+.h1
+ SBC #0
+
+ENDMACRO
+
 \ ******************************************************************************
 \
 \       Name: MU5
@@ -13154,8 +13191,8 @@ ENDMACRO
  QSMUL K+1, P+1, T      \ Set (h2 K+1) = P+1 * |Q|, with h2 patched into the
  STA m3b+1              \ ADC at m3b
 
- QSMUL K+2, K+2, T      \ Set (h3 K+2) = |A| * |Q|, with h3 patched into the
- STA m3c+1              \ LDA at m3c
+ QSMUL7 K+2, K+2, T     \ Set (h3 K+2) = |A| * |Q|, with h3 patched into the
+ STA m3c+1              \ LDA at m3c (both are below 128: QSMUL7)
 
  LDA K+1                \ Set K+1 = K+1 + h1
  CLC
@@ -20160,8 +20197,9 @@ ENDMACRO
  STA INWK+31
 
  AND #%00001000         \ If bit 3 of the ship's byte #31 is clear, then nothing
- BEQ TT48               \ is being drawn on-screen for this ship anyway, so
-                        \ return from the subroutine (as TT48 contains an RTS)
+ BEQ EX2+6              \ is being drawn on-screen for this ship anyway, so
+                        \ return from the subroutine (Port: as EX2+6 contains an
+                        \ RTS, on this side, where TT48's is cold)
 
  LDY #2                 \ Otherwise it's time to draw an explosion cloud, so
  LDA (XX19),Y           \ fetch byte #2 of the ship line heap into Y, which we
@@ -23882,9 +23920,10 @@ ENDMACRO
 
  JSR CHKON              \ Call CHKON to check whether the circle fits on-screen
 
- BCS RTS2               \ If CHKON set the C flag then the circle does not fit
-                        \ on-screen, so return from the subroutine (as RTS2
-                        \ contains an RTS)
+ BCS PL40               \ If CHKON set the C flag then the circle does not fit
+                        \ on-screen, so return from the subroutine (Port: as
+                        \ PL40 contains an RTS, on this side, where RTS2's is
+                        \ cold)
 
  LDA #0                 \ Set LSX2 = 0 to indicate that the ball line heap is
  STA LSX2               \ not empty, as we are about to fill it

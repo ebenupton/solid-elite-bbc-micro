@@ -1,90 +1,91 @@
-hot &8000-&A8A5: 42 units, 10406 bytes, 0 free
+hot &8000-&A8A5: 44 units, 10406 bytes, 0 free
   &8000    22 S%
   &8016   553 Main flight loop (Part 1 of 16)..Main flight loop (Part 8 of 16)
   &823F   204 Main flight loop (Part 11 of 16)..Main flight loop (Part 12 of 16)
   &830B   344 Main flight loop (Part 13 of 16)..SPIN
-  &8463   130 PIX1..PIXEL2
-  &84E5   823 STARS..STARS1
-  &881C   258 STARS6
-  &891E    92 MVT3
-  &897A   177 MVS5
-  &8A2B   213 TACTICS (Part 1 of 7)..TACTICS (Part 2 of 7)
-  &8B00   255 STARS2..QSMUL
-  &8BFF   266 MU5..MULT3
-  &8D09   100 SQUA..MU11
-  &8D6D   257 FMLTU2..MLTU2
-  &8E6E   131 TAS3..ADD
-  &8EF1   178 DVID3B2
-  &8FA3   128 BUMP2..REDU2
-  &9023   277 GCASH..DOEXP
-  &9138    86 DOT..CPIX2
-  &918E   171 NWSHP
-  &9239   300 PROJ..WPLS
-  &9365    95 CHKON..PLS6
-  &93C4   315 TT17..SFX
-  &94FF   202 ZINF..Main game loop (Part 6 of 6)
-  &95C9   165 TT102
-  &966E   101 RDKEY
-  &96D3    96 ECMOF..KYTB
-  &9733   332 DKJ1..DK4
-  &987F    60 LL5
-  &98BB   110 LL28
-  &9929     6 RECM
-  &992F    86 H_CIRC
-  &9985    89 S_SHIP
-  &99DE   985 L_REC
-  &9DB7  1485 LL9 (Part 1 of 12)..LL9 (Part 6 of 12)
-  &A384   344 LL61..LL9 (Part 9 of 12)
+  &8463     1 FLKB
+  &8464   130 PIX1..PIXEL2
+  &84E6   823 STARS..STARS1
+  &881D   258 STARS6
+  &891F    92 MVT3
+  &897B   177 MVS5
+  &8A2C   213 TACTICS (Part 1 of 7)..TACTICS (Part 2 of 7)
+  &8B01    80 HITCH
+  &8B51   255 STARS2..QSMUL
+  &8C50   242 MU5..MULT3
+  &8D42   100 SQUA..MU11
+  &8DA6   257 FMLTU2..MLTU2
+  &8EA7   131 TAS3..ADD
+  &8F2A   178 DVID3B2
+  &8FDC   128 BUMP2..REDU2
+  &905C   261 DOEXP
+  &9161    86 DOT..CPIX2
+  &91B7   171 NWSHP
+  &9262   295 PROJ..WPLS
+  &9389    95 CHKON..PLS6
+  &93E8   315 TT17..SFX
+  &9523   202 ZINF..Main game loop (Part 6 of 6)
+  &95ED   165 TT102
+  &9692   101 RDKEY
+  &96F7    96 ECMOF..KYTB
+  &9757   332 DKJ1..DK4
+  &98A3   110 LL28
+  &9911    86 H_CIRC
+  &9967    28 MFRAME
+  &9983    89 S_SHIP
+  &99DC   985 L_REC
+  &9DB5  1485 LL9 (Part 1 of 12)..LL9 (Part 6 of 12)
+  &A382   344 LL61..LL9 (Part 9 of 12)
+  &A4DA     2 LL9 (Part 11 of 12)..LL9 (Part 12 of 12)
   &A4DC   305 MVEIT (Part 1 of 9)..MVEIT (Part 6 of 9)
   &A60D   115 MVEIT (Part 7 of 9)..MVEIT (Part 9 of 9)
   &A680    87 MVT1
   &A6D7   103 MVS4
   &A73E   200 MV40
   &A806   160 SCAN
-hotm &79C6-&7DFF: 28 units, 1082 bytes, 0 free
+hotm &79C6-&7DFF: 32 units, 1082 bytes, 0 free
   &79C6    13 INBAY
   &79D3    41 SUNSC
   &79FC    26 UNIV
-  &7A16    14 MAS2
-  &7A24    38 MAS3
-  &7A4A    54 VCSU1..TAS1
-  &7A80    19 TAS6
-  &7A93    80 HITCH
-  &7AE3    76 MLS2..MLS1
-  &7B2F    77 MUT2..MULT1
-  &7B7C    43 DV42..DVID4
-  &7BA7    23 cntr
-  &7BBE    16 SHD..DENGY
-  &7BCE    18 SPS3
-  &7BE0    19 GINF
-  &7BF3    12 SUNE
-  &7BFF    13 FAROF..FAROF2
-  &7C0C    14 DPLT
-  &7C1A    76 SPS1..TAS2
-  &7C66    56 DKS1..DKS2
-  &7C9E    73 SHPPT
-  &7CE7    79 L5SET
-  &7D36    28 MFRAME
-  &7D52    14 H_PTCLS
-  &7D60    14 H_PTCLSE
-  &7D6E    17 H_DOT
+  &7A16    10 CTWOS
+  &7A20    14 MAS2
+  &7A2E    38 MAS3
+  &7A54    54 VCSU1..TAS1
+  &7A8A    19 TAS6
+  &7A9D    76 MLS2..MLS1
+  &7AE9     5 MU6
+  &7AEE    77 MUT2..MULT1
+  &7B3B    43 DV42..DVID4
+  &7B66    23 cntr
+  &7B7D    11 GCASH
+  &7B88    16 SHD..DENGY
+  &7B98    18 SPS3
+  &7BAA    19 GINF
+  &7BBD    12 SUNE
+  &7BC9    13 FAROF..FAROF2
+  &7BD6    14 DPLT
+  &7BE4    76 SPS1..TAS2
+  &7C30    56 DKS1..DKS2
+  &7C68    73 SHPPT
+  &7CB1    60 LL5
+  &7CED    79 L5SET
+  &7D3C    11 LL9F
+  &7D47    14 H_PTCLS
+  &7D55    14 H_PTCLSE
+  &7D63    17 H_DOT
+  &7D74    11 LL42F
   &7D7F    76 H_LL42..H_EE31
   &7DCB    53 MVT6
-hotx &7E00-&7E5F: 14 units, 87 bytes, 9 free
+hotx &7E00-&7E5F: 9 units, 53 bytes, 43 free
   &7E00     9 LTLI
   &7E09     8 DEEOR
-  &7E11    10 CTWOS
-  &7E1B     1 FLKB
-  &7E1C     7 BPRD
-  &7E23     5 MU6
-  &7E28    10 MULT12
-  &7E32     7 MAS4
-  &7E39     4 SHCOL
-  &7E3D    11 LL9F
-  &7E48    11 LL42F
-  &7E53     1 LL9 (Part 9 of 12), drawing..LL9 (Part 10 of 12)
-  &7E54     2 LL9 (Part 11 of 12)..LL9 (Part 12 of 12)
-  &7E56     1 LL9 (Part 12 of 12), drawing
+  &7E11     7 BPRD
+  &7E18    10 MULT12
+  &7E22     7 MAS4
+  &7E29     4 SHCOL
+  &7E2D     6 RECM
+  &7E33     1 LL9 (Part 9 of 12), drawing..LL9 (Part 10 of 12)
+  &7E34     1 LL9 (Part 12 of 12), drawing
 c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%, C5GAP%, C5HI%): 29 units and 22 stubs, 1032 bytes, 333 free
   &87BF-&87FF tail 7: 63 bytes, 2 free
   &87BF      63 HEE31
