@@ -27,7 +27,8 @@
 | bank 4 (flight) | `&8000-&A8A5` | `S%` and the hot pass | 10406 | 0 |
 | bank 4 (flight) | `&A8A6-&B2FF` | the planet's surface (bank 4 passes: `PF_HOOK`, `pc_circ`) | 2650 | 0 |
 | bank 4 (flight) | `&B300-&BBA1` | the blueprint set (`D.MOx`), its normals and `FC_NORMTAB` (the image holds the main RAM part's image here) | 2210 | 0 |
-| bank 4 (flight) | `&BBA2-&BBFF` | the circle engine's variables (bank 4 top) | 31 | 63 |
+| bank 4 (flight) | `&BBA2-&BBC0` | the circle engine's variables (bank 4 top) | 31 | 0 |
+| bank 4 (flight) | `&BBC1-&BBFF` | the hot pass's container at bank 4's top (`hot4`: every blueprint file carries its bytes, as a set's load writes the slot's whole pages) | 0 | 63 |
 | bank 4 (flight) | `&BC00-&BFFF` | the quarter squares `QSL`, `QSH` (made by the loader) | 1024 | 0 |
 | bank 4 (docked) | `&8000-&AE0F` | `S%` and the hot pass | 8792 | 3000 |
 | bank 4 (docked) | `&AE10-&B2FF` | the main RAM part's image | 1264 | 0 |

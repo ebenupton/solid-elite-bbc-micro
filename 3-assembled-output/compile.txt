@@ -10665,7 +10665,7 @@ TVT1code = &2E07
 TVT1 = &1100 
 NA% = &64A 
 CHK2 = &69C 
-streams (place): flight: 444 blocks (low 4, hot 173, cold 159, blueprints 0, none 16), 30 hot units, stubs 42 into the cold pass, 135 out of it, 12 direct; hot &8000-&A8A5: 43 units, 10406 bytes, 0 free; hotm &79C6-&7DFF: 39 units, 878 bytes, 204 free; hotx &7E00-&7E5F: 0 units, 0 bytes, 96 free; c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%, C5GAP%, C5HI%): 30 units and 26 stubs, 1143 bytes, 222 free; docked: 434 blocks (low 2, hot 213, cold 175, blueprints 12, none 6), 111 hot units, stubs 39 into the cold pass, 43 out of it, 2 direct; hot &8000-&AE0F: 111 units, 8792 bytes, 3000 free; hotm &7980-&7DFF: 0 units, 0 bytes, 1152 free; hotx &7E00-&7E5F: 0 units, 0 bytes, 96 free; tokens: cold 5, resident 2; renderer: 19 files, 32 passes
+streams (place): flight: 444 blocks (low 4, hot 173, cold 159, blueprints 0, none 16), 30 hot units, stubs 42 into the cold pass, 135 out of it, 12 direct; hot &8000-&A8A5: 43 units, 10406 bytes, 0 free; hotm &79C6-&7DFF: 39 units, 878 bytes, 204 free; hotx &7E00-&7E5F: 0 units, 0 bytes, 96 free; hot4 &BBC1-&BBFF: 0 units, 0 bytes, 63 free; c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%, C5GAP%, C5HI%): 30 units and 26 stubs, 1143 bytes, 222 free; docked: 434 blocks (low 2, hot 213, cold 175, blueprints 12, none 6), 111 hot units, stubs 39 into the cold pass, 43 out of it, 2 direct; hot &8000-&AE0F: 111 units, 8792 bytes, 3000 free; hotm &7980-&7DFF: 0 units, 0 bytes, 1152 free; hotx &7E00-&7E5F: 0 units, 0 bytes, 96 free; hot4 &BC00-&BBFF: 0 units, 0 bytes, 0 free; tokens: cold 5, resident 2; renderer: 19 files, 32 passes
 .ZP
      0000
 .RAND
@@ -19174,9 +19174,12 @@ End macro PMQ
 .pcneg
      BBC0
 .PFVS_END%
+.HOT4%
+.HOT4_END%
 Flight bank 4: &8000-&A8A5  (the hot pass), 2650  (the planet's surface), free 0 
 Flight main RAM part: low pass &7970 -&79C5 , hot pass to &7D33 , free 300 
 Saving file '3-assembled-output/D.CODEH.bin'
+Saving file '3-assembled-output/D.TOP4.bin'
 Saving file '3-assembled-output/D.CODEM.bin'
 .COLD_START%
 .jh_INBAY
@@ -73055,6 +73058,7 @@ S.D.MOA &B300  &B94F  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   00 00
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   A6 BF
      BC73   F5 BC
@@ -76762,6 +76766,7 @@ S.D.MOB &B300  &B965  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   64 BA
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   90 BF
      BC73   F5 BC
@@ -80558,6 +80563,7 @@ S.D.MOC &B300  &B99D  &B300  &B300
      BB9C   E1 BA
      BB9E   00 00
      BBA0   00 00
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   BE BF
      BC73   F5 BC
@@ -84384,6 +84390,7 @@ S.D.MOD &B300  &B99B  &B300  &B300
      BB9C   B5 BA
      BB9E   00 00
      BBA0   CA BA
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   A6 BF
      BC73   F5 BC
@@ -88135,6 +88142,7 @@ S.D.MOE &B300  &B97B  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   00 00
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   A1 BF
      BC73   F5 BC
@@ -91880,6 +91888,7 @@ S.D.MOF &B300  &B965  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   7C BA
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   B9 BF
      BC73   F5 BC
@@ -95636,6 +95645,7 @@ S.D.MOG &B300  &B96F  &B300  &B300
      BB9C   00 00
      BB9E   80 BA
      BBA0   00 00
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   9A BF
      BC73   F5 BC
@@ -99350,6 +99360,7 @@ S.D.MOH &B300  &B953  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   76 BA
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   B3 BF
      BC73   F5 BC
@@ -103082,6 +103093,7 @@ S.D.MOI &B300  &B95D  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   00 00
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   AC BF
      BC73   F5 BC
@@ -106696,6 +106708,7 @@ S.D.MOJ &B300  &B93D  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   27 BA
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   81 BF
      BC73   F5 BC
@@ -110445,6 +110458,7 @@ S.D.MOK &B300  &B969  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   00 00
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   BA BF
      BC73   F5 BC
@@ -114104,6 +114118,7 @@ S.D.MOL &B300  &B939  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   2F BA
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   74 BF
      BC73   F5 BC
@@ -117787,6 +117802,7 @@ S.D.MOM &B300  &B965  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   00 00
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   A9 BF
      BC73   F5 BC
@@ -121455,6 +121471,7 @@ S.D.MON &B300  &B945  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   59 BA
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   99 BF
      BC73   F5 BC
@@ -125195,6 +125212,7 @@ S.D.MOO &B300  &B971  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   00 00
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   BA BF
      BC73   F5 BC
@@ -128921,6 +128939,7 @@ S.D.MOP &B300  &B95B  &B300  &B300
      BB9C   00 00
      BB9E   00 00
      BBA0   75 BA
+     BBA2   00 00 00 ... INCBIN "3-assembled-output/D.TOP4.bin"
 .FC_FACETAB_S
      BC71   95 BF
      BC73   F5 BC

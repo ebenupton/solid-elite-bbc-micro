@@ -61,3 +61,6 @@
 .M_HOTX
  ORG PROGM_END%
 .M_HOTX_END
+ ORG QSL                \ (no room at bank 4's top: the docked code has room
+.M_HOT4                 \ enough in its hot pass's container)
+.M_HOT4_END

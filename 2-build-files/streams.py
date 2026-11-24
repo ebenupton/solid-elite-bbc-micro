@@ -157,8 +157,13 @@ HOTSIDE = ("low", "hot", "blueprints")
 # the hot pass's containers, by the names the layout files give their bounds
 # (elite-map.asm and elite-layout-<program>.asm, as the measure assembles
 # them): (copy, start, end); each unit goes in the first with room for it,
-# the largest units first
-CONTAINERS = (("hot", "M_HOT", "M_HOT_END"), ("hotm", "M_HOTM", "M_HOTM_END"), ("hotx", "M_HOTX", "M_HOTX_END"))
+# the largest units first: bank 4 from S%, main RAM's two, and bank 4's top
+# after the circle engine's variables (the flight code's: the docked code's
+# has no room), whose bytes every blueprint file carries too, as a set's
+# load writes the slot's whole pages (elite-shipset.asm)
+CONTAINERS = (("hot", "M_HOT", "M_HOT_END"), ("hotm", "M_HOTM", "M_HOTM_END"), ("hotx", "M_HOTX", "M_HOTX_END"),
+              ("hot4", "M_HOT4", "M_HOT4_END"))
+BANK4C = ("hot", "hot4")     # (the containers in bank 4, which a main-only unit skips)
 
 # NORETURN: the targets that never return to their caller, so that their
 # stubs jump (farCj, farHj) and leave no far-call frame on the stack: the
@@ -1517,8 +1522,10 @@ def program(prog, phase, errors):
                             mainonly.add(pos[k2])
         where = {}
         for size, u0, u1, names in [sized[0]] + sorted(sized[1:], key=lambda s: (-s[0], s[1])):
-            cur = 1 if any(n in mainonly for n in range(u0, u1 + 1)) else 0
-            while cur < len(conts) and conts[cur][1] + used[conts[cur][0]] + size > conts[cur][2]:
+            main = any(n in mainonly for n in range(u0, u1 + 1))
+            cur = 0
+            while cur < len(conts) and (conts[cur][1] + used[conts[cur][0]] + size > conts[cur][2] or
+                                        (main and conts[cur][0] in BANK4C)):
                 cur += 1
             if cur == len(conts):
                 errors.append("%s: the hot pass does not fit: %s (%d bytes) has no room" % (prog, names, size))

@@ -34,6 +34,13 @@
  INCLUDE "1-source-files/main-sources/gfx-settab.asm"
  ASSERT P% = BPSLOT_END%
 
+ INCBIN "3-assembled-output/D.TOP4.bin"   \ Port: the flight code's bank 4 top
+ ASSERT P% = SETF%      \ after the slot, to the quarter squares (the circle
+                        \ engine's variables, then the hot pass's container
+                        \ there: elite-layout-flight.asm), which a set's load
+                        \ writes as it writes the slot's whole pages (PCLI's
+                        \ pbp), so that the load leaves that code as it was
+
  ASSERT HI(BPSLOT%) * 256 = BPSLOT% AND SETF% = BPSLOT% + &900   \ (part 3 after the slot's pages)
 
  COPYBLOCK BPSLOT%, SETF%, &3000   \ (keep the slot while part 3 is assembled

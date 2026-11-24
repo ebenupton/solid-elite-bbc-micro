@@ -44,7 +44,7 @@ OUT = "3-assembled-output/"
 SRC = "1-source-files/main-sources/"
 PROGS = ("flight", "docked")
 FAR = ("farH", "farHj", "farC", "farCj", "farC6", "farC5", "ovf1", "ovf2", "ovf3")
-HOTCOPIES = ("config", "low", "hot", "hotm", "hotx", "blueprints")   # (the hot side's copies: streams.py)
+HOTCOPIES = ("config", "low", "hot", "hotm", "hotx", "hot4", "blueprints")   # (the hot side's copies: streams.py)
 WINDOW7 = {"flight": (OUT + "gfx-raster_disc-bank7.asm", SRC + "gfx-raster_strips.asm",
                       OUT + "gfx-raster_disc2-bank7.asm", OUT + "gfx-raster_dpatch-bank7.asm")}
                         # (bank 7's renderer window: the renderer's bank 7 passes, and the file

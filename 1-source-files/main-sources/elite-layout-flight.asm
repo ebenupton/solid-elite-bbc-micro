@@ -114,7 +114,15 @@ IF _CIRCLES             \ the circle engine's variables (elite-map.asm): the
  INCLUDE "3-assembled-output/gfx-merid-bank4top.asm"
 .PFVS_END%
  ASSERT P% <= QSL
+ELSE
+ ORG PFVS%
 ENDIF
+
+.HOT4%                  \ the hot pass's container at bank 4's top, after the
+                        \ circle engine's variables, to the quarter squares
+ INCLUDE "3-assembled-output/elite-flight-hot4.asm"
+.HOT4_END%
+ ASSERT P% <= QSL
 
 
  PRINT "Flight bank 4: &8000-", ~CIRC_START%-1, " (the hot pass), ", HOME_END%-CIRC_START%, " (the planet's surface), free ", BPSLOT%-HOME_END%
@@ -125,8 +133,11 @@ ENDIF
  COPYBLOCK PROGM%, PROGM_END%, PROGI%   \ blueprint slot: the D.MOx file loads
                         \ over it afterwards
 
- SAVE "3-assembled-output/D.CODEH.bin", HOME%, PROGI% + PROGIS%, HOME%   \ (to the
-                        \ main RAM part's image's end, below the quarter squares)
+ SAVE "3-assembled-output/D.CODEH.bin", HOME%, QSL, HOME%   \ (to the quarter
+                        \ squares: the main RAM part's image, then the hot
+                        \ pass's container at bank 4's top)
+ SAVE "3-assembled-output/D.TOP4.bin", BPSLOT_END%, QSL   \ (bank 4's top, which
+                        \ every blueprint file carries: elite-shipset.asm)
  SAVE "3-assembled-output/D.CODEM.bin", PROGM%, PROGM_END%, PROGM%   \ (the main
                         \ RAM part, for the harness: it is on the disc in x.CODEH)
 

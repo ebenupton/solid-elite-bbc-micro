@@ -93,7 +93,8 @@ row("bank 4 (flight)", 0x8000, circ, "`S%` and the hot pass")
 row("bank 4 (flight)", circ, bp, "the planet's surface (bank 4 passes: `PF_HOOK`, `pc_circ`)", FL["HOME_END%"] - circ)
 row("bank 4 (flight)", bp, bp_end, "the blueprint set (`D.MOx`), its normals and `FC_NORMTAB` (the image holds the main RAM part's image here)")
 pfvs_used = FL.get("PFVS_END%", C["PFVS_P"]) - C["PFVS_P"]
-row("bank 4 (flight)", C["PFVS_P"], qsl, "the circle engine's variables (bank 4 top)", pfvs_used)
+row("bank 4 (flight)", C["PFVS_P"], FL["HOT4%"], "the circle engine's variables (bank 4 top)", pfvs_used)
+row("bank 4 (flight)", FL["HOT4%"], qsl, "the hot pass's container at bank 4's top (`hot4`: every blueprint file carries its bytes, as a set's load writes the slot's whole pages)", FL["HOT4_END%"] - FL["HOT4%"])
 row("bank 4 (flight)", qsl, 0xC000, "the quarter squares `QSL`, `QSH` (made by the loader)")
 progis = progm_end - progm
 row("bank 4 (docked)", 0x8000, bp - progis, "`S%` and the hot pass", DK["HOME_END%"] - 0x8000)

@@ -138,6 +138,7 @@ fhot_end = FL["CIRC_START%"]
 order("flight bank 4", [("the hot pass", 0x8000, fhot_end), ("the planet's surface", fhot_end, FL["HOME_END%"]),
                         ("the blueprint slot", bp, bp_end),
                         ("the circle engine's variables (bank 4 top)", C["PFVS_P"], FL.get("PFVS_END%", C["PFVS_P"])),
+                        ("the hot pass's container at bank 4's top", FL["HOT4%"], FL["HOT4_END%"]),
                         ("the quarter squares", qsl, qsl + 0x400)])
 if qsl + 0x400 != 0xC000:
     errors.append("bank 4: the quarter squares are not the bank's last 1K")
@@ -145,6 +146,7 @@ for img in ("D.CODEH.bin", "T.CODEH.bin"):             # (the loader makes them:
     if 0x8000 + os.path.getsize(OUT + img) > qsl:      # home image may reach them)
         errors.append("bank 4: %s reaches the quarter squares (&%04X)" % (img, qsl))
 nlab += inside(FL, OUT + "elite-flight-hot.asm", 0x8000, fhot_end, "the hot pass")
+nlab += inside(FL, OUT + "elite-flight-hot4.asm", FL["HOT4%"], qsl, "the hot pass at bank 4's top")
 for f in ("gfx-planet7", "gfx-merid"):
     nlab += inside(FL, OUT + "%s-bank4.asm" % f, fhot_end, bp, "bank 4's planet's surface")
     nlab += inside(FL, OUT + "%s-bank4top.asm" % f, C["PFVS_P"], qsl, "bank 4 top")

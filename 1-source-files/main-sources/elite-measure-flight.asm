@@ -61,7 +61,13 @@ IF _CIRCLES             \ the circle engine's variables (elite-map.asm): the
  ORG PFVS%
  INCLUDE "3-assembled-output/gfx-merid-bank4top.asm"
  ASSERT P% <= QSL
+ELSE
+ ORG PFVS%
 ENDIF
+
+.M_HOT4                 \ (the hot pass's container at bank 4's top, after the
+ ORG QSL                \ circle engine's variables, to the quarter squares)
+.M_HOT4_END
 
 
  CLEAR &8000, &C000
