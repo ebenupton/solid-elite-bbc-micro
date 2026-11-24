@@ -1,8 +1,10 @@
 \ ============================================================================
 \ raster_init.asm -- R_INIT, the rasteriser's set-up, run once (T_INIT, from
-\ F_INIT): it makes the row runs (below), then sets up the state (r_setup)
+\ F_INIT): it sets up the state (r_setup). Both are in R_POLY's first edge
+\ table, R_PTA, in the image, until the first polygon writes it over, as
+\ F_INIT is in bank 6's F_HW2 (gfx-bank5.asm)
 \
-\       Area: bank 5
+\       Area: bank 5 init
 \ ============================================================================
 .r_setup
 {
@@ -41,7 +43,7 @@
 \ R_INIT: R_LINE's buffer (none yet) and the state (the row runs are in
 \ R.BANK: gfx-raster.asm).
 \
-\       Area: bank 5 end
+\       Area: bank 5 init
 \ ============================================================================
 .R_INIT
 {

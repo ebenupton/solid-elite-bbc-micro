@@ -204,10 +204,10 @@ for l, a in B5.items():
         errors.append("bank 5: %s (&%04X) is in a tail that C5TAILS gives the flight code's cold 5 pass" % (l, a))
 for f in ("gfx-raster_poly", "gfx-raster_line"):
     nlab += inside(B5, OUT + "%s-bank5.asm" % f, img, st, "bank 5's R_POLY and R_LINE")
-for f in ("gfx-raster", "gfx-raster_init", "gfx-raster_rep", "gfx-raster_dq"):
+for f in ("gfx-raster", "gfx-raster_rep", "gfx-raster_dq"):
     nlab += inside(B5, OUT + "%s-bank5.asm" % f, st + 0x600, rjt, "bank 5's high region")
-for f in ("gfx-raster", "gfx-raster_init"):
-    nlab += inside(B5, OUT + "%s-bank5end.asm" % f, st + 0x600, rjt, "bank 5's high region")
+nlab += inside(B5, OUT + "gfx-raster-bank5end.asm", st + 0x600, rjt, "bank 5's high region")
+nlab += inside(B5, OUT + "gfx-raster_init-bank5init.asm", B5["R_PTA"], B5["R_PTA"] + 192, "bank 5's R_PTA (R_INIT)")
 for f in ("gfx-raster_lcold", "gfx-raster_reset", "gfx-raster_dq", "gfx-raster_rep", "gfx-planet7"):
     nlab += inside(B5, OUT + "%s-bank5gap.asm" % f, B5["r_tfree"], B5["r_tables"], "bank 5's room below the per-x tables")
 

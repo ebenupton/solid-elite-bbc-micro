@@ -93,11 +93,17 @@ NEXT
  ASSERT P% = R_ST% + &600
 
  INCLUDE "3-assembled-output/gfx-raster-bank5.asm"
- INCLUDE "3-assembled-output/gfx-raster_init-bank5.asm"
  INCLUDE "3-assembled-output/gfx-raster_rep-bank5.asm"
  INCLUDE "3-assembled-output/gfx-raster_dq-bank5.asm"
  INCLUDE "3-assembled-output/gfx-raster-bank5end.asm"
- INCLUDE "3-assembled-output/gfx-raster_init-bank5end.asm"
+
+ R_HIP% = P%
+ CLEAR R_PTA, R_PTA + 192
+ ORG R_PTA              \ R_INIT and r_setup, run once, from the image, in
+ INCLUDE "3-assembled-output/gfx-raster_init-bank5init.asm"   \ R_PTA's room
+.R_INITEND              \ until R_POLY first writes it (none of their calls
+ ASSERT R_INITEND <= R_PTA + 192    \ touches R_PTA)
+ ORG R_HIP%
 
 .RJT                    \ the entry points, in this order (gfx-glue.asm's T_n:
  JMP R_INIT             \ RJT + 0, through bank5-entry.asm, which bank5.py
