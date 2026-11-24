@@ -758,6 +758,80 @@ def glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, x
     return nc, nh + no, direct, xinfo
 
 
+# ---------------------------------------------------------------- tail calls
+#
+# A stub that only one JMP reaches (a tail call to the other side or a cold
+# 6 or cold 5 routine) is put in place of that JMP: the far call helpers
+# drop the stub's own return address and return to the caller's caller
+# (elite-far.asm), so
+#
+#   JMP X  ...  .X JSR farC : EQUW X_C        becomes        JSR farC : EQUW X_C
+#
+# at the JMP, with no stub at X's place: 3 bytes less, and the JMP's 3
+# cycles. Only a stub alone on its line (no label sharing it) whose label
+# nothing else names, in any copy or in the files the assemblies include,
+# and not in the cold 6 and cold 5 copies, which their placing reads, nor
+# a JMP after a line that names P% (a branch over it, BNE P%+5) or before
+# a label that something names less an offset (PLF3-3, the JMP itself). An
+# overlay's stubs stay: the harness hooks an overlay routine at its stub
+# (6-harness/blib.mjs's hookOf), as the overlays are in no image.
+
+STUBLINE = re.compile(r"^\s*\.([A-Za-z_]\w*%?) (JSR far\w+ : EQUW [A-Za-z_]\w*%?)\s*$")
+
+
+def inline_tails(copies, where, fixed, fallen):
+    """inline the stubs in the copies named in where that one JMP reaches,
+    but not a JMP at the lines in fixed (S%'s entry table, whose JMPs are
+    3 bytes each), nor a stub that a block falls into (fallen); returns how
+    many"""
+    stubs = {}
+    for c in where:
+        for i, l in enumerate(copies[c]):
+            m = STUBLINE.match(l)
+            if m:
+                stubs.setdefault(m.group(1), []).append((c, i, m.group(2)))
+    if not stubs:
+        return 0
+    refs = {}
+    for c, ls in copies.items():
+        for i, l in enumerate(ls):
+            if STUBLINE.match(l) and STUBLINE.match(l).group(1) in stubs:
+                continue                    # (the stub's own line)
+            for a, b, name in tokens(split_code(l)[0]):
+                if name in stubs:
+                    refs.setdefault(name, []).append((c, i, split_code(l)[0]))
+    for f in glob.glob(SRCDIR + "elite-layout-*.asm") + glob.glob(SRCDIR + "gfx-*.asm"):
+        for l in open(f, encoding="latin-1"):
+            for a, b, name in tokens(split_code(l)[0]):
+                if name in stubs:
+                    refs.setdefault(name, []).append((f, None, ""))
+    n = 0
+    for name, defs in sorted(stubs.items()):
+        r = refs.get(name, [])
+        if len(defs) != 1 or len(r) != 1 or r[0][1] is None or name in fallen:
+            continue
+        c, i, code = r[0]
+        sts = statements(code)
+        hit = [(off, st) for off, st in sts
+               if re.match(r"^\s*JMP\s+%s\s*$" % re.escape(name), st, re.I)]
+        if len(hit) != 1 or len(sts) != 1 or code.strip().startswith(".") or i in fixed:
+            continue                        # (a lone JMP statement, unlabelled)
+        prev = next((code_part(copies[c][j]) for j in range(i - 1, -1, -1) if code_part(copies[c][j])), "")
+        if "P%" in prev:
+            continue                        # (a skip over the JMP, BNE P%+5 and the like)
+        nxt = next((l for l in copies[c][i + 1:] if re.match(r"^\s*\.[A-Za-z_]", l)), "")
+        m = re.match(r"^\s*\.([A-Za-z_]\w*%?)", nxt)
+        if m and any(re.search(r"\b%s\s*-\s*\d" % re.escape(m.group(1)), code_part(l))
+                     for ls in copies.values() for l in ls):
+            continue                        # (reached as the next label - 3: PLF3-3)
+        dc, di, body = defs[0]
+        comment = split_code(copies[c][i])[1]
+        copies[c][i] = " " + body + ("   " + comment if comment else "")
+        copies[dc][di] = ""
+        n += 1
+    return n
+
+
 # ---------------------------------------------------------------- overlays
 #
 # "Area: overlay N" (the flight code only): code that runs only at an event
@@ -1507,7 +1581,7 @@ def program(prog, phase, errors):
             conts.append([c, sy[a], sy[z], []])
         used = {c[0]: 0 for c in conts}
         # each unit goes in the first container with room for it, S%'s unit
-        # first and then the others largest first (a unit runs as well in any of them, and each
+        # first, then the main RAM ones, then the others, largest first (a unit runs as well in any of them, and each
         # container's copy assembles its units in the source's order, so S%,
         # the first, stays at the start of bank 4: its entry table)
         sized = []
@@ -1533,7 +1607,10 @@ def program(prog, phase, errors):
                         if k2 is not None and eff[k2] == "hot" and k2 in pos:
                             mainonly.add(pos[k2])
         where = {}
-        for size, u0, u1, names in [sized[0]] + sorted(sized[1:], key=lambda s: (-s[0], s[1])):
+        ismain = lambda s: any(n in mainonly for n in range(s[1], s[2] + 1))
+        # (the units that must be in main RAM first, so that the others, which
+        # run as well in bank 4, do not take its room first)
+        for size, u0, u1, names in [sized[0]] + sorted(sized[1:], key=lambda s: (not ismain(s), -s[0], s[1])):
             main = any(n in mainonly for n in range(u0, u1 + 1))
             cur = 0
             while cur < len(conts) and (conts[cur][1] + used[conts[cur][0]] + size > conts[cur][2] or
@@ -1609,6 +1686,17 @@ def program(prog, phase, errors):
                 copies[copy_of[k]][spot[0]] = "FALL_%d = P%%" % (b.e + 1) + note % (b.name, b2.name)
                 copies[copy_of[k2]][spot2[0]] = " ASSERT P% = FALL_" + str(b.e + 1) + note % (b.name, b2.name)
     nstubs = glue(prog, src, copies, errors, lines, bl, eff, copy_of, falls, hotcopies, xfalls)
+    sblk = [k for k, b in enumerate(bl) if any(re.match(r"^\.S%(\s|$)", lines[i]) for i in range(b.s, b.e))]
+    fallen = set()                         # (the stubs a block falls into: kept)
+    for side, entry in falls:
+        fallen.update((entry, "xh_" + entry, "jh_" + entry))
+    for kind in xfalls:
+        for entry in xfalls[kind]:
+            fallen.update((entry, "xh_" + entry, "jh_" + entry, "xs_" + entry, "xs5_" + entry))
+    for c, entry, br in ovlseams:
+        fallen.add(entry)
+    ntail = inline_tails(copies, [c for c in copies if c not in ("c5", "c6")],
+                         set(i for k in sblk for i in range(bl[k].s, bl[k].e)), fallen)
     c5blocks = [k for k in range(len(bl)) if eff[k] == "c5" and ASM[k]]
     if c5blocks and phase == "measure":
         # each cold 5 block's ends, for its size (the measure assembles the
