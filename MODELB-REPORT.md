@@ -234,3 +234,76 @@ patch, applied by the harness (`6-harness/blib.mjs`, `PATCHES`, named in
 * **Not looked at on screen**: the energy bomb, the escape pod's flight,
   the death screen, witchspace and Thargoids, the joystick. The escape pod
   and the death sequence run in the gate's state comparison.
+
+## The Electron port's general wins (branch `electron-wins`)
+
+Branch `electron-wins` in `~/elite-modelb-ewins`, on `modelb-release`:
+the general cycle wins of the Electron port (`~/elite-electron`,
+`ELECTRON-REPORT.md`, "What transfers to the other ports"), each ported,
+measured with `bbench.mjs` and landed as a gated commit, with the room
+each needed made first.
+
+**Landed** (the list's numbers): LL9's vertices (1), faces and first dot
+products (2) and scaling without `LL28` (3); the circle engine's rows
+with no call (4); the front view's stardust in one loop (5, without its
+quotient cache); phase B one row loop and the row runs indexed by the
+line (6, the part that fits); an 8-bit polygon's edges with no call (7);
+a steep edge's own loops (8); a dot's two pixels at once (9); an
+unclipped edge's row tests skipped (11); a star erased by a store (12);
+the text rows bounded (13); `R_MARKBOX` in one loop and the query a byte
+at a time (14); `PF_HOOK` keeping only `XX0` and `INF` (15); the ship
+blocks through a patched address (16); fast trampolines (18); the
+painter's batches by a direct call, not a far call; `L_REC`'s dot
+products in line and LL9's projection division in line (the second
+grind's e02ec17, 53b32b8); and two far calls cut where the Model B's
+layout made them (`SCAN`'s early returns; the copy into `INWK` through
+`X`, a cycle a byte).
+
+**Gate**: VERIFY PASS at each of the branch's last four commits (game
+state identical at all 10,000 iterations; redock, savetest, views,
+screens, `bsunslot.mjs`'s scenes, the plain-disc build). At `86edb63` the
+gate did not pass: `bsunslot.mjs`'s events scene stopped at a BRK
+after the crash into the station, as `98b6ec1` had moved `INBAY` to the
+cold pass, from where `PCLI`'s "L.T.CODE" returns into bank 7, over
+which the docked code's cold image has just loaded (`394d5e9` puts it back
+on the hot side). The gate's speed, flight iterations a second (cycles a
+flight iteration): at `86edb63` 7.98 (250,714, its comparison step), at
+the tip 7.99 (250,218, -0.2%); the original 11.47 (174,293) on this run.
+
+**Left out, for room.** The flight code's hot side (bank 4 and main RAM)
+has 9 bytes left, the cold side 13 (bank 7) and the renderer's banks 99
+and 20 in fragments (bank 5, bank 6); every block that could move without
+costing more than these would save is already on the side its use calls
+for:
+
+* **The ship blocks copied by unrolled code** (eb78c6f): 392 bytes of
+  the hot side; measured with `make circles=off`, whose bank 4 has the
+  room: flight 151,526 to 149,195 cycles an iteration (-1.5%), rear
+  -1.3%, zone -0.7%.
+* **The stardust's quotient cache** (`sd_qc`, 875222e): 256 bytes of
+  table and its upkeep on the hot side; about 3,200 cycles an iteration
+  in the flight scene (measured with `make circles=off`, fd2f425).
+* **The row runs entered by a jump with a fixed exit** (d6c944b's first
+  part): the line is the runs' index here, so the shift that replaces the
+  planted RTS needs a second run for each character row's right half, about
+  2,400 bytes of bank 5; phase B's character row kept between polygons
+  (f6d4346) depends on that entry.
+* **The disc layer made, kept and painted in one bank** (ae6c2ea,
+  2c0201d, 1dbaa28): the Model B fills the batches' slots in bank 6 and
+  hands them to the painter in bank 7 through the mailbox, as the Electron
+  did before them (about 200 cycles a row, 90 rows an iteration over the
+  gate's run: docs/renderer.md); making the rows with the painter moves
+  the row maker's code into bank 7 (13 bytes free), a redesign of the
+  layer for an estimated half of the Electron's 2-4% in the planet scenes.
+* **The far-call cuts of the dashboard and `TIDY`'s family** (e297523,
+  d964da0, f7cb9b3): about 1.3 far calls an iteration, 90 cycles, for
+  about 500 bytes of the hot side.
+
+**Not ported, as Electron-specific or with no gain here**: the
+painter's one-caller routines (1c8774c: the Model B's painter has none of
+those three routines; its `dp_st` has ten callers); and the main-RAM
+avoidance and layout changes, which save no cycles on a 2 MHz machine with
+fast zero page.
+
+(Commit hashes in this section other than this branch's are the Electron
+port's, in `~/elite-electron`.)

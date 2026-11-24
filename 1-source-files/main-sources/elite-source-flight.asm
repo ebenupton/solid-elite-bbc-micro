@@ -2769,8 +2769,12 @@ ENDIF
 
 .MAL2
 
- LDA &FFFF,Y            \ (patched: INF) Load the Y-th byte of INF and store
- STA INWK,Y             \ it in the Y-th byte of INWK
+ LDX &FFFF,Y            \ (patched: INF) Load the Y-th byte of INF and store
+ STX INWK,Y             \ it in the Y-th byte of INWK (Port: through X, whose
+                        \ STX zero page,Y takes a cycle less a byte than STA
+                        \ INWK,Y, an absolute store; X, the slot, is not read
+                        \ again before it is set: MVEIT and the energy bomb's
+                        \ EXNO2 set it first, and the slot is in XSAV)
 
  DEY                    \ Decrement the loop counter
 
