@@ -15053,7 +15053,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Maths (Geometry)
 \    Summary: Calculate A = arctan(P / Q)
-\       Area: cold
+\       Area: none
 \  Deep dive: The sine, cosine and arctan tables
 \
 \ ------------------------------------------------------------------------------
@@ -15240,16 +15240,20 @@ ENDMACRO
  BNE LASLI2             \ in this iteration's frame (from LASX and LASY)
  LDA #&FF
  STA GLASV
+
+.lasr
+
  RTS
 
 .LASLI2
 
  JSR RECM               \ Port: in record mode there are no beams on the screen
- BEQ LASLI-1            \ to remove
+ BEQ lasr               \ to remove
 
  LDA QQ11               \ If this is not a space view (i.e. QQ11 is non-zero)
- BNE LASLI-1            \ then jump to MA9 to return from the main flight loop
-                        \ (as LASLI-1 is an RTS)
+ BNE lasr               \ then jump to MA9 to return from the main flight loop
+                        \ (Port: as lasr is an RTS; the original's LASLI-1 is
+                        \ ARCTAN's last, which the port does not run)
 
  LDA #32                \ Set A = 32 and Y = 224 for the first set of laser
  LDY #224               \ lines (the wider pair of lines)
