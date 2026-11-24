@@ -82,10 +82,16 @@ MBOX_END = MBOX + &A0
 \ and pc_inv take &00 to &49, and their unclamped thresholds PC_TU &52 to
 \ &5D, from PF_HOOK (in the game's iteration) to the frame's f_hrec, which
 \ keeps them, and f_bounds (PC_ROWS).
-DB_WL    = MBOX + &20   \ (the slots: 16 each)
-DB_WR    = MBOX + &30
-DB_Q     = MBOX + &48   \ the queue (seven spans)
-DB_QE    = MBOX + &64   \ (its end)
+DB_WL    = MBOX         \ (the slots: 16 each)
+DB_WR    = MBOX + &10
+DB_QS    = 17           \ the queue's room, in spans (all the mailbox's &20 to
+                        \ &63: a full queue sends a long span to r_sw)
+DB_QK    = 17           \ a span is queued with DB_QK - 1 whole bytes or more
+                        \ (16: lower costs more in bank 5's set-up than r_sw's
+                        \ loop saves; higher, 20 or 24, about the same)
+DB_Q     = MBOX + &20   \ the queue (DB_QS spans)
+DB_QE    = DB_Q + 4 * DB_QS   \ (its end)
+ ASSERT DB_QE <= MBOX + &64
 DB_PY    = MBOX + &64   \ R_GETW: the row of the batch whose writes it puts
 DB_QN    = MBOX + &65   \ the queue's length in bytes (4 a span)
  ASSERT DB_QN < R_SCOL
@@ -95,7 +101,7 @@ PC_N     = MBOX + &48   \ how many
 pc_inv   = MBOX + &49   \ the base colour
 PC_TU    = MBOX + &52   \ their thresholds T1, T2 unclamped (16-bit, 4 a record)
 PCX_END  = PC_TU + 4 * 3  \ (the frame's f_hrec keeps &00 to here)
- ASSERT PC_TU >= R_BY1 + 1 AND PCX_END <= DB_QE
+ ASSERT PC_TU >= R_BY1 + 1 AND PCX_END <= DB_PY
 
 DH_PL   = &10           \ the frame layer's hand-over to the disc part in the
 DH_N    = 12            \ flight code's bank 7 (DP_PREP: F_PLON to F_SUR, DH_N

@@ -606,7 +606,7 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   EOR #&FF
   SEC
   ADC RZ_T7
-  CMP #17
+  CMP #DB_QK
   BCC c1
   JSR r_sq
   BCS c1
@@ -642,7 +642,7 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   STX RZ_T7
   SEC
   SBC RZ_T7
-  CMP #68
+  CMP #4 * DB_QK
   BCC m1
   JSR r_sql
   BCC c9
@@ -725,7 +725,7 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   SEC
   STX RZ_T7
   SBC RZ_T7               \ Y - X >= 68 pixels: perhaps; the exact test below
-  CMP #68
+  CMP #4 * DB_QK
   BCC no
   LDA RZ_SA
   LSR A
@@ -737,7 +737,7 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   EOR #&FF
   SEC
   ADC RZ_T7
-  CMP #17
+  CMP #DB_QK
   BCS r_sq
 .no
   SEC

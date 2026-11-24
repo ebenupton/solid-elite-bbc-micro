@@ -398,7 +398,7 @@ the player's own turn since. The mailbox holds the records only until the frame'
 * **The batches** are 16 rows, with bank 5's part of each in the mailbox
   (`gfx-rws.asm`, `DB_*`), `&00` to `&65`: for each row a slot, the dirty or
   written extent in, what was written out (`DB_WL`, `DB_WR`); the queue
-  of spans of 16 whole bytes or more for bank 5's row runs, seven at a time
+  of spans of 16 whole bytes or more for bank 5's row runs, seventeen at a time
   (`DB_Q`, `DB_QN`); `DB_PY`, the row of the batch whose writes `T_GETW`
   puts. The stars are at the mailbox's end, out of the way.
 * **The painter** is the Master port's `R_DISCROWS` row code (`r_dlb` for
