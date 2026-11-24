@@ -307,3 +307,92 @@ fast zero page.
 
 (Commit hashes in this section other than this branch's are the Electron
 port's, in `~/elite-electron`.)
+
+## Bytes for cycles: room for the skipped wins (status, 2026-11-24)
+
+On `electron-wins` from 92b80d7: free bytes found at almost no cycle cost,
+then spent on the two skipped wins with the best rates. Each commit was
+checked with `bcompare.mjs` (1,500 to 10,000 iterations), bbench and, for
+renderer changes, test_raster.py and test_frame.py; the full gate
+(`verify.sh`, then `bhsync.mjs`) passed at d1e9906, a22423c and the tip
+(below). agentplay sessions (pause, sun, jumps, views, charts, flight
+screens, docking) were clean on the tip; one caught a bug in the first
+version of the tail-call inlining, fixed before it was committed.
+
+**The exchange rate.** The skipped wins are worth about 9.5 (the
+stardust cache, 2,900 cycles in a front-view scene for 305 bytes) and 6
+(the unrolled copy, 2,300 in bbench's flight scene for 392) cycles an
+iteration a byte, 3 to 8 in the gate's run. The bytes were found at about
+0 cycles: bbench's scenes before the first win (072ab16) were within 0.1%
+of 92b80d7's (flight -58, combat +153, departure -541 cycles an
+iteration), and the gate's run was 259 cycles faster at d1e9906.
+
+**Reclaimed** (each a commit):
+
+| Where | Bytes | How | Cycles |
+|---|---:|---|---|
+| bank 6 | 48 | PR_PUT calls pr_ins (no patched JMP) | -100 to -330 in the planet scenes |
+| banks 5, 6 | 6, 12 | jumps to the next instruction, two branches | 0 or less |
+| bank 5 | 66 | R_INIT and r_setup in R_PTA until the first polygon (bank 5 init place) | 0 |
+| bank 5 | 209 | one row-page table, buffer 0's by a patched ADC | 0 (within noise) |
+| hot | 34 | MULT3's third product without the second-page path (QSMUL7); two returns on this side | -54 in the gate |
+| bank 7 | 66 (+4 hot) | ARCTAN not assembled (only PLS4, not run, called it) | 0 |
+| bank 7 | 83 | LL145's copies, LASLI, LL118, CTWOD, SHAND's table, HL2; overlay 1's TT22 and TT15A | 0 (rare code) |
+| bank 7 | 106, 130 | WARP and SHAND to the cold 5 pass | 0 |
+| hot | 253 (-234 bank 7) | TACTICS part 1, VCSU1/VCSUB/TAS1, TAS2, TAS6 to the cold pass | about 1.6 far calls an iteration fewer in the gate |
+| hot | 63 | a container at bank 4's top (the D.MOx files carry its bytes) | 0 |
+| hot, bank 7 | 18, 24 | a tail call's stub at its one JMP (streams.py) | -3 a site |
+| hot | 120 (-124 bank 7) | DK4's pause, CIRCLE's and WPLS's non-record paths to the cold pass; QSMULA | 0 |
+
+Also: the renderer's bank 7 window at a fixed place (WIN7FIX%, its
+92b80d7 address), so that cold-pass changes no longer move its loops'
+page crossings (100-600 cycles an iteration either way in bbench); the
+cold 5 placer's ORGs no longer hidden behind a comment (a latent bug: no
+unit of the old layout was affected); the flow places main-RAM-only units
+first. In all: the hot side about 490 bytes, bank 7 about 400 (spent on
+the hot side's moves), banks 5 and 6 341.
+
+**Landed**:
+
+* The stardust's quotient cache (a22423c, the Electron's 875222e): flight
+  -2,913 cycles an iteration (-1.65%), beachball -2,869, sun -2,799,
+  docking -2,843, zone -2,916, approach -3,056, departure -2,942 (combat
+  and rear unchanged); 305 bytes.
+* The unrolled ship-block copy, its half from INWK back to K% (a6a8acd,
+  half of eb78c6f): flight -1,194, combat -1,039, zone -951, rear -956,
+  the planet scenes about -470; 197 bytes.
+
+**Speed** (92b80d7 -> a6a8acd): gate VERIFY PASS 11.47 8.11 0.707 246474.9 and bhsync PASS, against 7.99 (250,217.8) at 92b80d7 (-1.5%; 8.00 at
+d1e9906, 8.10 at a22423c). bbench, cycles an iteration: flight 177065 ->
+172896 (-2.35%), combat 98816 -> 97848 (-0.98%), beachball 215853 ->
+212145 (-1.72%), sun 231618 -> 228267 (-1.45%), docking 418348 -> 414910
+(-0.82%), zone 336569 -> 332599 (-1.18%), rear 210939 -> 209855 (-0.51%),
+approach 232439 -> 228623 (-1.64%), departure 337035 -> 333104 (-1.17%).
+No scene is slower.
+
+Free now (flight): hot side 0, bank 7 64, bank 5 139 (the cold 5 pass's
+places 92), bank 6 80.
+
+**What remains, and why:**
+
+* The other half of the unrolled copy (into INWK, MAL2: about 196 bytes,
+  about 1,100 cycles in flight). The hot side is full. The next hot bytes
+  cost cycles in events bbench does not have: DOEXP's first part (104
+  bytes, about 720 cycles an exploding ship's frame), MA47's laser hit
+  (84, about 540 a hit), NOS1 and SFX (54, about 190 a sound), and need
+  bank 7 room that would have to come from bank 6 (f_gkeep's and
+  f_gback's copies as loops: 133 bytes for about 100 cycles in the gate,
+  370 in zone). A trade for the user to decide.
+* The row runs entered by a jump with a fixed exit (2.4K of bank 5): its
+  gain here, estimated from the profile (16 phase B runs, 4.7 plants and 4
+  spans an iteration in the gate, about 30 cycles each), is about 400 to
+  1,000 cycles in the gate's run, 0.2 to 0.4 cycles a byte: far below the
+  exchange rate. Not done; item 10 depends on it.
+* The disc layer made and painted in one bank: a redesign. The profile
+  shows the hand-over's cost (dp_ld, dp_ldp and dp_st, about 11,000 cycles
+  an iteration in the gate, about 89 rows) is large, so it is the best
+  candidate left, but it moves the row maker and its inputs from bank 6
+  into bank 7 and was not started.
+* The far-call cuts for DIALS and TIDY: 0.18 cycles a byte, skipped.
+* DEATH could go to the cold 5 pass (126 bytes) if elite-far.asm had a
+  farC5j (9 bytes of resident block A, which has 3).
