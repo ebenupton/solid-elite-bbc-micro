@@ -452,12 +452,54 @@ Free now (flight): hot side 15, bank 7 42 (23 before the tables, 19 in the
 window), bank 6 31 (the text map's tail; the cold 6 pass's room is exactly
 its size), bank 5 139.
 
-**What is left of the disc layer's hand-over:** dp_ld, dp_ldp and dp_st
-still copy a changed row's data into the painter's variables (about
-11,000 cycles an iteration in the gate's run): removing them means the row
-code reading R_NDISCL to R_NDX3 at the row in X throughout (r_dp2, r_drg,
-r_dpe, r_dq, r_segw), which keep X for other uses. R_GETW's transfers in
-bank 5 (about 3,900) remain, as bank 5's extents must cross banks.
+**Fourth round: the painter's per-row copy gone (59ae4d7, 6f9bc21).** The
+row code reads a changed row's span, count, colour and boundaries where the
+disc part makes them, at the row in X (or Y, or RZ_Y), with no copy into
+variables (dp_ld keeps only the slot's dirty extent, and not even that on
+the paths that do not read it); the slot is put back as each loop's shared
+tail, not a call; r_sw's long-span test is in line before its call.
+
+**Speed now** (6f9bc21; gate VERIFY PASS 11.47 8.91 0.777 224364.9 and bhsync PASS, against 8.58 and
+233,148.2 at 0f6b3c2; 59ae4d7's gate: VERIFY PASS 11.47 8.79 0.766
+227432.8 and bhsync PASS): bbench, cycles an iteration:
+
+| Scene | 92b80d7 | 0f6b3c2 | now | vs 92b80d7 | vs 0f6b3c2 |
+|---|---:|---:|---:|---:|---:|
+| flight | 177,065 | 166,810 | 166,340 | -6.06% | -0.28% |
+| combat | 98,816 | 97,521 | 97,684 | -1.15% | +0.17% |
+| beachball | 215,853 | 194,603 | 193,346 | -10.43% | -0.65% |
+| sun | 231,618 | 213,009 | 210,184 | -9.25% | -1.33% |
+| docking | 418,348 | 394,238 | 389,648 | -6.86% | -1.16% |
+| zone | 336,569 | 322,516 | 320,790 | -4.69% | -0.54% |
+| rear | 210,939 | 193,673 | 192,736 | -8.63% | -0.48% |
+| approach | 232,439 | 214,086 | 202,563 | -12.85% | -5.38% |
+| departure | 337,035 | 309,148 | 292,246 | -13.29% | -5.47% |
+
+Combat's figure (+163) is the flip wait, not work: its profile, alone, has
+the same work as 0f6b3c2 to a few cycles and 39 more waiting for the flip
+(its small planet gives the painter almost nothing to do); it waits about
+13,000 cycles an iteration, so a vertical sync's phase decides its figure.
+It is reported for the user's decision, not hidden: 6f9bc21 can be reverted
+alone if that is not acceptable (it moved combat 97619 -> 97684, and every
+other scene down).
+
+Free now (flight): bank 7 about 20 (window) and 23 (before the tables),
+bank 6 31 (the text map's tail), hot side 15, bank 5 139.
+
+**What is left (the profile of the gate's run, 227,433 cycles an
+iteration at 59ae4d7):** r_sw, the painter's span writer, about 27,000
+(about 160 calls an iteration: mostly its per-call set-up and masked end
+bytes; its whole-byte loop, 20 cycles a byte, only about 3,800); the
+strips about 6,800; r_dmb's unchanged-row compares about 6,800; R_GETW's
+transfers in bank 5 about 7,000 (about 70 cycles a row, inherent while the
+extents live in bank 5). An unrolled whole-byte writer (8 cycles a byte)
+would take about 150 bytes and pays mainly in the docking and sun scenes
+(an estimated 3,000-7,000 cycles there, little in the gate's run); bank 7
+has about 40 free bytes in two pieces and bank 6 none, so it needs room
+made first (more cold code to the cold 5 pass, or the tables and the
+window relaid so the free bytes meet), which is the next decision. The
+remaining per-row overheads (r_rowp, dp_ldc, dp_st) are about 40-60
+cycles a changed row each, a few hundred to 2,000 cycles a scene.
 
 **Also remaining:**
 
