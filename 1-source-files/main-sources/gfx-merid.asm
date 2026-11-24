@@ -1525,9 +1525,9 @@ ENDMACRO
 \ PR_PUT: a crossing at A (0..255) on row X: at or left of the span's left
 \ end it flips the row's colour (fl), right of the span it is dropped,
 \ inside it is the row's first (R_NDX0), or is inserted in order (pr_ins,
-\ which the four share: it goes on at pr_ir's JMP, set to nx); then nx, or,
-\ for the row's first, the code that follows. In line for each side's X-
-\ and X+ (the loop's four crossings).
+\ which the four share, called: JSR and RTS keep the flags it leaves for
+\ nx); then nx, or, for the row's first, the code that follows. In line for
+\ each side's X- and X+ (the loop's four crossings).
 
 MACRO PR_PUT fl, nx
  CMP R_NDISCL,X
@@ -1541,11 +1541,7 @@ MACRO PR_PUT fl, nx
  CPY #&80
  BEQ p0
  STA mt_x
- LDA #LO(nx)
- STA pr_ir+1
- LDA #HI(nx)
- STA pr_ir+2
- JMP pr_ins
+ JSR pr_ins
 .j9
  JMP nx
 .p0
@@ -2064,7 +2060,7 @@ ASSERT pra1 = pra0 + 7 AND pra3 = pra0 + 21 AND prk1 = prk0 + 7 AND prk3 = prk0 
 
 \ pr_ins: mt_x inserted in order into row X's R_NDX0.. (Y = R_NDN: 1 to 4
 \ there, and the colour); with a fifth the two rightmost are dropped. Then
-\ on, through pr_ir (PR_PUT sets it)
+\ back to PR_PUT, which goes on to its next code
 
 .pr_ins
  INC R_NDN,X
@@ -2088,7 +2084,7 @@ ASSERT pra1 = pra0 + 7 AND pra3 = pra0 + 21 AND prk1 = prk0 + 7 AND prk3 = prk0 
 .pri3s
  LDA mt_x
  STA R_NDX3,X
- JMP pr_ir
+ RTS
 .pri3m
  STA R_NDX3,X
 .pri2
@@ -2099,7 +2095,7 @@ ASSERT pra1 = pra0 + 7 AND pra3 = pra0 + 21 AND prk1 = prk0 + 7 AND prk3 = prk0 
 .pri2s
  LDA mt_x
  STA R_NDX2,X
- JMP pr_ir
+ RTS
 .pri2m
  STA R_NDX2,X
 .pri1
@@ -2110,13 +2106,13 @@ ASSERT pra1 = pra0 + 7 AND pra3 = pra0 + 21 AND prk1 = prk0 + 7 AND prk3 = prk0 
 .pri1s
  LDA mt_x
  STA R_NDX1,X
- JMP pr_ir
+ RTS
 .pri1m
  STA R_NDX1,X
  LDA mt_x
  STA R_NDX0,X
 .pr_ir
- JMP pr_adv             \ (patched)
+ RTS
 .pr_irz
  LDY #1                 \ (Z clear, for the head it goes on to)
  BNE pr_ir
