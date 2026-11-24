@@ -42,7 +42,8 @@
 #     file there instead).
 #   * "Area: none": code the port no longer runs (the renderer does its work):
 #     its text stays, but its copy has only its labels and one RTS, at its
-#     place, so a reference to it still assembles, and returns at once.
+#     place, so a reference to it still assembles, and returns at once (the
+#     RTS left out where nothing can reach it: none_refs).
 #   * ", again" after any of these: the block is also emitted a second time,
 #     into 3-assembled-output/elite-<program>-again.asm (every other line blank, so
 #     line numbers stay), with no stubs, and with its own labels and the
@@ -1156,9 +1157,50 @@ def again_copy(lines, bl):
     return out
 
 
+def none_refs(lines, bl):
+    """for each "Area: none" block, whether its RTS can be reached: a block
+    before it that falls through into it (its last statement, in the flags'
+    branches), or a reference to one of its labels from anywhere else (the
+    program's lines outside the "Area: none" blocks, whose code is not
+    assembled, and the renderer's and the other sources)"""
+    act = active_lines(lines)
+    ACTIVE[:] = act
+    others = ""
+    for p in glob.glob(SRCDIR + "*.asm"):
+        if not p.endswith(os.sep + "elite-source-flight.asm") and not p.endswith(os.sep + "elite-source-docked.asm"):
+            others += "\n".join(code_part(l) for l in open(p, encoding="latin-1").read().split("\n"))
+    words = {}
+    blank = set(i for b in bl if b.area == "none" for i in range(b.s, b.e))
+    for i, l in enumerate(lines):
+        if i in blank:
+            continue
+        for w in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", code_part(l)):
+            words.setdefault(w, set()).add(i)
+    ow = set(re.findall(r"[A-Za-z_][A-Za-z0-9_]*", others))
+    need = {}
+    for k, b in enumerate(bl):
+        if b.area != "none":
+            continue
+        labs = set()
+        for i in range(b.s, b.e):
+            m = re.match(r"^\.([A-Za-z_]\w*)", lines[i])
+            if m:
+                labs.add(m.group(1))
+        ref = any(lab in ow or lab in words for lab in labs)
+        fall = k > 0 and falls_through(last_statement(lines, bl[k - 1].s, bl[k - 1].e), set())
+        nxt = bl[k + 1].area if k + 1 < len(bl) else None
+        need[id(b)] = ref or fall or not labs or nxt not in ("hot", "none")
+    ACTIVE[:] = []
+    return need
+
+
 def stub_none(lines, bl, src):
     """each "Area: none" block's code: only its labels, then an RTS on its
-    last code line (the lines between blanked, so line numbers stay)"""
+    last code line (the lines between blanked, so line numbers stay); the RTS
+    is left out of a block that nothing falls into and none of whose labels
+    is named anywhere else, as nothing can reach it (if the block after it is
+    on the hot side too, as its labels then fall into that block's start)"""
+    need = none_refs(lines, bl)
     for b in bl:
         if b.area != "none":
             continue
@@ -1170,7 +1212,8 @@ def stub_none(lines, bl, src):
                 last = i
         if last is None:
             sys.exit("%s:%d: %s: Area: none, and no code" % (src, b.s + 1, b.name))
-        lines[last] = (lines[last] + " : RTS") if lines[last] else " RTS"
+        if need[id(b)]:
+            lines[last] = (lines[last] + " : RTS") if lines[last] else " RTS"
         b.area = "hot"
         b.none = True
 

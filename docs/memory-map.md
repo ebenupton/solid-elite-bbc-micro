@@ -163,7 +163,9 @@ Master port, each program is emitted in three passes, **low**, **hot** and
   blueprint slot at `&B300`.
 * **`Area: none`** is code the port no longer runs: each copy has only its
   labels and one `RTS`, at its place, so a reference still assembles and
-  returns at once.
+  returns at once; the `RTS` is left out where nothing can reach it (no
+  block falls into it, none of its labels is named outside such blocks, and
+  the block after it is on the hot side too).
 * **`, again`** after any of these: the block is also emitted a second time
   (`3-assembled-output/elite-<program>-again.asm`), with no stubs, its own
   labels and the targets of its `JSR`s and `JMP`s named `A_<name>`, for the
@@ -466,7 +468,7 @@ what the frames can use, the docked code's are free only while docked.
 | main RAM | `&4000-&6FFF` | buffer 1, the screen | 12288 | 0 |
 | main RAM | `&7000-&76FF` | the dashboard (`P.DIALS`) | 1792 | 0 |
 | main RAM | `&7700-&796F` | the rupture (`elite-rupture.asm`, copied there by the loader): the clock switches, the frames' registers, the flip, the display off during disc commands; its variables after its code | 624 | 0 |
-| main RAM (flight) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 1187 | 77 |
+| main RAM (flight) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 1260 | 4 |
 | main RAM (docked) | `&7970-&7E5F` | the main RAM part: the low pass, then `hotm` and `hotx` (main RAM's code is one run, from the rupture's) | 194 | 1070 |
 | main RAM | `&7E60-&7EFF` | the mailbox, `MBOX`: the rasteriser's inputs (the stars at its end, `&67-&9F`); sharing its polygon vertices, `PCLI`'s command and OSFILE block, the circle records from `PF_HOOK` to the frame (`&00-&49`, `&52-&5D`) and the disc layer's batches (`&00-&65`) | 160 | 0 |
 | main RAM | `&7F00-&7F9F` | the missile's blueprint (where the original has it) | 160 | 0 |
@@ -479,7 +481,7 @@ what the frames can use, the docked code's are free only while docked.
 | bank 4 (flight) | `&B300-&BBA1` | the blueprint set (`D.MOx`), its normals and `FC_NORMTAB` (the image holds the main RAM part's image here) | 2210 | 0 |
 | bank 4 (flight) | `&BBA2-&BBFF` | the circle engine's variables (bank 4 top) | 31 | 63 |
 | bank 4 (flight) | `&BC00-&BFFF` | the quarter squares `QSL`, `QSH` (made by the loader) | 1024 | 0 |
-| bank 4 (docked) | `&8000-&AE0F` | `S%` and the hot pass | 8797 | 2995 |
+| bank 4 (docked) | `&8000-&AE0F` | `S%` and the hot pass | 8792 | 3000 |
 | bank 4 (docked) | `&AE10-&B2FF` | the main RAM part's image | 1264 | 0 |
 | bank 4 (docked) | `&B300-&BBA1` | the docked code's blueprints, their normals and `FC_NORMTAB` | 2144 | 66 |
 | bank 4 (docked) | `&BBA2-&BBFF` | (free) | 0 | 94 |
@@ -504,7 +506,7 @@ what the frames can use, the docked code's are free only while docked.
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 43, main RAM (flight) 77, main RAM (docked) 1070, bank 4 (flight) 63, bank 4 (docked) 3155, bank 7 (flight) 13, bank 7 (docked) 4987, bank 5 99, bank 6 20.
+Free, by place: main RAM 43, main RAM (flight) 4, main RAM (docked) 1070, bank 4 (flight) 63, bank 4 (docked) 3160, bank 7 (flight) 13, bank 7 (docked) 4987, bank 5 99, bank 6 20.
 
 **The build's check.** `2-build-files/mapcheck.py`, which `make` runs once
 every program and bank is assembled, fails the build if a place is out of

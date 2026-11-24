@@ -6322,8 +6322,8 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
  LSR P                  \ subtraction from z_lo
  ROR A
 
- ORA #1                 \ Set A = q, at least 1, and rejoin
- JMP stl_dvr
+ ORA #1                 \ Set A = q, at least 1, and rejoin (Port: BNE, as
+ BNE stl_dvr            \ A is not 0)
 
 
                         \ In the following, we're going to refer to the 16-bit
@@ -6881,8 +6881,8 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
  ORA #144               \ Make sure A is at least 144, for z_hi, so the new
                         \ particle starts in the far distance
 
- JMP STC1               \ Jump up to STC1 to store and record this new
-                        \ particle
+ BMI STC1               \ Jump up to STC1 to store and record this new
+                        \ particle (Port: BMI, as A is at least 144)
 
 .stc5
 
@@ -14605,9 +14605,9 @@ ENDMACRO
 
  LDA P+1                \ If P+1 >= 64, set A back to 0 and shift a bit at a
  CMP #64                \ time from DVL9 (the loop would stop within the byte)
- BCC P%+7
+ BCC P%+6
  LDA #0
- JMP DVL9
+ BEQ DVL9               \ (Port: BEQ, as A is 0)
 
  PHA                    \ Shift (A P+1 P) left by a byte, so A = P+1, P+1 = P
  LDA P                  \ and P = 0
@@ -14684,8 +14684,8 @@ ENDMACRO
 
  BMI DV9                \ If bit 7 of A is now set, the shifting is done
 
- JMP dvb6               \ Otherwise loop back to dvb6 to see if we can shift
-                        \ another byte
+ BPL dvb6               \ Otherwise loop back to dvb6 to see if we can shift
+                        \ another byte (Port: BPL, as N is clear)
 
 .DVL6
 
@@ -22450,14 +22450,13 @@ ENDMACRO
  LDA TYPE               \ Shift bit 0 of the planet/sun's type into the C flag
  LSR A
 
- BCS P%+5               \ If the planet/sun's type has bit 0 clear, then it's
+ BCC WPLS2              \ If the planet/sun's type has bit 0 clear, then it's
                         \ either 128 or 130, which is a planet; meanwhile, the
                         \ sun has type 129, which has bit 0 set. So if this is
-                        \ the sun, skip the following instruction
-
- JMP WPLS2              \ This is the planet, so jump to WPLS2 to remove it from
+                        \ the planet, jump to WPLS2 to remove it from
                         \ screen, returning from the subroutine using a tail
-                        \ call
+                        \ call (Port: a BCC for the
+                        \ original's BCS P%+5 and JMP, as WPLS2 is in reach)
 
  JMP WPLS               \ This is the sun, so jump to WPLS to remove it from
                         \ screen, returning from the subroutine using a tail
@@ -30496,6 +30495,28 @@ ENDMACRO
 \
 \ ******************************************************************************
 
+MACRO L28STEP
+
+                        \ Port: one step of LL28's division (LL31's eight,
+                        \ and LL9's part 8 in line): shift A left; if a bit
+                        \ falls out, the 9-bit value is at least 256, so
+                        \ subtract Q; else if A < Q the result bit is 0 (C
+                        \ clear); otherwise subtract Q (C is set, by the CMP
+                        \ or the ASL) and set C, for a result bit of 1; then
+                        \ catch the result bit in R
+
+ ASL A
+ BCS sub
+ CMP Q
+ BCC bit
+.sub
+ SBC Q
+ SEC
+.bit
+ ROL R
+
+ENDMACRO
+
                         \ Port: LL2 is before LL28, within its BCS's reach of
                         \ the unrolled division below
 
@@ -30519,91 +30540,21 @@ ENDMACRO
 .LL31
 
                         \ Port: the original's loop is unrolled, its eight
-                        \ steps done one after another, with R only catching
-                        \ the result bits (it no longer counts the steps). The
-                        \ results are the original's: R = 256 * A / Q, A = the
-                        \ remainder, C clear (as the last ROL shifts out bit 0
-                        \ of R's starting value, 254), X and Y unchanged
+                        \ steps done one after another (the macro L28STEP),
+                        \ with R only catching the result bits (it no longer
+                        \ counts the steps). The results are the original's:
+                        \ R = 256 * A / Q, A = the remainder, C clear (as the
+                        \ last ROL shifts out bit 0 of R's starting value,
+                        \ 254), X and Y unchanged
 
- ASL A                  \ Step 1: shift A left; if a bit falls out, the 9-bit
- BCS l28s1              \ value is at least 256, so subtract Q at l28s1
- CMP Q                  \ If A < Q, the result bit is 0 (C clear)
- BCC l28n1
-.l28s1
- SBC Q                  \ Subtract Q (C is set, by the CMP or the ASL)
- SEC                    \ Set C, for a result bit of 1
-.l28n1
- ROL R                  \ Catch the result bit in R
-
- ASL A                  \ Step 2: shift A left; if a bit falls out, the 9-bit
- BCS l28s2              \ value is at least 256, so subtract Q at l28s2
- CMP Q                  \ If A < Q, the result bit is 0 (C clear)
- BCC l28n2
-.l28s2
- SBC Q                  \ Subtract Q (C is set, by the CMP or the ASL)
- SEC                    \ Set C, for a result bit of 1
-.l28n2
- ROL R                  \ Catch the result bit in R
-
- ASL A                  \ Step 3: shift A left; if a bit falls out, the 9-bit
- BCS l28s3              \ value is at least 256, so subtract Q at l28s3
- CMP Q                  \ If A < Q, the result bit is 0 (C clear)
- BCC l28n3
-.l28s3
- SBC Q                  \ Subtract Q (C is set, by the CMP or the ASL)
- SEC                    \ Set C, for a result bit of 1
-.l28n3
- ROL R                  \ Catch the result bit in R
-
- ASL A                  \ Step 4: shift A left; if a bit falls out, the 9-bit
- BCS l28s4              \ value is at least 256, so subtract Q at l28s4
- CMP Q                  \ If A < Q, the result bit is 0 (C clear)
- BCC l28n4
-.l28s4
- SBC Q                  \ Subtract Q (C is set, by the CMP or the ASL)
- SEC                    \ Set C, for a result bit of 1
-.l28n4
- ROL R                  \ Catch the result bit in R
-
- ASL A                  \ Step 5: shift A left; if a bit falls out, the 9-bit
- BCS l28s5              \ value is at least 256, so subtract Q at l28s5
- CMP Q                  \ If A < Q, the result bit is 0 (C clear)
- BCC l28n5
-.l28s5
- SBC Q                  \ Subtract Q (C is set, by the CMP or the ASL)
- SEC                    \ Set C, for a result bit of 1
-.l28n5
- ROL R                  \ Catch the result bit in R
-
- ASL A                  \ Step 6: shift A left; if a bit falls out, the 9-bit
- BCS l28s6              \ value is at least 256, so subtract Q at l28s6
- CMP Q                  \ If A < Q, the result bit is 0 (C clear)
- BCC l28n6
-.l28s6
- SBC Q                  \ Subtract Q (C is set, by the CMP or the ASL)
- SEC                    \ Set C, for a result bit of 1
-.l28n6
- ROL R                  \ Catch the result bit in R
-
- ASL A                  \ Step 7: shift A left; if a bit falls out, the 9-bit
- BCS l28s7              \ value is at least 256, so subtract Q at l28s7
- CMP Q                  \ If A < Q, the result bit is 0 (C clear)
- BCC l28n7
-.l28s7
- SBC Q                  \ Subtract Q (C is set, by the CMP or the ASL)
- SEC                    \ Set C, for a result bit of 1
-.l28n7
- ROL R                  \ Catch the result bit in R
-
- ASL A                  \ Step 8: shift A left; if a bit falls out, the 9-bit
- BCS l28s8              \ value is at least 256, so subtract Q at l28s8
- CMP Q                  \ If A < Q, the result bit is 0 (C clear)
- BCC l28n8
-.l28s8
- SBC Q                  \ Subtract Q (C is set, by the CMP or the ASL)
- SEC                    \ Set C, for a result bit of 1
-.l28n8
- ROL R                  \ Catch the result bit in R
+ L28STEP                \ Step 1
+ L28STEP                \ Step 2
+ L28STEP                \ Step 3
+ L28STEP                \ Step 4
+ L28STEP                \ Step 5
+ L28STEP                \ Step 6
+ L28STEP                \ Step 7
+ L28STEP                \ Step 8
 
  RTS                    \ Return from the subroutine with R containing the
                         \ result and A the remainder of the division
@@ -33392,12 +33343,24 @@ LIGHT_SUN = TRUE
  BCS ll60f              \ division, which returns to ll60s with the result in
                         \ (Y R)
 
- JSR LL31               \ Call LL28's division (as A < Q, and its steps set
-                        \ every bit of R) to calculate:
+                        \ Port: LL31's division in line (its eight steps, the
+                        \ macro L28STEP, as A < Q and they set every bit of R),
+                        \ to calculate:
                         \
                         \   R = 256 * A / Q
                         \
-                        \ which keeps X
+                        \ which keeps X (A, the remainder, and C are not read
+                        \ after it: LL65 and LL68 set C before they add, so
+                        \ the last step does not subtract)
+
+ FOR I%, 1, 7
+  L28STEP
+ NEXT
+
+ ASL A                  \ The eighth step, shorter, as the remainder is not
+ BCS P%+4               \ needed: the result bit is the bit shifted out of A,
+ CMP Q                  \ else A >= Q (C from the CMP)
+ ROL R
 
  LDY #0                 \ Set Y = 0, the high byte of the result (the original's
                         \ U)
@@ -33448,7 +33411,8 @@ LIGHT_SUN = TRUE
 
  LDX #2                 \ Set X = 2, to say that this is the y-coordinate
 
- JMP ll60d              \ Jump back to ll60d to divide it by z_lo
+ BNE ll60d              \ Jump back to ll60d to divide it by z_lo (Port: BNE,
+                        \ as X is not 0)
 
 .LL62
 
