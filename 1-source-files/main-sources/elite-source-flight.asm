@@ -5434,8 +5434,10 @@ ENDIF
  TAX                    \ horizontal pixel number where the line ends
 
  LDA TWFL,X             \ Fetch a ready-made byte with the pixels from the left
- AND LCOL               \ end of the block to X filled, in the colour in LCOL,
- EOR (SC),Y             \ and EOR it into screen memory at SC(1 0) + Y
+                        \ end of the block to X filled, in the colour in LCOL,
+.hl3c                   \ and EOR it into screen memory at SC(1 0) + Y
+ AND LCOL
+ EOR (SC),Y
  STA (SC),Y
 
  LDY YSAV               \ Restore Y from YSAV, so that it's preserved across the
@@ -5462,15 +5464,10 @@ ENDIF
  LDA TWFL,X             \ Fetch a ready-made byte with the pixels from the left
                         \ end of the block to X filled
 
- AND T                  \ AND the two to get the pixels from X1 to X2, and the
- AND LCOL               \ colour in LCOL, and EOR them into screen memory at
- EOR (SC),Y             \ SC(1 0) + Y
- STA (SC),Y
-
- LDY YSAV               \ Restore Y from YSAV, so that it's preserved across the
-                        \ call to this subroutine
-
- RTS                    \ Return from the subroutine
+ AND T                  \ AND the two to get the pixels from X1 to X2, and
+ JMP hl3c               \ (Port: as HL3 does) the colour in LCOL, and EOR them
+                        \ into screen memory at SC(1 0) + Y, restore Y and
+                        \ return from the subroutine
 
 \ ******************************************************************************
 \
@@ -9785,7 +9782,7 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
                         \ drawing blank characters after this one until we reach
                         \ the end of the indicator row
 
- LDA CTWOD,X           \ Port: CTWOD, the cold bank's copy of CTWOS            \ CTWOS is a table of ready-made one-pixel mode 5 bytes,
+ LDA TWOS,X            \ Port: TWOS, whose first five bytes are CTWOS's            \ CTWOS is a table of ready-made one-pixel mode 5 bytes,
                         \ just like the TWOS and TWOS2 tables for mode 4 (see
                         \ the PIXEL routine for details of how they work). This
                         \ fetches a mode 5 one-pixel byte with the pixel
@@ -9895,16 +9892,6 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
 
  RTS                    \ Return from the subroutine
 
-.CTWOD
-
-                        \ Port: the cold bank's copy of the five bytes of
-                        \ CTWOS, for DIL2 (CTWOS itself is in the home bank)
-
- EQUB %10001000
- EQUB %01000100
- EQUB %00100010
- EQUB %00010001
- EQUB %10001000
 
 \ ******************************************************************************
 \
@@ -15275,6 +15262,15 @@ ENDMACRO
 
  STA X2                 \ Set X2 = A
 
+ JSR lasl               \ Port: draw a line from the random centre point we
+                        \ set above to (A, 191), by lasl (LOIN keeps Y)
+
+ STY X2                 \ Set X2 = Y, and fall through into lasl to draw a line
+                        \ from the centre point to (Y, 191), returning from the
+                        \ subroutine using a tail call
+
+.lasl
+
  LDA LASX               \ Set (X1, Y1) to the random centre point we set above
  STA X1
  LDA LASY
@@ -15285,22 +15281,8 @@ ENDMACRO
                         \ this sets Y2 to 191, the y-coordinate of the bottom
                         \ pixel row of the space view
 
- JSR LOIN               \ Draw a line from (X1, Y1) to (X2, Y2), so that's from
-                        \ the centre point to (A, 191)
-
- LDA LASX               \ Set (X1, Y1) to the random centre point we set above
- STA X1
- LDA LASY
- STA Y1
-
- STY X2                 \ Set X2 = Y
-
- LDA #2*Y-1             \ Set Y2 = 2 * #Y - 1, the y-coordinate of the bottom
- STA Y2                 \ pixel row of the space view (as before)
-
- JMP LOIN               \ Draw a line from (X1, Y1) to (X2, Y2), so that's from
-                        \ the centre point to (Y, 191), and return from
-                        \ the subroutine using a tail call
+ JMP LOIN               \ Draw a line from (X1, Y1) to (X2, Y2), and return
+                        \ from the subroutine using a tail call
 
 \ ******************************************************************************
 \
@@ -16289,18 +16271,10 @@ ENDMACRO
  BNE TT83               \ If X > 0 then we haven't done all 256 systems yet, so
                         \ loop back up to TT83
 
- LDA QQ9                \ Set QQ19 to the selected system's x-coordinate
- STA QQ19
-
- LDA QQ10               \ Set QQ19+1 to the selected system's y-coordinate,
- LSR A                  \ halved to fit it into the chart
- STA QQ19+1
-
- LDA #4                 \ Set QQ19+2 to size 4 for the crosshairs size
- STA QQ19+2
-
-                        \ Fall through into TT15 to draw crosshairs of size 4 at
-                        \ the selected system's coordinates
+ JMP TT103              \ Port: jump to TT103 to draw crosshairs of size 4 at
+                        \ the selected system's coordinates, as the original
+                        \ falls through into TT15 with the same QQ19 to QQ19+2
+                        \ (TT66 has set QQ11 to &40, so TT103 does so too)
 
 \ ******************************************************************************
 \
@@ -16326,6 +16300,11 @@ ENDMACRO
 \   QQ19+2              The size of the crosshairs
 \
 \ ******************************************************************************
+
+.TT15A
+
+ STA QQ19+2             \ Port: TT15A sets the size from A first, for the
+                        \ callers that set it just before calling TT15
 
 .TT15
 
@@ -16474,9 +16453,9 @@ ENDMACRO
  STA QQ19+1             \ the fixed circle on the Short-range Chart
 
  LDA #16                \ Set QQ19+2 = 16, the size of the crosshairs on the
- STA QQ19+2             \ Short-range Chart
+                        \ Short-range Chart (Port: in TT15A)
 
- JSR TT15               \ Draw the set of crosshairs defined in QQ19, at the
+ JSR TT15A              \ Draw the set of crosshairs defined in QQ19, at the
                         \ exact coordinates as this is the Short-range Chart
 
  LDA QQ14               \ Set K to the fuel level from QQ14, so this can act as
@@ -16511,9 +16490,9 @@ ENDMACRO
                         \ circle and crosshairs we draw
 
  LDA #7                 \ Set QQ19+2 = 7, the size of the crosshairs on the
- STA QQ19+2             \ Long-range Chart
+                        \ Long-range Chart (Port: in TT15A)
 
- JSR TT15               \ Draw the set of crosshairs defined in QQ19, which will
+ JSR TT15A              \ Draw the set of crosshairs defined in QQ19, which will
                         \ be drawn 24 pixels to the right of QQ19+1
 
  LDA QQ19+1             \ Add 24 to the y-coordinate of the crosshairs in QQ19+1
@@ -16801,10 +16780,10 @@ ENDMACRO
  LSR A                  \ (we halve it because the Long-range Chart is half as
  STA QQ19+1             \ high as it is wide)
 
- LDA #4                 \ Set QQ19+2 to 4 denote crosshairs of size 4
- STA QQ19+2
+ LDA #4                 \ Set QQ19+2 to 4 denote crosshairs of size 4 (Port:
+                        \ in TT15A)
 
- JMP TT15               \ Jump to TT15 to draw crosshairs of size 4 at the
+ JMP TT15A              \ Jump to TT15 to draw crosshairs of size 4 at the
                         \ crosshairs coordinates, returning from the subroutine
                         \ using a tail call
 
@@ -16938,10 +16917,10 @@ ENDMACRO
  STA QQ19+1             \ so this sets QQ19+1 to the screen pixel x-coordinate
                         \ of the crosshairs
 
- LDA #8                 \ Set QQ19+2 to 8 denote crosshairs of size 8
- STA QQ19+2
+ LDA #8                 \ Set QQ19+2 to 8 denote crosshairs of size 8 (Port:
+                        \ in TT15A)
 
- JMP TT15               \ Jump to TT15 to draw crosshairs of size 8 at the
+ JMP TT15A              \ Jump to TT15 to draw crosshairs of size 8 at the
                         \ crosshairs coordinates, returning from the subroutine
                         \ using a tail call
 
@@ -31725,10 +31704,9 @@ ENDIF
 .shdj
 
  EQUB 2, 0, 4, 0, 0     \ For i = x, y, z (X = 0, 2, 4): the offset of j (y, z, x)
+ EQUB 0, 2              \ and from shdj+2, of k (z, x, y): 4, 0, 0, 0, 2
 
-.shdk
-
- EQUB 4, 0, 0, 0, 2     \ and of k (z, x, y)
+ shdk = shdj + 2
 
 .SHAND
 
@@ -34086,11 +34064,8 @@ LIGHT_SUN = TRUE
 .LL108
 
  LSR XX13               \ If we get here then (x2, y2) is off-screen and XX13 is
-                        \ 191, so shift XX13 right to halve it to 95
-
- JMP LL83               \ Port: on to part 2, in the cold bank (this part is in
-                        \ the home bank, so that a line that needs no clipping,
-                        \ the common case, costs no far call)
+                        \ 191, so shift XX13 right to halve it to 95, and fall
+                        \ through into part 2
 
 \ ******************************************************************************
 \
@@ -34121,11 +34096,6 @@ LIGHT_SUN = TRUE
 \
 \ ******************************************************************************
 
-.ll109c
-
- SEC                    \ Port: a copy of LL109 (in part 1, in the home bank):
- RTS                    \ return with C set, the line not visible
-
 .LL83
 
  LDA XX13               \ If XX13 < 128 then only one of the points is on-screen
@@ -34137,11 +34107,11 @@ LIGHT_SUN = TRUE
 
  LDA XX15+1             \ If both x1_hi and x2_hi have bit 7 set, jump to LL109
  AND XX15+5             \ to return from the subroutine with the C flag set, as
- BMI ll109c              \ the entire line is above the top of the screen
+ BMI LL109               \ the entire line is above the top of the screen
 
  LDA XX15+3             \ If both y1_hi and y2_hi have bit 7 set, jump to LL109
  AND XX12+1             \ to return from the subroutine with the C flag set, as
- BMI ll109c              \ the entire line is to the left of the screen
+ BMI LL109               \ the entire line is to the left of the screen
 
  LDX XX15+1             \ Set A = X = x1_hi - 1
  DEX
@@ -34152,7 +34122,7 @@ LIGHT_SUN = TRUE
  STX XX12+2
 
  ORA XX12+2             \ If neither (x1_hi - 1) or (x2_hi - 1) have bit 7 set,
- BPL ll109c              \ jump to LL109 to return from the subroutine with the C
+ BPL LL109               \ jump to LL109 to return from the subroutine with the C
                         \ flag set, as the line doesn't fit on-screen
 
  LDA XX15+2             \ If y1_lo < y-coordinate of screen bottom, clear the C
@@ -34182,7 +34152,7 @@ LIGHT_SUN = TRUE
                         \ the screen, i.e. if y1_lo is on-screen
 
  ORA XX12+2             \ If neither XX12+1 or XX12+2 have bit 7 set, jump to
- BPL ll109c              \ LL109 to return from the subroutine with the C flag
+ BPL LL109               \ LL109 to return from the subroutine with the C flag
                         \ set, as the line doesn't fit on-screen
 
 \ ******************************************************************************
@@ -34436,16 +34406,9 @@ LIGHT_SUN = TRUE
  PLA                    \ Restore Y from the stack so it gets preserved through
  TAY                    \ the call to this subroutine
 
-.ll146c                 \ Port: LL146 (in part 1, in the home bank), copied
-                        \ here: move the low bytes of (x1, y1) and (x2, y2)
- LDA XX15+2             \ into (X1, Y1) and (X2, Y2), and return from the
- STA XX15+1             \ subroutine with a successfully clipped line
- LDA XX15+4
- STA XX15+2
- LDA XX12
- STA XX15+3
- CLC
- RTS
+ JMP LL146              \ Jump to LL146 to move the low bytes of (x1, y1) and
+                        \ (x2, y2) into (X1, Y1) and (X2, Y2), and return from
+                        \ the subroutine with a successfully clipped line
 
 .LL137
 
@@ -34687,7 +34650,7 @@ LIGHT_SUN = TRUE
  STA S                  \ Otherwise x1_hi is negative, i.e. off the left of the
                         \ screen, so set S = x1_hi
 
- JSR LL120              \ Call LL120 to calculate:
+ JSR ll120a             \ Port: call LL120 and add (Y X) to y1 (ll120a)
                         \
                         \   (Y X) = (S x1_lo) * XX12+2      if T = 0
                         \         = x1 * gradient
@@ -34698,14 +34661,6 @@ LIGHT_SUN = TRUE
                         \ with the sign of (Y X) set to the opposite of the
                         \ line's direction of slope
 
- TXA                    \ Set y1 = y1 + (Y X)
- CLC                    \
- ADC XX15+2             \ starting with the low bytes
- STA XX15+2
-
- TYA                    \ And then adding the high bytes
- ADC XX15+3
- STA XX15+3
 
  LDA #0                 \ Set x1 = 0
  STA XX15
@@ -34722,7 +34677,7 @@ LIGHT_SUN = TRUE
  STA S                  \ Otherwise x1_hi is positive, i.e. x1 >= 256 and off
  DEC S                  \ the right side of the screen, so set S = x1_hi - 1
 
- JSR LL120              \ Call LL120 to calculate:
+ JSR ll120a             \ Port: call LL120 and add (Y X) to y1 (ll120a)
                         \
                         \   (Y X) = (S x1_lo) * XX12+2      if T = 0
                         \         = (x1 - 256) * gradient
@@ -34733,14 +34688,6 @@ LIGHT_SUN = TRUE
                         \ with the sign of (Y X) set to the opposite of the
                         \ line's direction of slope
 
- TXA                    \ Set y1 = y1 + (Y X)
- CLC                    \
- ADC XX15+2             \ starting with the low bytes
- STA XX15+2
-
- TYA                    \ And then adding the high bytes
- ADC XX15+3
- STA XX15+3
 
  LDX #255               \ Set x1 = 255
  STX XX15
@@ -34762,7 +34709,7 @@ LIGHT_SUN = TRUE
  LDA XX15+2             \ Set R = y1_lo
  STA R
 
- JSR LL123              \ Call LL123 to calculate:
+ JSR ll123a             \ Port: call LL123 and add (Y X) to x1 (ll123a)
                         \
                         \   (Y X) = (S R) / XX12+2      if T = 0
                         \         = y1 / gradient
@@ -34773,14 +34720,6 @@ LIGHT_SUN = TRUE
                         \ with the sign of (Y X) set to the opposite of the
                         \ line's direction of slope
 
- TXA                    \ Set x1 = x1 + (Y X)
- CLC                    \
- ADC XX15               \ starting with the low bytes
- STA XX15
-
- TYA                    \ And then adding the high bytes
- ADC XX15+1
- STA XX15+1
 
  LDA #0                 \ Set y1 = 0
  STA XX15+2
@@ -34806,7 +34745,7 @@ LIGHT_SUN = TRUE
                         \ If we get here then y1 >= screen height, i.e. off the
                         \ bottom of the screen
 
- JSR LL123              \ Call LL123 to calculate:
+ JSR ll123a             \ Port: call LL123 and add (Y X) to x1 (ll123a)
                         \
                         \   (Y X) = (S R) / XX12+2      if T = 0
                         \         = (y1 - screen height) / gradient
@@ -34817,14 +34756,6 @@ LIGHT_SUN = TRUE
                         \ with the sign of (Y X) set to the opposite of the
                         \ line's direction of slope
 
- TXA                    \ Set x1 = x1 + (Y X)
- CLC                    \
- ADC XX15               \ starting with the low bytes
- STA XX15
-
- TYA                    \ And then adding the high bytes
- ADC XX15+1
- STA XX15+1
 
  LDA #Y*2-1             \ Set y1 = 2 * #Y - 1. The constant #Y is 96, the
  STA XX15+2             \ y-coordinate of the mid-point of the space view, so
@@ -34834,6 +34765,30 @@ LIGHT_SUN = TRUE
 .LL136
 
  RTS                    \ Return from the subroutine
+
+.ll120a
+
+ JSR LL120              \ Port: LL120's (Y X), added to y1 = (y1_hi y1_lo), as
+ TXA                    \ LL118 does in two places
+ CLC
+ ADC XX15+2
+ STA XX15+2
+ TYA
+ ADC XX15+3
+ STA XX15+3
+ RTS
+
+.ll123a
+
+ JSR LL123              \ Port: LL123's (Y X), added to x1 = (x1_hi x1_lo), as
+ TXA                    \ LL118 does in two places
+ CLC
+ ADC XX15
+ STA XX15
+ TYA
+ ADC XX15+1
+ STA XX15+1
+ RTS
 
 \ ******************************************************************************
 \
@@ -36772,16 +36727,16 @@ LIGHT_SUN = TRUE
 
 .sgd
 
- LDA #20                \ Set QQ19+2 to size 20 for the crosshairs size
- STA QQ19+2
+ LDA #20                \ Set QQ19+2 to size 20 for the crosshairs size (Port:
+                        \ in TT15A)
 
- JSR TT15               \ Call TT15 to draw crosshairs of size 20 just to the
+ JSR TT15A              \ Call TT15 to draw crosshairs of size 20 just to the
                         \ left of the middle of the screen
 
- LDA #10                \ Set QQ19+2 to size 10 for the crosshairs size
- STA QQ19+2
+ LDA #10                \ Set QQ19+2 to size 10 for the crosshairs size (Port:
+                        \ in TT15A)
 
- JMP TT15               \ Call TT15 to draw crosshairs of size 10 at the same
+ JMP TT15A              \ Call TT15 to draw crosshairs of size 10 at the same
                         \ location, which will remove the centre part from the
                         \ laser crosshairs, leaving a gap in the middle, and
                         \ return from the subroutine using a tail call
