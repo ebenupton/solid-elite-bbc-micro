@@ -2875,10 +2875,14 @@ ENDIF
                         \ do the reverse of the copy we did before, this time
                         \ copying from INWK to INF
 
- LDA INF                \ Port: patch the block's address into the loop below,
- STA MAL3+4             \ as for MAL2 (INF again: MVEIT's TACTICS can spawn
- LDA INF+1              \ ships, which moves it)
- STA MAL3+5
+ LDA INF+1              \ Port: if the block is in K%'s first page, jump to
+ CMP #HI(K%)            \ mal3f for the unrolled copy (INF
+ BEQ mal3f              \ again: MVEIT's TACTICS can spawn ships, which moves
+                        \ it)
+
+ STA MAL3+5             \ Port: patch the block's address into the loop below,
+ LDA INF                \ as for MAL2
+ STA MAL3+4
 
  LDY #NI%-1             \ Set a counter in Y so we can loop through the NI%
                         \ bytes in the ship data block
@@ -2892,6 +2896,21 @@ ENDIF
 
  BPL MAL3               \ Loop back for the next byte, until we have copied the
                         \ last byte from INWK back to INF
+
+ JMP mal3d              \ Skip the unrolled copy
+
+.mal3f
+
+ LDY INF                \ Set Y to the block's offset in K%'s first page
+
+ FOR I%, NI%-1, 0, -1   \ Copy the NI% bytes of INWK to the block at K% + Y,
+  LDA INWK+I%           \ from the last byte to the first, as the loop does
+  STA K%+I%,Y
+ NEXT
+
+ LDY #&FF               \ Set Y = &FF, as the loop leaves it
+
+.mal3d
 
 \ ******************************************************************************
 \
