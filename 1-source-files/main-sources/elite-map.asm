@@ -58,7 +58,7 @@
                         \ page boundaries, and their branches' cycles)
 
  C6% = &8000            \ The flight code's cold 6 pass, at the start of bank 6
- C6SZ = 255             \ (BANK6), before the frame layer, and its room (the
+ C6SZ = 402             \ (BANK6), before the frame layer, and its room (the
                         \ flight code's layout assembles it there and saves it
                         \ as C6.bin, which bank 6's assembly takes in; a far
                         \ call, farC6, reaches it: elite-far.asm, streams.py;
@@ -229,7 +229,7 @@
                         \ frame start buffer 0 afresh (GSTASH: f_b0new), and
                         \ forget its disc state (DP_BEGIN's PB_RESET)
 
- WIN7FIX% = &A4AD       \ The renderer's window in the flight code's bank 7
+ WIN7FIX% = &A4BA       \ The renderer's window in the flight code's bank 7
                         \ (elite-layout-flight.asm), at a fixed place, so that
                         \ the cold pass and the overlays, before it, can change
                         \ size without moving its code across pages (the bank's
@@ -377,10 +377,11 @@
  PFVH% = RESH% + 16     \ gfx-planet7.asm, the flight code's planet surface in
  PFVS% = BPSLOT_END%    \ a build with _CIRCLES): 62 bytes at the end of the
                         \ resident block A, before the glue, and 62 after the
-                        \ high resident block, to VEC, in main RAM, and what one
-                        \ PF_HOOK call makes and uses in the 94 bytes after
-                        \ the blueprint slot, to the quarter squares, which a
-                        \ set's file loads over (LOMOD) between iterations
+                        \ high resident block, to VEC, in main RAM, and the
+                        \ record one PF_HOOK call makes, after the glue (the
+                        \ main pass); the 94 bytes after the blueprint slot,
+                        \ to the quarter squares, at PFVS%, are the hot pass's
+                        \ container at bank 4's top
  ASSERT PFVA% + 62 = GLUE%
 
  PF_INWK = &46          \ INWK, for bank 5's part of the planet's surface

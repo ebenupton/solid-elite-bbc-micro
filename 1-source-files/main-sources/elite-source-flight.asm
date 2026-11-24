@@ -3325,6 +3325,22 @@ ENDIF
  BEQ MA8                \ laser power (which we set in MA68 above), so if this
                         \ is zero, jump down to MA8 to skip the following
 
+                        \ Port: otherwise fall into MA47h, in the cold pass
+
+\ ******************************************************************************
+\
+\       Name: MA47h
+\       Type: Subroutine
+\   Category: Main loop
+\    Summary: Port: the main flight loop's laser hit (part 11's end), in the
+\             cold pass, as it runs only when our laser hits a ship; it falls
+\             into MA8, on the hot side
+\       Area: cold
+\
+\ ******************************************************************************
+
+.MA47h
+
  LDX #15                \ We are firing our laser and the ship in INWK is in
  JSR EXNO               \ the crosshairs, so call EXNO to make the sound of
                         \ us making a laser strike on another ship
@@ -3340,7 +3356,7 @@ ENDIF
                         \ the ship (i.e. the laser in the current view)
 
  CMP #(Armlas AND 127)  \ If the laser is not a military laser, jump to MA8
- BNE MA8                \ to skip the following, as only military lasers have
+ BNE ma8h               \ to skip the following, as only military lasers have
                         \ any effect on the Constrictor
 
  LSR LAS                \ Divide the laser power of the current view by 4, so
@@ -3395,6 +3411,9 @@ ENDIF
  LDA TYPE               \ Call ANGRY to make the target ship or station hostile,
  JSR ANGRY              \ and if this is a ship, wake up its AI and give it a
                         \ kick of speed
+
+.ma8h                   \ Port: on into MA8, on the hot side (through the cold
+                        \ pass's stub for it)
 
 \ ******************************************************************************
 \
@@ -8564,17 +8583,22 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
  JMP TT36               \ Jump to TT36 to start the process of printing this
                         \ number's digits
 
+.bpsh
+
+ ASL K+3                \ Port: K(S 0 1 2 3) = K(S 0 1 2 3) * 2, for TT35's
+ ROL K+2                \ three shifts
+ ROL K+1
+ ROL K
+ ROL S
+ RTS
+
 .TT35
 
                         \ This subroutine multiplies K(S 0 1 2 3) by 10 and
                         \ stores the result back in K(S 0 1 2 3), using the fact
                         \ that K * 10 = (K * 2) + (K * 2 * 2 * 2)
 
- ASL K+3                \ Set K(S 0 1 2 3) = K(S 0 1 2 3) * 2 by rotating left
- ROL K+2
- ROL K+1
- ROL K
- ROL S
+ JSR bpsh               \ Set K(S 0 1 2 3) = K(S 0 1 2 3) * 2 by rotating left
 
  LDX #3                 \ Now we want to make a copy of the newly doubled K in
                         \ XX15, so we can use it for the first (K * 2) in the
@@ -8598,17 +8622,15 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
                         \ K(S 0 1 2 3), which is the value of (K * 2) that we
                         \ want to use in our calculation
 
- ASL K+3                \ Now to calculate the (K * 2 * 2 * 2) part. We still
- ROL K+2                \ have (K * 2) in K(S 0 1 2 3), so we just need to shift
- ROL K+1                \ it twice. This is the first one, so we do this:
- ROL K                  \
- ROL S                  \   K(S 0 1 2 3) = K(S 0 1 2 3) * 2 = K * 4
+ JSR bpsh               \ Now to calculate the (K * 2 * 2 * 2) part. We still
+                        \ have (K * 2) in K(S 0 1 2 3), so we just need to shift
+                        \ it twice. This is the first one, so we do this:
+                        \
+                        \   K(S 0 1 2 3) = K(S 0 1 2 3) * 2 = K * 4
 
- ASL K+3                \ And then we do it again, so that means:
- ROL K+2                \
- ROL K+1                \   K(S 0 1 2 3) = K(S 0 1 2 3) * 2 = K * 8
- ROL K
- ROL S
+ JSR bpsh               \ And then we do it again, so that means:
+                        \
+                        \   K(S 0 1 2 3) = K(S 0 1 2 3) * 2 = K * 8
 
  CLC                    \ Clear the C flag so we can do addition without the
                         \ C flag affecting the result
@@ -17320,11 +17342,16 @@ ENDMACRO
 
  INC XX20               \ Increment the counter
 
- BEQ TT111-1            \ If X = 0 then we have done all 256 systems, so return
-                        \ from the subroutine (as TT111-1 contains an RTS)
+ BEQ tt23r              \ If X = 0 then we have done all 256 systems, so return
+                        \ from the subroutine (Port: as tt23r contains an RTS,
+                        \ in this overlay, where TT111-1's is in the cold pass)
 
  JMP TT182              \ Otherwise jump back up to TT182 to process the next
                         \ system
+
+.tt23r
+
+ RTS
 
 \ ******************************************************************************
 \
@@ -18788,6 +18815,8 @@ ENDMACRO
  STA QQ1                \ vicinity of our original destination, but above or
                         \ below it in the galactic chart
 
+.mjpr
+
  RTS                    \ Return from the subroutine
 
 \ ******************************************************************************
@@ -18858,7 +18887,8 @@ ENDMACRO
 
  LDA QQ11               \ If the current view in QQ11 is not a space view (0) or
  AND #%00111111         \ one of the charts (64 or 128), return from the
- BNE TT113              \ subroutine (as TT113 contains an RTS)
+ BNE mjpr               \ subroutine (Port: as mjpr, MJP's, contains an RTS, in
+                        \ this overlay, where TT113's is in the cold pass)
 
  JSR TTX66              \ Otherwise clear the screen and draw a border box
 
@@ -20230,6 +20260,7 @@ ENDMACRO
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Draw an exploding ship
+\       Area: cold
 \  Deep dive: Drawing explosion clouds
 \             Generating random numbers
 \
@@ -20370,6 +20401,20 @@ ENDMACRO
  LDA INWK+31            \ Set bit 6 of the ship's byte #31 to denote that the
  ORA #%01000000         \ explosion has been drawn (as it's about to be)
  STA INWK+31
+
+                        \ Port: and fall into PTCLS, on the hot side (DOEXP,
+                        \ the cloud's set-up, runs only for an exploding ship,
+                        \ and is in the cold pass)
+
+\ ******************************************************************************
+\
+\       Name: PTCLS
+\       Type: Subroutine
+\   Category: Drawing ships
+\    Summary: Port: DOEXP's drawing of the explosion cloud (PTCLS, PTCLR), on the
+\             hot side, as it runs for each of the cloud's particles
+\
+\ ******************************************************************************
 
 .PTCLS
 
@@ -28851,6 +28896,7 @@ ENDIF
 
  BPL NOL1               \ Loop back for the next source byte
 
+
                         \ Fall through into KYTB to return from the subroutine,
                         \ as the first byte of KYTB is an RTS
 
@@ -36690,7 +36736,7 @@ LIGHT_SUN = TRUE
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Flip the coordinate axes for the four different views
-\       Area: cold
+\       Area: cold 6
 \  Deep dive: Flipping axes between space views
 \
 \ ------------------------------------------------------------------------------

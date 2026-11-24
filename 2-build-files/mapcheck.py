@@ -137,7 +137,6 @@ qsl, bp, bp_end = C["QSL"], C["BPSLOT_P"], C["BPSLOT_END_P"]
 fhot_end = FL["CIRC_START%"]
 order("flight bank 4", [("the hot pass", 0x8000, fhot_end), ("the planet's surface", fhot_end, FL["HOME_END%"]),
                         ("the blueprint slot", bp, bp_end),
-                        ("the circle engine's variables (bank 4 top)", C["PFVS_P"], FL.get("PFVS_END%", C["PFVS_P"])),
                         ("the hot pass's container at bank 4's top", FL["HOT4%"], FL["HOT4_END%"]),
                         ("the quarter squares", qsl, qsl + 0x400)])
 if qsl + 0x400 != 0xC000:
@@ -149,7 +148,6 @@ nlab += inside(FL, OUT + "elite-flight-hot.asm", 0x8000, fhot_end, "the hot pass
 nlab += inside(FL, OUT + "elite-flight-hot4.asm", FL["HOT4%"], qsl, "the hot pass at bank 4's top")
 for f in ("gfx-planet7", "gfx-merid"):
     nlab += inside(FL, OUT + "%s-bank4.asm" % f, fhot_end, bp, "bank 4's planet's surface")
-    nlab += inside(FL, OUT + "%s-bank4top.asm" % f, C["PFVS_P"], qsl, "bank 4 top")
     nlab += inside(FL, OUT + "%s-mainhigh.asm" % f, C["PFVH_P"], 0x7FFE, "main high")
 nlab += inside(FL, OUT + "gfx-merid-mainlow.asm", C["PFVA_P"], C["GLUE_P"], "main low")
 nlab += inside(B5, OUT + "gfx-planet7-mainhigh.asm", C["PFVH_P"], 0x7FFE, "main high")

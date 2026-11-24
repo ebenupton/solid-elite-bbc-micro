@@ -3790,10 +3790,20 @@ FGZ = 4 + 1 + 1 + 9 + 1 + 2
 .f_gkeep
  BIT f_gz
  BMI fgk9
- FOR k, 0, 3 : LDA RAND+k : STA f_gzs+k : NEXT
+ LDX #8                 \ (INWK 0-8 and RAND by loops, for room)
+.fgk1
+ LDA INWK,X
+ STA f_gzs+6,X
+ DEX
+ BPL fgk1
+ LDX #3
+.fgk2
+ LDA RAND,X
+ STA f_gzs,X
+ DEX
+ BPL fgk2
  LDA Q : STA f_gzs+4
  LDA TGT : STA f_gzs+5
- FOR k, 0, 8 : LDA INWK+k : STA f_gzs+6+k : NEXT
  LDA INWK+31 : STA f_gzs+15
  LDA XX19 : STA f_gzs+16
  LDA XX19+1 : STA f_gzs+17
@@ -3803,10 +3813,20 @@ FGZ = 4 + 1 + 1 + 9 + 1 + 2
 
 .f_gback
  INC f_gz               \ (NMOS: &FF to 0)
- FOR k, 0, 3 : LDA f_gzs+k : STA RAND+k : NEXT
+ LDX #8
+.fgb1
+ LDA f_gzs+6,X
+ STA INWK,X
+ DEX
+ BPL fgb1
+ LDX #3
+.fgb2
+ LDA f_gzs,X
+ STA RAND,X
+ DEX
+ BPL fgb2
  LDA f_gzs+4 : STA Q
  LDA f_gzs+5 : STA TGT
- FOR k, 0, 8 : LDA f_gzs+6+k : STA INWK+k : NEXT
  LDA f_gzs+15 : STA INWK+31
  LDA f_gzs+16 : STA XX19
  LDA f_gzs+17 : STA XX19+1

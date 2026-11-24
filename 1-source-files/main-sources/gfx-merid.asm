@@ -2253,9 +2253,14 @@ O_RC = pv_rc - pv
 .pc_s9  SKIP 3          \ } pixels
 .pc_n   SKIP 6
 
-\       Area: bank 4 top
+\       Area: main
 
-.wr     SKIP RSZ        \ the record being made
+.wr     SKIP RSZ        \ the record being made (Port: in the glue's room in
+                        \ main RAM, and the rest in main low, leaving bank 4's
+                        \ top to the hot pass: elite-layout-flight.asm)
+
+\       Area: main low
+
 pm_a32 = wr + R_A       \ (a, 16.16 signed, and K2, 16.16: pms_core makes
 pm_K2 = wr + R_K2       \ them in the record)
 .pcbx   SKIP 2          \ the body: its centre and radius

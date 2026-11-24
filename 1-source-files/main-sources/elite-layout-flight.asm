@@ -101,7 +101,7 @@ ENDIF
 .HOME_END%
 
 IF _CIRCLES             \ the circle engine's variables (elite-map.asm): the
- ORG PFVH%              \ main high, main low and bank 4 top passes
+ ORG PFVH%              \ main high and main low passes
  INCLUDE "3-assembled-output/gfx-planet7-mainhigh.asm"
  INCLUDE "3-assembled-output/gfx-merid-mainhigh.asm"
 .PFVH_END%
@@ -110,13 +110,9 @@ IF _CIRCLES             \ the circle engine's variables (elite-map.asm): the
  INCLUDE "3-assembled-output/gfx-merid-mainlow.asm"
 .PFVA_END%
  ASSERT P% <= GLUE%
- ORG PFVS%
- INCLUDE "3-assembled-output/gfx-merid-bank4top.asm"
-.PFVS_END%
- ASSERT P% <= QSL
-ELSE
- ORG PFVS%
-ENDIF
+ ENDIF
+
+ ORG PFVS%              \ (after the blueprint slot)
 
 .HOT4%                  \ the hot pass's container at bank 4's top, after the
                         \ circle engine's variables, to the quarter squares
