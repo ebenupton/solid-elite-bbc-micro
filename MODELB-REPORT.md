@@ -373,26 +373,58 @@ No scene is slower.
 Free now (flight): hot side 0, bank 7 64, bank 5 139 (the cold 5 pass's
 places 92), bank 6 80.
 
-**What remains, and why:**
+**Second round (the user's two decisions).** The other half of the
+unrolled copy landed (3213a70) after a commit of room (08f5eca) at the
+costs the user accepted: DOEXP's cloud set-up and the laser hit to the
+cold pass (about 720 cycles an exploding ship's frame, about 540 a hit),
+f_gkeep and f_gback by loops (about 180 cycles a frame that runs game code,
+50 an iteration in the gate) for bank 6's room, which the cold 6 pass took
+with PU1; the circle engine's record in main RAM's free bytes, so that bank
+4's top is all the hot pass's. The sound (NOS1, SFX) did not need to move.
+Copy into INWK: flight -1,257 cycles an iteration, zone -999, rear -976.
 
-* The other half of the unrolled copy (into INWK, MAL2: about 196 bytes,
-  about 1,100 cycles in flight). The hot side is full. The next hot bytes
-  cost cycles in events bbench does not have: DOEXP's first part (104
-  bytes, about 720 cycles an exploding ship's frame), MA47's laser hit
-  (84, about 540 a hit), NOS1 and SFX (54, about 190 a sound), and need
-  bank 7 room that would have to come from bank 6 (f_gkeep's and
-  f_gback's copies as loops: 133 bytes for about 100 cycles in the gate,
-  370 in zone). A trade for the user to decide.
+**Speed now** (3213a70; gate VERIFY PASS 11.47 8.13 0.708 246116.7 and bhsync PASS, against 7.99 and 250,217.8 at 92b80d7 and 8.11 and 246,474.9 at a6a8acd): bbench, cycles an iteration:
+
+| Scene | 92b80d7 | 4f302f2 | 3213a70 | vs 92b80d7 | vs 4f302f2 |
+|---|---:|---:|---:|---:|---:|
+| flight | 177,065 | 172,896 | 171,874 | -2.93% | -0.59% |
+| combat | 98,816 | 97,848 | 97,566 | -1.26% | -0.29% |
+| beachball | 215,853 | 212,145 | 211,521 | -2.01% | -0.29% |
+| sun | 231,618 | 228,267 | 227,724 | -1.68% | -0.24% |
+| docking | 418,348 | 414,910 | 414,535 | -0.91% | -0.09% |
+| zone | 336,569 | 332,599 | 331,919 | -1.38% | -0.20% |
+| rear | 210,939 | 209,855 | 209,039 | -0.90% | -0.39% |
+| approach | 232,439 | 228,623 | 228,213 | -1.82% | -0.18% |
+| departure | 337,035 | 333,104 | 332,588 | -1.32% | -0.15% |
+
+Free now (flight): hot side 18, bank 7 4, bank 6 35, bank 5 139.
+
+**The disc layer in one bank: not done.** The profile of the gate's run
+puts the hand-over between the banks at about 27,000 cycles an iteration
+(11%): f_dbat filling the mailbox's slots in bank 6 (about 11,900, 100 rows
+an iteration), dp_ld, dp_ldp and dp_st copying them into the painter's
+variables in bank 7 (about 11,000) and R_GETW's transfers in bank 5
+(about 3,900), so it is by far the largest win left. Doing it means
+moving the frame layer's disc part (2.2K of code, PC_ROWS's 1.7K, and the
+rows' arrays and half-widths, 1.9K) into bank 7 with the painter, and so
+about 5.9K of bank 7's cold code into bank 6: but only about 2.2K of the
+cold pass meets the cold 6 pass's rules as streams.py has them (nothing
+may fall or branch into a cold 6 block, overlays cannot call it, it cannot
+call the cold 5 pass), and bank 6's freed bytes would be in three pieces,
+two of them among its state. The Electron port's version (ae6c2ea,
+2c0201d, 1dbaa28) extended streams.py for those cases and relaid bank 6;
+the same here is a multi-commit redesign (streams.py's cold 6 rules, bank
+6's layout with the pass in two places, the frame layer's calls into bank 7
+through a resident trampoline and the docked code's bank 7 entries, then
+the painter reading the rows in place). Bank 7 is full again after the
+second half of the copy (4 bytes), so that work would also have to find
+room for itself, as above.
+
+**Also remaining:**
+
 * The row runs entered by a jump with a fixed exit (2.4K of bank 5): its
-  gain here, estimated from the profile (16 phase B runs, 4.7 plants and 4
-  spans an iteration in the gate, about 30 cycles each), is about 400 to
-  1,000 cycles in the gate's run, 0.2 to 0.4 cycles a byte: far below the
-  exchange rate. Not done; item 10 depends on it.
-* The disc layer made and painted in one bank: a redesign. The profile
-  shows the hand-over's cost (dp_ld, dp_ldp and dp_st, about 11,000 cycles
-  an iteration in the gate, about 89 rows) is large, so it is the best
-  candidate left, but it moves the row maker and its inputs from bank 6
-  into bank 7 and was not started.
-* The far-call cuts for DIALS and TIDY: 0.18 cycles a byte, skipped.
-* DEATH could go to the cold 5 pass (126 bytes) if elite-far.asm had a
-  farC5j (9 bytes of resident block A, which has 3).
+  gain here, estimated from the profile, is 0.2 to 0.4 cycles a byte, far
+  below the exchange rate; item 10 depends on it.
+* The far-call cuts for DIALS and TIDY: 0.18 cycles a byte.
+* DEATH to the cold 5 pass (126 bytes of bank 7) needs a farC5j (9 bytes
+  of resident block A, which has 3).
