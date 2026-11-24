@@ -37127,19 +37127,26 @@ LIGHT_SUN = TRUE
 \
 \ ******************************************************************************
 
+.sc5h
+
+ RTS                    \ Port: SCAN's early returns branch here: SC5, the
+                        \ original's RTS before SCAN, is in LYN, in the cold
+                        \ pass, so a branch to it would reach its stub and
+                        \ make a far call to return
+
 .SCAN
 
  LDA INWK+31            \ Fetch the ship's scanner flag from byte #31
 
  AND #%00010000         \ If bit 4 is clear then the ship should not be shown
- BEQ SC5                \ on the scanner, so return from the subroutine (as SC5
+ BEQ sc5h               \ on the scanner, so return from the subroutine (as sc5h
                         \ contains an RTS)
 
  LDA TYPE               \ Fetch the ship's type from TYPE into A
 
- BMI SC5                \ If this is the planet or the sun, then the type will
+ BMI sc5h               \ If this is the planet or the sun, then the type will
                         \ have bit 7 set and we don't want to display it on the
-                        \ scanner, so return from the subroutine (as SC5
+                        \ scanner, so return from the subroutine (as sc5h
                         \ contains an RTS)
 
 IF _STH_DISC OR _IB_DISC
@@ -37170,9 +37177,9 @@ ENDIF
 
  LDA INWK+1             \ If any of x_hi, y_hi and z_hi have a 1 in bit 6 or 7,
  ORA INWK+4             \ then the ship is too far away to be shown on the
- ORA INWK+7             \ scanner, so return from the subroutine (as SC5
+ ORA INWK+7             \ scanner, so return from the subroutine (as sc5h
  AND #%11000000         \ contains an RTS)
- BNE SC5
+ BNE sc5h
 
                         \ If we get here, we know x_hi, y_hi and z_hi are all
                         \ 63 (%00111111) or less
