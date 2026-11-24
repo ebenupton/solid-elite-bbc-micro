@@ -28165,7 +28165,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Flight
 \    Summary: Perform an in-system jump
-\       Area: cold
+\       Area: cold 5
 \  Deep dive: A sense of scale
 \
 \ ------------------------------------------------------------------------------

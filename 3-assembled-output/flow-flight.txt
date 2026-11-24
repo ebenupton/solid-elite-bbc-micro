@@ -86,7 +86,7 @@ hotx &7E00-&7E5F: 10 units, 49 bytes, 47 free
   &7E2D     1 LL9 (Part 9 of 12), drawing..LL9 (Part 10 of 12)
   &7E2E     2 LL9 (Part 11 of 12)..LL9 (Part 12 of 12)
   &7E30     1 LL9 (Part 12 of 12), drawing
-c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%, C5GAP%, C5HI%): 29 units and 22 stubs, 1032 bytes, 333 free
+c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%, C5GAP%, C5HI%): 30 units and 26 stubs, 1143 bytes, 222 free
   &87BF-&87FF tail 7: 63 bytes, 2 free
   &87BF      63 HEE31
   &88BF-&88FF tail 8: 65 bytes, 0 free
@@ -97,7 +97,7 @@ c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5
   &8AFA       5 x5_PIXEL2
   &8FBF-&8FFF tail 15: 62 bytes, 3 free
   &8FBF      57 CLYNS
-  &8FF8       5 x5_MULTU
+  &8FF8       5 x5_m
   &91BF-&91FF tail 17: 62 bytes, 3 free
   &91BF      49 EDGES
   &91F0      13 SPS4
@@ -139,24 +139,29 @@ c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5
   &A74C     106 TT24
   &A7B6      25 msblob
   &A7CF      22 THERE
-  &A7E5       5 x5_MULT12
-  &A7EA       5 x5_MAD
-  &A7EF       5 x5c_TT54
-  &A7F4       5 x5c_TT67
-  &A7F9       5 x5c_pr5
+  &A7E5       5 x5_MAS2
+  &A7EA       5 x5_MULTU
+  &A7EF       5 x5_MULT12
+  &A7F4       5 x5_MAD
+  &A7F9       5 x5_ADD
   &B3D0-&B3FF place gap: 45 bytes, 3 free
-  &B3D0       5 x5c_TT68
-  &B3D5       5 x5c_TT27
-  &B3DA       5 x5_NWSHP
-  &B3DF       5 x5_KILLSHP
-  &B3E4       5 x5_ZINF
-  &B3E9       5 x5_DORND
-  &B3EE       5 j5c_DEATH
-  &B3F3       5 x5_TAS2
-  &B3F8       5 x5_EXNO3
-  &BEC2-&BFFF place hi: 25 bytes, 293 free
-  &BEC2       5 x5_NOISE
-  &BEC7       5 x5c_OUCH
-  &BECC       5 x5c_LL145
-  &BED1       5 x5_MVT1
-  &BED6       5 x5c_LYN
+  &B3D0       5 x5c_TT54
+  &B3D5       5 x5c_TT67
+  &B3DA       5 x5c_pr5
+  &B3DF       5 x5c_TT68
+  &B3E4       5 x5c_TT27
+  &B3E9       5 x5_NWSHP
+  &B3EE       5 x5_KILLSHP
+  &B3F3       5 x5_ZINF
+  &B3F8       5 x5_DORND
+  &BEC2-&BFFF place hi: 136 bytes, 182 free
+  &BEC2      91 WARP
+  &BF1D       5 j5c_DEATH
+  &BF22       5 x5_TAS2
+  &BF27       5 x5_EXNO3
+  &BF2C       5 x5_NOISE
+  &BF31       5 x5c_OUCH
+  &BF36       5 x5c_LL145
+  &BF3B       5 x5_MVT1
+  &BF40       5 x5c_LOOK1
+  &BF45       5 x5c_LYN
