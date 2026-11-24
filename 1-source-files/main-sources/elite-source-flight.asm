@@ -10066,6 +10066,7 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
 \       Type: Subroutine
 \   Category: Tactics
 \    Summary: Apply tactics: Process missiles, both enemy missiles and our own
+\       Area: cold
 \  Deep dive: Program flow of the tactics routine
 \
 \ ------------------------------------------------------------------------------
@@ -10311,9 +10312,10 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
  BNE TN5                \ station is hostile), jump to TN5 to spawn some cops
 
  LDA MANY+SHU+1         \ The station is not hostile, so check how many
- BNE TA1                \ Transporters there are in the vicinity, and if we
-                        \ already have one, return from the subroutine (as TA1
-                        \ contains an RTS)
+ BNE ta1h               \ Transporters there are in the vicinity, and if we
+                        \ already have one, return from the subroutine (Port:
+                        \ as ta1h contains an RTS, on this side, where part 1,
+                        \ with TA1, is cold)
 
                         \ If we get here then the station is not hostile, so we
                         \ can consider spawning a Transporter or Shuttle
@@ -10321,7 +10323,7 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
  JSR DORND              \ Set A and X to random numbers
 
  CMP #253               \ If A < 253 (99.2% chance), return from the subroutine
- BCC TA1                \ (as TA1 contains an RTS)
+ BCC ta1h               \ (Port: as ta1h contains an RTS)
 
  AND #1                 \ Set A = a random number that's either 0 or 1
 
@@ -10341,11 +10343,11 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
  JSR DORND              \ Set A and X to random numbers
 
  CMP #240               \ If A < 240 (93.8% chance), return from the subroutine
- BCC TA1                \ (as TA1 contains an RTS)
+ BCC ta1h               \ (Port: as ta1h contains an RTS)
 
  LDA MANY+COPS          \ Check how many cops there are in the vicinity already,
  CMP #4                 \ and if there are 4 or more, return from the subroutine
- BCS TA1                \ (as TA1 contains an RTS; Port: not TA22, in part 3,
+ BCS ta1h               \ (Port: as ta1h contains an RTS; not TA22, in part 3,
                         \ in the cold pass)
 
  LDX #COPS              \ Set X to the ship type for a cop
@@ -10357,6 +10359,11 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
 
  JMP SFS1               \ Jump to SFS1 to spawn the ship, returning from the
                         \ subroutine using a tail call
+
+.ta1h
+
+ RTS                    \ Port: the returns above, on this side (part 1's TA1 is
+                        \ in the cold pass)
 
 .TA13
 
@@ -11400,6 +11407,7 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate vector K3(8 0) = [x y z] - coordinates of the sun or
 \             space station
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11442,6 +11450,7 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate vector K3(8 0) = [x y z] - coordinates in (A V)
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11479,6 +11488,7 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
 \       Type: Subroutine
 \   Category: Maths (Arithmetic)
 \    Summary: Calculate K3 = (x_sign x_hi x_lo) - V(1 0)
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \
@@ -11632,6 +11642,7 @@ sd_bt = K+3             \ The sign of -beta (K is not touched by LL28,
 \       Type: Subroutine
 \   Category: Maths (Geometry)
 \    Summary: Negate the vector in XX15 so it points in the opposite direction
+\       Area: cold
 \
 \ ******************************************************************************
 
@@ -27805,6 +27816,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Maths (Geometry)
 \    Summary: Normalise the three-coordinate vector in K3
+\       Area: cold
 \
 \ ------------------------------------------------------------------------------
 \

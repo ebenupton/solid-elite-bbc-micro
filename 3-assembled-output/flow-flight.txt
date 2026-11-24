@@ -8,30 +8,30 @@ hot &8000-&A8A5: 43 units, 10406 bytes, 0 free
   &881C   258 STARS6
   &891E    92 MVT3
   &897A   177 MVS5
-  &8A2B     7 BPRD
-  &8A32   213 TACTICS (Part 1 of 7)..TACTICS (Part 2 of 7)
-  &8B07    80 HITCH
-  &8B57   255 STARS2..QSMUL
-  &8C56   242 MU5..MULT3
-  &8D48   100 SQUA..MU11
-  &8DAC   257 FMLTU2..MLTU2
-  &8EAD   131 TAS3..ADD
-  &8F30   178 DVID3B2
-  &8FE2   124 BUMP2..ARCTAN
-  &905E   261 DOEXP
-  &9163    86 DOT..CPIX2
-  &91B9   171 NWSHP
-  &9264   295 PROJ..WPLS
-  &938B    95 CHKON..PLS6
-  &93EA   315 TT17..SFX
-  &9525   202 ZINF..Main game loop (Part 6 of 6)
-  &95EF   165 TT102
-  &9694   101 RDKEY
-  &96F9    96 ECMOF..KYTB
-  &9759   332 DKJ1..DK4
-  &98A5   110 LL28
-  &9913    86 H_CIRC
-  &9969    28 MFRAME
+  &8A2B   101 BPRD..TACTICS (Part 2 of 7)
+  &8A90    80 HITCH
+  &8AE0   255 STARS2..QSMUL
+  &8BDF   242 MU5..MULT3
+  &8CD1   100 SQUA..MU11
+  &8D35   257 FMLTU2..MLTU2
+  &8E36   131 TAS3..ADD
+  &8EB9   178 DVID3B2
+  &8F6B   124 BUMP2..ARCTAN
+  &8FE7   261 DOEXP
+  &90EC    81 DOT..CPIX2
+  &913D   171 NWSHP
+  &91E8   295 PROJ..WPLS
+  &930F    95 CHKON..PLS6
+  &936E   315 TT17..SFX
+  &94A9   202 ZINF..Main game loop (Part 6 of 6)
+  &9573   165 TT102
+  &9618   101 RDKEY
+  &967D    96 ECMOF..KYTB
+  &96DD   332 DKJ1..DK4
+  &9829    73 SHPPT
+  &9872   110 LL28
+  &98E0    79 L5SET
+  &992F    86 H_CIRC
   &9985    89 S_SHIP
   &99DE   985 L_REC
   &9DB7  1485 LL9 (Part 1 of 12)..LL9 (Part 6 of 12)
@@ -42,50 +42,47 @@ hot &8000-&A8A5: 43 units, 10406 bytes, 0 free
   &A6D7   103 MVS4
   &A73E   200 MV40
   &A806   160 SCAN
-hotm &79C6-&7DFF: 32 units, 1082 bytes, 0 free
+hotm &79C6-&7DFF: 39 units, 878 bytes, 204 free
   &79C6    13 INBAY
-  &79D3    41 SUNSC
-  &79FC    26 UNIV
-  &7A16    10 CTWOS
-  &7A20    14 MAS2
-  &7A2E    38 MAS3
-  &7A54    54 VCSU1..TAS1
-  &7A8A    19 TAS6
-  &7A9D    76 MLS2..MLS1
-  &7AE9     5 MU6
-  &7AEE    77 MUT2..MULT1
-  &7B3B    43 DV42..DVID4
-  &7B66    23 cntr
-  &7B7D    11 GCASH
-  &7B88    16 SHD..DENGY
-  &7B98    18 SPS3
-  &7BAA    19 GINF
-  &7BBD    12 SUNE
-  &7BC9    13 FAROF..FAROF2
-  &7BD6    14 DPLT
-  &7BE4    76 SPS1..TAS2
-  &7C30    56 DKS1..DKS2
-  &7C68    73 SHPPT
-  &7CB1    60 LL5
-  &7CED    79 L5SET
-  &7D3C    11 LL9F
-  &7D47    14 H_PTCLS
-  &7D55    14 H_PTCLSE
-  &7D63    17 H_DOT
-  &7D74    11 LL42F
-  &7D7F    76 H_LL42..H_EE31
-  &7DCB    53 MVT6
-hotx &7E00-&7E5F: 10 units, 49 bytes, 47 free
-  &7E00     9 LTLI
-  &7E09     8 DEEOR
-  &7E11     1 FLKB
-  &7E12    10 MULT12
-  &7E1C     7 MAS4
-  &7E23     4 SHCOL
-  &7E27     6 RECM
-  &7E2D     1 LL9 (Part 9 of 12), drawing..LL9 (Part 10 of 12)
-  &7E2E     2 LL9 (Part 11 of 12)..LL9 (Part 12 of 12)
-  &7E30     1 LL9 (Part 12 of 12), drawing
+  &79D3     9 LTLI
+  &79DC     8 DEEOR
+  &79E4    41 SUNSC
+  &7A0D    26 UNIV
+  &7A27    10 CTWOS
+  &7A31     1 FLKB
+  &7A32    14 MAS2
+  &7A40    38 MAS3
+  &7A66    76 MLS2..MLS1
+  &7AB2     5 MU6
+  &7AB7    77 MUT2..MULT1
+  &7B04    10 MULT12
+  &7B0E    43 DV42..DVID4
+  &7B39    23 cntr
+  &7B50    11 GCASH
+  &7B5B    16 SHD..DENGY
+  &7B6B    18 SPS3
+  &7B7D    19 GINF
+  &7B90    12 SUNE
+  &7B9C    13 FAROF..FAROF2
+  &7BA9     7 MAS4
+  &7BB0    14 DPLT
+  &7BBE    20 SPS1
+  &7BD2    56 DKS1..DKS2
+  &7C0A    60 LL5
+  &7C46     4 SHCOL
+  &7C4A     6 RECM
+  &7C50    28 MFRAME
+  &7C6C    11 LL9F
+  &7C77    14 H_PTCLS
+  &7C85    14 H_PTCLSE
+  &7C93    17 H_DOT
+  &7CA4    11 LL42F
+  &7CAF    76 H_LL42..H_EE31
+  &7CFB     1 LL9 (Part 9 of 12), drawing..LL9 (Part 10 of 12)
+  &7CFC     2 LL9 (Part 11 of 12)..LL9 (Part 12 of 12)
+  &7CFE     1 LL9 (Part 12 of 12), drawing
+  &7CFF    53 MVT6
+hotx &7E00-&7E5F: 0 units, 0 bytes, 96 free
 c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%, C5GAP%, C5HI%): 30 units and 26 stubs, 1143 bytes, 222 free
   &87BF-&87FF tail 7: 63 bytes, 2 free
   &87BF      63 HEE31
@@ -157,7 +154,7 @@ c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5
   &BEC2-&BFFF place hi: 136 bytes, 182 free
   &BEC2      91 WARP
   &BF1D       5 j5c_DEATH
-  &BF22       5 x5_TAS2
+  &BF22       5 x5c_TAS2
   &BF27       5 x5_EXNO3
   &BF2C       5 x5_NOISE
   &BF31       5 x5c_OUCH
