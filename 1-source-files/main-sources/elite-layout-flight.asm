@@ -168,6 +168,9 @@ ENDIF
 
  PRINT "Flight overlays: ", ~OVL%, "-", ~OVL_END%-1, " (1: ", OVL1_END%-OVL%, " bytes, 2: ", OVL2_END%-OVL%, ")"
 
+ ASSERT P% <= WIN7FIX%  \ The flight code's bank 7's free bytes, before the
+ SKIP WIN7FIX% - P%     \ renderer's window, which is at a fixed place
+
                         \ Port: the renderer's window in bank 7, after the cold
                         \ pass: the parts of the renderer that only the flight
                         \ code uses and that banks 5 and 6 have no room for,

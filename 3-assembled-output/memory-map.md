@@ -35,8 +35,8 @@
 | bank 4 (docked) | `&BBA2-&BBFF` | (free) | 0 | 94 |
 | bank 4 (docked) | `&BC00-&BFFF` | the quarter squares `QSL`, `QSH` (made by the loader) | 1024 | 0 |
 | bank 7 (flight) | `&8000-&9FE4` | the cold pass, `QQ18` | 8165 | 0 |
-| bank 7 (flight) | `&9FE5-&A417` | the overlay region (`D.OV1` 1075 bytes, `D.OV2` 793) | 1075 | 0 |
-| bank 7 (flight) | `&A418-&B3FF` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch) | 3910 | 162 |
+| bank 7 (flight) | `&9FE5-&A4AC` | the overlay region (`D.OV1` 1075 bytes, `D.OV2` 793), then the bank's free bytes, before the renderer's window at its fixed place (`WIN7FIX%`) | 1075 | 149 |
+| bank 7 (flight) | `&A4AD-&B3FF` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch) | 3910 | 13 |
 | bank 7 (flight) | `&B400-&BFFF` | the workspace: each buffer's disc state (not in the image: `DP_BEGIN` sets it up), buffer 0's sharing its first `&2E2` bytes with `ovload`'s stash of `WP` and the zero page during an overlay's load (`OVSTASH`) | 3072 | 0 |
 | bank 7 (docked) | `&8000-&BFFF` | the set's face lists, the cold pass, `QQ18` | 11397 | 4987 |
 | bank 5 | `&8000-&97FF` | the 24 row runs, a page each; in their tails the stars' records and variables, `R_LINE`'s, DFS's workspace page between disc commands (`DFSTAIL%`: 64 bytes in each of four), and in tails 7, 8, 10, 15, 17, 18, 19, 20, 21, 22, 23 the flight code's cold 5 pass (`Area: cold 5`: `elite-flight-c5.asm`, `C5_r.bin`; `C5TAILS`), and in the ends of tails 0, 1, 2, 3, 4, 5, 6, 9, from byte 52 on, more of it (`C5_rp.bin`; `C5PTAILS`, `C5POFF`) (free: the 0 other tails with nothing in them, 65 bytes each, the rest of the others, and the cold 5 tails' room) | 6062 | 82 |

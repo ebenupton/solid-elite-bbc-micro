@@ -229,6 +229,12 @@
                         \ frame start buffer 0 afresh (GSTASH: f_b0new), and
                         \ forget its disc state (DP_BEGIN's PB_RESET)
 
+ WIN7FIX% = &A4AD       \ The renderer's window in the flight code's bank 7
+                        \ (elite-layout-flight.asm), at a fixed place, so that
+                        \ the cold pass and the overlays, before it, can change
+                        \ size without moving its code across pages (the bank's
+                        \ free bytes are between them)
+
  DFSSAVE% = &C000       \ The end of the flight code's bank 7 workspace (each
                         \ buffer's disc state, gfx-raster_disc.asm) and of the
                         \ docked code's cold image
