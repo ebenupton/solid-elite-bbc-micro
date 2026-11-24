@@ -1108,15 +1108,27 @@ def c5_place(prog, src, copies, errors, lines, bl, eff, units, fallk, stubline, 
             continue
         pre.setdefault(bl[u[0]].s, []).append("ORG &%04X" % a)
         chk = "ASSERT P%% = &%04X   \\ (streams.py: %s, %d bytes, as measured)" % (a + size, names, size)
+        # (a line's directives are joined with " : ", so a comment must come last: below)
         if fs:
             post.setdefault(stubline[fs[0]] if fs[0] else where_of(lines, fallk[u[-1]]), []).append(chk)
         else:
             pre.setdefault(bl[u[-1]].e, []).insert(0, chk)
+    def joined(parts):
+        """the parts as one line, their comments after all their code (an
+        ASSERT's comment before another unit's ORG would hide the ORG)"""
+        codes, notes = [], []
+        for x in parts:
+            c, n = split_code(x)
+            if c.strip():
+                codes.append(c.strip())
+            if n.strip():
+                notes.append(n.strip().lstrip("\\").strip())
+        return " " + " : ".join(codes) + ("   \\ " + "; ".join(notes) if notes else "")
     for i, ds in pre.items():
         code = code_part(cc[i])
-        cc[i] = " " + " : ".join(ds + ([cc[i].strip()] if code else []))
+        cc[i] = joined(ds + ([cc[i]] if code else []))
     for i, ds in post.items():
-        cc[i] = cc[i].rstrip() + " : " + " : ".join(ds)
+        cc[i] = joined([cc[i]] + ds)
     report.append("c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%%, C5GAP%%, C5HI%%): %d units and "
                   "%d stubs, %d bytes, %d free" % (len(units), sum(1 for x in items if x[1] == 1), sum(fill.values()),
                                                   sum(tsz.values()) - sum(fill.values())))

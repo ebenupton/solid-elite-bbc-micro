@@ -85,7 +85,7 @@ hot4 &BBC1-&BBFF: 4 units, 5 bytes, 58 free
   &BBC2     1 LL9 (Part 9 of 12), drawing..LL9 (Part 10 of 12)
   &BBC3     2 LL9 (Part 11 of 12)..LL9 (Part 12 of 12)
   &BBC5     1 LL9 (Part 12 of 12), drawing
-c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%, C5GAP%, C5HI%): 30 units and 26 stubs, 1143 bytes, 222 free
+c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5LO%, C5GAP%, C5HI%): 31 units and 27 stubs, 1273 bytes, 92 free
   &87BF-&87FF tail 7: 63 bytes, 2 free
   &87BF      63 HEE31
   &88BF-&88FF tail 8: 65 bytes, 0 free
@@ -134,33 +134,35 @@ c5 (the tails C5TAILS, 65 bytes each, the tails' ends C5PTAILS and the places C5
   &86F3       9 SFS2
   &89F3-&89FF place 9p: 9 bytes, 4 free
   &89F3       9 NwS1
-  &A74C-&A7FF place lo: 178 bytes, 2 free
-  &A74C     106 TT24
-  &A7B6      25 msblob
-  &A7CF      22 THERE
-  &A7E5       5 x5_MAS2
-  &A7EA       5 x5_MULTU
-  &A7EF       5 x5_MULT12
-  &A7F4       5 x5_MAD
-  &A7F9       5 x5_ADD
+  &A74C-&A7FF place lo: 177 bytes, 3 free
+  &A74C     125 SHAND
+  &A7C9      25 msblob
+  &A7E2      22 THERE
+  &A7F8       5 x5_MAS2
   &B3D0-&B3FF place gap: 45 bytes, 3 free
-  &B3D0       5 x5c_TT54
-  &B3D5       5 x5c_TT67
-  &B3DA       5 x5c_pr5
-  &B3DF       5 x5c_TT68
-  &B3E4       5 x5c_TT27
-  &B3E9       5 x5_NWSHP
-  &B3EE       5 x5_KILLSHP
-  &B3F3       5 x5_ZINF
-  &B3F8       5 x5_DORND
-  &BEC2-&BFFF place hi: 136 bytes, 182 free
-  &BEC2      91 WARP
-  &BF1D       5 j5c_DEATH
-  &BF22       5 x5c_TAS2
-  &BF27       5 x5_EXNO3
-  &BF2C       5 x5_NOISE
-  &BF31       5 x5c_OUCH
-  &BF36       5 x5c_LL145
-  &BF3B       5 x5_MVT1
-  &BF40       5 x5c_LOOK1
-  &BF45       5 x5c_LYN
+  &B3D0       5 x5_MULTU
+  &B3D5       5 x5_FMLTU
+  &B3DA       5 x5_MULT12
+  &B3DF       5 x5_MAD
+  &B3E4       5 x5_ADD
+  &B3E9       5 x5c_TT54
+  &B3EE       5 x5c_TT67
+  &B3F3       5 x5c_pr5
+  &B3F8       5 x5c_TT68
+  &BEC2-&BFFF place hi: 267 bytes, 51 free
+  &BEC2     106 TT24
+  &BF2C      91 WARP
+  &BF87       5 x5c_TT27
+  &BF8C       5 x5_NWSHP
+  &BF91       5 x5_KILLSHP
+  &BF96       5 x5_ZINF
+  &BF9B       5 x5_DORND
+  &BFA0       5 j5c_DEATH
+  &BFA5       5 x5c_TAS2
+  &BFAA       5 x5_EXNO3
+  &BFAF       5 x5_NOISE
+  &BFB4       5 x5c_OUCH
+  &BFB9       5 x5c_LL145
+  &BFBE       5 x5_MVT1
+  &BFC3       5 x5c_LOOK1
+  &BFC8       5 x5c_LYN

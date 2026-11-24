@@ -31764,7 +31764,7 @@ ENDIF
 \       Type: Subroutine
 \   Category: Drawing ships
 \    Summary: Port: the handedness of the ship's orientation vectors
-\       Area: cold
+\       Area: cold 5
 \
 \ ------------------------------------------------------------------------------
 \
