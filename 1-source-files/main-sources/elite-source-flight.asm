@@ -2020,7 +2020,6 @@
 \   Category: Loader
 \    Summary: Load and run the main docked code in T.CODE
 \  Deep dive: Swapping between the docked and flight code
-\       Area: cold
 \
 \ ******************************************************************************
 
@@ -2034,9 +2033,13 @@
                         \ JSR OSCLI returned (its docked code had loaded over
                         \ the instruction after the JSR, the docked INBAY's
                         \ JMP SCRAM). So this INBAY can be anywhere on the
-                        \ flight code's side: the flow puts it in main RAM in
-                        \ a build with _CIRCLES, where the docked code's main
-                        \ RAM part loads over it
+                        \ flight code's hot side, where the home bank is paged
+                        \ when PCLI is called (PCLI pages the caller's bank
+                        \ back for its return), but not in the cold pass:
+                        \ from bank 7, PCLI would return into bank 7, which
+                        \ the docked code's cold part has loaded over. The
+                        \ flow puts it in main RAM in a build with _CIRCLES,
+                        \ where the docked code's main RAM part loads over it
 
  LDX #LO(LTLI)          \ Set (Y X) to point to LTLI ("L.T.CODE", which gets
  LDY #HI(LTLI)          \ modified to "R.T.CODE" in the DOENTRY routine)
