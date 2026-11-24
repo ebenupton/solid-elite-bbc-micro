@@ -405,9 +405,9 @@ the player's own turn since. The mailbox holds the records only until the frame'
   one colour, `r_dmb` with boundaries, `r_dp2`, `r_dq`, `r_dpe` with the
   strips, `r_drg`, `r_segw`, `r_dp1`) and `R_DISC2`, with the row in X for
   each buffer's arrays and the frame's rows, and the slot in Y for the
-  batch: a row that changed has its data taken into variables (`dp_ld`:
-  the row's from the arrays, its extent from the slot) and what it wrote
-  put back in the slot (`dp_st`). It writes the screen itself (a row's address worked
+  batch: the row code reads the frame's rows in place, and a row that
+  changed has its extent taken from its slot (`dp_ld`) and what it wrote
+  put back (`dp_st`). It writes the screen itself (a row's address worked
   out, `r_rowp`; the masks from four-byte tables, `r_sw`), queueing the
   layer's long spans while the queue has room (the layer's writes on a row
   never overlap, so their order does not matter; the second disc's may, so
@@ -783,11 +783,12 @@ every iteration).
 The disc layer keeps both discs on each buffer and writes only what
 changed. With the rows made in the painter's bank, its batches cost
 `R_GETW` in bank 5 (the dirty extents taken and emptied, the writes put
-back: about 70 a row) and a changed row's data taken and put back in the
-painter (`dp_ld`, `dp_st`: about 11,000 cycles a flight iteration in the
-gate's run); the rows outside the new ones made empty for it cost about
-170 (`f_dbat`), and there is no filling of slots, no trampoline a batch
-and no far call to the painter.
+back: about 70 a row) and a changed row's extent taken from its slot and
+what it wrote put back (`dp_ld`, `dp_st`); the row code reads the row's
+data where it is made, at the row in X or Y, so nothing of it is copied;
+the rows outside the new ones made empty for it cost about 170 (`f_dbat`),
+and there is no filling of slots, no trampoline a batch and no far call to
+the painter.
 
 The station close is the slowest scene. A profile of its iterations in
 that run (`bprofile.mjs --scenes`, each flight iteration put in the scene of the

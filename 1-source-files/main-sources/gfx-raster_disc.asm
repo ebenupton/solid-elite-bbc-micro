@@ -26,11 +26,12 @@
 \   * DP_ROWS (Y = the first row, X = the rows in the batch): the layer's
 \     rows (one colour: r_dlb; with boundaries: r_dmb), with the batch's
 \     slot in Y and the row in X (the Master port's code has the row in X
-\     for both); a row that changed or is dirty has its new data taken into
-\     variables (dp_ld: rn_l, rn_r, rn_n, rn_x0-3, from R_NDISCL to R_NDX3
-\     at the row, and its slot's dirty extent rd_l, rd_r) and what it wrote
-\     put back (dp_st: rw_l, rw_r into the slot's DB_WL, DB_WR, which bank 5
-\     then puts into R_WL, R_WR);
+\     for both); the row code reads the row's new data where the frame
+\     layer's disc part makes it (R_NDISCL to R_NDX3, at the row in X or
+\     Y), and a row that changed or is dirty has only its slot's dirty
+\     extent taken (dp_ld: rd_l, rd_r) and what it wrote put back (dp_st:
+\     rw_l, rw_r into the slot's DB_WL, DB_WR, which bank 5 then puts into
+\     R_WL, R_WR);
 \
 \   * DP_DISC2: the second disc (gfx-raster_disc2.asm).
 \
@@ -222,32 +223,18 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   JMP r_dmb
 }
 
-\ dp_ld: row X's data and slot Y's dirty extent into the row's variables
-\ (keeps X and Y); dp_ldp: without the boundaries; dp_st: what the row wrote
-\ into its slot, and X = the row, Y = the slot back
+\ dp_ld: slot Y's dirty extent into the row's variables, nothing written
+\ yet, and the slot and the row (X) kept (keeps X and Y); dp_st: what the
+\ row wrote into its slot, and X = the row, Y = the slot back
 
 .dp_ld
-  LDA R_NDN,X
-  STA rn_n
-  LDA R_NDX0,X
-  STA rn_x0
-  LDA R_NDX1,X
-  STA rn_x1
-  LDA R_NDX2,X
-  STA rn_x2
-  LDA R_NDX3,X
-  STA rn_x3
-.dp_ldp
-  STY dp_s
-  STX dp_x
-  LDA R_NDISCL,X
-  STA rn_l
-  LDA R_NDISCR,X
-  STA rn_r
   LDA DB_WL,Y
   STA rd_l
   LDA DB_WR,Y
   STA rd_r
+.dp_ldc                   \ (without the extent: a row that is not dirty, whose
+  STY dp_s                \ path does not read it)
+  STX dp_x
   LDA #0                  \ (nothing written yet)
   STA rw_r
   RTS
@@ -283,13 +270,13 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   BNE lp
   RTS
 .ch
-  JSR dp_ldp
+  JSR dp_ldc               \ (not dirty: no extent)
   JSR r_dp2               \ (returns X = RZ_Y)
   JSR dp_st
   JMP nx                  \ (NMOS: no BRA; JMP is 3 cycles too)
 .gd
-  JSR dp_ldp
-  LDA rn_l
+  JSR dp_ld
+  LDA R_NDISCL,X
 .^r_psl23 AND R_DISCL0,X
   CMP #&FF
   BNE gg
@@ -367,14 +354,14 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   LDA DB_WL,Y
   CMP #&FF
   BNE gd                  \ dirty
-  JSR dp_ld
+  JSR dp_ldc               \ (not dirty: no extent)
   JSR r_dq
   JSR dp_st
   JMP nx
 .gd
   JSR dp_ld
 .^r_dmgd                  \ (r_smx's way in, with the row's data loaded)
-  LDA rn_l
+  LDA R_NDISCL,X
 .^r_psl25 AND R_DISCL0,X
   EOR #&FF
   BNE gg
@@ -397,11 +384,11 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
 .r_smx
 {
   LDA rd_l
-  CMP rn_r
+  CMP R_NDISCR,X
   BEQ sms
   BCS smf                 \ dL > sR
   LDA rd_r
-  CMP rn_l
+  CMP R_NDISCL,X
   BCC smf                 \ dR < sL
 .sms
   INC r_dsub
@@ -427,7 +414,7 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   TXA
   AND #1
   TAY
-  LDA rn_n
+  LDA R_NDN,X
   BMI cb
   LDA R_DCE,Y
   STA r_c0
@@ -440,7 +427,7 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   LDA R_DCE,Y
   STA r_c1
 .go
-  LDA rn_x0               \ the first: moved right, old .. new-1 in segment
+  LDA R_NDX0,X               \ the first: moved right, old .. new-1 in segment
 .^r_pb021 CMP R_BDX00,X   \ 0's colour; left, new .. old-1 (or up to the
   BEQ n0                  \ second's new place) in 1's
   BCC l0
@@ -455,15 +442,16 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   LDY r_cn
   CPY #4
   BCC l0b
-  CMP rn_x1
+  CMP R_NDX1,X
   BCC l0b
-  LDA rn_x1
+  LDA R_NDX1,X
 .l0b
-  CMP rn_x0
+  CMP R_NDX0,X
   BEQ n0
   TAY
   DEY
-  LDX rn_x0
+  LDA R_NDX0,X
+  TAX
   LDA r_c1
 .p0
   JSR rs_put
@@ -474,17 +462,17 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   BCS b1
   JMP fin
 .b1
-  LDA rn_x1               \ the second: right, from the first's new place on,
+  LDA R_NDX1,X               \ the second: right, from the first's new place on,
 .^r_pb121 CMP R_BDX10,X   \ in 1's; left, up to the third's, in 2's (0's)
   BEQ n1
   BCC l1
   TAY
   DEY
 .^r_pb122 LDA R_BDX10,X
-  CMP rn_x0
+  CMP R_NDX0,X
   BCS P%+5
-  LDA rn_x0
-  CMP rn_x1
+  LDA R_NDX0,X
+  CMP R_NDX1,X
   BCS n1
   TAX
   LDA r_c1
@@ -494,15 +482,16 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   LDY r_cn
   CPY #6
   BCC l1b
-  CMP rn_x2
+  CMP R_NDX2,X
   BCC l1b
-  LDA rn_x2
+  LDA R_NDX2,X
 .l1b
-  CMP rn_x1
+  CMP R_NDX1,X
   BEQ n1
   TAY
   DEY
-  LDX rn_x1
+  LDA R_NDX1,X
+  TAX
   LDA r_c0
 .p1
   JSR rs_put
@@ -511,17 +500,17 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   LDA r_cn
   CMP #6
   BCC fin
-  LDA rn_x2               \ the third: right, from the second's new place
+  LDA R_NDX2,X               \ the third: right, from the second's new place
 .^r_pb221 CMP R_BDX20,X   \ on, in 2's (0's); left, in 3's (1's)
   BEQ fin
   BCC l2
   TAY
   DEY
 .^r_pb222 LDA R_BDX20,X
-  CMP rn_x1
+  CMP R_NDX1,X
   BCS P%+5
-  LDA rn_x1
-  CMP rn_x2
+  LDA R_NDX1,X
+  CMP R_NDX2,X
   BCS fin
   TAX
   LDA r_c0
@@ -535,11 +524,11 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   JSR rs_put
   LDX RZ_Y
 .fin
-  LDA rn_x0               \ the new boundaries; what was written
+  LDA R_NDX0,X               \ the new boundaries; what was written
 .^r_pb024 STA R_BDX00,X
-  LDA rn_x1
+  LDA R_NDX1,X
 .^r_pb124 STA R_BDX10,X
-  LDA rn_x2
+  LDA R_NDX2,X
 .^r_pb224 STA R_BDX20,X
   LDA r_wmax
   BEQ fx
@@ -824,7 +813,7 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
 .r_dpe
 {
   STX RZ_Y
-  LDA rn_n                \ the count and the colour (bit 7), new and old
+  LDA R_NDN,X                \ the count and the colour (bit 7), new and old
 .^r_pbn23 CMP R_BDN0,X
   BEQ sm
   JMP df
@@ -838,16 +827,16 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   STA r_ok
   STA r_nk
   JSR ld
-  LDA rn_n
+  LDA R_NDN,X
   JMP rs_cs
 .df                       \ another count or colour
 .^r_pbn24 LDA R_BDN0,X
   CMP #&40
   BEQ rp                  \ (the old count unknown)
-  LDA rn_l
+  LDA R_NDISCL,X
   CMP #&FF
   BEQ ne
-  LDA rn_n                \ the counts (the new at most three)
+  LDA R_NDN,X                \ the counts (the new at most three)
   AND #7
   CMP #4
   BCS rp
@@ -859,10 +848,10 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   CMP #&FF
   BEQ oe
   JSR ld
-  LDA rn_n                \ (C: the colours at the left end differ)
+  LDA R_NDN,X                \ (C: the colours at the left end differ)
 .^r_pbn26 EOR R_BDN0,X
   ASL A
-  LDA rn_n
+  LDA R_NDN,X
   JMP rs_df
 .rp
   TXA                     \ a repaint
@@ -877,9 +866,10 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   TXA                     \ (r_segw)
   TAY
   JSR r_bcols
-  LDA rn_l
+  JSR r_bvld
+  LDA R_NDISCL,X
   STA r_nL
-  LDA rn_r
+  LDA R_NDISCR,X
   STA r_nR
   LDX #&FF                \ (NMOS: X, for a 0)
   STX r_wmin
@@ -901,15 +891,15 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
 .^r_psr27 LDY R_DISCR0,X  \ (NMOS: in Y, as there is no INC A)
   INY
   STY r_oe
-  LDA rn_l
+  LDA R_NDISCL,X
   STA r_nl
-  LDA rn_x0
+  LDA R_NDX0,X
   STA rs_t3
-  LDA rn_x1
+  LDA R_NDX1,X
   STA rs_t4
-  LDA rn_x2
+  LDA R_NDX2,X
   STA rs_t5
-  LDY rn_r
+  LDY R_NDISCR,X
   INY
   STY r_ne
   JSR r_rowp
@@ -928,18 +918,18 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
 .r_dpst
 {
   LDY RZ_Y                \ the row's new span, count, colour and boundaries;
-  LDA rn_l                \ what was written
+  LDA R_NDISCL,Y                \ what was written
 .^r_psl28 STA R_DISCL0,Y
-  LDA rn_r
+  LDA R_NDISCR,Y
 .^r_psr28 STA R_DISCR0,Y
-  LDA rn_n
+  LDA R_NDN,Y
 .^r_pbn27 CMP R_BDN0,Y
   BNE e5
-  LDA rn_x0               \ (the same count and colour)
+  LDA R_NDX0,Y               \ (the same count and colour)
 .^r_pb026 STA R_BDX00,Y
-  LDA rn_x1
+  LDA R_NDX1,Y
 .^r_pb126 STA R_BDX10,Y
-  LDA rn_x2
+  LDA R_NDX2,Y
 .^r_pb226 STA R_BDX20,Y
   BCS e6                  \ (always: C set by the CMP)
 .e5
@@ -957,7 +947,7 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
 
 \ r_segw: r_drg with boundaries: the whole new span r_nL..r_nR, segment by
 \ segment in colours A / B (row RZ_Y, r_cA/r_cB set; the boundaries r_bv:
-\ the row's, rn_x0 .. rn_x3)
+\ the row's, R_NDX0 .. R_NDX3, r_bvld)
 .r_segw
 {
   LDA r_nR
@@ -965,10 +955,11 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   BCS go
   RTS
 .go
-  LDA rn_n                \ the count (at most 4) and the colour (bit 7)
+  LDX RZ_Y
+  LDA R_NDN,X             \ the count (at most 4) and the colour (bit 7)
   AND #&7F
   STA r_cn
-  LDA rn_n
+  LDA R_NDN,X
   ROL A
   ROL A
   AND #1
@@ -1035,14 +1026,14 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   STA RZ_T0               \ oL
 .^r_psr29 LDY R_DISCR0,X  \ (Y = oR kept until the TYA below; emp leaves Y alone)
   STY RZ_T1               \ oR
-  LDA rn_l                \ nL, nR: clamped to the window (empty: 255, 0)
+  LDA R_NDISCL,X                \ nL, nR: clamped to the window (empty: 255, 0)
   CMP R_CL
   BCS c0
   LDA R_CL
 .c0
   STA RZ_T2
 .^r_psl30 STA R_DISCL0,X  \ (before r_sr: nothing reads either in between)
-  LDA rn_r
+  LDA R_NDISCR,X
   CMP R_CR
   BCC c1
   LDA R_CR
@@ -1229,7 +1220,8 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   LDA r_bon
   BEQ dn
   JSR r_bcols             \ boundaries: plain only if none, old and new,
-  LDA rn_n                \ and the same colour
+  JSR r_bvld
+  LDA R_NDN,Y                \ and the same colour
 .^r_pbn28 CMP R_BDN0,Y
   BNE sg
   ASL A                   \ (A = 2 count, C = the colour)
@@ -1251,13 +1243,13 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   STA r_dL
   LDA rd_r
   STA r_dR
-  LDA rn_l
+  LDA R_NDISCL,Y
   CMP R_CL
   BCS n1
   LDA R_CL
 .n1
   STA r_nL
-  LDA rn_r
+  LDA R_NDISCR,Y
   CMP R_CR
   BCC n2
   LDA R_CR
@@ -1473,20 +1465,32 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   STA r_cB
   RTS
 
+\ r_bvld: Y = row: its new boundaries into r_bv for r_segw (keeps X, Y)
+.r_bvld
+  LDA R_NDX0,Y
+  STA r_bv
+  LDA R_NDX1,Y
+  STA r_bv+1
+  LDA R_NDX2,Y
+  STA r_bv+2
+  LDA R_NDX3,Y
+  STA r_bv+3
+  RTS
+
 \ r_bstore: Y = row: remember the row's new boundaries (raw) and colour in
 \ this buffer; a row with more than three is stored as unknown (count &40)
 .r_bstore
-  LDA rn_n
+  LDA R_NDN,Y
   ASL A                   \ (2 count)
   CMP #8
   BCS bsu
-  LDA rn_n
+  LDA R_NDN,Y
 .^r_pbn29 STA R_BDN0,Y
-  LDA rn_x0
+  LDA R_NDX0,Y
 .^r_pb027 STA R_BDX00,Y
-  LDA rn_x1
+  LDA R_NDX1,Y
 .^r_pb127 STA R_BDX10,Y
-  LDA rn_x2
+  LDA R_NDX2,Y
 .^r_pb227 STA R_BDX20,Y
   RTS
 .bsu
@@ -1575,18 +1579,11 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
 r_dbe = R_DBE
 .r_bon   EQUB 0         \ this frame's rows use boundaries
 .r_dsub  EQUB 0         \ r_dmb -> r_drg: repaint only the dirty part
-.rn_l    EQUB 0         \ the row's new span, count and colour (R_NDN's form)
-.rn_r    EQUB 0         \ and boundaries (dp_ld)
-.rn_n    EQUB 0
-.rn_x0   EQUB 0
-.rn_x1   EQUB 0
-.rn_x2   EQUB 0
-.rn_x3   EQUB 0
 .rd_l    EQUB 0         \ its dirty extent (none: 255, 0)
 .rd_r    EQUB 0
 .rw_l    EQUB 0         \ what it wrote (rw_r = 0: nothing)
 .rw_r    EQUB 0
-r_bv = rn_x0            \ r_segw: the new boundaries (4)
+.r_bv    SKIP 4         \ r_segw: the new boundaries (r_bvld)
 .r_oL    EQUB 0         \ R_DISCROWS' row variables (the Master port's r_ov)
 .r_oR    EQUB 0
 .r_dL    EQUB 0

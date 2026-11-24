@@ -127,15 +127,15 @@ d_mx = &1E
 .w0
   JSR d2ld
   LDA rw_r
-  CMP rn_r
+  CMP R_NDISCR,X
   BCC w1
-  LDA rn_r
+  LDA R_NDISCR,X
 .w1
   STA d_b1
   LDA rw_l
-  CMP rn_l
+  CMP R_NDISCL,X
   BCS w2
-  LDA rn_l
+  LDA R_NDISCL,X
 .w2
   CMP d_b1
   BEQ w3
@@ -178,10 +178,10 @@ d_mx = &1E
   STY d_a0
 .^r_p2r25 LDY R_S2R0,X
   STY d_b0
-  LDA rn_l                \ the new one, remembered
+  LDA R_NDISCL,X                \ the new one, remembered
   STA d_a1
 .^r_p2l26 STA R_S2L0,X
-  LDA rn_r
+  LDA R_NDISCR,X
   STA d_b1
 .^r_p2r26 STA R_S2R0,X
   JSR lay
@@ -354,16 +354,13 @@ d_mx = &1E
   RTS
 }
 
-\ d2ld: row X's new span and slot Y's written extent into the row's
-\ variables (rn_l, rn_r, rw_l, rw_r), and d_y = X, the row (keeps X and Y)
+\ d2ld: slot Y's written extent into the row's variables (rw_l, rw_r), and
+\ d_y = X, the row (keeps X and Y; the row's new span is read in place, at
+\ R_NDISCL,X and R_NDISCR,X)
 .d2ld
   STY dp_s
   STX dp_x
   STX d_y
-  LDA R_NDISCL,X
-  STA rn_l
-  LDA R_NDISCR,X
-  STA rn_r
   LDA DB_WL,Y
   STA rw_l
   LDA DB_WR,Y
