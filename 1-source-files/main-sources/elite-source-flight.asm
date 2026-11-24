@@ -2758,10 +2758,21 @@ ENDIF
 
 .MAL1g
 
- LDA INF                \ Port: patch the block's address into the loop below,
- STA MAL2+1             \ whose LDA abs,Y takes a cycle less a byte than LDA
- LDA INF+1              \ (INF),Y
- STA MAL2+2
+                        \ Port: a block in K%'s first page (the first seven
+                        \ slots, which hold all the ships of most scenes) is
+                        \ copied by the unrolled copy at mal2f, with Y as the
+                        \ block's offset in the page, each byte with an LDA
+                        \ abs,Y and a zero page STA; any other block (in K%'s
+                        \ second page, or the parked sun's in SUNPK) by the
+                        \ loop at MAL2
+
+ LDA INF+1              \ If the block is in K%'s first page, jump to mal2f
+ CMP #HI(K%)            \ for the unrolled copy
+ BEQ mal2f
+
+ STA MAL2+2             \ Port: patch the block's address into the loop below,
+ LDA INF                \ whose LDA abs,Y takes a cycle less a byte than LDA
+ STA MAL2+1             \ (INF),Y
 
  LDY #NI%-1             \ There are NI% bytes in each ship data block (and in
                         \ the INWK workspace, so we set a counter in Y so we can
@@ -2780,6 +2791,26 @@ ENDIF
 
  BPL MAL2               \ Loop back for the next byte until we have copied the
                         \ last byte from INF to INWK
+
+ JMP mal2d              \ Skip the unrolled copy
+
+.mal2f
+
+ ASSERT LO(K%) = 0      \ (K% starts a page, so the block's offset in it is
+                        \ the low byte of its address)
+
+ LDY INF                \ Set Y to the block's offset in K%'s first page
+
+ FOR I%, NI%-1, 0, -1   \ Copy the NI% bytes of the block from K% + Y to INWK,
+  LDA K%+I%,Y           \ from the last byte to the first, as the loop does
+  STA INWK+I%
+ NEXT
+
+ LDY #&FF               \ Set Y = &FF, as the loop leaves it (and X is left
+                        \ as it was: the loop's X is not read again before it
+                        \ is set, see MAL2)
+
+.mal2d
 
  LDA TYPE               \ If the ship type is negative then this indicates a
  BMI MA21               \ planet or sun, so jump down to MA21, as the next bit
