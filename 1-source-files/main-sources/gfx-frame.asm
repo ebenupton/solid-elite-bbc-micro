@@ -664,8 +664,10 @@ RPN = 4
  STA F_SUY+1
  LDA K
  STA F_SUR
- LDA #&FF
- STA F_SUON
+ LDA GIN                \ (none inside the station, GIN = &FF, which S_SHIP
+ EOR #&FF               \ sets for the station, recorded before the sun, parked
+ STA F_SUON             \ after the ship slots: its disc goes as a disc that
+                        \ has left the screen does, and no flare)
  RTS
 
 \ ------------------------------------------------------------------------------
@@ -744,6 +746,9 @@ RPN = 4
  JSR f_flt              \ the lens flare (gfx-flare.asm), then the text on top
  JSR f_sight2           \ and the sights
 .ff_stars
+ BIT GIN                \ inside the station (S_SHIP): no stars (this buffer's
+ BMI ff_stars9          \ were erased, and its star records emptied, at
+                        \ T_STARERASE)
  LDA #NDSTAR            \ stardust, on black only (last: erasing it next
  STA R_SN               \ time restores black, so it needs no WL/WR): stars
  LDA F_SLV+16           \ 1..NOST, recorded by the hooks straight into the
@@ -794,6 +799,7 @@ RPN = 4
  STA F_NDOT
  STA F_PLON
  STA F_SUON
+ STA GIN                \ (and not inside the station)
  LDA #LO(F_SR)
  STA F_DLP
  LDA #HI(F_SR)

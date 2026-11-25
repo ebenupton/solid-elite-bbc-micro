@@ -31867,6 +31867,17 @@ ENDIF
  LDX TYPE               \ GTYPE = TYPE, or 32 for a station with 24 vertices
  CPX #SST
  BNE ssh2
+ LDY GNF                \ The station with none of its faces visible: we are
+.ssh4                   \ inside it, past the plane of its slot's face, in the
+ LDA XX2-1,Y            \ last iterations before docking (docking needs |x|,
+ BNE ssh5               \ |y| and z under 128; the slot's face is 160 out, the
+ DEY                    \ Dodo's 196), and it draws nothing: GIN = &FF, and
+ BNE ssh4               \ the frame plots no stars and draws no sun (F_FRAME,
+ DEY                    \ fpl1)
+ STY GIN
+
+.ssh5
+
  LDY #8
  LDA (XX0),Y
  CMP #24 * 6

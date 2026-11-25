@@ -27,7 +27,7 @@
 | bank 4 (flight) | `&8000-&A8A5` | `S%` and the hot pass | 10406 | 0 |
 | bank 4 (flight) | `&A8A6-&B2FF` | the planet's surface (bank 4 passes: `PF_HOOK`, `pc_circ`) | 2650 | 0 |
 | bank 4 (flight) | `&B300-&BBA1` | the blueprint set (`D.MOx`), its normals and `FC_NORMTAB` (the image holds the main RAM part's image here) | 2210 | 0 |
-| bank 4 (flight) | `&BBA2-&BBFF` | the hot pass's container at bank 4's top (`hot4`: every blueprint file carries its bytes, as a set's load writes the slot's whole pages) | 79 | 15 |
+| bank 4 (flight) | `&BBA2-&BBFF` | the hot pass's container at bank 4's top (`hot4`: every blueprint file carries its bytes, as a set's load writes the slot's whole pages) | 94 | 0 |
 | bank 4 (flight) | `&BC00-&BFFF` | the quarter squares `QSL`, `QSH` (made by the loader) | 1024 | 0 |
 | bank 4 (docked) | `&8000-&AE0F` | `S%` and the hot pass | 8774 | 3018 |
 | bank 4 (docked) | `&AE10-&B2FF` | the main RAM part's image | 1264 | 0 |
@@ -50,12 +50,12 @@
 | bank 5 | `&B400-&BE57` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 2648 | 0 |
 | bank 5 | `&BE58-&BFFF` | `RJT`, the jump table; at the top, the cold 5 pass's place `C5HI%` (318 bytes) | 309 | 115 |
 | bank 6 | `&8000-&995A` | the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`) | 6491 | 0 |
-| bank 6 | `&995B-&B38A` | the frame layer's code (bank 6 passes) | 6704 | 0 |
-| bank 6 | `&B38B-&B6A8` | the faces' and the lighting's tables | 798 | 0 |
-| bank 6 | `&B6A9-&B6BD` | (free: the state that follows is placed as high as it goes) | 0 | 21 |
+| bank 6 | `&995B-&B395` | the frame layer's code (bank 6 passes) | 6715 | 0 |
+| bank 6 | `&B396-&B6B3` | the faces' and the lighting's tables | 798 | 0 |
+| bank 6 | `&B6B4-&B6BD` | (free: the state that follows is placed as high as it goes) | 0 | 10 |
 | bank 6 | `&B6BE-&B8FF` | the state: the ship records, the zero page `F_FRAME` keeps, the faces' levels (`F_INIT`'s code in their room until they are first written) | 578 | 0 |
 | bank 6 | `&B900-&BC70` | the state, page aligned: the text map, its rows' counts, `F_PFHOLD`'s, the docking slot | 850 | 31 |
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 4, main RAM (flight) 0, main RAM (docked) 1047, bank 4 (flight) 15, bank 4 (docked) 3178, bank 7 (flight) 35, bank 7 (docked) 4968, bank 5 203, bank 6 58.
+Free, by place: main RAM 4, main RAM (flight) 0, main RAM (docked) 1047, bank 4 (flight) 0, bank 4 (docked) 3178, bank 7 (flight) 35, bank 7 (docked) 4968, bank 5 203, bank 6 47.

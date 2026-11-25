@@ -458,6 +458,35 @@ into the back buffer, every ghost's density stepped down by the probes not
 in sight (`fl_vred`), each ghost's box marked dirty (`T_MARKBOX`) so that
 the next frame on the buffer repairs it.
 
+### Inside the station
+
+The game docks only once the station's centre is within 127 of us on every
+axis (main flight loop part 8, then `ISDK`), but the face with the docking
+slot is 160 from a Coriolis station's centre along its nose (196 for the
+Dodo). So for the last two or three iterations of every docking we are past
+the plane of that face, inside the station's hull, and part 5 of `LL9`
+finds every face turned away: the station draws nothing, and the stars, the
+sun and the lens flare beyond it showed through (the original's wireframe
+station vanishes there too, over its stars). As in the Master port, the
+frame now shows the black of the slot instead. `S_SHIP` tests for it in its
+station branch (`TYPE` is `SST` for both stations), with part 5's
+visibilities still in `XX2`: none visible sets `GIN` (`GVARS + 9`, which was
+free). The station is recorded before the sun, which is parked while the
+station holds slot 1 and runs after the ship slots (`SUNSC`), so
+`F_PLANET` records the sun as off (`F_SUON` = 0, `GIN` inverted), and its
+disc goes as a disc that has left the screen does (`f_dprep`, the disc
+layer's incremental path, in each buffer in turn), with no flare; the frame
+plots no stars (`ff_stars`), and this buffer's old ones are erased as ever
+at the frame's start (`T_STARERASE`), leaving its star records empty.
+`f_reset` clears `GIN` after every frame. As the station is convex, a
+station with no face visible is one we are inside; anywhere else some face
+is visible, so the approach, other views and other ships are as before.
+The test is in the game's code, not the frame layer's, as bank 6 has only
+21 bytes of room for code: 15 bytes in the hot pass (which reflows: its
+container at bank 4's end, `hot4`, from 15 bytes free to none), and 11 in
+bank 6 (`F_PLANET`, `ff_stars` and `f_reset`). `6-harness/bdockview.mjs`
+flies the scene.
+
 ### The test
 
 `6-harness/test_frame.py` builds banks 5 and 6 and runs them on py65's NMOS

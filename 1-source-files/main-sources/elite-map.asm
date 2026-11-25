@@ -309,8 +309,12 @@
                         \ LASY; cleared after each frame)
  GNF = GVARS + 10       \ F_SHIP's and L_REC's inputs: the ship's number of
  GTYPE = GVARS + 12     \ faces and its type (TYPE, or 32 for the dodecahedron
-                        \ station: a type 2 with 24 vertices); GVARS + 9 and
-                        \ + 11 are free
+                        \ station: a type 2 with 24 vertices); GVARS + 11 is
+                        \ free
+ GIN = GVARS + 9        \ &FF: the space station is recorded with none of its
+                        \ faces visible (S_SHIP), so we are inside it, and the
+                        \ frame draws no stars and no sun; 0 otherwise (cleared
+                        \ after each frame, f_reset)
  GHOLD = GVARS + 8      \ Non-zero: the rupture keeps the 6845's display off
                         \ after a disc command (RUPT, rpt4d): F_DIRECT sets it,
                         \ as a program load does (PCLI), and every TTX66 clears
