@@ -551,3 +551,63 @@ byte in docking but 7 in the gate's run: the user's decision.
 * The far-call cuts for DIALS and TIDY: 0.18 cycles a byte.
 * DEATH to the cold 5 pass (126 bytes of bank 7) needs a farC5j (9 bytes
   of resident block A, which has 3).
+
+## The consistency sweep (2026-11-25)
+
+Two commits on `mode5-panel` from 648c455: a fix, then a speed-up.
+
+* **The rupture's race with the ADC (89ec7d3).** The web player's Model B
+  found it: an interrupt that `IRQG` passes on to the MOS (the ADC's end of
+  conversion, when its interrupt is on) could let timer 1 fire just before
+  the MOS read the flags. The MOS then took the timer as its clock and
+  cleared it, `RUPT` never ran, and the 6845 lost its vertical sync for
+  fields. `IRQG` now hides timer 1 in the MOS's system VIA mask (`&0279`)
+  for the interrupts it passes on, and puts the mask back on its way to
+  `RUPT` (docs/video-timing.md). The joystick and the ADC work as before.
+  The test is `bhsync.mjs --adcrace N`: with the ADC's interrupt on, it
+  raises the end of conversion 0 to N cycles before each firing of the
+  timer, in turn.
+  * This build, N = 400 over 10,000 iterations: every field 312 lines and
+    the rupture in all 61,447 of them.
+  * The parent, the negative control: 5,102 fields missed out of 13,010.
+
+  The cost is 12 cycles a field, which bbench shows as 14 to 47 cycles an
+  iteration.
+* **The disc rows kept (4c491bd: the Master's 4d5e721, the CPC port's
+  finding 1.4).** The rows are kept when the disc is the one they were made
+  for and nothing has written over them since.
+  * The key is the build's own `f_cx` to `f_r` and the table's page in
+    `fpr_ld2`, so a moving disc costs only a compare.
+  * `f_disc2`'s batches and a frame with no disc clear the page.
+  * `f_disc2` returns at once when there is no second disc to erase.
+
+  bbench, cycles an iteration: flight -1,256, beachball -3,822, docking
+  -3,520, zone -2,450, rear -3,752, departure -4,152, combat -168, approach
+  -99, sun -11. It takes 2 fewer bytes of bank 7. Both screen buffers were
+  identical to the parent's at every iteration over 10,000.
+
+**Checked and not taken:**
+
+* **Not applicable.** These are the Master's other CPC findings. The Model
+  B's sound goes through the MOS (OSWORD 7), so it has no `LINSCN`/`SOINT`
+  (cd9b5dc). Its dashboard indexes its own `DLAST` cache by `DLIX`
+  (b8d8968). Its `PF_HOOK` has no `pf_cx` copy (63061d8).
+* **Already here.** The Master's other wins of 2026-11-16..21 and its part
+  9: the stardust's zero-product skips and `stl_pat` only on a change
+  (7190f9c, d1049b4, 1d4fe0c), `MLTU2` returning at once for Q = 0
+  (893514a), the compass dot moved only when it moves (1f655fe), the disc
+  rows by thresholds (9833f1c), and `R_POLY`'s walks without the edge count
+  (90393da).
+* **Not applicable (the Electron's painter).** cg3/cg_bw (c2dd102,
+  16903cd, ad63fa3, 1c8774c): the Model B's painter (`r_sw`, `dp_st`) has
+  none of those routines.
+* **Rejected by rate, unchanged.** The row runs' fixed exit (d6c944b) and
+  phase B's kept character row (f6d4346), at 0.2 to 0.4 cycles a byte for
+  2.4K of bank 5. The far-call cuts for DIALS and TIDY, at 0.18.
+* **Left for the user's decision.** The bank 7 whole-byte writer (the
+  fifth round).
+
+**Gate at 4c491bd:** VERIFY PASS 11.47 8.96 0.781 223167.0; bhsync PASS on
+the gate's run, --screens and --views. Free now (flight): main RAM 4, bank
+4 15, bank 7 46 (14 in the window, 23 before the tables, 9 after them),
+bank 5 139, bank 6 58.
