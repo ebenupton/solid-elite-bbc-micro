@@ -29,7 +29,7 @@ routine loads it from the disc's `R.BANK` into bank 5 (through `STAGE%`, as
 | bank 5 `&8000-&97FF` | the 24 row runs, a page each (`gfx-raster.asm`'s bank 5 runs pass: a page whose number is a multiple of 32, for the repair); in their 65-byte tails, the stars' records (each buffer's `r_s0y`, `r_s1y` = `r_s0y` + `&300`, and so on) and variables, and `R_LINE`'s |
 | bank 5 `&9800-&A7FF` | `R_POLY` (both phases) and `R_LINE` (180 bytes free) |
 | bank 5 `&A800-&ADFF` | the state: both buffers' dirty extents (`R_DIRTYL0`, `R_DIRTYR0`, `R_DIRTYL1` = `R_DIRTYL0` + `&300`, `R_DIRTYR1`), this frame's written extents (`R_WL`, `R_WR`), `R_POLY`'s edge tables |
-| bank 5 `&AE00-&BFFE` | the shared region (`gfx-raster.asm`): `R_SETBUF` and `r_pgfix`, the spans' core, the per-x tables at `&B400` (`R_TAB%`), the row pages, the stars, `r_setup`, the repair (`R_REPAIR`, `r7_rowrep`), the disc layer's transfer (`R_GETW`, `R_DRAINQ`: `gfx-raster_dq.asm`), then the bank 5 end passes: `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY` and `R_INIT` (which calls `r_setup`), and `RJT`, the jump table, at `&BFD1` (5 bytes free, to the bank's top); below the per-x tables, `R_LINE`'s cold part, the private state, `R_RESETBUF`, the frame layer's query, `r_wq` (`gfx-raster_dq.asm`'s bank 5 gap pass), `R_MARKBOX` (`gfx-raster_rep.asm`'s) and `pf_tilt` (90 bytes free) |
+| bank 5 `&AE00-&BFFE` | the shared region (`gfx-raster.asm`): `R_SETBUF` and `r_pgfix`, the spans' core, the per-x tables at `&B400` (`R_TAB%`), the row pages, the stars, `r_setup`, the repair (`R_REPAIR`, `r7_rowrep`), the disc layer's transfer (`R_GETW`: `gfx-raster_dq.asm`), then the bank 5 end passes: `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY` and `R_INIT` (which calls `r_setup`), and `RJT`, the jump table, at `&BFD1` (5 bytes free, to the bank's top); below the per-x tables, `R_LINE`'s cold part, the private state, `R_RESETBUF`, the frame layer's query, `r_wq` (`gfx-raster_dq.asm`'s bank 5 gap pass), `R_MARKBOX` (`gfx-raster_rep.asm`'s) and `pf_tilt` (90 bytes free) |
 
 Each region but the row runs' code and `R_INIT` is where it was when the row
 runs were assembled after the per-x tables, moved by whole pages, so that no
@@ -90,7 +90,7 @@ bank back. A, X and Y are passed through; nothing is returned in them.
 | 27 | `R_STARERASE`: black what the last `R_STARPLOT` on this buffer set | |
 | 30 | `R_STARPLOT`: the stars (last in a frame) | mailbox `R_SN` (0..19), `R_SX`, `R_SY`, `R_SS` (19 each), `R_SCOL` |
 | 33 | `R_MARKBOX`: mark rows Y to `R_BY1` dirty from `R_XL` to `R_XR` (the lens flare's boxes) | Y; `R_BY1`, `R_XL`, `R_XR` |
-| 36 | `R_GETW`: the disc layer's batch transfer (below, "The discs"): first the `DB_QN` bytes of spans queued at `DB_Q` (row, left, right, colour byte each) drawn through the row runs, not marked (`R_DRAINQ`); then X rows from row `DB_PY`: the slots' `DB_WL`, `DB_WR` into `R_WL`, `R_WR` (and `R_PRWT`..`R_PRWB`); then A AND `&1F` rows from row Y: their dirty extents into `DB_WL`, `DB_WR`, emptied (A bit 7 clear), or their written extents (A bit 7 set). With A = `&40`, the frame layer's query (`r_wq`): for each text row whose bit is set in the mask at `MBOX + &30` to `+&32`, the union over its eight lines of this frame's written extents and the next buffer's dirty extents into `MBOX + 2r`, and whether anything covers the sights (`MBOX + &33` asks, bit 7 of `MBOX + &34` answers) | A, X, Y; the mailbox |
+| 36 | `R_GETW`: the disc layer's batch transfer (below, "The discs"): first X rows from row `DB_PY`: the slots' `DB_WL`, `DB_WR` into `R_WL`, `R_WR` (and `R_PRWT`..`R_PRWB`); then A AND `&1F` rows from row Y: their dirty extents into `DB_WL`, `DB_WR`, emptied (A bit 7 clear), or their written extents (A bit 7 set). With A = `&40`, the frame layer's query (`r_wq`): for each text row whose bit is set in the mask at `MBOX + &30` to `+&32`, the union over its eight lines of this frame's written extents and the next buffer's dirty extents into `MBOX + 2r`, and whether anything covers the sights (`MBOX + &33` asks, bit 7 of `MBOX + &34` answers) | A, X, Y; the mailbox |
 
 The clip window is `R_CL`, `R_CR`, `R_CT`, `R_CB` in zero page (`&0A-&0D`).
 The mailbox's offsets are in `gfx-rws.asm`: vertices at `&00`, `&10`, `&20`
@@ -112,7 +112,7 @@ else, such as a disc or text), then `R_STARPLOT`.
   buffer's dirty rows outside the disc layer's rows. The disc layer's row
   code (the painter) and its arrays are in the flight code's bank 7 (below,
   "The discs"), and bank 5 hands it its rows' dirty or written extents,
-  takes back what it wrote and draws the long spans it queues (`R_GETW`).
+  takes back what it wrote (`R_GETW`).
 * **The lens flare** (`R_FLARE`) is in bank 6, with the frame layer (below).
 * **The kept solid rows** (`KF`, the station close): bank 5 has no room for
   them; the Model B keeps only the discs.
@@ -385,9 +385,9 @@ the player's own turn since. The mailbox holds the records only until the frame'
   (`DP_BEGIN`: the buffer, whether its rows keep boundaries,
   a change of the layer's colour, which makes the old disc dirty, and a
   buffer blanked since, which it forgets); then the band's rows in batches
-  (`f_dbat`): for each, one `T_GETW` (bank 5 draws the spans the painter
-  queued, puts what it wrote on the last batch's rows into `R_WL`/`R_WR`,
-  and gives this batch's dirty extents, emptying them) and one call of
+  (`f_dbat`): for each, one `T_GETW` (bank 5 puts what the painter wrote on
+  the last batch's rows into `R_WL`/`R_WR`, and gives this batch's dirty
+  extents, emptying them) and one call of
   `DP_ROWS`, which reads the rows in the arrays where they are, made ready
   for the band first (empty spans outside `R_NDT`..`R_NDB`, and no
   boundaries where the painter is to read them and the frame has none).
@@ -396,11 +396,10 @@ the player's own turn since. The mailbox holds the records only until the frame'
   `DP_DISC2`, with the rows' written extents instead (what the layer and
   the repair wrote on them), and a last `T_GETW` for the last batch.
 * **The batches** are 16 rows, with bank 5's part of each in the mailbox
-  (`gfx-rws.asm`, `DB_*`), `&00` to `&65`: for each row a slot, the dirty or
-  written extent in, what was written out (`DB_WL`, `DB_WR`); the queue
-  of spans of 16 whole bytes or more for bank 5's row runs, seventeen at a time
-  (`DB_Q`, `DB_QN`); `DB_PY`, the row of the batch whose writes `T_GETW`
-  puts. The stars are at the mailbox's end, out of the way.
+  (`gfx-rws.asm`, `DB_*`), `&00` to `&64`: for each row a slot, the dirty or
+  written extent in, what was written out (`DB_WL`, `DB_WR`); `DB_PY`, the
+  row of the batch whose writes `T_GETW` puts. The stars are at the
+  mailbox's end, out of the way.
 * **The painter** is the Master port's `R_DISCROWS` row code (`r_dlb` for
   one colour, `r_dmb` with boundaries, `r_dp2`, `r_dq`, `r_dpe` with the
   strips, `r_drg`, `r_segw`, `r_dp1`) and `R_DISC2`, with the row in X for
@@ -408,11 +407,14 @@ the player's own turn since. The mailbox holds the records only until the frame'
   batch: the row code reads the frame's rows in place, and a row that
   changed has its extent taken from its slot (`dp_ld`) and what it wrote
   put back (`dp_st`). It writes the screen itself (a row's address worked
-  out, `r_rowp`; the masks from four-byte tables, `r_sw`), queueing the
-  layer's long spans while the queue has room (the layer's writes on a row
-  never overlap, so their order does not matter; the second disc's may, so
-  it writes all of its own). Each buffer's arrays (`R_DISCL/R`, `R_BDN`,
-  `R_BDX0-2`, `R_S2L/R`) are the other's but for their high bytes, which
+  out, `r_rowp`; the masks from four-byte tables, `r_sw`). A span's whole
+  bytes between its masked ends go through `r_run`, an unrolled store for
+  each column of a half (`LDY #8c`, `STA (RZ_PP),Y`: 8 cycles a byte),
+  entered at the first whole byte's column by a patched `JSR` and left at
+  the last byte's column by an `RTS` planted over that column's store and
+  put back; a single whole byte is written in line. Each buffer's arrays
+  (`R_DISCL/R`, `R_BDN`, `R_BDX0-2`, `R_S2L/R`) are the other's but for
+  their high bytes, which
   `DP_BEGIN` patches into the code (`dp_patch`, generated from the sites'
   labels into `gfx-raster_dpatch.asm`). The window's state is not in the
   `D.CODEC` image: a buffer is blanked whenever a program is loaded (a disc

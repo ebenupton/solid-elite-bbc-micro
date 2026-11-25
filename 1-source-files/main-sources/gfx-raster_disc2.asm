@@ -42,10 +42,10 @@
 \     the old span black, then the new span whole.
 \   * both spans empty or behind the layer: nothing.
 \
-\ The writes are masked to their pixels (r_sw, never queued: they may
-\ overlap) and added to the row's written extent, so the text and the
-\ sights see them as written, as they see the disc layer's; nothing goes
-\ into DIRTY, so the next frame on this buffer does not repair them.
+\ The writes are masked to their pixels (r_sw: they may overlap) and added
+\ to the row's written extent, so the text and the sights see them as
+\ written, as they see the disc layer's; nothing goes into DIRTY, so the
+\ next frame on this buffer does not repair them.
 \
 \       Area: bank 7
 \
@@ -75,7 +75,6 @@ d_mx = &1E
   TYA
   TAX
   LDY #0
-  STY r_qok               \ (its writes are never queued)
 .lp                       \ unchanged and not written over: a few compares
   LDA R_NDISCL,X
 .^r_p2l22 CMP R_S2L0,X

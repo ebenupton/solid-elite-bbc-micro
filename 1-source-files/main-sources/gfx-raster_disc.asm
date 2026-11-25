@@ -36,11 +36,9 @@
 \   * DP_DISC2: the second disc (gfx-raster_disc2.asm).
 \
 \ The screen is main RAM, so this writes it itself: a row's address worked
-\ out (r_rowp), the pixels' byte offsets and masks from four-byte tables
-\ (r_sw). A span of 16 whole bytes or more is queued in the mailbox for bank
-\ 5's row runs (r_sq), which bank 5 draws at the next batch's R_GETW, while
-\ there is room: the layer's writes on a row never overlap, so the order is
-\ the pixels' own.
+\ out (r_rowp), the pixels' byte offsets and masks from four-byte tables,
+\ and the whole bytes between a span's ends by an unrolled run of stores
+\ (r_sw, r_run).
 \
 \ Not here: the kept solid rows (k_kill), and the repair of the dirty rows
 \ outside the band (bank 5's R_REPAIR).
@@ -190,8 +188,6 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
 {
   STX dp_n
   STY dp_y0
-  LDA #&80                \ (the layer's long spans may be queued)
-  STA r_qok
   LDA dp_fl               \ the colour changed: nothing of the old disc is
   AND #PB_FOLD            \ intact, so its span is folded into each row's
   BEQ f9                  \ dirty extent (the Master port's f_discdirty)
@@ -571,57 +567,32 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
 }
 
 \ rs_put (raster_strips.asm's, and r_dq's): r_sw, noting the strip in r_wmin ..
-\ r_wmax (strips come left to right: the first sets r_wmin, the last r_wmax)
+\ r_wmax (strips come left to right: the first sets r_wmin, the last r_wmax),
+\ falling through into r_sw
 .rs_put
   CPX r_wmin
   BCS P%+5
   STX r_wmin
   STY r_wmax
-  JMP r_sw
 
 \ ******************************************************************************
 \
 \ r_sw: pixels X .. Y (X <= Y) of the row (r_rowp: RZ_Y, RZ_PA, RZ_PB set)
 \ in colour A, each end's byte masked.  Clobbers A, X, Y, RZ_COL, RZ_SA,
-\ RZ_SA+1, RZ_PP+1, RZ_T7.  With r_qok bit 7 set, a span of 16 whole bytes or
-\ more is queued for bank 5's row runs while the queue has room (r_sq).
+\ RZ_SA+1, RZ_PP+1, RZ_T7.
 \
 \ Port (Model B): the Master port's, with the byte offsets worked out and
 \ the masks from four-byte tables (r_lm4, r_rm4), and the row's two pages
 \ (columns 0..31 and 32..63) as one pointer, RZ_PP, to the half that the
-\ pixels are in: a span across the halves is written as two.
+\ pixels are in: a span across the halves is written as two. The whole
+\ bytes between the ends go through r_run, an unrolled run of stores, one
+\ for each column of a half: entered at the first whole byte's column (its
+\ JSR's operand patched) and left at the last byte's column by an RTS
+\ planted over that column's store (and put back), with Y set there for
+\ the last byte. One whole byte is written in line.
 \
 \ ******************************************************************************
 {
-.cross                    \ X in columns 0..31, Y in 32..63: queued, or the
-  BIT r_qok               \ two halves
-  BPL c1
-  LDA RZ_SA               \ (whole bytes: Y DIV 4 - X DIV 4 - 1 >= 16, as
-  LSR A                   \ (Y DIV 4) - (X DIV 4) >= 17)
-  LSR A
-  STA RZ_T7
-  TXA
-  LSR A
-  LSR A
-  EOR #&FF
-  SEC
-  ADC RZ_T7
-  CMP #DB_QK
-  BCC c1
-  JSR r_sq
-  BCS c1
-  RTS                     \ (queued)
-.c1
-  LDA RZ_SA
-  STA r_sws
-  LDA #127
-  STA RZ_SA
-  JSR hf
-  LDX #128
-  LDA r_sws
-  STA RZ_SA
-  BNE hf                  \ (always)
-
 .^r_sw
   STA RZ_COL
   STY RZ_SA
@@ -636,20 +607,8 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   CMP #4
   BCC one                 \ one byte (the rarer case: the commoner multi-byte
                           \ case falls through)
-  BIT r_qok               \ long and queued? (68 pixels or more, as r_sql
-  BPL m1                  \ first tests, before its call)
-  LDA RZ_SA
-  STX RZ_T7
-  SEC
-  SBC RZ_T7
-  CMP #4 * DB_QK
-  BCC m1
-  JSR r_sql
-  BCC c9
-.m1
-  LDA RZ_SA               \ the last byte's offset
-  ASL A
-  AND #&F8
+  LDA RZ_SA               \ RZ_SA+1 = 4 * the last byte's column
+  AND #&7C
   STA RZ_SA+1
   TXA                     \ the first byte
   ASL A
@@ -661,24 +620,23 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   LDA RZ_COL
   EOR (RZ_PP),Y
   AND r_lm4,X
-  LDX RZ_COL              \ X = colour from here to .ls
   EOR (RZ_PP),Y
   STA (RZ_PP),Y
-  TYA
-  CLC
-  ADC #8
-  TAY
-  TXA                     \ A = colour
-  CPY RZ_SA+1
-  BCS ls
-.la                       \ the whole bytes between
-  STA (RZ_PP),Y
-  TYA
-  ADC #8                  \ (C = 0 from the CPY)
-  TAY
-  TXA
-  CPY RZ_SA+1
-  BCC la
+  TYA                     \ the whole bytes between: none or one in line
+  LSR A                   \ (C = 0)
+  ADC #8                  \ (4 * (the first column + 2))
+  CMP RZ_SA+1
+  BCS sm
+  SBC #LO(3 - r_run)      \ (C = 0: 4 * (the first column + 1) + LO(r_run))
+  STA jr+1
+  LDX RZ_SA+1             \ the RTS over the last byte's column's store
+  LDA #&60
+  STA r_run+2,X
+  LDA RZ_COL
+.jr
+  JSR r_run + 4           \ (patched; leaves Y at the last byte)
+  LDA #&91                \ (STA (RZ_PP),Y put back)
+  STA r_run+2,X
 .ls
   LDA RZ_SA               \ the last byte
   AND #3
@@ -688,8 +646,32 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   AND r_rm4,X
   EOR (RZ_PP),Y
   STA (RZ_PP),Y
-.c9
   RTS
+
+.sm                       \ (C = 1)
+  BNE s0                  \ no whole byte
+  TYA                     \ one
+  ADC #7
+  TAY
+  LDA RZ_COL
+  STA (RZ_PP),Y
+  SEC
+.s0
+  TYA
+  ADC #7
+  TAY
+  BCC ls                  \ (always)
+
+.cross                    \ X in columns 0..31, Y in 32..63: the two halves
+  LDA RZ_SA
+  PHA
+  LDA #127
+  STA RZ_SA
+  JSR hf
+  LDX #128
+  PLA
+  STA RZ_SA
+  BNE hf                  \ (always)
 
 .one
   LDA RZ_SA               \ one byte: both masks
@@ -715,56 +697,25 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
   RTS
 }
 
-\ r_sql: pixels X .. RZ_SA in one half of the row, in RZ_COL: queued (C
-\ clear) if 16 whole bytes or more lie between the ends and the queue has
-\ room, else C set (X kept). r_sq: queued if there is room (C clear), else C
-\ set (X kept)
-.r_sql
-{
-  LDA RZ_SA
-  SEC
-  STX RZ_T7
-  SBC RZ_T7               \ Y - X >= 68 pixels: perhaps; the exact test below
-  CMP #4 * DB_QK
-  BCC no
-  LDA RZ_SA
-  LSR A
-  LSR A
-  STA RZ_T7
-  TXA
-  LSR A
-  LSR A
-  EOR #&FF
-  SEC
-  ADC RZ_T7
-  CMP #DB_QK
-  BCS r_sq
-.no
-  SEC
-  RTS
-}
-.r_sq
-{
-  LDY DB_QN
-  CPY #DB_QE - DB_Q
-  BCS no
-  LDA RZ_Y
-  STA DB_Q,Y
-  TXA
-  STA DB_Q+1,Y
-  LDA RZ_SA
-  STA DB_Q+2,Y
-  LDA RZ_COL
-  STA DB_Q+3,Y
-  TYA
-  ADC #4                  \ (C = 0 from the CPY)
-  STA DB_QN
-.no
-  RTS
-}
+\ r_run: the whole-byte stores of r_sw, one for each column c of a half
+\ (r_run + 4 * c: LDY #8 * c, STA (RZ_PP),Y), from column 1 (the first
+\ whole byte's column at the least) to column 31's LDY and the byte that
+\ r_sw plants its RTS on (the last byte's column at the most), the entries
+\ in one page (r_sw patches only its JSR's low byte)
 
+r_run = P% - 4
+FOR c, 1, 31
+  LDY #8 * c
+ IF c < 31
+  STA (RZ_PP),Y
+ ELSE
+  EQUB &91
+ ENDIF
+NEXT
+ ASSERT HI(r_run + 4) = HI(r_run + 4 * 30)
+
+.r_rm4  EQUB &88, &CC, &EE       \ pixels 0 .. (x AND 3) (its last, &FF, is r_lm4's first)
 .r_lm4  EQUB &FF, &77, &33, &11   \ pixels (x AND 3) .. 3 of a byte
-.r_rm4  EQUB &88, &CC, &EE, &FF   \ pixels 0 .. (x AND 3)
 
 \ r_rowp: X = row: RZ_Y, and RZ_PA, RZ_PB its screen address in the buffer
 \ (columns 0..31 and 32..63; the row's page &10 or &40 + 2 (row DIV 8), its
@@ -1585,8 +1536,6 @@ PB_RESET = &80          \ the buffer was blanked: its disc state forgotten
 .dp_y0   EQUB 0
 .dp_s    EQUB 0         \ the slot and row in hand (dp_ld, dp_st)
 .dp_x    EQUB 0
-.r_qok   EQUB 0         \ bit 7: long spans may be queued (r_sw)
-.r_sws   EQUB 0         \ (r_sw's)
 .r_dwx   EQUB 0         \ (r_dw's)
 .R_DBE   EQUB 0         \ colour B, even and odd rows (DP_BEGIN)
 .R_DBO   EQUB 0

@@ -32,8 +32,8 @@
 \   * the lens flare (R_FLARE) is the frame layer's, in bank 6;
 \   * there are no kept solid rows;
 \   * the Model B's own entries: R_SPANM, R_MARKBOX and R_GETW (the disc
-\     layer's batches: its queued spans drawn, its writes taken into R_WL
-\     and R_WR, the next rows' extents given; and with A = &40 the frame
+\     layer's batches: its writes taken into R_WL and R_WR, the next rows'
+\     extents given; and with A = &40 the frame
 \     layer's query of this frame's written and dirty extents, r_wq).
 \
 \ ******************************************************************************
@@ -73,28 +73,18 @@ MBOX_END = MBOX + &A0
 \ docs/renderer.md "The disc layer") reads the rows where the frame layer's
 \ disc part makes them, in the same bank (R_NDISCL to R_NDX3), and is given
 \ only what bank 5 has of a batch of up to 16 rows in the mailbox, &00 to
-\ &65 (R_SN is set for the stars after it, and R_SCOL, R_SX, R_SY and R_SS
+\ &64 (R_SN is set for the stars after it, and R_SCOL, R_SX, R_SY and R_SS
 \ are kept): a row of the batch is a slot, with its dirty extent going in
 \ and what the layer wrote on it coming back (DB_WL, DB_WR: R = 0 for none;
 \ for the second disc, R_DISC2, what was written on it so far going in).
-\ Long spans the layer leaves to bank 5's row runs are queued after them
-\ (DB_Q: row, left, right, colour byte), DB_QN bytes of them. PCB, the planet's circles' records (gfx-merid.asm), PC_N
-\ and pc_inv take &00 to &49, and their unclamped thresholds PC_TU &52 to
-\ &5D, from PF_HOOK (in the game's iteration) to the frame's f_hrec, which
-\ keeps them, and f_bounds (PC_ROWS).
+\ PCB, the planet's circles' records (gfx-merid.asm), PC_N and pc_inv take
+\ &00 to &49, and their unclamped thresholds PC_TU &52 to &5D, from PF_HOOK
+\ (in the game's iteration) to the frame's f_hrec, which keeps them, and
+\ f_bounds (PC_ROWS).
 DB_WL    = MBOX         \ (the slots: 16 each)
 DB_WR    = MBOX + &10
-DB_QS    = 17           \ the queue's room, in spans (all the mailbox's &20 to
-                        \ &63: a full queue sends a long span to r_sw)
-DB_QK    = 17           \ a span is queued with DB_QK - 1 whole bytes or more
-                        \ (16: lower costs more in bank 5's set-up than r_sw's
-                        \ loop saves; higher, 20 or 24, about the same)
-DB_Q     = MBOX + &20   \ the queue (DB_QS spans)
-DB_QE    = DB_Q + 4 * DB_QS   \ (its end)
- ASSERT DB_QE <= MBOX + &64
 DB_PY    = MBOX + &64   \ R_GETW: the row of the batch whose writes it puts
-DB_QN    = MBOX + &65   \ the queue's length in bytes (4 a span)
- ASSERT DB_QN < R_SCOL
+ ASSERT DB_PY < R_SCOL
 PCB      = MBOX         \ the planet's circles' records (3 of RSZ bytes)
 RSZ      = 24           \ a record's size (its layout: gfx-merid.asm's R_A ..)
 PC_N     = MBOX + &48   \ how many

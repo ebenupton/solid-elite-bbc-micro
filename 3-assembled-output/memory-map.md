@@ -37,7 +37,7 @@
 | bank 7 (flight) | `&8000-&89B9` | the cold pass, `QQ18` | 2490 | 0 |
 | bank 7 (flight) | `&89BA-&8DFF` | the overlay region (`D.OV1` 1071 bytes, `D.OV2` 793), then the bank's free bytes, before the disc part's tables at their fixed place (`DISC7%`) | 1071 | 23 |
 | bank 7 (flight) | `&8E00-&95B8` | the frame layer's disc part's tables, page aligned (`gfx-frame.asm`'s bank 7 low pass: the discs' half-widths `F_HW`, `F_HW2`, their rows `R_NDISCL` to `R_NDX3`, the planet's records kept), then free bytes before the renderer's window at its fixed place (`WIN7FIX%`) | 1968 | 9 |
-| bank 7 (flight) | `&95B9-&B3F0` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch, then the frame layer's disc part, `gfx-frame.asm`'s and `gfx-merid.asm`'s, which makes the rows) | 7722 | 14 |
+| bank 7 (flight) | `&95B9-&B3F0` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch, then the frame layer's disc part, `gfx-frame.asm`'s and `gfx-merid.asm`'s, which makes the rows) | 7733 | 3 |
 | bank 7 (flight) | `&B3F1-&B3FF` | the disc part's entries (`DPENT%`), which the frame layer calls through `farC` | 15 | 0 |
 | bank 7 (flight) | `&B400-&BFFF` | the workspace: each buffer's disc state (not in the image: `DP_BEGIN` sets it up), buffer 0's sharing its first `&2E2` bytes with `ovload`'s stash of `WP` and the zero page during an overlay's load (`OVSTASH`) | 3072 | 0 |
 | bank 7 (docked) | `&8000-&B3F0` | the set's face lists, the cold pass, `QQ18` | 11388 | 1909 |
@@ -47,8 +47,8 @@
 | bank 5 | `&A800-&ADFF` | the state: the dirty and written extents, `R_POLY`'s edge tables | 1536 | 0 |
 | bank 5 | `&AE00-&B08E` | `R_SETBUF`, `r_pgfix`, the spans' core, the arithmetic | 655 | 0 |
 | bank 5 | `&B08F-&B3FF` | the room below the per-x tables: `R_LINE`'s cold part, the private state, `R_RESETBUF`, `r_wq`, `R_MARKBOX`, `pf_tilt`; at the top, the cold 5 pass's place `C5GAP%` (48 bytes) | 878 | 3 |
-| bank 5 | `&B400-&BE97` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 2712 | 0 |
-| bank 5 | `&BE98-&BFFF` | `RJT`, the jump table; at the top, the cold 5 pass's place `C5HI%` (318 bytes) | 309 | 51 |
+| bank 5 | `&B400-&BE57` | the per-x tables, the row pages, the stars, `r_setup`, the repair, `R_GETW`, `r_pclip`, `r_pset`, `R_SPAN`, `R_DOT`, `R_MARKDIRTY`, `R_INIT` | 2648 | 0 |
+| bank 5 | `&BE58-&BFFF` | `RJT`, the jump table; at the top, the cold 5 pass's place `C5HI%` (318 bytes) | 309 | 115 |
 | bank 6 | `&8000-&995A` | the flight code's cold 6 pass (`Area: cold 6`: `elite-flight-c6.asm`, `C6.bin`; the room `C6SZ`) | 6491 | 0 |
 | bank 6 | `&995B-&B38A` | the frame layer's code (bank 6 passes) | 6704 | 0 |
 | bank 6 | `&B38B-&B6A8` | the faces' and the lighting's tables | 798 | 0 |
@@ -58,4 +58,4 @@
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 4, main RAM (flight) 0, main RAM (docked) 1047, bank 4 (flight) 15, bank 4 (docked) 3178, bank 7 (flight) 46, bank 7 (docked) 4976, bank 5 139, bank 6 58.
+Free, by place: main RAM 4, main RAM (flight) 0, main RAM (docked) 1047, bank 4 (flight) 15, bank 4 (docked) 3178, bank 7 (flight) 35, bank 7 (docked) 4976, bank 5 203, bank 6 58.

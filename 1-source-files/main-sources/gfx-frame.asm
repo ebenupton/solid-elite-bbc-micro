@@ -2039,8 +2039,7 @@ FC_PLLE = &5F : FC_PLLO = &AF
  STA RZ_T0
  LDA #FC_PLLO
  STA RZ_T1
- LDA #0                 \ nothing queued or put yet
- STA DB_QN
+ LDA #0                 \ nothing put yet
  STA f_dput
  TXA
  LDX f_dfl
@@ -2077,8 +2076,8 @@ FC_PLLE = &5F : FC_PLLO = &AF
  JSR f_dbat
 .fdw20
  JSR f_disc2            \ the second disc's rows
- LDA #0                 \ then what the last batch wrote put, and its spans
- LDX f_dput             \ drawn
+ LDA #0                 \ then what the last batch wrote put
+ LDX f_dput
  JMP T_GETW
 
 .f_bbit EQUB 1, 2       \ (f_dpr's bit for each buffer)
@@ -2089,8 +2088,8 @@ FC_PLLE = &5F : FC_PLLO = &AF
 \ colour change, &FF or 0), which reads the rows in R_NDISCL/R in place,
 \ made ready first (empty outside R_NDT .. R_NDB; with f_d2c bit 7 R_NDN is
 \ read too, made zero there, and inside with bit 6 clear); with each batch
-\ bank 5 puts what the last one wrote and draws what it queued (T_GETW), in
-\ the slots of the batch's rows
+\ bank 5 puts what the last one wrote (T_GETW), in the slots of the batch's
+\ rows
 
 .f_dbat
  STX f_dmd
