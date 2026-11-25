@@ -501,6 +501,48 @@ window relaid so the free bytes meet), which is the next decision. The
 remaining per-row overheads (r_rowp, dp_ldc, dp_st) are about 40-60
 cycles a changed row each, a few hundred to 2,000 cycles a scene.
 
+**Fifth round: the long-span queue (2a7b945; gate VERIFY PASS 11.47 8.92 0.778 224160.9 and bhsync PASS, against 224,364.9 at 6f9bc21).** The painter hands a span
+of 16 whole bytes or more to bank 5's row runs through a queue in the
+mailbox. It held seven spans; in the docking scene 15 of the 20 offered an
+iteration found it full and went to r_sw's loop (departure 8 of 14,
+approach 2.5 of 5). With the rows' data no longer in the mailbox, the
+queue now takes &20-&63, seventeen spans: docking still finds it full for
+7 of 18 (rows of several segments), departure 1 of 10, approach none.
+
+Thresholds measured (DB_QK - 1 whole bytes; queue of 17; bbench, cycles an
+iteration):
+
+| Threshold | sun | docking | approach | departure |
+|---:|---:|---:|---:|---:|
+| 6 bytes | 218,266 | 396,444 | 207,390 | 291,734 |
+| 8 | 213,861 | 390,587 | 205,475 | 291,105 |
+| 12 | 211,586 | 389,114 | 202,712 | 290,671 |
+| **16 (kept)** | **210,185** | **388,880** | **202,297** | **290,477** |
+| 20 | 210,194 | 388,981 | 202,211 | 290,353 |
+| 24 | 210,185 | 388,985 | 202,209 | 290,487 |
+| 16, queue of 12 | 210,194 | 389,251 | 202,461 | 291,266 |
+| 16, queue of 7 (6f9bc21) | 210,184 | 389,648 | 202,563 | 292,246 |
+
+Below 16 bytes bank 5's set-up for a span (the queue entry, R_DRAINQ's
+loads, r_rowset, the run's planted RTS and the masked ends) costs more than
+r_sw's loop saves, so the break-even is about 16 whole bytes; above it
+nothing changes. The other scenes moved by 10 cycles or less (beachball
++10, its work the same), combat +47 in the full run (alone: 208 cycles
+less flip wait, the same work).
+
+**The bank 7 whole-byte writer, on top.** r_sw's loop (20 cycles a byte)
+now writes, an iteration: docking 849 bytes (about 17,000 cycles), sun 413
+(8,300), approach 387 (7,700), departure 203 (4,100), zone 145 (2,900),
+flight, beachball and rear 11 to 25. An unrolled writer (about 8 cycles a
+byte, entered and left by a planted RTS, about 30 cycles a call, used for
+four whole bytes or more) would save an estimated 6,000 in docking (1.5%),
+3,400 in sun (1.6%), 1,500 in approach, 1,000 in zone, 500 in departure,
+nothing in flight, beachball, rear or combat, and about 1,000 in the
+gate's run, for about 150 bytes of bank 7, which has about 40 free in two
+pieces: room would have to be made first (more cold code to the cold 5
+pass, or the tables and the window relaid). That is about 40 cycles a
+byte in docking but 7 in the gate's run: the user's decision.
+
 **Also remaining:**
 
 * The row runs entered by a jump with a fixed exit (2.4K of bank 5): its
