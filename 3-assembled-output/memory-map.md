@@ -40,7 +40,7 @@
 | bank 7 (flight) | `&95B9-&B3F0` | the renderer's window (bank 7 passes: the disc layer's painter with its strips, the second disc, their operands' patch, then the frame layer's disc part, `gfx-frame.asm`'s and `gfx-merid.asm`'s, which makes the rows) | 7733 | 3 |
 | bank 7 (flight) | `&B3F1-&B3FF` | the disc part's entries (`DPENT%`), which the frame layer calls through `farC` | 15 | 0 |
 | bank 7 (flight) | `&B400-&BFFF` | the workspace: each buffer's disc state (not in the image: `DP_BEGIN` sets it up), buffer 0's sharing its first `&2E2` bytes with `ovload`'s stash of `WP` and the zero page during an overlay's load (`OVSTASH`) | 3072 | 0 |
-| bank 7 (docked) | `&8000-&B3F0` | the set's face lists, the cold pass, `QQ18` | 11388 | 1909 |
+| bank 7 (docked) | `&8000-&B3F0` | the set's face lists, the cold pass, `QQ18` | 11396 | 1901 |
 | bank 7 (docked) | `&B3F1-&BFFF` | the disc part's entries (`DPENT%`: a frame with no disc), then free bytes | 20 | 3067 |
 | bank 5 | `&8000-&97FF` | the 24 row runs, a page each; in their tails the stars' records and variables, `R_LINE`'s, DFS's workspace page between disc commands (`DFSTAIL%`: 64 bytes in each of four), and in tails 7, 8, 10, 15, 17, 18, 19, 20, 21, 22, 23 the flight code's cold 5 pass (`Area: cold 5`: `elite-flight-c5.asm`, `C5_r.bin`; `C5TAILS`), and in the ends of tails 0, 1, 2, 3, 4, 5, 6, 9, from byte 52 on, more of it (`C5_rp.bin`; `C5PTAILS`, `C5POFF`) (free: the 0 other tails with nothing in them, 65 bytes each, the rest of the others, and the cold 5 tails' room) | 6062 | 82 |
 | bank 5 | `&9800-&A7FF` | `R_POLY`, `R_LINE`; at the top, the flight code's cold 5 pass's place `C5LO%` (180 bytes) | 4093 | 3 |
@@ -58,4 +58,4 @@
 | bank 6 | `&BC71-&BFBF` | `FCSLOT`: the face lists of the set loaded | 847 | 0 |
 | bank 6 | `&BFC0-&BFFF` | `FJT`, the dispatcher; in the last 12 bytes the hangar's background's jumps into the bank (`FHV%`) | 58 | 6 |
 
-Free, by place: main RAM 4, main RAM (flight) 0, main RAM (docked) 1047, bank 4 (flight) 15, bank 4 (docked) 3178, bank 7 (flight) 35, bank 7 (docked) 4976, bank 5 203, bank 6 58.
+Free, by place: main RAM 4, main RAM (flight) 0, main RAM (docked) 1047, bank 4 (flight) 15, bank 4 (docked) 3178, bank 7 (flight) 35, bank 7 (docked) 4968, bank 5 203, bank 6 58.

@@ -7226,6 +7226,43 @@ ENDIF
 
 \ ******************************************************************************
 \
+\       Name: CATT
+\       Type: Subroutine
+\   Category: Save and load
+\    Summary: Port: set the drive number in DTW7 and print the catalogue's
+\             title
+\       Area: cold
+\
+\ ------------------------------------------------------------------------------
+\
+\ Port: CATS stored the drive number in DTW7 itself, but DTW7 is an operand
+\ inside MT16, which is in the cold bank, and CATS runs in the home bank, so
+\ the store would land on the home bank's byte at the same address. CATS
+\ calls this instead (through its stub, which pages the cold bank in), so
+\ the store reaches MT16.
+\
+\ ------------------------------------------------------------------------------
+\
+\ Arguments:
+\
+\   A                   The drive number as an ASCII character
+\
+\ ******************************************************************************
+
+.CATT
+
+ STA DTW7               \ Store the drive number in DTW7, so printing extended
+                        \ token 4 will show the correct drive number (as token 4
+                        \ contains the {drive number} jump code, which calls
+                        \ MT16 to print the character in DTW7)
+
+ LDA #4                 \ Print extended token 4, which clears the screen and
+ JMP DETOK              \ prints the boxed-out title "DRIVE {drive number}
+                        \ CATALOGUE", and return from the subroutine using a
+                        \ tail call
+
+\ ******************************************************************************
+\
 \       Name: FEED
 \       Type: Subroutine
 \   Category: Text
@@ -22543,14 +22580,10 @@ ENDIF
                         \ command string at CTLI, so it overwrites the "0" in
                         \ ".0" with the drive number to catalogue
 
- STA DTW7               \ Store the drive number in DTW7, so printing extended
-                        \ token 4 will show the correct drive number (as token 4
-                        \ contains the {drive number} jump code, which calls
-                        \ MT16 to print the character in DTW7)
-
- LDA #4                 \ Print extended token 4, which clears the screen and
- JSR DETOK              \ prints the boxed-out title "DRIVE {drive number}
-                        \ CATALOGUE"
+ JSR CATT               \ Store the drive number in DTW7 and print extended
+                        \ token 4, the boxed-out title "DRIVE {drive number}
+                        \ CATALOGUE" (Port: in CATT, in the cold bank with
+                        \ DTW7, so that the store reaches MT16)
 
  LDA #1                 \ Set the CATF flag to 1, so that the TT26 routine will
  STA CATF               \ print out the disc catalogue correctly
