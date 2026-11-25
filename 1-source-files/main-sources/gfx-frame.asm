@@ -989,8 +989,7 @@ IF _CIRCLES             \ (only PF_HOOK makes records: a build with _CIRCLES)
  BEQ P%+5               \ ones moved with the disc (f_hrec)
  JSR f_hrec
 ENDIF
- LDA #0
- STA f_lay
+ LDA #0                 \ (f_lay: every path sets it)
  STA f_sec
  LDA F_SUON             \ the sun this frame?
  BEQ fds2
@@ -1024,76 +1023,81 @@ ENDIF
  STA R_NDT
  LSR A                  \ (A = 0)
  STA R_NDB
+ STA f_lay
+ STA fpr_ld2+2          \ (the batches write the rows: none kept, f_plrows)
  JMP f_nobounds
 
 \ f_sunrows / f_plrows: a disc's spans into R_NDISCL/R and R_NDT/R_NDB, from
 \ its centre (16-bit screen coordinates) and radius (8-bit), using a cached
 \ half-width table per disc (rebuilt only when the radius changes); the sun
-\ a disc of one colour (R_NDF: f_nobounds)
+\ a disc of one colour (R_NDF: f_nobounds). The rows are kept (Port: the BBC
+\ Master port's, the CPC port's finding 1.4) when the disc is the last
+\ rows' (f_cx to f_r and the table, fpr_ld2's page, are the last rows' key)
+\ and nothing has written over them since: the layer's batches write only
+\ the rows outside R_NDT..R_NDB, and what does write over them (f_disc2's
+\ batches, and the layer's when there is no disc, fds9) clears the page (0:
+\ no table), as the next rows find it. R_NDT and R_NDB are then as
+\ f_discspans left them (only fds9 and f_disc2 change them, and those also
+\ clear the page or make another disc's rows). The window is f_clip's
+\ whenever this runs (F_FRAME sets it before DP_PREP, and nothing changes it
+\ before DP_DRAW), so it is not part of the key
+
+.frw3
+ LDA F_PLY,X            \ the last rows' table: and disc? (what moves first,
+ CMP f_cy               \ first)
+ BNE frw2
+ LDA F_PLX,X
+ CMP f_cx
+ BNE frw2
+ LDA F_PLR,X
+ CMP f_r
+ BNE frw2
+ LDA F_PLY+1,X
+ CMP f_cy+1
+ BNE frw2
+ LDA F_PLX+1,X
+ CMP f_cxh
+ BNE frw2
+ RTS                    \ yes: its rows are kept (C set, as f_discspans
+                        \ leaves it)
 
 .f_sunrows
- JSR f_nobounds
- LDA F_SUX
- STA f_cx
- LDA F_SUX+1
- STA f_cxh
- LDA F_SUY
- STA f_cy
- LDA F_SUY+1
- STA f_cy+1
- LDA F_SUR
- STA f_r
- CMP f_hw2r
- BEQ fsu1
- STA f_hw2r
- LDA #HI(F_HW2)
- STA fhw_st+2
- JSR f_hwbuild
-.fsu1
- LDA #HI(F_HW2)
- STA fpr_ld+2
- STA fkl_ld+2
- STA fkl_ld2+2
- STA fks_ld+2
- STA fks_ld2+2
- STA fpr_ld2+2
- JMP f_discspans
-
+ LSR R_NDF              \ (f_nobounds, in line)
+ LDX #F_SUX - F_PLX     \ the sun's position, radius and table
+ LDY #HI(F_HW2)
+ BNE frw0               \ (always)
 .f_plrows
- LDA F_PLX
+ LDX #0                 \ the planet's
+ LDY #HI(F_HW)
+.frw0
+ CPY fpr_ld2+2          \ the last rows' table? (frw3)
+ BEQ frw3
+ STY fpr_ld+2           \ another table: patch its loads
+ STY fkl_ld+2
+ STY fkl_ld2+2
+ STY fks_ld+2
+ STY fks_ld2+2
+ STY fpr_ld2+2
+.frw2
+ LDA F_PLX,X
  STA f_cx
- LDA F_PLX+1
+ LDA F_PLX+1,X
  STA f_cxh
- LDA F_PLY
+ LDA F_PLY,X
  STA f_cy
- LDA F_PLY+1
+ LDA F_PLY+1,X
  STA f_cy+1
- LDA F_PLR
+ LDA F_PLR,X
  STA f_r
- CMP f_hwr
- BEQ fpr1
- STA f_hwr
- LDA #HI(F_HW)
- STA fhw_st+2
- JSR f_hwbuild
-.fpr1
- LDA #HI(F_HW)
- STA fpr_ld+2
- STA fkl_ld+2
- STA fkl_ld2+2
- STA fks_ld+2
- STA fks_ld2+2
- STA fpr_ld2+2
- JMP f_discspans
+ CMP f_hwr,X            \ the table for another radius: make it
+ BEQ f_discspans
+ STA f_hwr,X
+ STY fhw_st+2
+ JSR f_hwbuild          \ (and on into f_discspans)
  ASSERT LO(F_HW) = 0 AND LO(F_HW2) = 0   \ (page aligned: only the high bytes
                                          \ are patched)
-
-.fds_none
- LDA #1
- STA R_NDT
- LSR A                  \ (NMOS: A = 0, and C set, as every exit of
- STA R_NDB              \ f_discspans leaves it: f_disc2)
- RTS
+ ASSERT F_SUX - F_PLX = F_SUY - F_PLY AND F_SUX - F_PLX = F_SUR - F_PLR
+ ASSERT f_hw2r - f_hwr = F_SUX - F_PLX
 
 .f_discspans            \ rows of the disc (f_cx, f_cy, f_r) within the window
                         \ (every exit sets R_NDT and R_NDB)
@@ -1158,6 +1162,12 @@ ENDIF
  BCS fds_t
  JMP fds_fast           \ (the fast path follows the slow one, out of
                         \ branch range)
+.fds_none
+ LDA #1
+ STA R_NDT
+ LSR A                  \ (NMOS: A = 0, and C set, as every exit of
+ STA R_NDB              \ f_discspans leaves it: f_disc2)
+ RTS
 .fds_t                  \ else, for r = 255, the slow loop (a threshold of r + 1
  LDA f_r                \ would not fit a byte), and for r <= 254 the rows by
  CMP #255               \ thresholds (fkt)
@@ -1635,11 +1645,13 @@ ENDIF
  BEQ fkcy
 
 f_cx = fpr_cx + 1       \ (the operand of ADC # in the slow disc loop)
+.f_hwr EQUB 0           \ the radius F_HW was built for (0 = none)
 .f_cxh EQUB 0           \ high byte of cx
 .f_cy  EQUW 0
 .f_r   EQUB 0
-.f_hwr EQUB 0           \ the radius F_HW was built for (0 = none)
-.f_hw2r EQUB 0          \ the radius F_HW2 was built for
+.f_lay EQUB 0           \ the disc layer: 0 none, 1 the sun, 2 the planet
+.f_hw2r EQUB 0          \ the radius F_HW2 was built for (f_hwr + 6: the
+                        \ two discs' positions in F_PLX to F_SUR are 6 apart)
 
 \ f_hwbuild: table[d] = floor(sqrt(r * r - d * d)) for d = 0 to r (r = f_r,
 \ the table's page patched into fhw_st), by walking x down from r while
@@ -1713,7 +1725,7 @@ f_cx = fpr_cx + 1       \ (the operand of ADC # in the slow disc loop)
 \ (PC_ROWS, gfx-merid.asm; a build with _CIRCLES)
 
 .f_bounds
- JSR f_nobounds
+ LSR R_NDF              \ (f_nobounds, in line)
 IF _CIRCLES
  LDA R_NDT
  CMP R_NDB
@@ -2164,6 +2176,13 @@ FC_PLLE = &5F : FC_PLLO = &AF
  RTS
 
 
+.fd20                   \ (f_disc2 with no second disc)
+ LDX F_BACK             \ none: anything of one on this buffer to erase? If
+ LDA R_S2B,X            \ not, nothing to do (R_NDT and R_NDB are left as
+ CMP R_S2T,X            \ the layer's: f_plrows keeps its rows)
+ BCS fd29
+ RTS
+
 \ f_disc2: the second disc (both the sun and the planet on screen: more
 \ often since the sun is kept near the planet, SUNSC). It is the
 \ smaller disc, and the sun and the planet are the same size (PLANET's radius
@@ -2175,7 +2194,7 @@ FC_PLLE = &5F : FC_PLLO = &AF
 
 .f_disc2
  LDA f_sec
- BEQ fd29
+ BEQ fd20
  CMP #1
  BEQ fd21
  LDA #FC_PLANE          \ (the planet's colour A: the beach ball's sea)
@@ -2232,6 +2251,7 @@ FC_PLLE = &5F : FC_PLLO = &AF
  BCC fd28               \ none, old or new
  LDA #0                 \ one colour, 16 rows a batch, the written extents
  STA f_d2c
+ STA fpr_ld2+2          \ (they write the rows: none kept, f_plrows)
  LDA #16
  STA f_dN
  LDA f_dc2
@@ -2259,7 +2279,6 @@ FC_PLLE = &5F : FC_PLLO = &AF
  STA f_dpr
  RTS
 
-.f_lay   EQUB 0         \ the disc layer: 0 none, 1 the sun, 2 the planet
 .f_sec   EQUB 0         \ the second disc
 .f_nt    EQUB 0         \ the layer's rows this frame (none: 255, 0)
 .f_nb    EQUB 0
