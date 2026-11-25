@@ -49,32 +49,33 @@ make
 
 The original is two programs, the flight code and the docked code, each loading the other from disc when you launch, dock or die, and each filling main RAM below the screen. The port moves both into sideways RAM and keeps the swaps: each program has a **home bank** (bank 4), paged in whenever it runs, and a **cold bank** (bank 7), reached only through far calls, and the other two banks hold the renderer (bank 5, the rasteriser; bank 6, the frame layer, the discs and the lens flare, after a small second cold pass of the flight code's rarely run routines, reached by the same far calls). Main RAM holds the two screen buffers (`&1000` and `&4000`), the dashboard and the split-screen interrupt above them, and the hot code that does not fit in bank 4. As in the Master port, each program's source is emitted in three passes, each in the original's order: a **low pass** of what must stay in main RAM, a **hot pass** flowed by measured sizes through main RAM and bank 4, and a **cold pass** in bank 7 for the docked screens, the text, the missions and the rest of what runs once an event. The ships' edge lists are left out (every ship is drawn from its faces), and some of the flight code's once-an-event code is loaded from disc into bank 7 as two overlays (the charts, the hyperspace jump, the launch and the escape pod; the status, market and inventory screens).
 
-The Model B has 64K of sideways RAM against the Master's 64K plus 20K of shadow RAM, HAZEL and ANDY, so space is tight: after the planets' surfaces, bank 4, main RAM's hot containers and bank 6's cold pass are full, and 96 bytes are free in bank 7, 207 in bank 6 and 1,217 in bank 5 (1,122 of them in the row runs' 65-byte tails). The Master port's kept solid rows for docking do not fit. [docs/memory-map.md](docs/memory-map.md) has the details, and [docs/modelb-memory.md](docs/modelb-memory.md) what the MOS and DFS keep where.
+The Model B has 64K of sideways RAM against the Master's 64K plus 20K of shadow RAM, HAZEL and ANDY, so space is tight: after the planets' surfaces, bank 4, main RAM's hot containers and bank 6's cold pass are full, and 35 bytes are free in bank 7, 47 in bank 6 and 203 in bank 5 (82 of them in the row runs' 65-byte tails). The Master port's kept solid rows for docking do not fit. [docs/memory-map.md](docs/memory-map.md) has the details, and [docs/modelb-memory.md](docs/modelb-memory.md) what the MOS and DFS keep where.
 
 ## Speed
 
-In the gate's flight run (a deterministic pilot's launch, fights, a hyperspace jump and the long approach to the next system's station, 10,000 iterations), the port runs at 7.47 main-loop iterations per emulated second, against the original's 12.63 (the original with the planet's half spin and the sun's parking, as the comparison has it): 0.591 times its speed. Everything is drawn filled, double-buffered, on the same 2 MHz 6502 that runs the game. Most of the gap is the planets' surfaces: with plain disc planets (`make circles=off`) the port runs at 12.87, 1.019 times the original. By scene, over the same run (nearly all of it with a big planet ahead):
+In the gate's flight run (a deterministic pilot's three launches, two dockings and three hyperspace jumps over 10,000 iterations, most of it on the long approaches to big planets), the port runs at 9.15 main-loop iterations per emulated second (218,651 cycles an iteration), against the original's 11.47 (the original with the planet's half spin and the sun's parking, as the comparison has it): 0.797 times its speed. Everything is drawn filled, double-buffered, on the same 2 MHz 6502 that runs the game. Most of the gap is the planets' surfaces: with plain disc planets (`make circles=off`) the port runs at 15.45, 1.346 times the original. By the pilot's phase, over the same run:
 
-| Scene | Iterations | Original (wireframe) | Port | Port, `circles=off` |
+| Phase | Iterations | Original (wireframe) | Port | Port, `circles=off` |
 |---|---:|---:|---:|---:|
-| Open space | 133 | 19.48 | 13.89 | 19.32 |
-| Big planet | 9,670 | 12.75 | 7.43 | 12.96 |
-| Lave, just after launch | 586 | 7.91 | 5.14 | 15.70 |
-| Planet close | 134 | 6.52 | 7.15 | 7.14 |
+| Combat | 1,497 | 8.94 | 8.26 | 23.22 |
+| Hyperspace | 258 | 8.65 | 7.45 | 22.31 |
+| Approach | 8,080 | 12.25 | 9.40 | 14.41 |
 
-The gate's run is the game's own, so its figures move whenever the game's random numbers do. `6-harness/bbench.mjs` times seven frozen scenes instead, in cycles per iteration, here for the previous release (4a0b769) and this build; its noise is about ±1.5%:
+The gate's run is the game's own, so its figures move whenever the game's random numbers do. `6-harness/bbench.mjs` times nine frozen scenes instead, in cycles per iteration, here for the previous release (4d265a0) and this build; its noise is about ±1.5%:
 
 | Scene | Previous release | This build |
 |---|---:|---:|
-| Flight | 232,819 | 227,289 |
-| Combat | 122,603 | 118,957 |
-| Beach ball | 269,798 | 266,741 |
-| Sun | 392,375 | 266,224 |
-| Docking | 499,057 | 479,984 |
-| Station's zone | 454,633 | 417,851 |
-| Rear view | 257,538 | 254,519 |
+| Flight | 166,340 | 164,934 |
+| Combat | 97,684 | 97,764 |
+| Beach ball | 193,346 | 189,199 |
+| Sun | 210,184 | 205,487 |
+| Docking | 389,648 | 372,281 |
+| Station's zone | 320,790 | 316,713 |
+| Rear view | 192,736 | 188,610 |
+| Approach | 202,563 | 194,862 |
+| Departure | 292,246 | 280,663 |
 
-The sun scene takes 32.2% fewer cycles, the station's zone 8.1% and docking 3.8%.
+Docking takes 4.5% fewer cycles, the departure 4.0%, the approach 3.8%, the sun 2.2%, the beach ball and the rear view 2.1%, the station's zone 1.3% and flight 0.8%; combat, held by the 25 a second cap, is unchanged.
 
 ## Testing
 
