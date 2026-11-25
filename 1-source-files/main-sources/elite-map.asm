@@ -394,16 +394,16 @@
                         \ (&0724-&07BF), which includes it there, so that bank 6
                         \ can be built against it
 
- PFVA% = &06E6          \ The circle engine's variables (gfx-merid.asm and
+ PFVA% = &06EB          \ The circle engine's variables (gfx-merid.asm and
  PFVH% = RESH% + 16     \ gfx-planet7.asm, the flight code's planet surface in
- PFVS% = BPSLOT_END%    \ a build with _CIRCLES): 62 bytes at the end of the
+ PFVS% = BPSLOT_END%    \ a build with _CIRCLES): 57 bytes at the end of the
                         \ resident block A, before the glue, and 62 after the
                         \ high resident block, to VEC, in main RAM, and the
                         \ record one PF_HOOK call makes, after the glue (the
                         \ main pass); the 94 bytes after the blueprint slot,
                         \ to the quarter squares, at PFVS%, are the hot pass's
                         \ container at bank 4's top
- ASSERT PFVA% + 62 = GLUE%
+ ASSERT PFVA% + 57 = GLUE%
 
  PF_INWK = &46          \ INWK, for bank 5's part of the planet's surface
                         \ (gfx-planet7.asm's pf_tilt), which is built before the

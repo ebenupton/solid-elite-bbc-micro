@@ -2,6 +2,7 @@
 //
 // node 6-harness/bhsync.mjs [--build b] [--iters 10000] [--screens] [--views]
 //                           [--maxsecs S] [--log FILE] [--ula]
+//                           [--inject N] [--t2skew N] [--adcrace N]
 //
 // Runs the gate's pilot (bpilot.mjs) on a build, as verify.sh does, and
 // timestamps every rising edge of the 6845's horizontal sync and every
@@ -32,7 +33,7 @@ import { parseArgs } from "./args.mjs";
 const JS = process.env.JSBEEB || decodeURIComponent(new URL("node_modules/jsbeeb", import.meta.url).pathname);
 const V = await import(`${JS}/src/video.js`);
 
-const args = parseArgs({ build: "value", iters: "value", screens: "flag", views: "flag", maxsecs: "value", log: "value", ula: "flag", inject: "value", t2skew: "value" });
+const args = parseArgs({ build: "value", iters: "value", screens: "flag", views: "flag", maxsecs: "value", log: "value", ula: "flag", inject: "value", t2skew: "value", adcrace: "value" });
 const B = loadBuild(resolve(args.build || CAND_BUILD));
 const ITERS = +(args.iters || 10000);
 
@@ -177,11 +178,74 @@ function installInject(s) {
         return false;
     });
 }
+// --adcrace N: another interrupt racing the rupture's. Before each firing of
+// the system VIA's timer 1 (the rupture's two points a field), the VIA's
+// CB1 flag, the ADC's end of conversion, is raised d cycles before the timer
+// fires, d going 0, 1, 2 ... N in turn, again and again: the interrupt that
+// the game's handler passes to the MOS lands at every offset across the
+// window in which the timer can fire while the MOS is looking at the flags
+// (the MOS then takes it for the ADC, reads the converter and starts the
+// next conversion, as for a real one). The loader, as the original's, turns
+// the ADC's interrupt off (IER bit 4), and jsbeeb's MOS and DFS leave it so,
+// but another machine's need not (the web player's Model B has it on, and
+// there the race was found): the test turns it on. Every field must still
+// be 312 lines with every horizontal sync 128 cycles, and the rupture must
+// have run twice in it (counted by its write of timer 1's latch, rret: an
+// instruction hook can miss RUPT's first instruction when the harness stops
+// the CPU at an iteration there), but for the fields round the disc's use,
+// when the rupture's timer is stopped and started again (rdin, rdout).
+const ADC = args.adcrace !== undefined ? +args.adcrace : -1;
+let adcN = 0, adcLast = -1e9, adcArmed = false, adcD = 0, ruptN = 0, ruptF0 = -1, ruptF = 0, ruptFld = -1, ruptDisc = -10, ruptBad = 0;
+const ruptOdd = [];
+function ruptField(f, n) {
+    if (f > ruptF0 + 1 && f > ruptDisc + 2 && n !== 2) {
+        ruptBad++;
+        if (ruptOdd.length < 10) ruptOdd.push(`  the rupture ran ${n} times in field ${f} (iteration ${iterNow})`);
+    }
+}
+function installAdcRace(s) {
+    if (ADC < 0) return;
+    const cpu = s._machine.processor, via = cpu.sysvia;
+    cpu.debugWrite.add(addr => {
+        if (addr !== 0xfe47 || !judging || cpu.pc < 0x7700 || cpu.pc >= 0x7970) return false;
+        if (ruptF0 < 0) ruptF0 = ruptFld = fields;
+        if (fields !== ruptFld) {
+            ruptField(ruptFld, ruptF);
+            for (let f = ruptFld + 1; f < fields; f++) ruptField(f, 0);
+            ruptFld = fields; ruptF = 0;
+        }
+        ruptN++; ruptF++;
+        return false;
+    });
+    cpu.debugInstruction.add(() => {
+        if (!judging) return false;
+        if (cpu.ramRomOs[LSY.rdisc] || cpu.ramRomOs[LSY.rblank]) ruptDisc = fields;
+        via._catchUp();
+        if (!(via.ier & 0x10)) { via.ier |= 0x10; via.updateIFR(); }   // (the ADC's interrupt on)
+        const t = via.t1c;
+        if (t > adcLast + 4) { adcArmed = true; adcD = adcN % (ADC + 1); }   // (a new period)
+        adcLast = t;
+        if (adcArmed && t + 3 <= adcD) {
+            adcArmed = false;
+            adcN++;
+            via.ifr |= 0x10;                                    // CB1: the ADC's end of conversion
+            via.updateIFR();
+        }
+        return false;
+    });
+}
 let hooked = false, sess = null;
 const pilot = makePilot({ screens: !!args.screens, views: !!args.views });
 const r = await runElite({ build: B, pilot, iters: ITERS, maxSecs: +(args.maxsecs || 4000), patch: patchCommander,
-    onBoot: s => { hooked = true; install(s); installInject(s); sess = s; }, onIter: i => { iterNow = i; } });
+    onBoot: s => { hooked = true; install(s); installInject(s); installAdcRace(s); sess = s; }, onIter: i => { iterNow = i; } });
 if (INJ >= 0) console.log(`injected delays 0-${INJ} cycles: S1 ${injCount[0]} entries, S2 ${injCount[1]}; switches made late (rslip, to 255): ${sess._machine.processor.ramRomOs[LSY.rslip]}`);
+let adcOk = true;
+if (ADC >= 0) {
+    const nf = fields - Math.max(ruptF0, 0);
+    adcOk = ruptBad === 0 && ruptN > 0;
+    console.log(`ADC race: ends of conversion raised 0-${ADC} cycles before timer 1: ${adcN}; the rupture ran ${ruptN} times in ${nf} fields, other than twice in ${ruptBad} (the disc's fields aside)`);
+    for (const o of ruptOdd) console.log(o);
+}
 const hist = [...intervals.entries()].sort((a, b) => b[1] - a[1]).map(([d, n]) => `${d}:${n}`).join(" ");
 console.log(`iterations ${r.iters}${r.error ? " (stopped: " + r.error + ")" : ""}; horizontal syncs ${nH}; fields ${fields}`);
 console.log(`hsync intervals (2 MHz cycles: count): ${hist}`);
@@ -198,6 +262,6 @@ if (args.ula) console.log(`ULA control writes (value@line cycle: count): ${[...u
 for (const b of badH.slice(0, 10)) console.log(`  hsync interval ${b.interval} at cycle ${b.at} (iteration ${b.iter})`);
 for (const b of badV.slice(0, 10)) console.log(`  a field of ${b.lines} lines (iteration ${b.iter})`);
 if (args.log) writeFileSync(args.log, JSON.stringify({ intervals: Object.fromEntries(intervals), fieldCounts: Object.fromEntries(fieldCounts), badH, badV }));
-const ok = !r.error && r.iters >= ITERS && badH.length === 0 && badV.length === 0;
+const ok = !r.error && r.iters >= ITERS && badH.length === 0 && badV.length === 0 && adcOk;
 console.log(ok ? "HSYNC PASS" : "HSYNC FAIL");
 process.exit(ok ? 0 : 1);

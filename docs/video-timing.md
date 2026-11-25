@@ -140,6 +140,22 @@ passes the interrupt on to the MOS, so the MOS's own timer work runs just
 after a switch, never into one. (Reading timer 2 leaves timer 1's flag for
 the MOS.)
 
+Every other interrupt but the vertical sync goes from `IRQG` to the MOS's
+handler, and the MOS must never take timer 1 for itself: if the timer
+fired after `IRQG` had looked at the flags and before the MOS read them
+(an ADC end of conversion, when the ADC's interrupt is on, can land just
+before a point), the MOS would service it as its clock and clear it,
+`RUPT` would never run, frame B would miss its registers and the 6845
+would lose its vertical sync for fields. So `IRQG` passes such an
+interrupt on with timer 1 hidden from the MOS, in the MOS's mask for the
+system VIA (`&0279`, OSBYTE 233's: the MOS ANDs the flags with it and with
+the enable register): the timer's flag stays pending, and when the MOS
+returns it interrupts again as the rupture's. `IRQG` puts the mask back,
+timer 1 shown, on its way to `RUPT`, which passes the timer to the MOS as
+its clock. `bhsync.mjs --adcrace N` raises the ADC's end of conversion 0
+to N cycles before each firing of the timer, in turn, with the ADC's
+interrupt on.
+
 ### The switch: rwait
 
 `RUPT` comes from `IRQG` with interrupts disabled. `rwait` reads timer 2's

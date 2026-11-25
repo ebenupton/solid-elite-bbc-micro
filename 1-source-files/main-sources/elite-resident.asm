@@ -167,12 +167,13 @@
  BNE pcm3
  INC pcm1+2             \ (a page done: the next one)
  INC pcm2+2
- DEY
- JMP pcm1
+ DEY                    \ (Y >= 0 after: this BPL is effectively a JMP)
+ BPL pcm1
+ ASSERT HI(PROGM_END% - PROGM%) < &80
 
 .pcm3
 
- CPY #0                 \ On the part's last page (Y = 0), stop at its end
+ TYA                    \ On the part's last page (Y = 0), stop at its end
  BNE pcm1
  CPX #LO(PROGM_END% - PROGM%)
  BNE pcm1
@@ -748,7 +749,16 @@ ENDIF
  LDA #%00000010         \ If this is not the vertical sync (CA1), pass it to the
  BIT VIA+&4D            \ MOS, through IRQMOS (the original's handler kept the
  BNE irqv               \ MOS's vector in VEC, at &7FFE, which the docked code
- JMP (IRQMOS)           \ overwrites: the original only rarely needed it)
+                        \ overwrites: the original only rarely needed it) ...
+
+ LDA #%10111111         \ ... with timer 1 hidden from it, in the MOS's mask
+ STA &0279              \ for the system VIA's interrupts (OSBYTE 233's), so
+ JMP (IRQMOS)           \ that if the timer fires before the MOS reads the
+                        \ flags (the ADC's end of conversion can come just
+                        \ before the rupture's point), the MOS does not take
+                        \ it for its clock and clear it: it stays pending,
+                        \ and comes back here as the rupture's when the MOS
+                        \ returns
 
 .irqv
 
@@ -786,9 +796,11 @@ ENDIF
 
 .irqt
 
- JMP RUPT               \ The rupture's two points: switch the 6845's clock and
-                        \ set up the next CRTC frame (RUPT, elite-rupture.asm,
-                        \ which passes the interrupt on to the MOS after it)
+ LDA #&FF               \ The rupture's two points: the MOS may see timer 1
+ STA &0279              \ again (it is its clock), and switch the 6845's clock
+ JMP RUPT               \ and set up the next CRTC frame (RUPT,
+                        \ elite-rupture.asm, which passes the interrupt on to
+                        \ the MOS after it)
 
 .PANR
 
